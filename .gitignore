@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+.nyc_output/
+
+# Production
+.next/
+dist/
+build/
+out/
+
+# Misc
+.DS_Store
+*.env
+.env.local
+.env.*.local
+!.env.example
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Vercel
+.vercel
+
+# Deployment
+.turbo/
+
+# Local development
+*.local.json
+.claude/
+
+# Build artifacts
+*.tsbuildinfo
+
+# Temporary files
+*.tmp
+temp/

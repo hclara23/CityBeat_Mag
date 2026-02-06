@@ -1,0 +1,200 @@
+{
+  "sources": [
+    {
+      "id": "el-paso-times",
+      "name": "El Paso Times",
+      "type": "rss",
+      "url": "https://www.elpasotimes.com/feed/",
+      "category": "news",
+      "enabled": true,
+      "priority": 1,
+      "updateInterval": 3600,
+      "geoFilter": {
+        "areas": ["el-paso-county", "horizon", "socorro", "clint"]
+      }
+    },
+    {
+      "id": "abc-7-news",
+      "name": "ABC 7 News - El Paso",
+      "type": "rss",
+      "url": "https://www.abc-7.com/rss",
+      "category": "news",
+      "enabled": true,
+      "priority": 1,
+      "updateInterval": 3600,
+      "geoFilter": {
+        "areas": ["el-paso-county", "horizon", "socorro", "clint"]
+      }
+    },
+    {
+      "id": "las-cruces-sun-news",
+      "name": "Las Cruces Sun News",
+      "type": "rss",
+      "url": "https://www.lcsun-news.com/feed/",
+      "category": "news",
+      "enabled": true,
+      "priority": 2,
+      "updateInterval": 3600,
+      "geoFilter": {
+        "areas": ["las-cruces"]
+      }
+    },
+    {
+      "id": "kvia-news",
+      "name": "KVIA News",
+      "type": "rss",
+      "url": "https://www.kvia.com/rss",
+      "category": "news",
+      "enabled": true,
+      "priority": 1,
+      "updateInterval": 3600,
+      "geoFilter": {
+        "areas": ["el-paso-county"]
+      }
+    },
+    {
+      "id": "ep-business-journal",
+      "name": "El Paso Business Journal",
+      "type": "rss",
+      "url": "https://www.bizjournals.com/elpaso/rss",
+      "category": "business",
+      "enabled": true,
+      "priority": 2,
+      "updateInterval": 7200,
+      "geoFilter": {
+        "areas": ["el-paso-county", "las-cruces"]
+      }
+    },
+    {
+      "id": "ep-events",
+      "name": "El Paso Events",
+      "type": "rss",
+      "url": "https://events.elpasotimes.com/feed",
+      "category": "events",
+      "enabled": true,
+      "priority": 2,
+      "updateInterval": 7200,
+      "geoFilter": {
+        "areas": ["el-paso-county"]
+      }
+    },
+    {
+      "id": "utep-news",
+      "name": "UTEP News",
+      "type": "rss",
+      "url": "https://www.utep.edu/newsfeed/",
+      "category": "news",
+      "enabled": true,
+      "priority": 2,
+      "updateInterval": 7200,
+      "geoFilter": {
+        "areas": ["el-paso-county"]
+      }
+    },
+    {
+      "id": "ep-community-culture",
+      "name": "El Paso Culture & Arts",
+      "type": "rss",
+      "url": "https://elpaso.culturaldistrict.org/feed",
+      "category": "culture",
+      "enabled": true,
+      "priority": 3,
+      "updateInterval": 7200,
+      "geoFilter": {
+        "areas": ["el-paso-county"]
+      }
+    },
+    {
+      "id": "twitter-ep-city",
+      "name": "City of El Paso Twitter",
+      "type": "twitter",
+      "url": "https://twitter.com/CityofElPaso",
+      "category": "news",
+      "enabled": false,
+      "priority": 1,
+      "updateInterval": 1800,
+      "keywords": ["breaking", "update", "alert"],
+      "geoFilter": {
+        "areas": ["el-paso-county"]
+      }
+    },
+    {
+      "id": "newsapi-ep",
+      "name": "NewsAPI - El Paso",
+      "type": "newsapi",
+      "url": "https://newsapi.org/v2/everything",
+      "category": "news",
+      "enabled": true,
+      "priority": 2,
+      "updateInterval": 3600,
+      "keywords": ["El Paso", "Ciudad Juárez", "border", "New Mexico"],
+      "apiKey": "${NEWS_API_KEY}",
+      "geoFilter": {
+        "areas": ["el-paso-county", "horizon", "socorro", "clint", "las-cruces"]
+      }
+    }
+  ],
+  "geoAreas": {
+    "el-paso-county": {
+      "name": "El Paso County",
+      "center": {
+        "lat": 31.7683,
+        "lng": -106.4425
+      },
+      "radius_km": 30
+    },
+    "horizon": {
+      "name": "Horizon",
+      "center": {
+        "lat": 31.8706,
+        "lng": -106.5694
+      },
+      "radius_km": 15
+    },
+    "socorro": {
+      "name": "Socorro",
+      "center": {
+        "lat": 31.6597,
+        "lng": -106.4056
+      },
+      "radius_km": 10
+    },
+    "clint": {
+      "name": "Clint",
+      "center": {
+        "lat": 31.5394,
+        "lng": -106.2544
+      },
+      "radius_km": 8
+    },
+    "las-cruces": {
+      "name": "Las Cruces",
+      "center": {
+        "lat": 32.6397,
+        "lng": -106.4621
+      },
+      "radius_km": 20
+    }
+  },
+  "contentFilters": {
+    "excludeKeywords": [
+      "spam",
+      "advertisement",
+      "clickbait",
+      "fake news"
+    ],
+    "includeKeywords": {
+      "news": ["breaking", "breaking news", "developing", "update"],
+      "business": ["business", "company", "startup", "job", "hiring", "earnings"],
+      "events": ["event", "concert", "festival", "conference", "meeting"],
+      "culture": ["art", "culture", "museum", "theater", "performance", "artist"]
+    }
+  },
+  "translationConfig": {
+    "sourceLanguage": "en",
+    "targetLanguage": "es",
+    "translateHeadlines": true,
+    "translateContent": true,
+    "service": "deepl"
+  }
+}

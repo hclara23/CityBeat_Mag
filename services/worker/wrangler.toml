@@ -1,0 +1,38 @@
+name = "citybeat-worker"
+type = "service"
+main = "src/index.ts"
+compatibility_date = "2025-07-18"
+
+[env.production]
+routes = [
+  { pattern = "api.citybeatmag.co/*", zone_name = "citybeatmag.co" }
+]
+
+[[triggers.crons]]
+cron = "0 7 * * *"
+
+[[triggers.crons]]
+cron = "0 10 * * *"
+
+[[triggers.crons]]
+cron = "0 13 * * *"
+
+[[triggers.crons]]
+cron = "0 16 * * *"
+
+[[triggers.crons]]
+cron = "0 19 * * *"
+
+[env.production.vars]
+SANITY_PROJECT_ID = ""
+SANITY_DATASET = "production"
+STRIPE_WEBHOOK_SECRET = ""
+SUPABASE_URL = ""
+
+[env.production.secrets]
+SANITY_WRITE_TOKEN = ""
+STRIPE_SECRET_KEY = ""
+DEEPL_API_KEY = ""
+SUPABASE_SERVICE_ROLE_KEY = ""
+RESEND_API_KEY = ""
+NEWS_API_KEY = ""

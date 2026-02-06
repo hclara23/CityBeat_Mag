@@ -1,0 +1,365 @@
+{
+  "common": {
+    "language": "Language",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "tryAgain": "Try Again",
+    "cancel": "Cancel",
+    "close": "Close",
+    "processing": "Processing...",
+    "selectPlan": "Select Plan",
+    "selected": "Selected",
+    "proceedToCheckout": "Proceed to Checkout",
+    "proceedingToCheckout": "Proceeding to Checkout...",
+    "month": "/month",
+    "post": "/post"
+  },
+  "home": {
+    "title": "Advertise With CityBeat",
+    "subtitle": "Reach thousands of engaged readers across El Paso County and surrounding areas",
+    "cta1": "Contact Sales",
+    "cta2": "Learn More",
+    "browseAll": "Browse All Options",
+    "contactSales": "Contact Sales",
+    "stats": {
+      "readers": "Monthly readers",
+      "coverage": "Coverage areas",
+      "languages": "Languages (EN/ES)",
+      "tracking": "Campaign tracking"
+    },
+    "solutions": "Advertising Solutions",
+    "solutionsDesc": "Choose the perfect advertising format for your business",
+    "newsletter": {
+      "title": "Newsletter Sponsorship",
+      "description": "Reach engaged subscribers in our daily newsletter",
+      "price": "$500",
+      "period": "/month",
+      "features": [
+        "Featured sponsorship placement",
+        "Sent to 5,000+ subscribers daily",
+        "Month-long campaign",
+        "Click tracking and analytics"
+      ]
+    },
+    "sponsored": {
+      "title": "Sponsored Posts",
+      "description": "Feature your content directly in our news feed",
+      "price": "$750+",
+      "period": "/post",
+      "features": [
+        "Custom content placement",
+        "Appears alongside editorial posts",
+        "Flexible package options",
+        "Advanced analytics included"
+      ]
+    },
+    "banner": {
+      "title": "Category Banners",
+      "description": "High-visibility placement on category pages",
+      "price": "$300+",
+      "period": "/month",
+      "features": [
+        "Above-the-fold positioning",
+        "Multiple category options",
+        "Responsive design",
+        "Monthly billing available"
+      ]
+    },
+    "whyChoose": "Why Advertise With CityBeat?",
+    "localImpact": "Local Impact",
+    "localImpactDesc": "We focus exclusively on El Paso County and surrounding areas. Your message reaches people who live and work in your community.",
+    "localFeatures": [
+      "El Paso County focus",
+      "Multi-area coverage",
+      "Regional reach"
+    ],
+    "bilingualReach": "Bilingual Reach",
+    "bilingualReachDesc": "All content is available in English and Spanish. Reach the entire community regardless of language preference.",
+    "bilingualFeatures": [
+      "English content",
+      "Spanish content",
+      "Bilingual interface"
+    ],
+    "analytics": "Transparent Analytics",
+    "analyticsDesc": "Track every impression, click, and interaction. Real-time dashboards show exactly how your advertising is performing.",
+    "analyticsFeatures": [
+      "Real-time tracking",
+      "Click-through rates",
+      "Engagement metrics"
+    ],
+    "flexible": "Flexible Options",
+    "flexibleDesc": "Whether you want a one-time sponsored post or ongoing sponsorship, we have a solution for your budget.",
+    "flexibleFeatures": [
+      "Pay per post",
+      "Monthly subscriptions",
+      "Custom packages"
+    ],
+    "ready": "Ready to Get Started?",
+    "readyDesc": "Choose an advertising option above to begin. Questions? Contact our sales team.",
+    "copyright": "© 2024 CityBeat Magazine. All rights reserved."
+  },
+  "checkout": {
+    "title": "Advertiser Information",
+    "email": "Email Address",
+    "emailPlaceholder": "you@company.com",
+    "companyName": "Company Name",
+    "companyPlaceholder": "Your Company",
+    "contactName": "Contact Name",
+    "contactPlaceholder": "John Doe",
+    "phone": "Phone Number",
+    "phonePlaceholder": "+1 (555) 000-0000",
+    "website": "Website",
+    "websitePlaceholder": "https://yourcompany.com",
+    "websiteOptional": "(optional)",
+    "continueToPayment": "Continue to Payment",
+    "processingPayment": "Processing..."
+  },
+  "success": {
+    "title": "Payment Successful",
+    "description": "Thank you for your purchase",
+    "processing": "Processing your payment...",
+    "failed": "Payment Failed",
+    "noSessionId": "No session ID provided",
+    "confirmationSent": "A confirmation email has been sent to",
+    "confirmationMessage": "Our team will review your ad and contact you within 24 hours.",
+    "orderDetails": "Order Details",
+    "company": "Company",
+    "companyName": "Company Name",
+    "adType": "Ad Type",
+    "amount": "Amount",
+    "email": "Email",
+    "paymentStatus": "Payment Status",
+    "backToHome": "Back to Home",
+    "viewDashboard": "View Dashboard",
+    "viewAds": "View Ads"
+  },
+  "errors": {
+    "emailRequired": "Email is required",
+    "companyNameRequired": "Company name is required",
+    "contactNameRequired": "Contact name is required",
+    "phoneRequired": "Phone is required",
+    "invalidEmail": "Please enter a valid email address",
+    "invalidPhone": "Please enter a valid phone number",
+    "sessionNotFound": "Payment session not found",
+    "paymentFailed": "Payment failed. Please try again."
+  },
+  "newsletter": {
+    "title": "Newsletter Sponsorship",
+    "subtitle": "Reach 5,000+ engaged subscribers with our daily newsletter. Perfect for building brand awareness and driving customer action.",
+    "benefits": [
+      {
+        "icon": "📧",
+        "title": "Daily Reach",
+        "description": "Your message goes to 5,000+ subscribers every single day"
+      },
+      {
+        "icon": "👥",
+        "title": "Engaged Audience",
+        "description": "Average 35% open rate with high click-through engagement"
+      },
+      {
+        "icon": "📊",
+        "title": "Full Analytics",
+        "description": "Track opens, clicks, and conversions in real-time"
+      }
+    ],
+    "sampleHeader": "Sample Newsletter Layout",
+    "sponsorshipIncludes": "Your Sponsorship",
+    "sponsorshipFeatures": [
+      "Company logo (100x100px)",
+      "Sponsorship message (50-100 words)",
+      "Clickable link to your website",
+      "Premium placement above content"
+    ],
+    "analyticsIncludes": "Analytics & Reporting",
+    "analyticsFeatures": [
+      "Real-time open rates",
+      "Click-through tracking",
+      "Subscriber demographics",
+      "Monthly performance reports"
+    ],
+    "whatsIncluded": "What's Included",
+    "pricingPlans": "Pricing Plans",
+    "faq": "Frequently Asked Questions",
+    "faqItems": [
+      {
+        "question": "How often does my sponsorship appear?",
+        "answer": "Your sponsorship appears at the top of every CityBeat Daily newsletter sent during your campaign period. We send one newsletter each morning."
+      },
+      {
+        "question": "Can I change my sponsorship message?",
+        "answer": "Yes! You can update your sponsorship message, logo, and link at any time through your dashboard. Changes are reflected in the next day's newsletter."
+      },
+      {
+        "question": "What are typical open rates?",
+        "answer": "CityBeat Daily averages a 35% open rate with 8-12% click-through rate on sponsored links. This is well above industry averages for local newsletters."
+      },
+      {
+        "question": "Is there a minimum commitment?",
+        "answer": "No! You can sponsor for just one month if you want to test it out. Many of our sponsors renew after seeing the results."
+      },
+      {
+        "question": "Can I target specific neighborhoods?",
+        "answer": "Our newsletter reaches across all of El Paso County, Horizon, Socorro, Clint, and Las Cruces. We don't offer neighborhood-level targeting, but you can filter by subscriber location in your analytics."
+      }
+    ],
+    "monthly": "Monthly",
+    "monthlyDesc": "One month of newsletter sponsorship",
+    "quarterly": "Quarterly",
+    "quarterlyDesc": "Three months (Save $150)",
+    "annual": "Annual",
+    "annualDesc": "Full year (Save $1,000)",
+    "getStarted": "Get Started"
+  },
+  "sponsored": {
+    "title": "Sponsored Posts",
+    "subtitle": "Feature your content directly in our news feed. Reach thousands of engaged readers across El Paso County.",
+    "benefits": [
+      {
+        "icon": "∞",
+        "title": "Direct Content",
+        "description": "Your content appears alongside editorial posts in our news feed"
+      },
+      {
+        "icon": "📊",
+        "title": "Analytics",
+        "description": "Track views, clicks, and engagement on your sponsored content"
+      },
+      {
+        "icon": "🎯",
+        "title": "Targeted",
+        "description": "Choose content categories to reach your ideal audience"
+      }
+    ],
+    "pricingOptions": "Pricing Options",
+    "singlePost": "Single Post",
+    "singlePostDesc": "One sponsored post placement",
+    "threePost": "3-Post Package",
+    "threePostDesc": "Three sponsored posts (save $250)",
+    "monthlyUnlimited": "Monthly Unlimited",
+    "monthlyUnlimitedDesc": "Unlimited posts for one month",
+    "faq": "Frequently Asked Questions",
+    "faqItems": [
+      {
+        "question": "What is a sponsored post?",
+        "answer": "A sponsored post is promotional content created by you that appears in our news feed alongside editorial content. It's clearly labeled as sponsored and reaches all our readers across El Paso County and surrounding areas."
+      },
+      {
+        "question": "Who writes the content?",
+        "answer": "You provide the content, and our editorial team reviews it for quality and brand alignment. We can also help you write the post for an additional fee."
+      },
+      {
+        "question": "How long does content stay live?",
+        "answer": "Sponsored posts remain featured for 7 days from publication. After that, they're archived but remain accessible on your company profile."
+      },
+      {
+        "question": "What analytics are included?",
+        "answer": "You'll get access to a dashboard showing views, unique visitors, click-through rates, and engagement metrics for your content."
+      }
+    ],
+    "getStarted": "Get Started"
+  },
+  "banners": {
+    "title": "Category Banner Advertising",
+    "subtitle": "Get prominent placement across our most-visited category pages. Perfect for brand awareness and driving traffic to your business.",
+    "benefits": [
+      {
+        "icon": "👁️",
+        "title": "High Visibility",
+        "description": "Above-the-fold placement ensures maximum visibility"
+      },
+      {
+        "icon": "🎯",
+        "title": "Targeted",
+        "description": "Reach users interested in specific topics"
+      },
+      {
+        "icon": "📱",
+        "title": "Responsive",
+        "description": "Perfect on mobile, tablet, and desktop"
+      },
+      {
+        "icon": "🔍",
+        "title": "Trackable",
+        "description": "Full analytics on impressions and clicks"
+      }
+    ],
+    "availablePlacements": "Available Placements",
+    "bannerLocations": [
+      {
+        "name": "News Category",
+        "image": "📰",
+        "traffic": "15,000+ monthly views",
+        "description": "Prominent placement at the top of our News category",
+        "price": "$300"
+      },
+      {
+        "name": "Business Category",
+        "image": "💼",
+        "traffic": "8,500+ monthly views",
+        "description": "Reach business owners and professionals",
+        "price": "$300"
+      },
+      {
+        "name": "Events Category",
+        "image": "🎉",
+        "traffic": "6,200+ monthly views",
+        "description": "Connect with event planners and attendees",
+        "price": "$300"
+      },
+      {
+        "name": "Culture Category",
+        "image": "🎭",
+        "traffic": "4,800+ monthly views",
+        "description": "Featured in our culture and arts coverage",
+        "price": "$300"
+      },
+      {
+        "name": "Homepage Banner",
+        "image": "⭐",
+        "traffic": "25,000+ monthly views",
+        "description": "High-visibility placement on our homepage",
+        "price": "$500"
+      },
+      {
+        "name": "Sidebar Bundle",
+        "image": "📍",
+        "traffic": "40,000+ monthly views",
+        "description": "All category pages plus homepage sidebar (20% savings)",
+        "price": "$400"
+      }
+    ],
+    "specifications": "Banner Specifications",
+    "standardBanner": "Standard Banner (300x250)",
+    "standardBannerSpecs": [
+      "Dimensions: 300px width × 250px height",
+      "Format: JPG, PNG, or GIF",
+      "File size: Up to 100KB",
+      "Placement: Sidebar on all pages"
+    ],
+    "leaderboard": "Leaderboard (728x90)",
+    "leaderboardSpecs": [
+      "Dimensions: 728px width × 90px height",
+      "Format: JPG, PNG, or GIF",
+      "File size: Up to 100KB",
+      "Placement: Above category content"
+    ],
+    "mobileBanner": "Mobile Banner (320x50)",
+    "mobileBannerSpecs": [
+      "Dimensions: 320px width × 50px height",
+      "Format: JPG, PNG, or GIF",
+      "File size: Up to 75KB",
+      "Placement: Mobile devices"
+    ],
+    "features": "Features",
+    "featuresSpecs": [
+      "Monthly renewal",
+      "Easy banner updates",
+      "Click-through tracking",
+      "No setup fees"
+    ],
+    "browsePlacements": "Browse Placements",
+    "selectBanner": "Select Banner",
+    "month": "/month"
+  }
+}

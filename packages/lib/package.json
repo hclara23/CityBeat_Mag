@@ -1,0 +1,31 @@
+{
+  "name": "@citybeat/lib",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "import": "./index.ts",
+      "types": "./index.ts"
+    },
+    "./i18n": {
+      "import": "./i18n/index.ts",
+      "types": "./i18n/index.ts"
+    },
+    "./geo": {
+      "import": "./geo/index.ts",
+      "types": "./geo/index.ts"
+    },
+    "./tracking": {
+      "import": "./tracking/index.ts",
+      "types": "./tracking/index.ts"
+    }
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.0"
+  }
+}

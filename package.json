@@ -1,0 +1,23 @@
+{
+  "name": "citybeat-mag",
+  "version": "1.0.0",
+  "description": "CityBeat - Bilingual local magazine (EN/ES)",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*",
+    "sanity"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check"
+  },
+  "devDependencies": {
+    "turbo": "^1.10.16"
+  },
+  "packageManager": "npm@9.0.0"
+}

@@ -1,0 +1,365 @@
+{
+  "common": {
+    "language": "Idioma",
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "tryAgain": "Intentar de Nuevo",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "processing": "Procesando...",
+    "selectPlan": "Seleccionar Plan",
+    "selected": "Seleccionado",
+    "proceedToCheckout": "Proceder al Pago",
+    "proceedingToCheckout": "Procediendo al Pago...",
+    "month": "/mes",
+    "post": "/publicación"
+  },
+  "home": {
+    "title": "Anuncia con CityBeat",
+    "subtitle": "Llega a miles de lectores comprometidos en el Condado de El Paso y áreas cercanas",
+    "cta1": "Contactar Ventas",
+    "cta2": "Más Información",
+    "browseAll": "Ver Todas las Opciones",
+    "contactSales": "Contactar Ventas",
+    "stats": {
+      "readers": "Lectores mensuales",
+      "coverage": "Áreas de cobertura",
+      "languages": "Idiomas (EN/ES)",
+      "tracking": "Seguimiento de campañas"
+    },
+    "solutions": "Soluciones Publicitarias",
+    "solutionsDesc": "Elige el formato publicitario perfecto para tu negocio",
+    "newsletter": {
+      "title": "Patrocinio de Boletín",
+      "description": "Llega a nuestros suscriptores comprometidos en el boletín diario",
+      "price": "$500",
+      "period": "/mes",
+      "features": [
+        "Colocación de patrocinio destacado",
+        "Enviado a 5,000+ suscriptores diarios",
+        "Campaña de un mes",
+        "Seguimiento de clics y análisis"
+      ]
+    },
+    "sponsored": {
+      "title": "Publicaciones Patrocinadas",
+      "description": "Presenta tu contenido directamente en nuestro feed de noticias",
+      "price": "$750+",
+      "period": "/publicación",
+      "features": [
+        "Colocación de contenido personalizado",
+        "Aparece junto a publicaciones editoriales",
+        "Opciones de paquetes flexibles",
+        "Análisis avanzado incluido"
+      ]
+    },
+    "banner": {
+      "title": "Banners de Categoría",
+      "description": "Colocación de alta visibilidad en páginas de categoría",
+      "price": "$300+",
+      "period": "/mes",
+      "features": [
+        "Posicionamiento sobre el pliegue",
+        "Múltiples opciones de categoría",
+        "Diseño responsivo",
+        "Facturación mensual disponible"
+      ]
+    },
+    "whyChoose": "¿Por Qué Anunciar con CityBeat?",
+    "localImpact": "Impacto Local",
+    "localImpactDesc": "Nos enfocamos exclusivamente en el Condado de El Paso y áreas circundantes. Tu mensaje llega a personas que viven y trabajan en tu comunidad.",
+    "localFeatures": [
+      "Enfoque en Condado de El Paso",
+      "Cobertura multiárea",
+      "Alcance regional"
+    ],
+    "bilingualReach": "Alcance Bilingüe",
+    "bilingualReachDesc": "Todo el contenido está disponible en inglés y español. Llega a toda la comunidad sin importar la preferencia de idioma.",
+    "bilingualFeatures": [
+      "Contenido en inglés",
+      "Contenido en español",
+      "Interfaz bilingüe"
+    ],
+    "analytics": "Análisis Transparente",
+    "analyticsDesc": "Rastrea cada impresión, clic e interacción. Los paneles en tiempo real muestran exactamente cómo se desempeña tu publicidad.",
+    "analyticsFeatures": [
+      "Seguimiento en tiempo real",
+      "Tasas de clics",
+      "Métricas de compromiso"
+    ],
+    "flexible": "Opciones Flexibles",
+    "flexibleDesc": "Ya sea que desees una publicación patrocinada única o un patrocinio continuo, tenemos una solución para tu presupuesto.",
+    "flexibleFeatures": [
+      "Pago por publicación",
+      "Suscripciones mensuales",
+      "Paquetes personalizados"
+    ],
+    "ready": "¿Listo para Comenzar?",
+    "readyDesc": "Elige una opción publicitaria arriba para comenzar. ¿Preguntas? Contacta a nuestro equipo de ventas.",
+    "copyright": "© 2024 Revista CityBeat. Todos los derechos reservados."
+  },
+  "checkout": {
+    "title": "Información del Anunciante",
+    "email": "Dirección de Correo Electrónico",
+    "emailPlaceholder": "tu@empresa.com",
+    "companyName": "Nombre de la Empresa",
+    "companyPlaceholder": "Tu Empresa",
+    "contactName": "Nombre de Contacto",
+    "contactPlaceholder": "Juan Pérez",
+    "phone": "Número de Teléfono",
+    "phonePlaceholder": "+1 (555) 000-0000",
+    "website": "Sitio Web",
+    "websitePlaceholder": "https://tuempresa.com",
+    "websiteOptional": "(opcional)",
+    "continueToPayment": "Continuar al Pago",
+    "processingPayment": "Procesando..."
+  },
+  "success": {
+    "title": "Pago Exitoso",
+    "description": "Gracias por tu compra",
+    "processing": "Procesando tu pago...",
+    "failed": "Pago Fallido",
+    "noSessionId": "No se proporcionó ID de sesión",
+    "confirmationSent": "Un correo de confirmación ha sido enviado a",
+    "confirmationMessage": "Nuestro equipo revisará tu anuncio y se comunicará contigo dentro de 24 horas.",
+    "orderDetails": "Detalles del Pedido",
+    "company": "Empresa",
+    "companyName": "Nombre de la Empresa",
+    "adType": "Tipo de Publicidad",
+    "amount": "Cantidad",
+    "email": "Correo Electrónico",
+    "paymentStatus": "Estado de Pago",
+    "backToHome": "Volver al Inicio",
+    "viewDashboard": "Ver Panel",
+    "viewAds": "Ver Anuncios"
+  },
+  "errors": {
+    "emailRequired": "El correo electrónico es requerido",
+    "companyNameRequired": "El nombre de la empresa es requerido",
+    "contactNameRequired": "El nombre de contacto es requerido",
+    "phoneRequired": "El teléfono es requerido",
+    "invalidEmail": "Por favor ingresa una dirección de correo válida",
+    "invalidPhone": "Por favor ingresa un número de teléfono válido",
+    "sessionNotFound": "Sesión de pago no encontrada",
+    "paymentFailed": "El pago falló. Por favor intenta de nuevo."
+  },
+  "newsletter": {
+    "title": "Patrocinio de Boletín",
+    "subtitle": "Llega a 5,000+ suscriptores comprometidos con nuestro boletín diario. Perfecto para construir conciencia de marca e impulsar la acción de los clientes.",
+    "benefits": [
+      {
+        "icon": "📧",
+        "title": "Alcance Diario",
+        "description": "Tu mensaje llega a 5,000+ suscriptores cada día"
+      },
+      {
+        "icon": "👥",
+        "title": "Audiencia Comprometida",
+        "description": "Tasa de apertura promedio del 35% con alto engagement en clics"
+      },
+      {
+        "icon": "📊",
+        "title": "Análisis Completo",
+        "description": "Rastrea aperturas, clics y conversiones en tiempo real"
+      }
+    ],
+    "sampleHeader": "Ejemplo de Diseño de Boletín",
+    "sponsorshipIncludes": "Tu Patrocinio",
+    "sponsorshipFeatures": [
+      "Logo de la empresa (100x100px)",
+      "Mensaje de patrocinio (50-100 palabras)",
+      "Enlace clickeable a tu sitio web",
+      "Colocación premium sobre contenido"
+    ],
+    "analyticsIncludes": "Análisis e Informes",
+    "analyticsFeatures": [
+      "Tasas de apertura en tiempo real",
+      "Seguimiento de clics",
+      "Datos demográficos de suscriptores",
+      "Informes de rendimiento mensuales"
+    ],
+    "whatsIncluded": "Qué se Incluye",
+    "pricingPlans": "Planes de Precios",
+    "faq": "Preguntas Frecuentes",
+    "faqItems": [
+      {
+        "question": "¿Con qué frecuencia aparece mi patrocinio?",
+        "answer": "Tu patrocinio aparece en la parte superior de cada boletín CityBeat Daily enviado durante tu período de campaña. Enviamos un boletín cada mañana."
+      },
+      {
+        "question": "¿Puedo cambiar mi mensaje de patrocinio?",
+        "answer": "¡Sí! Puedes actualizar tu mensaje de patrocinio, logo y enlace en cualquier momento a través de tu panel. Los cambios se reflejan en el boletín del día siguiente."
+      },
+      {
+        "question": "¿Cuáles son las tasas de apertura típicas?",
+        "answer": "CityBeat Daily tiene una tasa de apertura promedio del 35% con una tasa de clics del 8-12% en enlaces patrocinados. Esto está muy por encima de los promedios de la industria para boletines locales."
+      },
+      {
+        "question": "¿Hay un compromiso mínimo?",
+        "answer": "¡No! Puedes patrocinar solo un mes si quieres probarlo. Muchos de nuestros patrocinadores renuevan después de ver los resultados."
+      },
+      {
+        "question": "¿Puedo dirigirme a vecindarios específicos?",
+        "answer": "Nuestro boletín llega a todo el Condado de El Paso, Horizon, Socorro, Clint y Las Cruces. No ofrecemos segmentación a nivel de vecindario, pero puedes filtrar por ubicación del suscriptor en tu análisis."
+      }
+    ],
+    "monthly": "Mensual",
+    "monthlyDesc": "Un mes de patrocinio de boletín",
+    "quarterly": "Trimestral",
+    "quarterlyDesc": "Tres meses (Ahorra $150)",
+    "annual": "Anual",
+    "annualDesc": "Año completo (Ahorra $1,000)",
+    "getStarted": "Comenzar"
+  },
+  "sponsored": {
+    "title": "Publicaciones Patrocinadas",
+    "subtitle": "Presenta tu contenido directamente en nuestro feed de noticias. Llega a miles de lectores comprometidos en el Condado de El Paso.",
+    "benefits": [
+      {
+        "icon": "∞",
+        "title": "Contenido Directo",
+        "description": "Tu contenido aparece junto a publicaciones editoriales en nuestro feed de noticias"
+      },
+      {
+        "icon": "📊",
+        "title": "Análisis",
+        "description": "Rastrea vistas, clics y engagement en tu contenido patrocinado"
+      },
+      {
+        "icon": "🎯",
+        "title": "Dirigido",
+        "description": "Elige categorías de contenido para llegar a tu audiencia ideal"
+      }
+    ],
+    "pricingOptions": "Opciones de Precios",
+    "singlePost": "Publicación Única",
+    "singlePostDesc": "Una colocación de publicación patrocinada",
+    "threePost": "Paquete de 3 Publicaciones",
+    "threePostDesc": "Tres publicaciones patrocinadas (ahorra $250)",
+    "monthlyUnlimited": "Ilimitado Mensual",
+    "monthlyUnlimitedDesc": "Publicaciones ilimitadas por un mes",
+    "faq": "Preguntas Frecuentes",
+    "faqItems": [
+      {
+        "question": "¿Qué es una publicación patrocinada?",
+        "answer": "Una publicación patrocinada es contenido promocional creado por ti que aparece en nuestro feed de noticias junto con contenido editorial. Está claramente marcada como patrocinada y llega a todos nuestros lectores en el Condado de El Paso y áreas circundantes."
+      },
+      {
+        "question": "¿Quién escribe el contenido?",
+        "answer": "Tú proporcionas el contenido, y nuestro equipo editorial lo revisa para asegurar la calidad y alineación de marca. También podemos ayudarte a escribir la publicación por una tarifa adicional."
+      },
+      {
+        "question": "¿Cuánto tiempo permanece el contenido en vivo?",
+        "answer": "Las publicaciones patrocinadas permanecen destacadas durante 7 días desde su publicación. Después de eso, se archivan pero siguen siendo accesibles en tu perfil de empresa."
+      },
+      {
+        "question": "¿Qué análisis se incluye?",
+        "answer": "Tendrás acceso a un panel mostrando vistas, visitantes únicos, tasas de clics y métricas de engagement para tu contenido."
+      }
+    ],
+    "getStarted": "Comenzar"
+  },
+  "banners": {
+    "title": "Publicidad en Banners de Categoría",
+    "subtitle": "Obtén una colocación prominente en nuestras páginas de categoría más visitadas. Perfecto para conciencia de marca e impulsar tráfico a tu negocio.",
+    "benefits": [
+      {
+        "icon": "👁️",
+        "title": "Alta Visibilidad",
+        "description": "La colocación sobre el pliegue asegura máxima visibilidad"
+      },
+      {
+        "icon": "🎯",
+        "title": "Dirigido",
+        "description": "Llega a usuarios interesados en temas específicos"
+      },
+      {
+        "icon": "📱",
+        "title": "Responsivo",
+        "description": "Perfecto en dispositivos móviles, tabletas y escritorio"
+      },
+      {
+        "icon": "🔍",
+        "title": "Rastreable",
+        "description": "Análisis completo de impresiones y clics"
+      }
+    ],
+    "availablePlacements": "Colocaciones Disponibles",
+    "bannerLocations": [
+      {
+        "name": "Categoría de Noticias",
+        "image": "📰",
+        "traffic": "15,000+ visualizaciones mensuales",
+        "description": "Colocación prominente en la parte superior de nuestra categoría de Noticias",
+        "price": "$300"
+      },
+      {
+        "name": "Categoría de Negocios",
+        "image": "💼",
+        "traffic": "8,500+ visualizaciones mensuales",
+        "description": "Llega a propietarios de negocios y profesionales",
+        "price": "$300"
+      },
+      {
+        "name": "Categoría de Eventos",
+        "image": "🎉",
+        "traffic": "6,200+ visualizaciones mensuales",
+        "description": "Conecta con organizadores y asistentes a eventos",
+        "price": "$300"
+      },
+      {
+        "name": "Categoría de Cultura",
+        "image": "🎭",
+        "traffic": "4,800+ visualizaciones mensuales",
+        "description": "Destacado en nuestra cobertura de cultura y artes",
+        "price": "$300"
+      },
+      {
+        "name": "Banner en Página Principal",
+        "image": "⭐",
+        "traffic": "25,000+ visualizaciones mensuales",
+        "description": "Colocación de alta visibilidad en nuestra página principal",
+        "price": "$500"
+      },
+      {
+        "name": "Paquete de Barra Lateral",
+        "image": "📍",
+        "traffic": "40,000+ visualizaciones mensuales",
+        "description": "Todas las páginas de categoría más barra lateral de página principal (20% de ahorro)",
+        "price": "$400"
+      }
+    ],
+    "specifications": "Especificaciones del Banner",
+    "standardBanner": "Banner Estándar (300x250)",
+    "standardBannerSpecs": [
+      "Dimensiones: 300px ancho × 250px alto",
+      "Formato: JPG, PNG o GIF",
+      "Tamaño de archivo: Hasta 100KB",
+      "Colocación: Barra lateral en todas las páginas"
+    ],
+    "leaderboard": "Leaderboard (728x90)",
+    "leaderboardSpecs": [
+      "Dimensiones: 728px ancho × 90px alto",
+      "Formato: JPG, PNG o GIF",
+      "Tamaño de archivo: Hasta 100KB",
+      "Colocación: Sobre contenido de categoría"
+    ],
+    "mobileBanner": "Banner Móvil (320x50)",
+    "mobileBannerSpecs": [
+      "Dimensiones: 320px ancho × 50px alto",
+      "Formato: JPG, PNG o GIF",
+      "Tamaño de archivo: Hasta 75KB",
+      "Colocación: Dispositivos móviles"
+    ],
+    "features": "Características",
+    "featuresSpecs": [
+      "Renovación mensual",
+      "Actualizaciones fáciles de banner",
+      "Seguimiento de clics",
+      "Sin tarifas de configuración"
+    ],
+    "browsePlacements": "Explorar Colocaciones",
+    "selectBanner": "Seleccionar Banner",
+    "month": "/mes"
+  }
+}

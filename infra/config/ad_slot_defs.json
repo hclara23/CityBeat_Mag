@@ -1,0 +1,307 @@
+{
+  "adSlots": [
+    {
+      "id": "newsletter-main",
+      "name": "Newsletter Main Sponsor",
+      "type": "newsletter",
+      "description": "Featured sponsorship in daily newsletter (sent 5 times daily)",
+      "placement": "header",
+      "maxPerDay": 1,
+      "minPrice": 500,
+      "defaultPrice": 500,
+      "billingCycle": "monthly",
+      "displayFormat": "text",
+      "specifications": {
+        "maxLength": 500,
+        "includeLink": true,
+        "includeImage": false,
+        "includeByline": true
+      },
+      "audience": {
+        "size": 5000,
+        "locale": ["en", "es"],
+        "geography": ["el-paso-county", "horizon", "socorro", "clint", "las-cruces"]
+      },
+      "metrics": {
+        "averageOpenRate": 0.45,
+        "averageClickRate": 0.08,
+        "impressionsPerMonth": 150000
+      }
+    },
+    {
+      "id": "homepage-banner-top",
+      "name": "Homepage Top Banner",
+      "type": "banner",
+      "description": "High-visibility banner at top of homepage",
+      "placement": "top",
+      "maxPerDay": 1,
+      "minPrice": 300,
+      "defaultPrice": 300,
+      "billingCycle": "monthly",
+      "displayFormat": "image",
+      "specifications": {
+        "sizes": ["728x90", "970x90"],
+        "maxFileSize": "500kb",
+        "formats": ["jpg", "png", "gif"],
+        "animatedGif": true,
+        "maxAnimationLength": 15
+      },
+      "audience": {
+        "size": 15000,
+        "locale": ["en", "es"],
+        "geography": ["el-paso-county"]
+      },
+      "metrics": {
+        "monthlyImpressions": 50000,
+        "averageCTR": 0.025
+      }
+    },
+    {
+      "id": "homepage-banner-sidebar",
+      "name": "Homepage Sidebar Banner",
+      "type": "banner",
+      "description": "Sidebar banner on homepage and article pages",
+      "placement": "sidebar",
+      "maxPerDay": 2,
+      "minPrice": 250,
+      "defaultPrice": 250,
+      "billingCycle": "monthly",
+      "displayFormat": "image",
+      "specifications": {
+        "sizes": ["300x250", "300x600"],
+        "maxFileSize": "500kb",
+        "formats": ["jpg", "png", "gif"],
+        "animatedGif": true,
+        "maxAnimationLength": 15
+      },
+      "audience": {
+        "size": 20000,
+        "locale": ["en", "es"],
+        "geography": ["el-paso-county", "horizon", "socorro", "clint"]
+      },
+      "metrics": {
+        "monthlyImpressions": 80000,
+        "averageCTR": 0.02
+      }
+    },
+    {
+      "id": "category-banner-news",
+      "name": "News Category Banner",
+      "type": "banner",
+      "description": "Banner at top of news category page",
+      "placement": "category-header",
+      "maxPerDay": 1,
+      "minPrice": 300,
+      "defaultPrice": 300,
+      "billingCycle": "monthly",
+      "displayFormat": "image",
+      "specifications": {
+        "sizes": ["728x90", "970x90"],
+        "maxFileSize": "500kb",
+        "formats": ["jpg", "png", "gif"]
+      },
+      "audience": {
+        "size": 8000,
+        "locale": ["en", "es"],
+        "geography": ["el-paso-county"]
+      },
+      "metrics": {
+        "monthlyImpressions": 32000,
+        "averageCTR": 0.035
+      }
+    },
+    {
+      "id": "category-banner-business",
+      "name": "Business Category Banner",
+      "type": "banner",
+      "description": "Banner at top of business category page",
+      "placement": "category-header",
+      "maxPerDay": 1,
+      "minPrice": 300,
+      "defaultPrice": 300,
+      "billingCycle": "monthly",
+      "displayFormat": "image",
+      "specifications": {
+        "sizes": ["728x90", "970x90"],
+        "maxFileSize": "500kb",
+        "formats": ["jpg", "png", "gif"]
+      },
+      "audience": {
+        "size": 5000,
+        "locale": ["en", "es"],
+        "geography": ["el-paso-county", "las-cruces"]
+      },
+      "metrics": {
+        "monthlyImpressions": 20000,
+        "averageCTR": 0.04
+      }
+    },
+    {
+      "id": "category-banner-events",
+      "name": "Events Category Banner",
+      "type": "banner",
+      "description": "Banner at top of events category page",
+      "placement": "category-header",
+      "maxPerDay": 1,
+      "minPrice": 300,
+      "defaultPrice": 300,
+      "billingCycle": "monthly",
+      "displayFormat": "image",
+      "specifications": {
+        "sizes": ["728x90", "970x90"],
+        "maxFileSize": "500kb",
+        "formats": ["jpg", "png", "gif"]
+      },
+      "audience": {
+        "size": 6000,
+        "locale": ["en", "es"],
+        "geography": ["el-paso-county"]
+      },
+      "metrics": {
+        "monthlyImpressions": 24000,
+        "averageCTR": 0.045
+      }
+    },
+    {
+      "id": "sponsored-post",
+      "name": "Sponsored Post",
+      "type": "sponsored",
+      "description": "Sponsored article published in news feed",
+      "placement": "news-feed",
+      "maxPerDay": 2,
+      "minPrice": 750,
+      "defaultPrice": 750,
+      "billingCycle": "per-post",
+      "displayFormat": "article",
+      "specifications": {
+        "maxLength": 500,
+        "includeImage": true,
+        "imageSize": "featured",
+        "includeAuthorBio": true,
+        "maxImages": 3,
+        "includeLinks": 2
+      },
+      "audience": {
+        "size": 12000,
+        "locale": ["en", "es"],
+        "geography": ["el-paso-county", "las-cruces"]
+      },
+      "metrics": {
+        "averageReads": 450,
+        "averageTimeOnPage": 240,
+        "socialShares": 15
+      }
+    },
+    {
+      "id": "article-inline",
+      "name": "Article Inline Ad",
+      "type": "banner",
+      "description": "Inline ad within article content",
+      "placement": "article-inline",
+      "maxPerDay": 3,
+      "minPrice": 150,
+      "defaultPrice": 150,
+      "billingCycle": "monthly",
+      "displayFormat": "image",
+      "specifications": {
+        "sizes": ["300x250"],
+        "maxFileSize": "400kb",
+        "formats": ["jpg", "png"]
+      },
+      "audience": {
+        "size": 8000,
+        "locale": ["en", "es"],
+        "geography": ["el-paso-county"]
+      },
+      "metrics": {
+        "monthlyImpressions": 40000,
+        "averageCTR": 0.015
+      }
+    }
+  ],
+  "pricingTiers": {
+    "newsletter": {
+      "monthly": {
+        "basePrice": 500,
+        "discounts": {
+          "3months": 0.1,
+          "6months": 0.15,
+          "12months": 0.25
+        }
+      }
+    },
+    "sponsored": {
+      "perPost": {
+        "basePrice": 750,
+        "discounts": {
+          "5posts": 0.05,
+          "10posts": 0.1
+        }
+      }
+    },
+    "banner": {
+      "monthly": {
+        "basePrice": 300,
+        "discounts": {
+          "2slots": 0.05,
+          "3slots": 0.1,
+          "multipleMonths": {
+            "3months": 0.1,
+            "6months": 0.15,
+            "12months": 0.25
+          }
+        }
+      }
+    }
+  },
+  "adNetworks": [
+    {
+      "id": "google-adsense",
+      "name": "Google AdSense",
+      "type": "network",
+      "enabled": false,
+      "fallbackEnabled": true,
+      "revenue_share": 0.68,
+      "slots": []
+    },
+    {
+      "id": "mediavine",
+      "name": "Mediavine",
+      "type": "network",
+      "enabled": false,
+      "fallbackEnabled": false,
+      "minimumTraffic": 10000,
+      "revenue_share": 0.75,
+      "slots": []
+    }
+  ],
+  "adQualityRules": {
+    "prohibitedContent": [
+      "gambling",
+      "adult",
+      "violence",
+      "alcohol",
+      "tobacco",
+      "weapons",
+      "illegal-drugs",
+      "counterfeit",
+      "pyramid-schemes",
+      "hate-speech"
+    ],
+    "requiresApproval": [
+      "financial-services",
+      "healthcare",
+      "political",
+      "religion",
+      "cryptocurrency"
+    ],
+    "restrictedCountries": [],
+    "restrictedLanguages": []
+  },
+  "verificationRules": {
+    "requiresWebsite": true,
+    "requiresBusiness": true,
+    "requiresPhoneNumber": true,
+    "requiresPaymentMethod": true
+  }
+}
