@@ -5907,13 +5907,19 @@
     {
       "id": "202602070124-P1JYRV",
       "title": " Security and compliance review^",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "REVIEWER",
       "depends_on": [
         "^[]^"
       ],
       "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start:_Security_review_fixes_demo_auth_fallback_and_ad_purchases_RLS."
+        }
+      ],
       "doc_version": 2,
       "doc_updated_at": "2026-02-07T01:24:03+00:00",
       "doc_updated_by": "agentctl",
@@ -5937,6 +5943,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "a7517ad8218024883cbcd743149165c2c0d376fee4b6b205190156cbe171d179"
+    "checksum": "943f113f7e076776153c12c6df2f52d30ba5d2c85a34a692a96123c593da2e8a"
   }
 }

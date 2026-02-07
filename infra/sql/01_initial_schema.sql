@@ -369,8 +369,7 @@ CREATE POLICY "Advertisers can view their subscriptions" ON subscriptions
 CREATE POLICY "Advertisers can view their ad purchases" ON ad_purchases
   FOR SELECT USING (auth.uid() = advertiser_id);
 
-CREATE POLICY "Public insertion for ad purchases (webhook)" ON ad_purchases
-  FOR INSERT WITH CHECK (true);
+-- NOTE: ad_purchases inserts should be performed server-side with service role.
 
 CREATE POLICY "Advertisers can update their ad purchases" ON ad_purchases
   FOR UPDATE USING (auth.uid() = advertiser_id);
