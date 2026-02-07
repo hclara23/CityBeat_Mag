@@ -68,13 +68,12 @@ export async function handleStripeWebhook(request: Request, env: Env): Promise<R
 
 async function verifyStripeSignature(body: string, signature: string, secret: string): Promise<boolean> {
   try {
-    const [timestamp, hash] = signature.split(',').reduce((acc: any, part) => {
-      const [key, value] = part.split('=')
-      acc[key === 't' ? 0 : 1] = value
-      return acc
-    }, [])
+    if (!secret) {
+      return false
+    }
 
-    if (!timestamp || !hash) {
+    const { timestamp, signatures } = parseStripeSignatureHeader(signature)
+    if (!timestamp || signatures.length === 0) {
       return false
     }
 
@@ -88,15 +87,45 @@ async function verifyStripeSignature(body: string, signature: string, secret: st
 
     // Sign
     const signature_bytes = await crypto.subtle.sign('HMAC', key, encoder.encode(signedContent))
-    const computed_hash = Array.from(new Uint8Array(signature_bytes))
+    const computedHash = Array.from(new Uint8Array(signature_bytes))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
 
-    return computed_hash === hash
+    return signatures.some(sig => timingSafeEqual(sig, computedHash))
   } catch (error) {
     console.error('Signature verification error:', error)
     return false
   }
+}
+
+function parseStripeSignatureHeader(header: string): { timestamp: string | null; signatures: string[] } {
+  const parts = header.split(',').map(part => part.trim())
+  let timestamp: string | null = null
+  const signatures: string[] = []
+
+  for (const part of parts) {
+    const [key, value] = part.split('=')
+    if (key === 't') {
+      timestamp = value
+    } else if (key === 'v1') {
+      signatures.push(value)
+    }
+  }
+
+  return { timestamp, signatures }
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false
+  }
+
+  let result = 0
+  for (let i = 0; i < a.length; i += 1) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+
+  return result === 0
 }
 
 async function handleCheckoutCompleted(session: any, env: Env): Promise<void> {
@@ -117,6 +146,9 @@ async function handleCheckoutCompleted(session: any, env: Env): Promise<void> {
     const phone = metadata.phone || ''
     const website = metadata.website || ''
     const adType = metadata.adType || 'advertisement'
+    const billingCycle = metadata.billingCycle || ''
+    const campaignId = metadata.campaignId || null
+    const advertiserId = metadata.advertiserId || null
 
     // Build ad data for email template and database
     const adData = {
@@ -152,15 +184,20 @@ async function handleCheckoutCompleted(session: any, env: Env): Promise<void> {
           },
           body: JSON.stringify({
             session_id: session.id,
+            campaign_id: campaignId,
+            advertiser_id: advertiserId,
             advertiser_email: advertiserEmail,
             company_name: companyName,
             contact_name: contactName,
             phone,
             website,
             ad_type: adType,
+            billing_cycle: billingCycle,
             amount_total: session.amount_total,
             currency: session.currency || 'usd',
             payment_status: 'completed',
+            stripe_customer_id: session.customer || null,
+            stripe_subscription_id: session.subscription || null,
             created_at: new Date().toISOString(),
           }),
         })
@@ -169,6 +206,29 @@ async function handleCheckoutCompleted(session: any, env: Env): Promise<void> {
           console.warn('Supabase payment record failed:', supabaseResponse.statusText)
         } else {
           console.log('Payment recorded in Supabase for session:', session.id)
+        }
+
+        if (campaignId) {
+          const updateCampaign = await fetch(
+            `${supabaseUrl}/rest/v1/campaigns?id=eq.${campaignId}`,
+            {
+              method: 'PATCH',
+              headers: {
+                apikey: supabaseServiceKey,
+                Authorization: `Bearer ${supabaseServiceKey}`,
+                'Content-Type': 'application/json',
+                Prefer: 'return=minimal',
+              },
+              body: JSON.stringify({
+                status: 'active',
+                updated_at: new Date().toISOString(),
+              }),
+            }
+          )
+
+          if (!updateCampaign.ok) {
+            console.warn('Failed to update campaign status:', updateCampaign.statusText)
+          }
         }
       }
     } catch (dbError) {

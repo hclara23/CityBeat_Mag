@@ -1,10 +1,21 @@
 import { createClient } from '@sanity/client'
 
+const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || ''
+const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || 'production'
+const apiVersion = process.env.NEXT_PUBLIC_SANITY_API_VERSION || '2021-06-07'
+
 export const sanityClient = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || '',
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
-  apiVersion: process.env.NEXT_PUBLIC_SANITY_API_VERSION || '2021-06-07',
+  projectId,
+  dataset,
+  apiVersion,
   useCdn: true,
+})
+
+export const sanityServerClient = createClient({
+  projectId,
+  dataset,
+  apiVersion,
+  useCdn: false,
   token: process.env.SANITY_API_TOKEN,
 })
 

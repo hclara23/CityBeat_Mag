@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSupabaseAdmin, getUserIdFromRequest, requiresAuth } from '@/lib/supabase'
 
-async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
-  // TODO: Extract and verify JWT from Authorization header
-  return null
+function mapCampaign(row: any) {
+  return {
+    id: row.id,
+    name: row.name,
+    adType: row.ad_type,
+    billingCycle: row.billing_cycle,
+    status: row.status,
+    amount: row.amount_cents,
+    createdAt: row.created_at,
+    impressions: row.impressions ?? 0,
+    clicks: row.clicks ?? 0,
+  }
 }
 
 export async function GET(
@@ -12,36 +22,30 @@ export async function GET(
   try {
     const userId = await getUserIdFromRequest(request)
     if (!userId) {
+      if (requiresAuth()) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const campaignId = params.id
 
-    // TODO: Fetch campaign from Supabase and verify ownership
-    // const supabase = createServerClient({...})
-    // const { data: campaign, error } = await supabase
-    //   .from('campaigns')
-    //   .select('*')
-    //   .eq('id', campaignId)
-    //   .eq('advertiser_id', userId)
-    //   .single()
-    //
-    // if (error) throw error
-    // if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    const supabase = getSupabaseAdmin()
+    const { data: campaign, error } = await supabase
+      .from('campaigns')
+      .select('*')
+      .eq('id', campaignId)
+      .eq('advertiser_id', userId)
+      .single()
 
-    // Mock data
-    const campaign = {
-      id: campaignId,
-      name: 'Summer Sale 2024',
-      status: 'active',
-      adType: 'banner',
-      billingCycle: 'monthly',
-      impressions: 125600,
-      clicks: 2856,
-      conversions: 142,
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+      }
+      throw error
     }
 
-    return NextResponse.json({ data: campaign })
+    return NextResponse.json({ data: mapCampaign(campaign) })
   } catch (error) {
     console.error('Error fetching campaign:', error)
     return NextResponse.json(
@@ -64,25 +68,26 @@ export async function PATCH(
     const campaignId = params.id
     const body = await request.json()
 
-    // TODO: Update campaign in Supabase
-    // const supabase = createServerClient({...})
-    // const { data: campaign, error } = await supabase
-    //   .from('campaigns')
-    //   .update(body)
-    //   .eq('id', campaignId)
-    //   .eq('advertiser_id', userId)
-    //   .select()
-    //   .single()
-    //
-    // if (error) throw error
+    const supabase = getSupabaseAdmin()
+    const allowedUpdates: Record<string, any> = {}
 
-    const updatedCampaign = {
-      id: campaignId,
-      ...body,
-      updated_at: new Date().toISOString(),
-    }
+    if (body.name) allowedUpdates.name = body.name
+    if (body.description !== undefined) allowedUpdates.description = body.description
+    if (body.status) allowedUpdates.status = body.status
+    if (body.startDate !== undefined) allowedUpdates.start_date = body.startDate
+    if (body.endDate !== undefined) allowedUpdates.end_date = body.endDate
 
-    return NextResponse.json({ data: updatedCampaign })
+    const { data: campaign, error } = await supabase
+      .from('campaigns')
+      .update(allowedUpdates)
+      .eq('id', campaignId)
+      .eq('advertiser_id', userId)
+      .select('*')
+      .single()
+
+    if (error) throw error
+
+    return NextResponse.json({ data: mapCampaign(campaign) })
   } catch (error) {
     console.error('Error updating campaign:', error)
     return NextResponse.json(
@@ -104,15 +109,14 @@ export async function DELETE(
 
     const campaignId = params.id
 
-    // TODO: Delete campaign from Supabase
-    // const supabase = createServerClient({...})
-    // const { error } = await supabase
-    //   .from('campaigns')
-    //   .delete()
-    //   .eq('id', campaignId)
-    //   .eq('advertiser_id', userId)
-    //
-    // if (error) throw error
+    const supabase = getSupabaseAdmin()
+    const { error } = await supabase
+      .from('campaigns')
+      .delete()
+      .eq('id', campaignId)
+      .eq('advertiser_id', userId)
+
+    if (error) throw error
 
     return NextResponse.json({ success: true })
   } catch (error) {

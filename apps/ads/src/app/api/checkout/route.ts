@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createClient } from '@supabase/supabase-js'
+import { getUserIdFromRequest } from '@/lib/supabase'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16',
 })
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseKey = process.env.STRIPE_SECRET_KEY || ''
-const supabase = createClient(supabaseUrl, supabaseKey)
 
 interface CheckoutRequest {
   campaignId: string
@@ -29,11 +25,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: Get user session from request
-    // const user = await getUserFromSession(request)
-    // if (!user) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
+    const userId = await getUserIdFromRequest(request)
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // Create Stripe session
     const session = await stripe.checkout.sessions.create({
@@ -66,8 +61,8 @@ export async function POST(request: NextRequest) {
       ],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/success?campaign_id=${campaignId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/campaigns`,
-      customer_email: '',
       metadata: {
+        advertiserId: userId,
         campaignId,
         adType,
         billingCycle,

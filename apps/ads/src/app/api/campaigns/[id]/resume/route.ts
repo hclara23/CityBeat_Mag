@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
-  // TODO: Extract and verify JWT from Authorization header
-  return null
-}
+import { getSupabaseAdmin, getUserIdFromRequest } from '@/lib/supabase'
 
 export async function POST(
   request: NextRequest,
@@ -17,22 +13,21 @@ export async function POST(
 
     const campaignId = params.id
 
-    // TODO: Update campaign status to 'active' in Supabase
-    // const supabase = createServerClient({...})
-    // const { data: campaign, error } = await supabase
-    //   .from('campaigns')
-    //   .update({ status: 'active', updated_at: new Date().toISOString() })
-    //   .eq('id', campaignId)
-    //   .eq('advertiser_id', userId)
-    //   .select()
-    //   .single()
-    //
-    // if (error) throw error
+    const supabase = getSupabaseAdmin()
+    const { data: campaign, error } = await supabase
+      .from('campaigns')
+      .update({ status: 'active' })
+      .eq('id', campaignId)
+      .eq('advertiser_id', userId)
+      .select('id,status')
+      .single()
+
+    if (error) throw error
 
     return NextResponse.json({
       data: {
-        id: campaignId,
-        status: 'active',
+        id: campaign.id,
+        status: campaign.status,
         message: 'Campaign resumed successfully',
       },
     })

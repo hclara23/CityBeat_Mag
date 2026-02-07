@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSupabaseAdmin, getUserIdFromRequest } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
     const { customerId, returnUrl } = await request.json()
 
-    if (!customerId) {
-      return NextResponse.json(
-        { error: 'Customer ID is required' },
-        { status: 400 }
-      )
+    const userId = await getUserIdFromRequest(request)
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY
@@ -16,6 +15,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Stripe configuration missing' },
         { status: 500 }
+      )
+    }
+
+    const supabase = getSupabaseAdmin()
+    let resolvedCustomerId = customerId as string | undefined
+
+    if (resolvedCustomerId) {
+      const { data: matches, error } = await supabase
+        .from('ad_purchases')
+        .select('id')
+        .eq('advertiser_id', userId)
+        .eq('stripe_customer_id', resolvedCustomerId)
+        .limit(1)
+
+      if (error || !matches || matches.length === 0) {
+        return NextResponse.json({ error: 'Customer not found' }, { status: 403 })
+      }
+    }
+
+    if (!resolvedCustomerId) {
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('stripe_customer_id')
+        .eq('advertiser_id', userId)
+        .not('stripe_customer_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      resolvedCustomerId = subscription?.stripe_customer_id || undefined
+    }
+
+    if (!resolvedCustomerId) {
+      const { data: purchase } = await supabase
+        .from('ad_purchases')
+        .select('stripe_customer_id')
+        .eq('advertiser_id', userId)
+        .not('stripe_customer_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      resolvedCustomerId = purchase?.stripe_customer_id || undefined
+    }
+
+    if (!resolvedCustomerId) {
+      return NextResponse.json(
+        { error: 'No billing account found for customer portal' },
+        { status: 404 }
       )
     }
 
@@ -27,7 +75,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
-        customer: customerId,
+        customer: resolvedCustomerId,
         return_url: returnUrl || 'https://ads.citybeatmag.co/dashboard',
       }).toString(),
     })
