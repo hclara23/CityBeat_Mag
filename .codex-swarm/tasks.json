@@ -5839,7 +5839,7 @@
     {
       "id": "202602070122-KR7AH0",
       "title": " Repo scan + architecture map^",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "PLANNER",
       "depends_on": [
@@ -5850,6 +5850,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "Start:_Repo_archaeology_summary_architecture_entrypoints_envs."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Completed repo archaeology summary and recorded key entrypoints/envs; tests not run."
         }
       ],
       "doc_version": 2,
@@ -5975,6 +5979,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "92be50e872bc6e9f7a7335c8e6e4c4b587e7aede6ca94ccaef49b4bba041b119"
+    "checksum": "4734fc9438e71d3ca56c7b47ac657f7ba00726a17c6ab4fd2f25b5729eb1f1e0"
   }
 }
