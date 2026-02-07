@@ -6,6 +6,8 @@ priority: "med"
 owner: "ORCHESTRATOR"
 depends_on: ["^[]^"]
 tags: []
+comments:
+  - { author: "ORCHESTRATOR", body: "Downstream planning tasks: KR7AH0 Repo scan, 0DSNW2 Build and CI, ZBF126 Backend API, YE035G Product UX, P1JYRV Security, CZKFSD QA Release." }
 doc_version: 2
 doc_updated_at: "2026-02-07T00:52:08+00:00"
 doc_updated_by: "agentctl"
