@@ -5879,7 +5879,7 @@
     {
       "id": "202602070123-ZBF126",
       "title": " Backend API architecture check^",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -5894,6 +5894,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "Added advertiser role checks across ads API routes and helper in supabase client. Tests not run."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Implemented server-side pricing and advertiser role gating for ads APIs; tests not run."
         }
       ],
       "doc_version": 2,
@@ -5979,6 +5983,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "4734fc9438e71d3ca56c7b47ac657f7ba00726a17c6ab4fd2f25b5729eb1f1e0"
+    "checksum": "7b44748908d25825ef61893b7a4be17296a34ac3130a5aa2e060704a730fe9e8"
   }
 }

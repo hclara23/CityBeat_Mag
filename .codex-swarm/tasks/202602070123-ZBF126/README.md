@@ -1,7 +1,7 @@
 ---
 id: "202602070123-ZBF126"
 title: " Backend API architecture check^"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: ["^[]^"]
@@ -9,6 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start:_Begin_Task_2_server_side_ads_pricing_and_shared_constants." }
   - { author: "ORCHESTRATOR", body: "Added advertiser role checks across ads API routes and helper in supabase client. Tests not run." }
+  - { author: "ORCHESTRATOR", body: "Implemented server-side pricing and advertiser role gating for ads APIs; tests not run." }
 doc_version: 2
 doc_updated_at: "2026-02-07T02:06:18+00:00"
 doc_updated_by: "agentctl"
