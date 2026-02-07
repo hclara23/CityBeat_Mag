@@ -5880,6 +5880,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "Start:_Begin_Task_2_server_side_ads_pricing_and_shared_constants."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Added advertiser role checks across ads API routes and helper in supabase client. Tests not run."
         }
       ],
       "doc_version": 2,
@@ -5891,13 +5895,19 @@
     {
       "id": "202602070124-CZKFSD",
       "title": " QA and release readiness^",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "TESTER",
       "depends_on": [
         "^[]^"
       ],
       "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start:_QA_smoke_tests_and_release_readiness_notes."
+        }
+      ],
       "doc_version": 2,
       "doc_updated_at": "2026-02-07T02:10:20+00:00",
       "doc_updated_by": "agentctl",
@@ -5951,6 +5961,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "ea58b420b77ea16087def60c9ee6c07882d90ce55890b70185699488b7f7c7e4"
+    "checksum": "ba536315c017c3df02d3f306859e1091960e0391c058808b6a0e763788b21f30"
   }
 }
