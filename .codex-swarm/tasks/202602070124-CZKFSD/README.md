@@ -1,11 +1,12 @@
 ---
 id: "202602070124-CZKFSD"
 title: " QA and release readiness^"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "TESTER"
 depends_on: ["^[]^"]
 tags: []
+commit: { hash: "25f5daaf4a33e5750d2713a0888aa038c5f4b7c0", message: "ðŸ§ª CZKFSD add QA smoke test notes" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start:_QA_smoke_tests_and_release_readiness_notes." }
   - { author: "ORCHESTRATOR", body: "Added QA smoke test notes and release checklist in docs/qa/2026-02-07-qa-notes.md. Tests not run." }
