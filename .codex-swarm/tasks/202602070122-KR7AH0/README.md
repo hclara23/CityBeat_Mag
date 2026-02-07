@@ -1,11 +1,13 @@
 ---
 id: "202602070122-KR7AH0"
 title: " Repo scan + architecture map^"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "PLANNER"
 depends_on: ["^[]^"]
 tags: []
+comments:
+  - { author: "ORCHESTRATOR", body: "Start:_Repo_archaeology_summary_architecture_entrypoints_envs." }
 doc_version: 2
 doc_updated_at: "2026-02-07T01:22:20+00:00"
 doc_updated_by: "agentctl"
