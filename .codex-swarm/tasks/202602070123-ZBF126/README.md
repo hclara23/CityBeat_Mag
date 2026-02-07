@@ -1,11 +1,13 @@
 ---
 id: "202602070123-ZBF126"
 title: " Backend API architecture check^"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "CODER"
 depends_on: ["^[]^"]
 tags: []
+comments:
+  - { author: "ORCHESTRATOR", body: "Start:_Begin_Task_2_server_side_ads_pricing_and_shared_constants." }
 doc_version: 2
 doc_updated_at: "2026-02-07T02:06:18+00:00"
 doc_updated_by: "agentctl"

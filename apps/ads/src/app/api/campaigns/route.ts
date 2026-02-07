@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin, getUserIdFromRequest, requiresAuth } from '@/lib/supabase'
+import { getPrice, type AdType, type BillingCycle } from '@/lib/pricing'
 
 function mapCampaign(row: any) {
   return {
@@ -64,12 +65,22 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, adType, billingCycle, amount, description, startDate, endDate } = body
+    const { name, adType, billingCycle, description, startDate, endDate } = body
 
     // Validate request
-    if (!name || !adType || !billingCycle || !amount) {
+    if (!name || !adType || !billingCycle) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, adType, billingCycle, amount' },
+        { error: 'Missing required fields: name, adType, billingCycle' },
+        { status: 400 }
+      )
+    }
+
+    let amount: number
+    try {
+      amount = getPrice(adType as AdType, billingCycle as BillingCycle)
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid pricing selection' },
         { status: 400 }
       )
     }

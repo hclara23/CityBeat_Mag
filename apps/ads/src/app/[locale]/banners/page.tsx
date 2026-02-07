@@ -4,19 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Navigation, Button, Card } from '@citybeat/ui'
 import Link from 'next/link'
-
-interface BillingOption {
-  cycle: string
-  months: number
-  price: number
-  savings: number
-}
-
-const BANNER_OPTIONS: BillingOption[] = [
-  { cycle: 'monthly', months: 1, price: 2500, savings: 0 },
-  { cycle: 'quarterly', months: 3, price: 6500, savings: 1000 },
-  { cycle: 'yearly', months: 12, price: 25000, savings: 5000 },
-]
+import { BANNER_OPTIONS, type BillingOption } from '@/lib/pricing'
 
 export default function BannerPage() {
   const router = useRouter()
@@ -53,7 +41,6 @@ export default function BannerPage() {
           name: campaignName,
           adType: 'banner',
           billingCycle: selectedBilling.cycle,
-          amount: selectedBilling.price,
           description,
           bannerUrl,
         }),
@@ -74,7 +61,6 @@ export default function BannerPage() {
           campaignId: campaignData.data.id,
           adType: 'banner',
           billingCycle: selectedBilling.cycle,
-          amount: selectedBilling.price,
         }),
       })
 

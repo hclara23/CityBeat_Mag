@@ -4,17 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Navigation, Button, Card } from '@citybeat/ui'
 import Link from 'next/link'
-
-interface BillingOption {
-  cycle: string
-  label: string
-  price: number
-}
-
-const SPONSORED_OPTIONS: BillingOption[] = [
-  { cycle: 'monthly', label: 'Monthly', price: 10000 },
-  { cycle: 'perpost', label: 'Per Post', price: 3000 },
-]
+import { SPONSORED_OPTIONS, type BillingOption } from '@/lib/pricing'
 
 export default function SponsoredPage() {
   const router = useRouter()
@@ -45,7 +35,6 @@ export default function SponsoredPage() {
           name: campaignName,
           adType: 'sponsored',
           billingCycle: selectedBilling.cycle,
-          amount: selectedBilling.price,
           description,
         }),
       })
@@ -65,7 +54,6 @@ export default function SponsoredPage() {
           campaignId: campaignData.data.id,
           adType: 'sponsored',
           billingCycle: selectedBilling.cycle,
-          amount: selectedBilling.price,
         }),
       })
 

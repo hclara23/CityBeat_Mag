@@ -1,26 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getUserIdFromRequest } from '@/lib/supabase'
+import { getPrice, type AdType, type BillingCycle } from '@/lib/pricing'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2023-10-16',
+  apiVersion: '2023-08-16',
 })
 
 interface CheckoutRequest {
   campaignId: string
   adType: string
   billingCycle: string
-  amount: number
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CheckoutRequest
-    const { campaignId, adType, billingCycle, amount } = body
+    const { campaignId, adType, billingCycle } = body
 
-    if (!campaignId || !adType || !billingCycle || !amount) {
+    if (!campaignId || !adType || !billingCycle) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    let amount: number
+    try {
+      amount = getPrice(adType as AdType, billingCycle as BillingCycle)
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid pricing selection' },
         { status: 400 }
       )
     }

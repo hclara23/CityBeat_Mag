@@ -4,19 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Navigation, Button, Card } from '@citybeat/ui'
 import Link from 'next/link'
-
-interface BillingOption {
-  cycle: string
-  months: number
-  price: number
-  savings: number
-}
-
-const NEWSLETTER_OPTIONS: BillingOption[] = [
-  { cycle: 'monthly', months: 1, price: 5000, savings: 0 },
-  { cycle: 'quarterly', months: 3, price: 13500, savings: 1500 },
-  { cycle: 'yearly', months: 12, price: 50000, savings: 10000 },
-]
+import { NEWSLETTER_OPTIONS, type BillingOption } from '@/lib/pricing'
 
 export default function NewsletterPage() {
   const router = useRouter()
@@ -47,7 +35,6 @@ export default function NewsletterPage() {
           name: campaignName,
           adType: 'newsletter',
           billingCycle: selectedBilling.cycle,
-          amount: selectedBilling.price,
           description,
         }),
       })
@@ -67,7 +54,6 @@ export default function NewsletterPage() {
           campaignId: campaignData.data.id,
           adType: 'newsletter',
           billingCycle: selectedBilling.cycle,
-          amount: selectedBilling.price,
         }),
       })
 
@@ -249,8 +235,8 @@ export default function NewsletterPage() {
 
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-xs text-gray-600 mb-3">
-                  Your campaign will be reviewed within 24 hours. You'll receive a
-                  confirmation email once it's approved.
+                  Your campaign will be reviewed within 24 hours. You will receive a
+                  confirmation email once it is approved.
                 </p>
                 <ul className="text-xs text-gray-600 space-y-2">
                   <li>✓ Reach our newsletter subscribers</li>
