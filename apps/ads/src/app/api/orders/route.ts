@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin, getUserIdFromRequest, requiresAuth } from '@/lib/supabase'
+import { getSupabaseAdmin, getUserIdFromRequest, isAdvertiser, requiresAuth } from '@/lib/supabase'
 
 interface Order {
   id: string
@@ -22,6 +22,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
       return NextResponse.json({ data: [] })
+    }
+    if (!(await isAdvertiser(userId))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const supabase = getSupabaseAdmin()

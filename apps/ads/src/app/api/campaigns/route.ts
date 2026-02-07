@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin, getUserIdFromRequest, requiresAuth } from '@/lib/supabase'
+import { getSupabaseAdmin, getUserIdFromRequest, isAdvertiser, requiresAuth } from '@/lib/supabase'
 import { getPrice, type AdType, type BillingCycle } from '@/lib/pricing'
 
 function mapCampaign(row: any) {
@@ -24,6 +24,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
       return NextResponse.json({ data: [], count: 0 })
+    }
+    if (!(await isAdvertiser(userId))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -62,6 +65,9 @@ export async function POST(request: NextRequest) {
     const userId = await getUserIdFromRequest(request)
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!(await isAdvertiser(userId))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const body = await request.json()

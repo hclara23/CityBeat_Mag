@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin, getUserIdFromRequest } from '@/lib/supabase'
+import { getSupabaseAdmin, getUserIdFromRequest, isAdvertiser } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,6 +8,9 @@ export async function POST(request: NextRequest) {
     const userId = await getUserIdFromRequest(request)
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!(await isAdvertiser(userId))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY

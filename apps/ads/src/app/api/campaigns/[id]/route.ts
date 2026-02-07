@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin, getUserIdFromRequest, requiresAuth } from '@/lib/supabase'
+import { getSupabaseAdmin, getUserIdFromRequest, isAdvertiser, requiresAuth } from '@/lib/supabase'
 
 function mapCampaign(row: any) {
   return {
@@ -26,6 +26,9 @@ export async function GET(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!(await isAdvertiser(userId))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const campaignId = params.id
@@ -63,6 +66,9 @@ export async function PATCH(
     const userId = await getUserIdFromRequest(request)
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!(await isAdvertiser(userId))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const campaignId = params.id
@@ -105,6 +111,9 @@ export async function DELETE(
     const userId = await getUserIdFromRequest(request)
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!(await isAdvertiser(userId))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const campaignId = params.id

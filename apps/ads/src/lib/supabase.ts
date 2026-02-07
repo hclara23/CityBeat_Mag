@@ -82,3 +82,23 @@ export async function getUserIdFromRequest(request: NextRequest): Promise<string
 
   return data.user.id
 }
+
+export async function isAdvertiser(userId: string): Promise<boolean> {
+  try {
+    const supabase = getSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('is_advertiser')
+      .eq('id', userId)
+      .single()
+
+    if (error || !data) {
+      return false
+    }
+
+    return Boolean(data.is_advertiser)
+  } catch (error) {
+    console.error('Failed to check advertiser role:', error)
+    return false
+  }
+}

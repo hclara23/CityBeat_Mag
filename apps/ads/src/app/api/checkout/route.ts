@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { getUserIdFromRequest } from '@/lib/supabase'
+import { getUserIdFromRequest, isAdvertiser } from '@/lib/supabase'
 import { getPrice, type AdType, type BillingCycle } from '@/lib/pricing'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -38,6 +38,9 @@ export async function POST(request: NextRequest) {
     const userId = await getUserIdFromRequest(request)
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!(await isAdvertiser(userId))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Create Stripe session

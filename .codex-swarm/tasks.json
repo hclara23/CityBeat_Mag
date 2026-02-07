@@ -5907,17 +5907,25 @@
     {
       "id": "202602070124-P1JYRV",
       "title": " Security and compliance review^",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "REVIEWER",
       "depends_on": [
         "^[]^"
       ],
       "tags": [],
+      "commit": {
+        "hash": "9ee0bd29d83a970825c948dd9f8d2f13871a526f",
+        "message": "ðŸ”’ P1JYRV tighten ads auth and RLS policy"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start:_Security_review_fixes_demo_auth_fallback_and_ad_purchases_RLS."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Implemented cookie-based auth in ads API, disabled demo fallback in prod, and removed public ad_purchases insert policy (requires DB migration). Tests not run."
         }
       ],
       "doc_version": 2,
@@ -5943,6 +5951,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "943f113f7e076776153c12c6df2f52d30ba5d2c85a34a692a96123c593da2e8a"
+    "checksum": "ea58b420b77ea16087def60c9ee6c07882d90ce55890b70185699488b7f7c7e4"
   }
 }
