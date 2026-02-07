@@ -1,0 +1,12 @@
+{
+  "buildCommand": "cd ../.. && npm run build --workspace=@citybeat/web",
+  "devCommand": "cd ../.. && npm run dev --workspace=@citybeat/web",
+  "installCommand": "cd ../.. && npm ci",
+  "framework": "nextjs",
+  "projectSettings": {
+    "buildCommand": "cd ../.. && npm run build --workspace=@citybeat/web",
+    "devCommand": "cd ../.. && npm run dev --workspace=@citybeat/web",
+    "installCommand": "cd ../.. && npm ci",
+    "outputDirectory": "apps/web/.next"
+  }
+}

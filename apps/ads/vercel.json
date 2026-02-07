@@ -1,12 +1,12 @@
 {
-  "buildCommand": "npm run build --workspace=apps/ads",
-  "devCommand": "npm run dev --workspace=apps/ads",
-  "installCommand": "npm ci",
+  "buildCommand": "cd ../.. && npm run build --workspace=@citybeat/ads",
+  "devCommand": "cd ../.. && npm run dev --workspace=@citybeat/ads",
+  "installCommand": "cd ../.. && npm ci",
   "framework": "nextjs",
   "projectSettings": {
-    "buildCommand": "npm run build --workspace=apps/ads",
-    "devCommand": "npm run dev --workspace=apps/ads",
-    "installCommand": "npm ci",
+    "buildCommand": "cd ../.. && npm run build --workspace=@citybeat/ads",
+    "devCommand": "cd ../.. && npm run dev --workspace=@citybeat/ads",
+    "installCommand": "cd ../.. && npm ci",
     "outputDirectory": "apps/ads/.next"
   },
   "env": [
