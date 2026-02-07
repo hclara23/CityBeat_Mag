@@ -160,7 +160,7 @@ export default function SuccessPage() {
 
         {/* Next Steps */}
         <Card className="mb-8">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">What's Next?</h3>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">What is Next?</h3>
           <div className="space-y-4">
             <div className="flex gap-4">
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 text-red-700 flex items-center justify-center font-semibold">
@@ -181,7 +181,7 @@ export default function SuccessPage() {
               <div>
                 <p className="font-semibold text-gray-900">Confirmation Email</p>
                 <p className="text-sm text-gray-600">
-                  You'll receive an email once your campaign is approved and live.
+                  You will receive an email once your campaign is approved and live.
                 </p>
               </div>
             </div>

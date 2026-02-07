@@ -98,7 +98,8 @@ export function SignupForm({
   const handleChange = (field: string, value: string | boolean) => {
     setFormData({ ...formData, [field]: value })
     if (fieldErrors[field]) {
-      setFieldErrors({ ...fieldErrors, [field]: undefined })
+      const { [field]: _removed, ...rest } = fieldErrors
+      setFieldErrors(rest)
     }
   }
 

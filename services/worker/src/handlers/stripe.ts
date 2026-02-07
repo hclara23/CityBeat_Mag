@@ -417,7 +417,6 @@ async function handleSubscriptionCancelled(subscription: any, env: Env): Promise
       return
     }
 
-    const customerId = subscription.customer
     const customerEmail = subscription.customer_email || ''
 
     // Update ad purchases associated with this subscription

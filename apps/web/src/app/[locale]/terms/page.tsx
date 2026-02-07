@@ -34,14 +34,14 @@ export default function TermsPage() {
               <li>Use the materials for any commercial purpose or for any public display</li>
               <li>Attempt to reverse compile, reverse engineer, disassemble, or otherwise reverse engineer any software</li>
               <li>Remove any copyright or proprietary notation from the materials</li>
-              <li>Transfer the materials to another person or "mirror" the materials on any other server</li>
+              <li>Transfer the materials to another person or &quot;mirror&quot; the materials on any other server</li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold mt-6 mb-3">3. Disclaimer</h2>
             <p className="text-gray-700">
-              The materials on CityBeat Magazine's website are provided on an 'as is' basis. CityBeat Magazine makes
+              The materials on CityBeat Magazine&apos;s website are provided on an &quot;as is&quot; basis. CityBeat Magazine makes
               no warranties, expressed or implied, and hereby disclaims and negates all other warranties including,
               without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose,
               or non-infringement of intellectual property or other violation of rights.
@@ -73,7 +73,7 @@ export default function TermsPage() {
             <p className="text-gray-700">
               CityBeat Magazine has not reviewed all of the sites linked to its website and is not responsible for
               the contents of any such linked site. The inclusion of any link does not imply endorsement by
-              CityBeat Magazine of the site. Use of any such linked website is at the user's own risk.
+              CityBeat Magazine of the site. Use of any such linked website is at the user&apos;s own risk.
             </p>
           </section>
 

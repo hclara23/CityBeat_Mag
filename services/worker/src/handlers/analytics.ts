@@ -62,13 +62,14 @@ async function calculateDailyMetrics(env: Env): Promise<DailyMetrics> {
     }
 
     const data = await response.json()
-    return data || {
-      date: today,
-      totalImpressions: 0,
-      totalClicks: 0,
-      totalConversions: 0,
-      totalSpent: 0,
-      topCampaigns: [],
+
+    return {
+      date: data?.date ?? today,
+      totalImpressions: data?.totalImpressions ?? 0,
+      totalClicks: data?.totalClicks ?? 0,
+      totalConversions: data?.totalConversions ?? 0,
+      totalSpent: data?.totalSpent ?? 0,
+      topCampaigns: data?.topCampaigns ?? [],
     }
   } catch (error) {
     console.error('Error calculating daily metrics:', error)

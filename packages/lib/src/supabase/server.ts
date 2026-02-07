@@ -1,17 +1,17 @@
-import { createServerClient, parseCookieHeader, serializeCookieHeader } from '@supabase/ssr'
+import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
 import type { Database } from './database.types'
+
+type CookieStore = {
+  getAll(): Array<{ name: string; value: string }>
+  setAll(cookiesToSet: Array<{ name: string; value: string; options: Record<string, unknown> }>): void
+}
 
 /**
  * Create a Supabase server client with cookie handling
  * Used in Server Components, API routes, and middleware
  */
-export const createServerClient = (
-  cookies: {
-    getAll(): Array<{ name: string; value: string }>
-    setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>): void
-  }
-) =>
-  createServerClient<Database>(
+export const createServerClient = (cookies: CookieStore) =>
+  createSupabaseServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
     {
@@ -19,7 +19,7 @@ export const createServerClient = (
         getAll() {
           return cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: Array<{ name: string; value: string; options: Record<string, unknown> }>) {
           try {
             cookies.setAll(cookiesToSet)
           } catch {
@@ -36,10 +36,7 @@ export const createServerClient = (
  * Get the current authenticated user from the server
  */
 export async function getServerUser(
-  cookies: {
-    getAll(): Array<{ name: string; value: string }>
-    setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>): void
-  }
+  cookies: CookieStore
 ) {
   const supabase = createServerClient(cookies)
 
@@ -59,10 +56,7 @@ export async function getServerUser(
  * Get the current session from the server
  */
 export async function getServerSession(
-  cookies: {
-    getAll(): Array<{ name: string; value: string }>
-    setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>): void
-  }
+  cookies: CookieStore
 ) {
   const supabase = createServerClient(cookies)
 
@@ -83,10 +77,7 @@ export async function getServerSession(
  */
 export async function getServerUserProfile(
   userId: string,
-  cookies: {
-    getAll(): Array<{ name: string; value: string }>
-    setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>): void
-  }
+  cookies: CookieStore
 ) {
   const supabase = createServerClient(cookies)
 
@@ -108,10 +99,7 @@ export async function getServerUserProfile(
  * Returns true if user has valid session
  */
 export async function isAuthenticated(
-  cookies: {
-    getAll(): Array<{ name: string; value: string }>
-    setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>): void
-  }
+  cookies: CookieStore
 ): Promise<boolean> {
   const user = await getServerUser(cookies)
   return !!user
@@ -122,10 +110,7 @@ export async function isAuthenticated(
  */
 export async function isAdvertiser(
   userId: string,
-  cookies: {
-    getAll(): Array<{ name: string; value: string }>
-    setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>): void
-  }
+  cookies: CookieStore
 ): Promise<boolean> {
   const profile = await getServerUserProfile(userId, cookies)
   return profile?.is_advertiser ?? false
@@ -136,10 +121,7 @@ export async function isAdvertiser(
  */
 export async function isEditor(
   userId: string,
-  cookies: {
-    getAll(): Array<{ name: string; value: string }>
-    setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>): void
-  }
+  cookies: CookieStore
 ): Promise<boolean> {
   const profile = await getServerUserProfile(userId, cookies)
   return profile?.is_editor ?? false
@@ -150,10 +132,7 @@ export async function isEditor(
  */
 export async function getUserCampaigns(
   userId: string,
-  cookies: {
-    getAll(): Array<{ name: string; value: string }>
-    setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>): void
-  }
+  cookies: CookieStore
 ) {
   const supabase = createServerClient(cookies)
 
@@ -175,10 +154,7 @@ export async function getUserCampaigns(
  */
 export async function getUserSubscription(
   userId: string,
-  cookies: {
-    getAll(): Array<{ name: string; value: string }>
-    setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>): void
-  }
+  cookies: CookieStore
 ) {
   const supabase = createServerClient(cookies)
 
@@ -205,10 +181,7 @@ export async function getUserAnalytics(
   userId: string,
   startDate?: string,
   endDate?: string,
-  cookies?: {
-    getAll(): Array<{ name: string; value: string }>
-    setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>): void
-  }
+  cookies?: CookieStore
 ) {
   // This would typically be called from an API route
   // Returns the user's campaign analytics
@@ -245,10 +218,7 @@ export async function verifyJWT(
  */
 export async function getUserIdFromHeaders(
   headers: Record<string, string>,
-  cookies: {
-    getAll(): Array<{ name: string; value: string }>
-    setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>): void
-  }
+  cookies: CookieStore
 ): Promise<string | null> {
   // Try to get from Authorization header (Bearer token)
   const authHeader = headers.authorization

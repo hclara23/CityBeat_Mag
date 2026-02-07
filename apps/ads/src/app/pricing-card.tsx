@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useTranslations } from '@/components/TranslationProvider'
 import { Button, Card } from '@citybeat/ui'
-import { loadStripe } from '@stripe/js'
+import { loadStripe } from '@stripe/stripe-js'
 
 interface PricingCardProps {
   title: string
@@ -11,7 +11,7 @@ interface PricingCardProps {
   description: string
   features: string[]
   adType: 'newsletter' | 'sponsored' | 'banner'
-  billingCycle: 'monthly' | 'per-post'
+  billingCycle: 'monthly' | 'perpost'
   onSelect: (adType: string) => void
 }
 

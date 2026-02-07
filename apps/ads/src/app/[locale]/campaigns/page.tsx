@@ -105,7 +105,7 @@ export default function CampaignsPage() {
               No Campaigns Yet
             </h2>
             <p className="text-gray-600 mb-6">
-              You haven't created any advertising campaigns yet. Get started by
+              You have not created any advertising campaigns yet. Get started by
               choosing an ad type below.
             </p>
 

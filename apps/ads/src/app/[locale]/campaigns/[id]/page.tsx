@@ -168,7 +168,7 @@ export default function CampaignDetailPage() {
               Campaign Not Found
             </h2>
             <p className="text-gray-600 mb-6">
-              The campaign you're looking for doesn't exist.
+              The campaign you are looking for does not exist.
             </p>
             <Link href="/campaigns">
               <Button>Back to Campaigns</Button>
@@ -395,7 +395,7 @@ export default function CampaignDetailPage() {
 
           {campaign.status !== 'completed' && (
             <Button
-              variant="destructive"
+              variant="secondary"
               onClick={handleDelete}
               disabled={actionLoading}
             >

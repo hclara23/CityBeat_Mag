@@ -8,10 +8,14 @@
     ".": {
       "import": "./index.ts",
       "types": "./index.ts"
+    },
+    "./auth": {
+      "import": "./components/auth/index.ts",
+      "types": "./components/auth/index.ts"
     }
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint . --no-error-on-unmatched-pattern",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

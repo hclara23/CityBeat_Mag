@@ -43,10 +43,26 @@ export function useTranslations(ns?: string) {
     throw new Error('useTranslations must be used within TranslationProvider')
   }
 
-  return (key: string) => {
+  type TranslationFn = ((key: string) => string) & { raw: (key: string) => any }
+
+  const translate = ((key: string) => {
     const fullKey = ns ? `${ns}.${key}` : key
     return context.t(fullKey)
+  }) as TranslationFn
+
+  translate.raw = (key: string) => {
+    const fullKey = ns ? `${ns}.${key}` : key
+    const keys = fullKey.split('.')
+    let current: any = context.messages
+
+    for (const k of keys) {
+      current = current?.[k]
+    }
+
+    return current ?? key
   }
+
+  return translate
 }
 
 export function useLocale() {

@@ -214,7 +214,7 @@ export async function updateProfile(updates: {
  * Subscribe to auth state changes
  */
 export function onAuthStateChange(
-  callback: (event: string, session: any) => void
+  callback: (event: string, session: unknown) => void
 ) {
   const supabase = createClient()
 

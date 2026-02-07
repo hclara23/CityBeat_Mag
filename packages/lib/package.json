@@ -20,10 +20,24 @@
     "./tracking": {
       "import": "./tracking/index.ts",
       "types": "./tracking/index.ts"
+    },
+    "./supabase/auth": {
+      "import": "./src/supabase/auth.ts",
+      "types": "./src/supabase/auth.ts"
+    },
+    "./supabase/server": {
+      "import": "./src/supabase/server.ts",
+      "types": "./src/supabase/server.ts"
     }
   },
   "scripts": {
     "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "^7.109.0",
+    "@supabase/ssr": "^0.2.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "next-sanity": "^9.0.0"
   },
   "devDependencies": {
     "typescript": "^5.2.0"

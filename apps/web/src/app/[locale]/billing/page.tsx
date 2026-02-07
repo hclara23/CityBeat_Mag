@@ -117,7 +117,7 @@ export default function BillingPage() {
             <div className="text-center py-8">
               <p className="text-gray-500">No active subscriptions</p>
               <p className="text-sm text-gray-400 mt-2">
-                You currently don't have any active advertising subscriptions.
+                You currently do not have any active advertising subscriptions.
               </p>
               <Button className="mt-4 bg-red-600 hover:bg-red-700">
                 Browse Plans

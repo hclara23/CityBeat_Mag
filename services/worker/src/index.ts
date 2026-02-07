@@ -32,7 +32,7 @@ router.post('/api/tracking', async (request, env: Env) => {
 })
 
 // Test automation endpoint (for manual triggering in development)
-router.post('/api/test-automation', async (request, env: Env) => {
+router.post('/api/test-automation', async (_request, env: Env) => {
   try {
     console.log('Manual automation test triggered')
     await handleBriefAutomation(env)
@@ -55,7 +55,7 @@ export default {
     return router.handle(request, env, ctx)
   },
 
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     // Run brief automation every scheduled time
     ctx.waitUntil(handleBriefAutomation(env))
   },

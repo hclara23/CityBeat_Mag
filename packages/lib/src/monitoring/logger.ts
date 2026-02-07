@@ -25,7 +25,9 @@ class Logger {
 
   clearContext() {
     this.context = {}
-    Sentry.getDefaultClient()?.clearBreadcrumbs()
+    const client =
+      (Sentry as any).getDefaultClient?.() ?? (Sentry as any).getCurrentHub?.().getClient?.()
+    client?.clearBreadcrumbs?.()
   }
 
   private format(level: LogLevel, message: string, data?: any): string {

@@ -1,11 +1,11 @@
 import { Env } from '../index'
 
-export async function handleTracking(request: Request, env: Env): Promise<Response> {
+export async function handleTracking(request: Request, _env: Env): Promise<Response> {
   try {
     const event = await request.json() as any
 
     // Log event to Supabase
-    await logEvent(event, env)
+    await logEvent(event)
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
@@ -20,7 +20,7 @@ export async function handleTracking(request: Request, env: Env): Promise<Respon
   }
 }
 
-async function logEvent(event: any, env: Env): Promise<void> {
+async function logEvent(event: any): Promise<void> {
   // TODO: Log to Supabase analytics table
   console.log('Event tracked:', event.event, event.properties)
 

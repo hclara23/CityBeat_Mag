@@ -5793,12 +5793,150 @@
       "doc_updated_by": "agentctl",
       "description": "Update agent instructions so agents ignore newly added files and only work/commit their own changes.",
       "doc": "## Summary\n\nUpdate AGENTS.md to instruct all agents to ignore new/untracked files not created by them and to only work on/commit their own changes.\n\n## Scope\n\nAdd a global rule in AGENTS.md covering new/untracked files and commit scope.\n\n## Risks\n\nLow risk; behavior change may reduce visibility into unexpected additions, but agents will still focus on their own changes.\n\n## Verify Steps\n\nNo automated tests required; verify AGENTS.md contains the new rule.\n\n## Rollback Plan\n\nRevert the AGENTS.md change that adds the new files rule."
+    },
+    {
+      "id": "202602070052-JKRVJ1",
+      "title": " Initialize codex-swarm workflow in repo^",
+      "status": "TODO",
+      "priority": "med",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "^[]^"
+      ],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Downstream planning tasks: KR7AH0 Repo scan, 0DSNW2 Build and CI, ZBF126 Backend API, YE035G Product UX, P1JYRV Security, CZKFSD QA Release."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-02-07T00:52:08+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "^Add codex-swarm framework files to CityBeat_Mag and establish workflow entrypoint so planning/tasks can proceed.^"
+    },
+    {
+      "id": "202602070122-0DSNW2",
+      "title": " Local build/run and CI health check^",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "TESTER",
+      "depends_on": [
+        "^[]^"
+      ],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start:_Begin_Task_1_build_and_CI_fixes_to_address_lint_and_type-check_failures."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-02-07T01:22:33+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "^Role: Build and CI Engineer. Get project building/running locally resolve dependency/version issues validate lint/test and document exact commands and required env vars.^"
+    },
+    {
+      "id": "202602070122-KR7AH0",
+      "title": " Repo scan + architecture map^",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "PLANNER",
+      "depends_on": [
+        "^[]^"
+      ],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-02-07T01:22:20+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "^Role: Repo Archaeologist. Inventory repo structure entrypoints packages scripts env vars deployment targets and identify last known work via git history/TODOs. Produce a concise map and risks.^"
+    },
+    {
+      "id": "202602070123-YE035G",
+      "title": " Product and UX synthesis^",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "DOCS",
+      "depends_on": [
+        "^[]^"
+      ],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-02-07T01:23:45+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "^Role: Product UX Synthesizer. Infer product requirements from UI and docs draft short PRD and prioritized backlog P0 P1 P2 aligned to current state.^"
+    },
+    {
+      "id": "202602070123-ZBF126",
+      "title": " Backend API architecture check^",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "^[]^"
+      ],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start:_Begin_Task_2_server_side_ads_pricing_and_shared_constants."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-02-07T02:06:18+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "^Role: Backend API Architect. Confirm backend approach such as Firebase or Supabase or Cloud Run. Identify missing endpoints and auth boundaries and data model gaps for next milestone. Propose changes.^",
+      "doc": "## Summary\n\nAlign ads data model and API routes with Supabase, harden Stripe webhook verification, add Sanity server client for briefs.\n\n## Scope\n\nSchema updates: add profiles, campaigns, analytics, ad_purchases, and brief_submissions tables with RLS policies; ads API routes now use Supabase data; Stripe webhook verification corrected and campaign status updated on payment; briefs API uses Sanity server client.\n\n## Risks\n\nSupabase migrations are required before APIs work. Ads API now requires auth or ADS_DEMO_USER_ID in development; missing configuration will return 401. Stripe webhook verification changes must be validated with test events.\n\n## Verify Steps\n\n- ...\n\n## Rollback Plan\n\n- ...\n\n## Verify Steps^\n\nRun: npm run lint; npm run type-check; npm run build. Smoke: curl /api/campaigns with auth token; curl /api/briefs; Stripe webhook test event against /webhooks/stripe.\n\n## Rollback Plan^\n\nRevert commit f4a2c7f and restore prior schema and API routes. Re-run Supabase migrations if needed."
+    },
+    {
+      "id": "202602070124-CZKFSD",
+      "title": " QA and release readiness^",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "TESTER",
+      "depends_on": [
+        "^[]^"
+      ],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-02-07T02:10:20+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "^Role: QA Release Captain. Define definition of done smoke tests basic E2E plan release checklist and staged rollout plan.^",
+      "doc": "## Summary\n\nUpdate QA and release docs to reflect ads API auth requirements and required environment variables.\n\n## Scope\n\nUpdated TESTING.md with ads API auth guidance and refreshed PRE_DEPLOYMENT_CHECKLIST.md with required Supabase and auth env vars.\n\n## Risks\n\nDocs only; ensure deployment env vars match these updates.\n\n## Verify Steps\n\n- ...\n\n## Rollback Plan\n\n- ...\n\n## Verify Steps^\n\nN/A (documentation update). Confirm docs render correctly.\n\n## Rollback Plan^\n\nRevert commit c60e26e."
+    },
+    {
+      "id": "202602070124-P1JYRV",
+      "title": " Security and compliance review^",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "REVIEWER",
+      "depends_on": [
+        "^[]^"
+      ],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-02-07T01:24:03+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "^Role: Security Compliance Reviewer. Scan for secrets auth gaps unsafe storage missing rules CORS and token handling issues. Produce severity rated findings and fixes.^"
+    },
+    {
+      "id": "202602070252-EZ6FMW",
+      "title": "P0 milestone implementation plan",
+      "status": "TODO",
+      "priority": "med",
+      "owner": "PLANNER",
+      "depends_on": [],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-02-07T02:52:36+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Add the P0 milestone implementation plan doc under docs/plans and commit it."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "c19690fbc2022f27fdd2ccc37a7996f03dcbe32922e181fae14c58011940c92e"
+    "checksum": "a7517ad8218024883cbcd743149165c2c0d376fee4b6b205190156cbe171d179"
   }
 }
