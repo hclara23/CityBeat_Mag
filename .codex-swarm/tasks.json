@@ -5987,12 +5987,35 @@
       "doc_updated_at": "2026-02-07T02:52:36+00:00",
       "doc_updated_by": "agentctl",
       "description": "Add the P0 milestone implementation plan doc under docs/plans and commit it."
+    },
+    {
+      "id": "202602072147-FNHC1C",
+      "title": "Secure secrets ignore",
+      "status": "DONE",
+      "priority": "med",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Removed secrets from .gitignore and added secrets file to ignore list."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Added secrets ignore entry; secrets rotated by user."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-02-07T21:47:59+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Remove secrets from .gitignore and add secrets file to ignore list."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "1fed7a411e970ed9c8c0b348ac48f4efb4eb4b432ed1994c78f5c462f8bdfbb4"
+    "checksum": "e9781984ad18d7db2862f67aa92ed871d22fa1532efb7e83f70ee977ed9085eb"
   }
 }
