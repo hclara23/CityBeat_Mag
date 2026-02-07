@@ -7,7 +7,35 @@ owner: "TESTER"
 depends_on: ["^[]^"]
 tags: []
 doc_version: 2
-doc_updated_at: "2026-02-07T01:24:14+00:00"
+doc_updated_at: "2026-02-07T02:10:20+00:00"
 doc_updated_by: "agentctl"
 description: "^Role: QA Release Captain. Define definition of done smoke tests basic E2E plan release checklist and staged rollout plan.^"
 ---
+## Summary
+
+Update QA and release docs to reflect ads API auth requirements and required environment variables.
+
+## Scope
+
+Updated TESTING.md with ads API auth guidance and refreshed PRE_DEPLOYMENT_CHECKLIST.md with required Supabase and auth env vars.
+
+## Risks
+
+Docs only; ensure deployment env vars match these updates.
+
+## Verify Steps
+
+- ...
+
+## Rollback Plan
+
+- ...
+
+## Verify Steps^
+
+N/A (documentation update). Confirm docs render correctly.
+
+## Rollback Plan^
+
+Revert commit c60e26e.
+
