@@ -111,6 +111,7 @@
 - [ ] All env vars added to Vercel dashboard:
   - [ ] `NEXT_PUBLIC_SUPABASE_URL`
   - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - [ ] `SUPABASE_SERVICE_ROLE_KEY`
   - [ ] `NEXT_PUBLIC_STRIPE_PUBLIC_KEY`
   - [ ] `STRIPE_SECRET_KEY`
   - [ ] `STRIPE_WEBHOOK_SECRET`
@@ -120,6 +121,7 @@
   - [ ] `RESEND_API_KEY`
   - [ ] `NEXT_PUBLIC_APP_URL=https://ads.citybeatmag.co`
   - [ ] `NEXT_PUBLIC_API_URL=https://api.citybeatmag.co`
+  - [ ] `ADS_REQUIRE_AUTH=true`
 - [ ] Environment set to "Production" for all vars
 - [ ] No secrets exposed in preview environment (optional)
 

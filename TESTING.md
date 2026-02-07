@@ -102,12 +102,16 @@ curl "http://localhost:3000/api/analytics?campaignId=campaign-1&startDate=2026-0
 #### GET /api/campaigns
 Fetch advertiser's campaigns.
 
+> Note: Ads API requires auth by default. Provide a Supabase access token via `Authorization: Bearer <token>` or set `ADS_DEMO_USER_ID` for local development.
+
 ```bash
-# Fetch campaigns for an advertiser
-curl "http://localhost:3001/api/campaigns?advertiserId=user-123"
+# Fetch campaigns (authorized)
+curl -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+  "http://localhost:3001/api/campaigns"
 
 # With status filter
-curl "http://localhost:3001/api/campaigns?advertiserId=user-123&status=active"
+curl -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+  "http://localhost:3001/api/campaigns?status=active"
 
 # Expected response:
 {
