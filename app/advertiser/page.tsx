@@ -21,7 +21,7 @@ export default async function AdvertiserHome() {
     .select('status', { count: 'exact' })
     .eq('created_by', user.id)
 
-  const activeCampaigns = stats?.filter((s) => s.status === 'active').length || 0
+  const activeCampaigns = (stats as { status: string }[] | null)?.filter((s) => s.status === 'active').length || 0
   const totalCampaigns = stats?.length || 0
 
   return (
@@ -54,7 +54,7 @@ export default async function AdvertiserHome() {
 
         {campaigns && campaigns.length > 0 ? (
           <div className="space-y-3">
-            {campaigns.map((campaign) => (
+            {campaigns.map((campaign: any) => (
               <Link
                 key={campaign.id}
                 href={`/advertiser/campaigns/${campaign.id}`}

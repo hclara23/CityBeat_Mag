@@ -14,7 +14,7 @@ export default async function PortalPage() {
     .select('status', { count: 'exact' })
     .eq('created_by', user.id)
 
-  const activeCount = stats?.filter((s) => s.status === 'active').length || 0
+  const activeCount = (stats as { status: string }[] | null)?.filter((s) => s.status === 'active').length || 0
   const totalCount = stats?.length || 0
 
   return (
