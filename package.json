@@ -1,13 +1,37 @@
 {
-  "name": "citybeat-mag-monorepo",
+  "name": "citybeatmag_tmp",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "turbo build",
-    "dev": "turbo dev",
-    "lint": "turbo lint"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@stripe/stripe-js": "^1.46.0",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.95.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.34.0",
+    "lucide-react": "^0.460.0",
+    "motion": "^12.38.0",
+    "next": "16.1.6",
+    "pocketbase": "^0.26.8",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "stripe": "^14.25.0",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
-    "turbo": "latest"
-  },
-  "packageManager": "pnpm@9.0.0"
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
 }
