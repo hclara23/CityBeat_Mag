@@ -3,9 +3,20 @@
 ## Requirements
 - Node.js 18+
 - pnpm
-- Supabase CLI (`npm install -g supabase`)
+- Supabase CLI
+- PocketBase (`pocketbase.exe` included for local dev)
 
-## Setup
+## New Features
+- **Bilingual Content**: Full support for English and Spanish articles with dynamic routing.
+- **Article Integration**: Automatic syncing from local assets to PocketBase.
+- **Dynamic Ad Placements**: Configurable ad slots managed via Supabase.
+- **Framer Motion Animations**: Polished page transitions and scroll effects.
+
+## Architecture
+- **Frontend**: Next.js 15+ (App Router)
+- **Primary DB (Auth/Ads)**: Supabase
+- **Content DB (Articles)**: PocketBase
+- **Styling**: Tailwind CSS
 1. Install dependencies
 ```powershell
 pnpm install
@@ -114,6 +125,25 @@ pnpm build
 - `/portal` Advertiser overview
 - `/portal/campaigns` Campaign list
 - `/portal/campaigns/new` Create + pay campaign
+
+## Deployment Pipeline (Git -> Vercel)
+
+The project is configured for automatic deployment via Vercel:
+
+1. **GitHub Repository**: Always push to `https://github.com/hclara23/CityBeat_Mag`.
+2. **Vercel Integration**: The repository is linked to `city-beat-mag.vercel.app`.
+3. **Automatic Builds**: Any push to the `main` branch triggers a new production build.
+
+### Production Environment Variables (Required in Vercel)
+For the site to function correctly in production, set these variables in the Vercel Dashboard:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_POCKETBASE_URL` (Pointer to your hosted PocketBase instance)
+
+## Development Workflow
+1. Start PocketBase: `.\pocketbase.exe serve`
+2. Start Next.js: `pnpm dev`
+3. Push changes: `git push origin main`
 
 ## Notes
 - Ad clicks are tracked via the `ad-click` Edge Function only.
