@@ -44,7 +44,7 @@ export default async function PortalCampaignsPage() {
       </div>
 
       <div className="space-y-3">
-        {list.map((campaign) => (
+        {list.map((campaign: CampaignRow) => (
           <Link
             key={campaign.id}
             href={`/portal/campaigns/${campaign.id}`}

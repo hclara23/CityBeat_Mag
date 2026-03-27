@@ -47,7 +47,7 @@ export default async function StoriesPage(props: { params: Promise<{ locale: str
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {list.map((article) => {
+          {list.map((article: any) => {
             const title = locale === 'es' ? article.title_es : article.title_en
             const excerpt = locale === 'es' ? article.excerpt_es : article.excerpt_en
             const category = article.expand?.category

@@ -42,9 +42,9 @@ export default async function AdminArticlesPage() {
       </div>
 
       <div className="space-y-3">
-        {list.map((article) => {
+        {list.map((article: ArticleRow) => {
           const translation = article.translations?.find(
-            (item) => item.locale === 'en'
+            (item: any) => item.locale === 'en'
           )
 
           return (

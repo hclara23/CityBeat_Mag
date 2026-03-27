@@ -63,7 +63,7 @@ export default async function CampaignsPage() {
               </tr>
             </thead>
             <tbody>
-              {campaigns.map((campaign) => (
+              {campaigns.map((campaign: any) => (
                 <tr key={campaign.id} className="border-b border-ink/10 hover:bg-paper">
                   <td className="px-4 py-3">
                     {(campaign.ad_placements as any)?.name || 'Unknown'}

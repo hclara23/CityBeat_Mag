@@ -145,7 +145,7 @@ export default async function HomePage(
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            {topStories.map((story) => (
+            {topStories.map((story: any) => (
               <StoryCard key={story.id} story={story} locale={locale} />
             ))}
           </div>
@@ -169,9 +169,9 @@ export default async function HomePage(
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {mockEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
+            {mockEvents.map((event: any) => (
+                <EventCard key={event.id} event={event} />
+              ))}
           </div>
           
           <div className="mt-12 text-center md:hidden">

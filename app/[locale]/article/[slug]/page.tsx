@@ -43,7 +43,7 @@ export default async function ArticlePage(props: PageProps) {
       filter: `category = "${category?.id}" && id != "${article.id}" && is_published = true`,
       sort: '-published_at'
     });
-    relatedStories = relatedResult.items.map(s => ({
+    relatedStories = relatedResult.items.map((s: any) => ({
       id: s.id,
       slug: s.slug,
       title: locale === 'es' ? s.title_es : s.title_en,
@@ -188,7 +188,7 @@ export default async function ArticlePage(props: PageProps) {
                   {locale === 'es' ? `Más en ${categoryName}` : `More in ${categoryName}`}
                 </h4>
                 <ul className="space-y-4">
-                  {relatedStories.map((s) => (
+                  {relatedStories.map((s: any) => (
                     <li key={s.id}>
                       <Link href={`/${locale}/article/${s.slug}`} className="group block">
                         <h5 className="text-white font-medium group-hover:text-brand-neon transition-colors mb-1 line-clamp-2">
