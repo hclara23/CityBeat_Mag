@@ -2,6 +2,6 @@
 .vercel
 node_modules
 
-citybeat
-firebase-debug.log
-services/worker/.wrangler
+/citybeat/
+/firebase-debug.log
+/services/worker/.wrangler/
