@@ -1,13 +1,15 @@
 ---
 id: "202604142058-FZ6Z5D"
 title: "Integrate CityBeat UI under main domain"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "a7310aee14ed8d0fecb79170f66d96d7230beacc", message: "✨ 202604142058-FZ6Z5D integrate CityBeat UI on main domain: replace homepage theme; add /ads and /studio routes; update domain links and build fixes" }
 comments:
   - { author: "CODER", body: "Start: port the citybeat reference UI into the main Next app, integrate ads and studio routes under the primary domain, update domain links, and verify builds locally." }
+  - { author: "ORCHESTRATOR", body: "verified: web build and type-check passed | details: ads build and type-check passed; ui type-check passed; root build passed; browser checked /en, /en/ads, /en/ads/newsletter, and /studio on http://localhost:3002 with no current console errors." }
 doc_version: 2
 doc_updated_at: "2026-04-14T22:43:19+00:00"
 doc_updated_by: "agentctl"
