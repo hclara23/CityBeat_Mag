@@ -1,0 +1,7 @@
+{
+  "buildCommand": "npm run build --workspace=@citybeat/web",
+  "devCommand": "npm run dev --workspace=@citybeat/web",
+  "installCommand": "npm ci",
+  "framework": "nextjs",
+  "outputDirectory": "apps/web/.next"
+}
