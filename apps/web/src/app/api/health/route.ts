@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { isSanityConfigured } from '@/lib/sanity'
 
 export const runtime = 'nodejs'
 
@@ -13,12 +14,18 @@ async function checkSupabase(): Promise<boolean> {
 
 async function checkSanity(): Promise<boolean> {
   try {
+    if (!isSanityConfigured()) {
+      return false
+    }
+
+    const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
+    const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || 'production'
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SANITY_PROJECT_URL || 'https://api.sanity.io'}/v2022-12-07/data/query/production?query=*[_type=="brief"][0]`,
+      `https://${projectId}.api.sanity.io/v2022-12-07/data/query/${dataset}?query=*[_type=="brief"][0]`,
       {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SANITY_API_TOKEN || ''}`,
+          Authorization: `Bearer ${process.env.SANITY_API_TOKEN || ''}`,
         },
       }
     )

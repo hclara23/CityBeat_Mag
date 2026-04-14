@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin, getUserIdFromRequest, isAdvertiser } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const { customerId, returnUrl } = await request.json()
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
       },
       body: new URLSearchParams({
         customer: resolvedCustomerId,
-        return_url: returnUrl || 'https://ads.citybeatmag.co/dashboard',
+        return_url: returnUrl || 'https://citybeatmag.co/ads/campaigns',
       }).toString(),
     })
 

@@ -6010,12 +6010,50 @@
       "doc_updated_at": "2026-02-07T21:47:59+00:00",
       "doc_updated_by": "agentctl",
       "description": "Remove secrets from .gitignore and add secrets file to ignore list."
+    },
+    {
+      "id": "202602072200-8534E1",
+      "title": "Fix Vercel monorepo builds",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Updated Vercel configs to run installs/builds from repo root for workspace resolution."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-02-07T22:00:59+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Adjust Vercel build/install commands for monorepo so workspace packages resolve."
+    },
+    {
+      "id": "202604142058-FZ6Z5D",
+      "title": "Integrate CityBeat UI under main domain",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: port the citybeat reference UI into the main Next app, integrate ads and studio routes under the primary domain, update domain links, and verify builds locally."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-04-14T20:58:03+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Replace the current public UI with the citybeat reference theme, move ads and studio entry points under citybeatmag.co paths, update links/configuration away from ads/studio subdomains, and verify local builds."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "e9781984ad18d7db2862f67aa92ed871d22fa1532efb7e83f70ee977ed9085eb"
+    "checksum": "c20b96622eb6c8435206ac3a972bad85d24ca1996d53e2ddedee7fd0794a5216"
   }
 }

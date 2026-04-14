@@ -1,202 +1,145 @@
-'use client'
-
-import { useTranslations } from '@/components/TranslationProvider'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
-import { Button, Card, Navigation } from '@citybeat/ui'
+import Image from 'next/image'
+import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
+import { adProducts, events, topStories, withLocale } from '@/components/citybeat/content'
 
-export default function Home() {
-  const t = useTranslations()
-  const params = useParams()
-  const locale = params.locale as string
+type HomePageProps = {
+  params: {
+    locale: string
+  }
+}
 
-  const otherLocale = locale === 'en' ? 'es' : 'en'
+export default function Home({ params }: HomePageProps) {
+  const locale = params.locale || 'en'
+  const featured = topStories[0]
+  const secondaryStories = topStories.slice(1)
 
   return (
-    <main className="min-h-screen">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <nav className="container-wide py-4 flex items-center justify-between">
-          <div className="text-2xl font-bold text-red-600">CityBeat</div>
-          <div className="flex gap-4">
-            {locale === 'en' && (
-              <>
-                <span className="text-gray-900 font-semibold">EN</span>
-                <Link href={`/${otherLocale}`} className="text-gray-600 hover:text-gray-900">
-                  ES
-                </Link>
-              </>
-            )}
-            {locale === 'es' && (
-              <>
-                <Link href={`/${otherLocale}`} className="text-gray-600 hover:text-gray-900">
-                  EN
-                </Link>
-                <span className="text-gray-900 font-semibold">ES</span>
-              </>
-            )}
-          </div>
-        </nav>
-      </header>
+    <CityBeatShell locale={locale}>
+      <section className="relative min-h-[86svh] overflow-hidden">
+        <div className="absolute inset-0">
+          <Image
+            src={featured.image}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover opacity-70"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/72 to-black/15" />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-transparent to-transparent" />
+        </div>
 
-      {/* Hero */}
-      <section className="bg-gradient-to-r from-red-600 to-red-700 text-white py-20">
-        <div className="container-wide">
-          <h1 className="text-5xl font-bold mb-4">
-            {t('home.title')}
-          </h1>
-          <p className="text-xl mb-8">
-            {t('home.subtitle')}
-          </p>
-          <Button asChild size="lg" className="bg-white text-red-600 hover:bg-gray-100">
-            <Link href={`/${locale}#subscribe`}>
-              {t('home.subscribe')}
+        <div className="container-wide relative z-10 flex min-h-[86svh] items-end pb-16 pt-28">
+          <div className="max-w-4xl">
+            <p className="mb-5 inline-flex rounded-md border border-brand-neon/30 bg-black/35 px-3 py-2 text-xs font-black uppercase tracking-[0.3em] text-brand-neon">
+              El Paso / Las Cruces / Borderlands
+            </p>
+            <h1 className="text-balance font-display text-5xl font-black leading-[0.88] tracking-tight text-white sm:text-7xl lg:text-8xl">
+              CityBeat Magazine
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/72 md:text-xl">
+              Bilingual local culture, business, food, events, and civic life for the cities that keep the borderlands moving.
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link href={withLocale(locale, '/briefs')} className="rounded-md bg-brand-neon px-6 py-3 text-center text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300">
+                Read The Latest
+              </Link>
+              <Link href={withLocale(locale, '/ads')} className="rounded-md border border-white/20 px-6 py-3 text-center text-sm font-black uppercase tracking-wider text-white transition hover:bg-white/10">
+                Advertise
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-white/10 bg-brand-dark py-16">
+        <div className="container-wide grid gap-8 md:grid-cols-3">
+          {secondaryStories.map((story) => (
+            <Link key={story.title} href={withLocale(locale, story.href)} className="group">
+              <article className="grid gap-4">
+                <div className="overflow-hidden rounded-md bg-white/5">
+                  <Image
+                    src={story.image}
+                    alt=""
+                    width={900}
+                    height={650}
+                    className="aspect-[4/3] w-full object-cover opacity-85 transition duration-500 group-hover:scale-105 group-hover:opacity-70"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-neon">{story.category}</p>
+                  <h2 className="mt-2 text-2xl font-black leading-tight text-white transition group-hover:text-brand-neon">
+                    {story.title}
+                  </h2>
+                  <p className="mt-3 text-sm leading-6 text-white/55">{story.dek}</p>
+                </div>
+              </article>
             </Link>
-          </Button>
-        </div>
-      </section>
-
-      {/* Featured Section */}
-      <section className="container-wide py-16">
-        <h2 className="text-3xl font-bold mb-8">
-          {t('home.latestBriefs')}
-        </h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="hover:shadow-lg transition-shadow">
-              <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300" />
-              <div className="p-4">
-                <h3 className="text-lg font-bold mb-2">
-                  {t(`home.sampleBrief${i}`)}
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  {t(`home.sampleBriefDesc${i}`)}
-                </p>
-                <Link href={`/${locale}/briefs/${i}`} className="text-red-600 hover:text-red-700 font-semibold">
-                  {t('home.readMore')} →
-                </Link>
-              </div>
-            </Card>
           ))}
-        </div>
-      </section>
-
-      {/* Ads Section */}
-      <section className="bg-gray-50 py-16 border-y border-gray-200">
-        <div className="container-wide">
-          <h2 className="text-3xl font-bold mb-8">
-            {t('home.advertise')}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card>
-              <h3 className="text-xl font-bold mb-2">
-                {t('home.newsletter')}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {t('home.newsletterDesc')}
-              </p>
-              <Button asChild variant="primary">
-                <Link href={`/${locale}/ads/newsletter`}>
-                  {t('home.learnMore')}
-                </Link>
-              </Button>
-            </Card>
-            <Card>
-              <h3 className="text-xl font-bold mb-2">
-                {t('home.sponsored')}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {t('home.sponsoredDesc')}
-              </p>
-              <Button asChild variant="primary">
-                <Link href={`/${locale}/ads/sponsored`}>
-                  {t('home.learnMore')}
-                </Link>
-              </Button>
-            </Card>
-            <Card>
-              <h3 className="text-xl font-bold mb-2">
-                {t('home.banners')}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {t('home.bannersDesc')}
-              </p>
-              <Button asChild variant="primary">
-                <Link href={`/${locale}/ads/banners`}>
-                  {t('home.learnMore')}
-                </Link>
-              </Button>
-            </Card>
+          <div className="citybeat-panel rounded-md p-8">
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-magenta">Weekly Edit</p>
+            <h2 className="mt-3 text-3xl font-black text-white">Do not miss the beat.</h2>
+            <p className="mt-4 text-sm leading-6 text-white/60">
+              Get local picks, stories, events, and advertiser opportunities in one clean Friday send.
+            </p>
+            <form className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
+              <input
+                type="email"
+                placeholder="Email address"
+                className="rounded-md border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-brand-neon"
+              />
+              <button className="rounded-md bg-brand-neon px-5 py-3 text-sm font-black uppercase tracking-wider text-black">
+                Join
+              </button>
+            </form>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <section id="events" className="bg-brand-charcoal/70 py-20">
         <div className="container-wide">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <h4 className="font-bold mb-4">CityBeat</h4>
-              <p className="text-gray-400">
-                {t('home.footerDesc')}
-              </p>
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-neon">Happening Now</p>
+              <h2 className="mt-3 text-4xl font-black text-white md:text-5xl">Events & Culture</h2>
             </div>
-            <div>
-              <h4 className="font-bold mb-4">{t('footer.categories')}</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href={`/${locale}/briefs?category=news`} className="hover:text-white">
-                    {t('categories.news')}
-                  </Link>
-                </li>
-                <li>
-                  <Link href={`/${locale}/briefs?category=culture`} className="hover:text-white">
-                    {t('categories.culture')}
-                  </Link>
-                </li>
-                <li>
-                  <Link href={`/${locale}/briefs?category=events`} className="hover:text-white">
-                    {t('categories.events')}
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4">{t('footer.advertise')}</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href={`/${locale}/ads`} className="hover:text-white">
-                    {t('footer.adsPortal')}
-                  </Link>
-                </li>
-                <li>
-                  <Link href={`/${locale}/ads#pricing`} className="hover:text-white">
-                    {t('footer.pricing')}
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4">{t('footer.legal')}</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href={`/${locale}/privacy`} className="hover:text-white">
-                    {t('footer.privacy')}
-                  </Link>
-                </li>
-                <li>
-                  <Link href={`/${locale}/terms`} className="hover:text-white">
-                    {t('footer.terms')}
-                  </Link>
-                </li>
-              </ul>
-            </div>
+            <Link href={withLocale(locale, '/briefs?category=events')} className="text-sm font-black uppercase tracking-wider text-brand-neon hover:underline">
+              Full Calendar
+            </Link>
           </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 CityBeat Magazine. {t('footer.rights')}</p>
+          <div className="grid gap-6 md:grid-cols-3">
+            {events.map((event) => (
+              <article key={event.title} className="group overflow-hidden rounded-md bg-black/30">
+                <Image src={event.image} alt="" width={760} height={520} className="aspect-[4/3] w-full object-cover opacity-80 transition duration-500 group-hover:scale-105" />
+                <div className="p-6">
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-gold">{event.meta}</p>
+                  <h3 className="mt-3 text-2xl font-black text-white">{event.title}</h3>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
-      </footer>
-    </main>
+      </section>
+
+      <section id="directory" className="citybeat-grid py-20">
+        <div className="container-wide grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-magenta">Local Commerce</p>
+            <h2 className="mt-3 text-4xl font-black leading-none text-white md:text-6xl">A magazine built for the businesses locals actually visit.</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {Object.entries(adProducts).map(([key, product]) => (
+              <Link key={key} href={withLocale(locale, `/ads/${key}`)} className="citybeat-panel group rounded-md p-6 transition hover:-translate-y-1 hover:border-brand-neon/40">
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-neon">{product.shortTitle}</p>
+                <p className="mt-5 text-4xl font-black text-white">{product.price}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.22em] text-white/40">{product.cadence}</p>
+                <p className="mt-5 text-sm leading-6 text-white/58">{product.dek}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+    </CityBeatShell>
   )
 }

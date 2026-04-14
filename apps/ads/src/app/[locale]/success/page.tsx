@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Navigation, Button, Card } from '@citybeat/ui'
 import Link from 'next/link'
@@ -15,7 +15,7 @@ interface OrderDetails {
   createdAt: string
 }
 
-export default function SuccessPage() {
+function SuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const campaignId = searchParams.get('campaign_id')
@@ -230,5 +230,22 @@ export default function SuccessPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50">
+          <Navigation />
+          <div className="max-w-2xl mx-auto px-4 py-12 text-center text-gray-500">
+            Loading order details...
+          </div>
+        </div>
+      }
+    >
+      <SuccessContent />
+    </Suspense>
   )
 }

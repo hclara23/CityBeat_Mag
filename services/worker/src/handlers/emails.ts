@@ -19,7 +19,7 @@ export const emailTemplates = {
       <h3>Spanish Version (Translated)</h3>
       <p>${briefData.contentES}</p>
       <hr />
-      <p>Review and publish this brief in Sanity Studio: <a href="https://studio.citybeatmag.co">studio.citybeatmag.co</a></p>
+      <p>Review and publish this brief in Sanity Studio: <a href="https://citybeatmag.co/studio">citybeatmag.co/studio</a></p>
     `,
   }),
 
@@ -38,7 +38,7 @@ export const emailTemplates = {
       <p><strong>Amount Paid:</strong> $${(adData.amount / 100).toFixed(2)}</p>
       <p><strong>Session ID:</strong> ${adData.sessionId}</p>
       <hr />
-      <p>You can view your ad details and track performance at: <a href="https://ads.citybeatmag.co/success?session_id=${adData.sessionId}">ads.citybeatmag.co</a></p>
+      <p>You can view your ad details and track performance at: <a href="https://citybeatmag.co/ads/success?session_id=${adData.sessionId}">citybeatmag.co/ads</a></p>
       <p>If you have any questions, please contact our sales team.</p>
     `,
   }),
@@ -144,7 +144,7 @@ export const emailTemplates = {
       <p>We were unable to process your payment. Your subscription may be at risk if payment is not received.</p>
       <p><strong>Next Retry Date:</strong> ${data.nextRetryDate}</p>
       <p>Please update your payment method in your account settings to avoid service interruption.</p>
-      <p><a href="https://ads.citybeatmag.co/billing" style="background-color: #dc2626; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Update Payment Method</a></p>
+      <p><a href="https://citybeatmag.co/ads/orders" style="background-color: #00f0ff; color: black; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Update Payment Method</a></p>
     `,
   }),
 }

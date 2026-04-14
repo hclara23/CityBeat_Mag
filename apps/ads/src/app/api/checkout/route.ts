@@ -3,6 +3,8 @@ import Stripe from 'stripe'
 import { getUserIdFromRequest, isAdvertiser } from '@/lib/supabase'
 import { getPrice, type AdType, type BillingCycle } from '@/lib/pricing'
 
+export const dynamic = 'force-dynamic'
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-08-16',
 })
@@ -72,8 +74,8 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/success?campaign_id=${campaignId}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/campaigns`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/en/ads'}/success?campaign_id=${campaignId}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/en/ads'}/campaigns`,
       metadata: {
         advertiserId: userId,
         campaignId,

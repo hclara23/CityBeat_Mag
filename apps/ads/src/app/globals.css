@@ -2,13 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark;
+}
+
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-brand-dark text-white;
+    font-family: "Space Grotesk", Aptos, system-ui, sans-serif;
   }
 
   h1, h2, h3 {
-    @apply font-bold;
+    @apply font-display font-bold tracking-tight;
   }
 }
 
@@ -18,10 +23,16 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md bg-brand-neon text-black font-semibold hover:bg-cyan-300 transition-colors;
   }
 
   .card {
-    @apply bg-white rounded-lg shadow border border-gray-200 p-6;
+    @apply rounded-md border border-white/10 bg-brand-charcoal/80 p-6 shadow;
   }
+}
+
+.citybeat-panel {
+  background: rgba(26, 26, 26, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(18px);
 }

@@ -18,12 +18,10 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages(locale)
 
   return (
-    <html lang={locale}>
-      <body>
-        <TranslationProvider locale={locale} messages={messages}>
-          {children}
-        </TranslationProvider>
-      </body>
-    </html>
+    <TranslationProvider locale={locale} messages={messages}>
+      <div className="citybeat-app">
+        {children}
+      </div>
+    </TranslationProvider>
   )
 }

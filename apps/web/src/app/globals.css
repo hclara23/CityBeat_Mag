@@ -2,17 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: dark;
+  --brand-dark: #0a0a0a;
+  --brand-charcoal: #1a1a1a;
+  --brand-ink: #050505;
+  --brand-neon: #00f0ff;
+  --brand-magenta: #ff00ff;
+  --brand-gold: #ffd700;
+  --brand-muted: #a3a3a3;
+}
+
 @layer base {
   html {
     @apply scroll-smooth;
   }
 
   body {
-    @apply bg-white text-gray-900;
+    @apply bg-brand-dark text-white;
+    font-family: "Space Grotesk", Aptos, system-ui, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-bold;
+    @apply font-display font-bold tracking-tight;
   }
 
   h1 {
@@ -34,10 +46,101 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md bg-brand-neon text-black font-semibold hover:bg-cyan-300 transition-colors;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-gray-900 font-semibold hover:bg-gray-50 transition-colors;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md border border-white/20 text-white font-semibold hover:bg-white/10 transition-colors;
   }
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.citybeat-app {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(0, 240, 255, 0.09), transparent 32rem),
+    radial-gradient(circle at 88% 18%, rgba(255, 0, 255, 0.08), transparent 28rem),
+    var(--brand-dark);
+  color: white;
+}
+
+.citybeat-app .bg-white,
+.citybeat-app .bg-gray-50 {
+  background-color: var(--brand-dark) !important;
+}
+
+.citybeat-app .bg-gray-100 {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.citybeat-app .bg-gray-900,
+.citybeat-app .bg-slate-900,
+.citybeat-app .bg-slate-800 {
+  background-color: var(--brand-ink) !important;
+}
+
+.citybeat-app .text-gray-900,
+.citybeat-app .text-gray-800,
+.citybeat-app .text-slate-900 {
+  color: #ffffff !important;
+}
+
+.citybeat-app .text-gray-700,
+.citybeat-app .text-gray-600,
+.citybeat-app .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+.citybeat-app .text-gray-500,
+.citybeat-app .text-gray-400 {
+  color: var(--brand-muted) !important;
+}
+
+.citybeat-app .border-gray-300,
+.citybeat-app .border-gray-200,
+.citybeat-app .border-gray-100,
+.citybeat-app .border-slate-200 {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.citybeat-app .text-red-600,
+.citybeat-app .text-red-700,
+.citybeat-app .text-primary {
+  color: var(--brand-neon) !important;
+}
+
+.citybeat-app .bg-red-600,
+.citybeat-app .bg-red-700,
+.citybeat-app .bg-primary {
+  background-color: var(--brand-neon) !important;
+  color: black !important;
+}
+
+.citybeat-app input,
+.citybeat-app textarea,
+.citybeat-app select {
+  background-color: rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: white;
+}
+
+.citybeat-app input::placeholder,
+.citybeat-app textarea::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.citybeat-panel {
+  background: rgba(26, 26, 26, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(18px);
+}
+
+.citybeat-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 44px 44px;
 }

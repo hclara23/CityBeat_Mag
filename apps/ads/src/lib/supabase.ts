@@ -5,10 +5,6 @@ import type { NextRequest } from 'next/server'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
-if (!supabaseUrl) {
-  console.warn('Supabase URL is not configured for ads API.')
-}
-
 export function getSupabaseAdmin() {
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Supabase admin credentials are not configured.')

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin, getUserIdFromRequest, isAdvertiser, requiresAuth } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 interface Order {
   id: string
   campaignName: string

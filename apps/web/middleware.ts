@@ -3,7 +3,7 @@ import createMiddleware from 'next-intl/middleware'
 import { locales, defaultLocale } from './src/lib/i18n'
 
 // Protected routes that require authentication
-const protectedRoutes = ['/dashboard', '/account', '/campaigns', '/billing']
+const protectedRoutes = ['/dashboard', '/account', '/campaigns', '/ads/campaigns', '/ads/orders', '/billing']
 
 // Auth routes that should redirect to dashboard if already logged in
 const authRoutes = ['/login', '/signup', '/reset-password', '/update-password']
@@ -16,6 +16,10 @@ const intlMiddleware = createMiddleware({
 })
 
 export default async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/studio')) {
+    return NextResponse.next()
+  }
+
   // Apply i18n middleware
   const response = intlMiddleware(request)
 

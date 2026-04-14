@@ -17,31 +17,40 @@ export function Navigation({
   items = [],
   onBrandClick
 }: NavigationProps) {
+  const navItems = items.length > 0 ? items : [
+    { label: 'Home', href: '/en' },
+    { label: 'Briefs', href: '/en/briefs' },
+    { label: 'Ads', href: '/en/ads' },
+    { label: 'Studio', href: '/studio' },
+  ]
+
   return (
-    <nav className="bg-white border-b border-gray-200">
+    <nav className="border-b border-white/10 bg-brand-dark/90 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
         <button
           onClick={onBrandClick}
-          className="text-2xl font-bold text-red-600 hover:text-red-700 cursor-pointer"
+          className="text-2xl font-black tracking-tighter text-white hover:text-brand-neon cursor-pointer"
         >
-          {brand}
+          {brand === 'CityBeat' ? (
+            <>
+              city<span className="italic text-brand-neon">BEat</span>
+            </>
+          ) : brand}
         </button>
-        <div className="flex gap-6">
-          {items.length > 0 ? (
-            items.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className={`font-medium transition-colors ${
-                  item.active
-                    ? 'text-red-600 border-b-2 border-red-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {item.label}
-              </a>
-            ))
-          ) : null}
+        <div className="hidden gap-6 md:flex">
+          {navItems.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className={`text-xs font-bold uppercase tracking-[0.22em] transition-colors ${
+                item.active
+                  ? 'text-brand-neon'
+                  : 'text-white/65 hover:text-brand-neon'
+              }`}
+            >
+              {item.label}
+            </a>
+          ))}
         </div>
       </div>
     </nav>
