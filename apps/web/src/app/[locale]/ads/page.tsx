@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
-import { adProducts, withLocale } from '@/components/citybeat/content'
+import { getAdProducts, withLocale, type Locale } from '@/components/citybeat/content'
 
 type AdsPageProps = {
   params: {
@@ -10,7 +10,41 @@ type AdsPageProps = {
 }
 
 export default function AdsPage({ params }: AdsPageProps) {
-  const locale = params.locale || 'en'
+  const locale = (params.locale || 'en') as Locale
+  const adProducts = getAdProducts(locale)
+  const copy = {
+    en: {
+      pageLabel: 'Advertise',
+      headline: 'Reach readers where local decisions happen.',
+      description: 'CityBeat placements now live under the main site. Build a campaign for newsletter, sponsored story, or category banner inventory from one domain.',
+      start: 'Start',
+      stats: [
+        ['50,000+', 'monthly bilingual readers across the region'],
+        ['5', 'core coverage zones for focused local placement'],
+        ['24 hr', 'campaign review target for submitted creative'],
+      ],
+      dashboardTitle: 'Campaign dashboard',
+      dashboardCopy: 'Track campaign status and order history from the main CityBeat domain.',
+      campaigns: 'Campaigns',
+      orders: 'Orders',
+    },
+    es: {
+      pageLabel: 'Publicidad',
+      headline: 'Llega a las lectoras y lectores donde se toman decisiones locales.',
+      description: 'Las ubicaciones de CityBeat ahora están en el sitio principal. Crea una campaña para boletín, historia patrocinada o banner de categoría desde un solo dominio.',
+      start: 'Comenzar',
+      stats: [
+        ['50,000+', 'lectores bilingües mensuales en la región'],
+        ['5', 'zonas principales de cobertura para colocación local'],
+        ['24 h', 'objetivo de revisión de campaña para creativos enviados'],
+      ],
+      dashboardTitle: 'Panel de campaña',
+      dashboardCopy: 'Sigue el estado de la campaña y el historial de pedidos desde el dominio principal de CityBeat.',
+      campaigns: 'Campañas',
+      orders: 'Pedidos',
+    },
+  }
+  const localeCopy = copy[locale as 'en' | 'es']
 
   return (
     <CityBeatShell locale={locale}>
@@ -18,12 +52,12 @@ export default function AdsPage({ params }: AdsPageProps) {
         <div className="absolute inset-0 citybeat-grid opacity-60" />
         <div className="container-wide relative z-10">
           <div className="max-w-4xl">
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-brand-neon">Advertise</p>
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-brand-neon">{localeCopy.pageLabel}</p>
             <h1 className="mt-5 text-balance font-display text-5xl font-black leading-[0.92] text-white md:text-7xl">
-              Reach readers where local decisions happen.
+              {localeCopy.headline}
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-white/65">
-              CityBeat placements now live under the main site. Build a campaign for newsletter, sponsored story, or category banner inventory from one domain.
+              {localeCopy.description}
             </p>
           </div>
         </div>
@@ -48,7 +82,7 @@ export default function AdsPage({ params }: AdsPageProps) {
                     <p className="text-xs uppercase tracking-[0.22em] text-white/35">{product.cadence}</p>
                   </div>
                   <span className="rounded-md bg-brand-neon px-4 py-2 text-xs font-black uppercase tracking-wider text-black">
-                    Start
+                    {localeCopy.start}
                   </span>
                 </div>
               </div>
@@ -59,11 +93,7 @@ export default function AdsPage({ params }: AdsPageProps) {
 
       <section className="border-y border-white/10 bg-brand-charcoal/70 py-16">
         <div className="container-wide grid gap-8 md:grid-cols-3">
-          {[
-            ['50,000+', 'monthly bilingual readers across the region'],
-            ['5', 'core coverage zones for focused local placement'],
-            ['24 hr', 'campaign review target for submitted creative'],
-          ].map(([value, label]) => (
+          {localeCopy.stats.map(([value, label]) => (
             <div key={value}>
               <p className="text-5xl font-black text-brand-neon">{value}</p>
               <p className="mt-3 text-sm uppercase tracking-[0.2em] text-white/50">{label}</p>
@@ -75,15 +105,15 @@ export default function AdsPage({ params }: AdsPageProps) {
       <section className="py-16">
         <div className="container-wide flex flex-col justify-between gap-6 rounded-md border border-white/10 bg-black/35 p-8 md:flex-row md:items-center">
           <div>
-            <h2 className="text-3xl font-black text-white">Campaign dashboard</h2>
-            <p className="mt-2 text-white/60">Track campaign status and order history from the main CityBeat domain.</p>
+            <h2 className="text-3xl font-black text-white">{localeCopy.dashboardTitle}</h2>
+            <p className="mt-2 text-white/60">{localeCopy.dashboardCopy}</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link href={withLocale(locale, '/ads/campaigns')} className="rounded-md border border-white/20 px-5 py-3 text-center text-sm font-black uppercase tracking-wider text-white hover:bg-white/10">
-              Campaigns
+              {localeCopy.campaigns}
             </Link>
             <Link href={withLocale(locale, '/ads/orders')} className="rounded-md bg-brand-neon px-5 py-3 text-center text-sm font-black uppercase tracking-wider text-black hover:bg-cyan-300">
-              Orders
+              {localeCopy.orders}
             </Link>
           </div>
         </div>

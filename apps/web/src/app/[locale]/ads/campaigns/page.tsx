@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
-import { adProducts, withLocale } from '@/components/citybeat/content'
+import { getAdProducts, withLocale, type Locale } from '@/components/citybeat/content'
 
 type CampaignsPageProps = {
   params: {
@@ -9,7 +9,8 @@ type CampaignsPageProps = {
 }
 
 export default function CampaignsPage({ params }: CampaignsPageProps) {
-  const locale = params.locale || 'en'
+  const locale = (params.locale || 'en') as Locale
+  const adProducts = getAdProducts(locale)
 
   return (
     <CityBeatShell locale={locale}>

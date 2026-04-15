@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
-import { adProducts, events, topStories, withLocale } from '@/components/citybeat/content'
+import { getAdProducts, getEvents, getTopStories, withLocale, type Locale } from '@/components/citybeat/content'
 
 type HomePageProps = {
   params: {
@@ -10,9 +10,48 @@ type HomePageProps = {
 }
 
 export default function Home({ params }: HomePageProps) {
-  const locale = params.locale || 'en'
-  const featured = topStories[0]
-  const secondaryStories = topStories.slice(1)
+  const locale = (params.locale || 'en') as Locale
+  const featured = getTopStories(locale)[0]
+  const secondaryStories = getTopStories(locale).slice(1)
+  const events = getEvents(locale)
+  const adProducts = getAdProducts(locale)
+  const copy = {
+    en: {
+      regionTag: 'El Paso / Las Cruces / Borderlands',
+      headline: 'CityBeat Magazine',
+      subhead: 'Bilingual local culture, business, food, events, and civic life for the cities that keep the borderlands moving.',
+      readLatest: 'Read The Latest',
+      advertise: 'Advertise',
+      weeklyEdit: 'Weekly Edit',
+      weeklyHeading: 'Do not miss the beat.',
+      weeklyCopy: 'Get local picks, stories, events, and advertiser opportunities in one clean Friday send.',
+      emailPlaceholder: 'Email address',
+      join: 'Join',
+      happeningNow: 'Happening Now',
+      eventsHeading: 'Events & Culture',
+      fullCalendar: 'Full Calendar',
+      localCommerce: 'Local Commerce',
+      directoryHeading: 'A magazine built for the businesses locals actually visit.',
+    },
+    es: {
+      regionTag: 'El Paso / Las Cruces / Frontera',
+      headline: 'Revista CityBeat',
+      subhead: 'Cultura local bilingüe, negocios, comida, eventos y vida cívica para las ciudades que mantienen la frontera en movimiento.',
+      readLatest: 'Leer Lo Último',
+      advertise: 'Anunciar',
+      weeklyEdit: 'Selección Semanal',
+      weeklyHeading: 'No te pierdas el ritmo.',
+      weeklyCopy: 'Recibe selecciones locales, historias, eventos y oportunidades publicitarias en un solo envío del viernes.',
+      emailPlaceholder: 'Dirección de correo',
+      join: 'Unirse',
+      happeningNow: 'En Marcha',
+      eventsHeading: 'Eventos y Cultura',
+      fullCalendar: 'Calendario Completo',
+      localCommerce: 'Comercio Local',
+      directoryHeading: 'Una revista construida para los negocios que los locales realmente visitan.',
+    },
+  }
+  const localeCopy = copy[locale as 'en' | 'es']
 
   return (
     <CityBeatShell locale={locale}>
@@ -33,20 +72,20 @@ export default function Home({ params }: HomePageProps) {
         <div className="container-wide relative z-10 flex min-h-[86svh] items-end pb-16 pt-28">
           <div className="max-w-4xl">
             <p className="mb-5 inline-flex rounded-md border border-brand-neon/30 bg-black/35 px-3 py-2 text-xs font-black uppercase tracking-[0.3em] text-brand-neon">
-              El Paso / Las Cruces / Borderlands
+              {localeCopy.regionTag}
             </p>
             <h1 className="text-balance font-display text-5xl font-black leading-[0.88] tracking-tight text-white sm:text-7xl lg:text-8xl">
-              CityBeat Magazine
+              {localeCopy.headline}
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-white/72 md:text-xl">
-              Bilingual local culture, business, food, events, and civic life for the cities that keep the borderlands moving.
+              {localeCopy.subhead}
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link href={withLocale(locale, '/briefs')} className="rounded-md bg-brand-neon px-6 py-3 text-center text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300">
-                Read The Latest
+                {localeCopy.readLatest}
               </Link>
               <Link href={withLocale(locale, '/ads')} className="rounded-md border border-white/20 px-6 py-3 text-center text-sm font-black uppercase tracking-wider text-white transition hover:bg-white/10">
-                Advertise
+                {localeCopy.advertise}
               </Link>
             </div>
           </div>
@@ -78,19 +117,19 @@ export default function Home({ params }: HomePageProps) {
             </Link>
           ))}
           <div className="citybeat-panel rounded-md p-8">
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-magenta">Weekly Edit</p>
-            <h2 className="mt-3 text-3xl font-black text-white">Do not miss the beat.</h2>
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-magenta">{localeCopy.weeklyEdit}</p>
+            <h2 className="mt-3 text-3xl font-black text-white">{localeCopy.weeklyHeading}</h2>
             <p className="mt-4 text-sm leading-6 text-white/60">
-              Get local picks, stories, events, and advertiser opportunities in one clean Friday send.
+              {localeCopy.weeklyCopy}
             </p>
             <form className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
               <input
                 type="email"
-                placeholder="Email address"
+                placeholder={localeCopy.emailPlaceholder}
                 className="rounded-md border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-brand-neon"
               />
               <button className="rounded-md bg-brand-neon px-5 py-3 text-sm font-black uppercase tracking-wider text-black">
-                Join
+                {localeCopy.join}
               </button>
             </form>
           </div>
@@ -101,11 +140,11 @@ export default function Home({ params }: HomePageProps) {
         <div className="container-wide">
           <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-neon">Happening Now</p>
-              <h2 className="mt-3 text-4xl font-black text-white md:text-5xl">Events & Culture</h2>
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-neon">{localeCopy.happeningNow}</p>
+              <h2 className="mt-3 text-4xl font-black text-white md:text-5xl">{localeCopy.eventsHeading}</h2>
             </div>
             <Link href={withLocale(locale, '/briefs?category=events')} className="text-sm font-black uppercase tracking-wider text-brand-neon hover:underline">
-              Full Calendar
+              {localeCopy.fullCalendar}
             </Link>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
@@ -125,8 +164,8 @@ export default function Home({ params }: HomePageProps) {
       <section id="directory" className="citybeat-grid py-20">
         <div className="container-wide grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-magenta">Local Commerce</p>
-            <h2 className="mt-3 text-4xl font-black leading-none text-white md:text-6xl">A magazine built for the businesses locals actually visit.</h2>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-magenta">{localeCopy.localCommerce}</p>
+            <h2 className="mt-3 text-4xl font-black leading-none text-white md:text-6xl">{localeCopy.directoryHeading}</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             {Object.entries(adProducts).map(([key, product]) => (
