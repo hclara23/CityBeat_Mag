@@ -19,8 +19,27 @@ export default {
     },
     {
       name: 'author',
-      title: 'Author',
+      title: 'Author Name',
       type: 'string',
+    },
+    {
+      name: 'authorEmail',
+      title: 'Author Email',
+      type: 'string',
+      description: 'Contact email for the author/contributor (not shown publicly)',
+    },
+    {
+      name: 'isContribution',
+      title: 'Community Contribution',
+      type: 'boolean',
+      description: 'True if this was submitted via the public contribution form',
+      initialValue: false,
+    },
+    {
+      name: 'submittedAt',
+      title: 'Submitted At',
+      type: 'datetime',
+      description: 'When the community contribution was submitted',
     },
     {
       name: 'image',
@@ -70,9 +89,36 @@ export default {
       options: {
         list: [
           { title: 'Draft', value: 'draft' },
+          { title: 'Pending Review', value: 'pending_review' },
+          { title: 'Approved', value: 'approved' },
+          { title: 'Rejected', value: 'rejected' },
           { title: 'Published', value: 'published' },
         ],
       },
+      initialValue: 'draft',
     },
   ],
+  preview: {
+    select: {
+      title: 'title',
+      status: 'status',
+      isContribution: 'isContribution',
+      subtitle: 'author',
+    },
+    prepare(selection: any) {
+      const { title, status, isContribution, subtitle } = selection
+      const statusLabels: Record<string, string> = {
+        draft: '✏️ Draft',
+        pending_review: '⏳ Review',
+        approved: '✅ Approved',
+        rejected: '❌ Rejected',
+        published: '🚀 Published',
+      }
+      const prefix = isContribution ? '👥 ' : ''
+      return {
+        title: `${prefix}${title}`,
+        subtitle: `${subtitle || 'Unknown'} · ${statusLabels[status] || status}`,
+      }
+    },
+  },
 }
