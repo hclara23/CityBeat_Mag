@@ -38,6 +38,7 @@ body {
   font-size: 1.05rem;
   line-height: 1.75;
   color: #2a2a24;
+  letter-spacing: 0.05em;
 }
 
 .article-content h2,
