@@ -2,10 +2,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
-import { adProducts, withLocale } from '@/components/citybeat/content'
+import { getAdProducts, withLocale, type Locale } from '@/components/citybeat/content'
 import type { AdProductKey } from '@/components/citybeat/content'
-
-const productKeys = Object.keys(adProducts) as AdProductKey[]
 
 type ProductPageProps = {
   params: {
@@ -15,13 +13,14 @@ type ProductPageProps = {
 }
 
 export function generateStaticParams() {
-  return ['en', 'es'].flatMap((locale) =>
-    productKeys.map((product) => ({ locale, product }))
+  return (['en', 'es'] as Locale[]).flatMap((locale) =>
+    Object.keys(getAdProducts(locale) as Record<AdProductKey, unknown>).map((product) => ({ locale, product }))
   )
 }
 
 export default function ProductPage({ params }: ProductPageProps) {
-  const locale = params.locale || 'en'
+  const locale = (params.locale || 'en') as Locale
+  const adProducts = getAdProducts(locale)
   const productKey = params.product as AdProductKey
   const product = adProducts[productKey]
 
