@@ -4,7 +4,6 @@
 node_modules/
 .pnp/
 .pnp.*
-.pnp.js
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
@@ -15,7 +14,6 @@ node_modules/
 # Testing / Coverage
 # ============================
 coverage/
-.nyc_output/
 
 # ============================
 # Next.js build output
@@ -23,7 +21,6 @@ coverage/
 .next/
 out/
 build/
-dist/
 
 # ============================
 # Vercel
@@ -38,7 +35,8 @@ dist/
 .env.development
 .env.production
 .env.test
-.env.*.local
+
+# Allow committed example env file
 !.env.local.example
 
 # ============================
@@ -54,13 +52,6 @@ yarn-error.log*
 # ============================
 .DS_Store
 Thumbs.db
-*.swp
-*.swo
-*~
-
-# IDE
-.vscode/
-.idea/
 
 # ============================
 # Certificates / Keys
@@ -93,18 +84,5 @@ pocketbase-master/
 # ============================
 # Misc
 # ============================
-*.tmp
-temp/
-tmpclaude-*
-__pycache__/
-codex-swarm/
-CityBeat_Magazine_Secrets.md
-
-# Deployment
-.turbo/
-
-# Local development
-*.local.json
-.claude/
-
-# Build artifacts
+*.swp
+*.swo
