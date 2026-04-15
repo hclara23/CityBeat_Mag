@@ -9,36 +9,6 @@
     "installCommand": "cd ../.. && npm ci",
     "outputDirectory": "apps/ads/.next"
   },
-  "env": [
-    {
-      "key": "NEXT_PUBLIC_SUPABASE_URL",
-      "value": "@next_public_supabase_url"
-    },
-    {
-      "key": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-      "value": "@next_public_supabase_anon_key"
-    },
-    {
-      "key": "NEXT_PUBLIC_STRIPE_PUBLIC_KEY",
-      "value": "@next_public_stripe_public_key"
-    },
-    {
-      "key": "STRIPE_SECRET_KEY",
-      "value": "@stripe_secret_key"
-    },
-    {
-      "key": "STRIPE_WEBHOOK_SECRET",
-      "value": "@stripe_webhook_secret"
-    },
-    {
-      "key": "NEXT_PUBLIC_SENTRY_DSN",
-      "value": "@next_public_sentry_dsn"
-    },
-    {
-      "key": "SENTRY_DSN",
-      "value": "@sentry_dsn"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
