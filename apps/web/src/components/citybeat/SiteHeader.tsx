@@ -4,24 +4,28 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { withLocale } from './content'
+import { useLocale } from '@/components/TranslationProvider'
 
-const navItems = [
-  { label: 'Stories', href: '/briefs' },
-  { label: 'Events', href: '/#events' },
-  { label: 'Directory', href: '/#directory' },
-  { label: 'Ads', href: '/ads' },
-  { label: 'Studio', href: '/studio', externalLocale: true },
-]
+function getNavItems(locale: string) {
+  return [
+    { label: locale === 'es' ? 'Boletines' : 'Stories', href: '/briefs' },
+    { label: locale === 'es' ? 'Eventos' : 'Events', href: '/#events' },
+    { label: locale === 'es' ? 'Directorio' : 'Directory', href: '/#directory' },
+    { label: locale === 'es' ? 'Anuncios' : 'Ads', href: '/ads' },
+    { label: locale === 'es' ? 'Crear' : 'Write', href: '/creator' },
+    { label: locale === 'es' ? 'Estudio' : 'Studio', href: '/studio', externalLocale: true },
+  ]
+}
 
 export function SiteHeader() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const segment = pathname.split('/')[1]
-  const locale = segment === 'es' ? 'es' : 'en'
+  const locale = useLocale()
   const otherLocale = locale === 'en' ? 'es' : 'en'
   const localizedPath = pathname.startsWith(`/${locale}`)
     ? `/${otherLocale}${pathname.slice(locale.length + 1) || ''}`
     : `/${otherLocale}`
+  const navItems = getNavItems(locale)
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-brand-dark/85 backdrop-blur-xl">
@@ -50,7 +54,7 @@ export function SiteHeader() {
             {otherLocale}
           </Link>
           <Link href={withLocale(locale, '/ads')} className="rounded-md bg-brand-neon px-4 py-2 text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300">
-            Advertise
+            {locale === 'es' ? 'Anunciar' : 'Advertise'}
           </Link>
         </div>
 
@@ -61,7 +65,7 @@ export function SiteHeader() {
           aria-expanded={open}
           aria-controls="mobile-navigation"
         >
-          Menu
+          {locale === 'es' ? 'Menú' : 'Menu'}
         </button>
       </div>
 
@@ -79,7 +83,7 @@ export function SiteHeader() {
               </Link>
             ))}
             <Link href={localizedPath} className="text-sm font-bold uppercase tracking-[0.22em] text-brand-neon">
-              Switch to {otherLocale.toUpperCase()}
+              {locale === 'es' ? 'Cambiar a ' : 'Switch to '}{otherLocale.toUpperCase()}
             </Link>
           </div>
         </nav>

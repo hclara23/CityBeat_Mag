@@ -71,3 +71,17 @@ export async function getSanityData<T = unknown>(query: string, params?: SanityP
     throw error
   }
 }
+
+export function getSanityWriteClient() {
+  const projectId = getProjectId()
+  if (!projectId) {
+    throw new Error('Sanity project ID is not configured.')
+  }
+  return createClient({
+    projectId,
+    dataset,
+    apiVersion,
+    useCdn: false,
+    token: process.env.SANITY_API_TOKEN,
+  })
+}
