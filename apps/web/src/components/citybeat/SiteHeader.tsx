@@ -11,10 +11,7 @@ function getNavItems(locale: string) {
     { label: locale === 'es' ? 'Boletines' : 'Stories', href: '/briefs' },
     { label: locale === 'es' ? 'Eventos' : 'Events', href: '/#events' },
     { label: locale === 'es' ? 'Directorio' : 'Directory', href: '/#directory' },
-    { label: locale === 'es' ? 'Anuncios' : 'Ads', href: '/ads' },
     { label: locale === 'es' ? 'Enviar' : 'Submit', href: '/contribute' },
-    { label: locale === 'es' ? 'Crear' : 'Write', href: '/creator' },
-    { label: locale === 'es' ? 'Estudio' : 'Studio', href: '/studio', externalLocale: true },
   ]
 }
 
@@ -42,7 +39,7 @@ export function SiteHeader() {
           {navItems.map((item) => (
             <Link
               key={item.href}
-              href={item.externalLocale ? item.href : withLocale(locale, item.href)}
+              href={withLocale(locale, item.href)}
               className="text-xs font-bold uppercase tracking-[0.22em] text-white/70 transition hover:text-brand-neon"
             >
               {item.label}
@@ -76,7 +73,7 @@ export function SiteHeader() {
             {navItems.map((item) => (
               <Link
                 key={item.href}
-                href={item.externalLocale ? item.href : withLocale(locale, item.href)}
+                href={withLocale(locale, item.href)}
                 onClick={() => setOpen(false)}
                 className="font-display text-3xl font-black text-white hover:text-brand-neon"
               >
