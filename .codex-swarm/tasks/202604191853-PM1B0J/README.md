@@ -1,15 +1,17 @@
 ---
 id: "202604191853-PM1B0J"
 title: "Import local author articles"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["content", "articles", "ui"]
 verify: ["npm run type-check", "npm run lint", "npm run build"]
+commit: { hash: "155849b75dcbb285df3c17c889fa8c0e160e56e4", message: "📰 PM1B0J import local author articles" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: inspect local author folders, convert article documents and media, wire them into the website, and verify." }
   - { author: "ORCHESTRATOR", body: "Start: convert local author folders into website article content and public media assets." }
+  - { author: "ORCHESTRATOR", body: "verified: imported the local author articles and media into the website, verified the article list/detail/API runtime paths, and passed npm run type-check, npm run lint, and npm run build." }
 doc_version: 2
 doc_updated_at: "2026-04-19T19:07:09+00:00"
 doc_updated_by: "agentctl"
