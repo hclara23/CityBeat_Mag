@@ -1,15 +1,17 @@
 ---
 id: "202604191843-107AM1"
 title: "Simplify main header navigation"
-status: "DOING"
+status: "DONE"
 priority: "med"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["ui", "nav"]
 verify: ["npm run type-check", "npm run lint", "npm run build"]
+commit: { hash: "2d82ecf5a63c5e2da57d7334a81afe67dcc586bd", message: "🧭 107AM1 simplify main header navigation" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: remove Ads Write and Studio from the main CityBeat header navigation." }
   - { author: "ORCHESTRATOR", body: "Start: update SiteHeader nav items and verify." }
+  - { author: "ORCHESTRATOR", body: "verified: removed Ads Write and Studio from the main header navigation and passed npm run type-check, npm run lint, and npm run build." }
 doc_version: 2
 doc_updated_at: "2026-04-19T18:45:24+00:00"
 doc_updated_by: "agentctl"

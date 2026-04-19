@@ -6159,7 +6159,7 @@
     {
       "id": "202604191843-107AM1",
       "title": "Simplify main header navigation",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "med",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
@@ -6172,6 +6172,10 @@
         "npm run lint",
         "npm run build"
       ],
+      "commit": {
+        "hash": "2d82ecf5a63c5e2da57d7334a81afe67dcc586bd",
+        "message": "🧭 107AM1 simplify main header navigation"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
@@ -6180,18 +6184,23 @@
         {
           "author": "ORCHESTRATOR",
           "body": "Start: update SiteHeader nav items and verify."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: removed Ads Write and Studio from the main header navigation and passed npm run type-check, npm run lint, and npm run build."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-04-19T18:43:57+00:00",
+      "doc_updated_at": "2026-04-19T18:45:24+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Remove Ads, Write, and Studio links from the CityBeat main top navigation while keeping the remaining menu links, locale switcher, and Advertise CTA."
+      "description": "Remove Ads, Write, and Studio links from the CityBeat main top navigation while keeping the remaining menu links, locale switcher, and Advertise CTA.",
+      "doc": "## Summary\n\nRemoved Ads, Write, and Studio from the CityBeat main header navigation. The remaining top menu links are Stories, Events, Directory, and Submit, with the language switcher and Advertise CTA unchanged.\n\n## Scope\n\nUpdated apps/web/src/components/citybeat/SiteHeader.tsx only for runtime UI. Task tracking artifacts were updated through agentctl. Existing unrelated .env.production.template and src/lib/articles and media changes were left untouched.\n\n## Risks\n\nLow risk. This removes only header navigation entries; the underlying Ads, Creator, and Studio routes remain available by direct URL or other CTAs.\n\n## Verify Steps\n\nnpm run type-check passed. npm run lint passed. npm run build passed.\n\n## Rollback Plan\n\nRevert this task commit to restore Ads, Write, and Studio in the main header nav."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "0bd3aa8f6aae9ba36dd7db5cd962ba5ddef585a914641c0f3555f13c6fec1157"
+    "checksum": "327958a41365467a6a3520feb7e75e6b50d16eda36736f67fbde6aab390a93f4"
   }
 }
