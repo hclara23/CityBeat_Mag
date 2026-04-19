@@ -1,11 +1,13 @@
 'use client'
 
-import { useTranslations } from '@/components/TranslationProvider'
-import { Button, Card, Navigation } from '@citybeat/ui'
+import { useLocale, useTranslations } from '@/components/TranslationProvider'
+import { Button, Card } from '@citybeat/ui'
+import { AdsNavigation as Navigation } from '@/components/AdsNavigation'
 import Link from 'next/link'
 
 export default function Home() {
   const t = useTranslations('home')
+  const locale = useLocale()
 
   const adProducts = [
     {
@@ -16,7 +18,7 @@ export default function Home() {
       periodKey: 'newsletter.period',
       featuresKey: 'newsletter.features',
       icon: '📧',
-      href: '/newsletter',
+      href: `/${locale}/newsletter`,
       color: 'from-blue-500 to-blue-600',
     },
     {
@@ -27,7 +29,7 @@ export default function Home() {
       periodKey: 'sponsored.period',
       featuresKey: 'sponsored.features',
       icon: '📰',
-      href: '/sponsored',
+      href: `/${locale}/sponsored`,
       color: 'from-green-500 to-green-600',
     },
     {
@@ -38,7 +40,7 @@ export default function Home() {
       periodKey: 'banner.period',
       featuresKey: 'banner.features',
       icon: '📍',
-      href: '/banners',
+      href: `/${locale}/banners`,
       color: 'from-purple-500 to-purple-600',
     },
   ]

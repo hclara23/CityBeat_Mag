@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import { withLocale } from '@/components/citybeat/content'
 
@@ -313,11 +314,14 @@ export function ArticleForm({ locale, initialValues, articleId, mode }: ArticleF
               {t.imageLabel}
             </label>
             {values.imagePreviewUrl ? (
-              <div className="relative overflow-hidden rounded-xl">
-                <img
+              <div className="relative h-56 overflow-hidden rounded-xl">
+                <Image
                   src={values.imagePreviewUrl}
                   alt="Featured"
-                  className="h-56 w-full object-cover"
+                  fill
+                  unoptimized
+                  sizes="(max-width: 768px) 100vw, 768px"
+                  className="object-cover"
                 />
                 <button
                   type="button"

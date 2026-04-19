@@ -171,6 +171,9 @@ CREATE POLICY "Users can view their own profile" ON profiles
 CREATE POLICY "Users can update their own profile" ON profiles
   FOR UPDATE USING (auth.uid() = id);
 
+CREATE POLICY "Users can create own profile on signup" ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
 -- RLS Policies for campaigns
 CREATE POLICY "Advertisers can view their own campaigns" ON campaigns
   FOR SELECT USING (auth.uid() = advertiser_id);
@@ -191,6 +194,10 @@ CREATE POLICY "Advertisers can view their campaign analytics" ON analytics
 
 -- RLS Policies for subscriptions
 CREATE POLICY "Advertisers can view their subscriptions" ON subscriptions
+  FOR SELECT USING (auth.uid() = advertiser_id);
+
+-- RLS Policies for payments
+CREATE POLICY "Advertisers can view their payments" ON payments
   FOR SELECT USING (auth.uid() = advertiser_id);
 
 -- RLS Policies for ad_purchases

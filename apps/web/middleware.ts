@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
+import { createServerClient } from '@supabase/ssr'
 import { locales, defaultLocale } from './src/lib/i18n'
 
 // Protected routes that require authentication
@@ -42,9 +43,30 @@ export default async function middleware(request: NextRequest) {
     pathWithoutLocale.startsWith(route)
   )
 
-  // Check if user has valid session by looking at cookies
-  const authCookie = request.cookies.get('sb-auth-token')
-  const hasValidSession = !!authCookie
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  let hasValidSession = false
+
+  if (supabaseUrl && supabaseAnonKey) {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
+        },
+      },
+    })
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    hasValidSession = !!user
+  }
 
   // If accessing protected route without session, redirect to login
   if (isProtectedRoute && !hasValidSession) {

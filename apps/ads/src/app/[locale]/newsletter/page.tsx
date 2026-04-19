@@ -1,13 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Navigation, Button, Card } from '@citybeat/ui'
+import { Button, Card } from '@citybeat/ui'
 import Link from 'next/link'
 import { NEWSLETTER_OPTIONS, type BillingOption } from '@/lib/pricing'
+import { useLocale } from '@/components/TranslationProvider'
+import { AdsNavigation as Navigation } from '@/components/AdsNavigation'
 
 export default function NewsletterPage() {
   const router = useRouter()
+  const locale = useLocale()
   const [campaignName, setCampaignName] = useState('')
   const [selectedBilling, setSelectedBilling] = useState<BillingOption>(
     NEWSLETTER_OPTIONS[0]
@@ -54,6 +57,7 @@ export default function NewsletterPage() {
           campaignId: campaignData.data.id,
           adType: 'newsletter',
           billingCycle: selectedBilling.cycle,
+          locale,
         }),
       })
 
@@ -76,7 +80,7 @@ export default function NewsletterPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="mb-12">
-          <Link href="/campaigns" className="text-red-600 hover:text-red-700 mb-4 block">
+          <Link href={`/${locale}/campaigns`} className="text-red-600 hover:text-red-700 mb-4 block">
             ← Back to Campaigns
           </Link>
 

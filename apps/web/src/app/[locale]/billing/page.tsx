@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale } from '@/components/TranslationProvider'
 import { Navigation, Button } from '@citybeat/ui'
-import { getUser, getUserProfile } from '@citybeat/lib/supabase/auth'
 import { AuthError } from '@citybeat/ui/auth'
 
 interface Subscription {
@@ -27,32 +27,35 @@ interface Invoice {
 
 export default function BillingPage() {
   const router = useRouter()
+  const locale = useLocale()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [profile, setProfile] = useState<any>(null)
   const [managingPortal, setManagingPortal] = useState(false)
 
   useEffect(() => {
     const loadBillingData = async () => {
       try {
         setIsLoading(true)
-        const userResult = await getUser()
-        if (userResult.error || !userResult.user) {
-          router.push('/login')
+        const response = await fetch('/api/billing')
+
+        if (response.status === 401) {
+          router.push(`/${locale}/login`)
           return
         }
 
-        const profileResult = await getUserProfile(userResult.user.id)
-        if (profileResult.profile) {
-          setProfile(profileResult.profile)
-
-          // TODO: Fetch subscriptions from Supabase when schema is available
-          // For now, show empty state
-          setSubscriptions([])
-          setInvoices([])
+        if (!response.ok) {
+          throw new Error('Failed to load billing data')
         }
+
+        const data = (await response.json()) as {
+          subscriptions: Subscription[]
+          invoices: Invoice[]
+        }
+
+        setSubscriptions(data.subscriptions)
+        setInvoices(data.invoices)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load billing data')
       } finally {
@@ -61,7 +64,7 @@ export default function BillingPage() {
     }
 
     loadBillingData()
-  }, [router])
+  }, [locale, router])
 
   const handleManageSubscription = async (customerId: string) => {
     try {
@@ -73,7 +76,7 @@ export default function BillingPage() {
         },
         body: JSON.stringify({
           customerId: customerId,
-          returnUrl: `${window.location.origin}/billing`,
+          returnUrl: `${window.location.origin}/${locale}/billing`,
         }),
       })
 
@@ -119,7 +122,10 @@ export default function BillingPage() {
               <p className="text-sm text-gray-400 mt-2">
                 You currently do not have any active advertising subscriptions.
               </p>
-              <Button className="mt-4 bg-red-600 hover:bg-red-700">
+              <Button
+                className="mt-4 bg-red-600 hover:bg-red-700"
+                onClick={() => router.push(`/${locale}/ads`)}
+              >
                 Browse Plans
               </Button>
             </div>

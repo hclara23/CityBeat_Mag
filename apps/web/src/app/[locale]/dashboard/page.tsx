@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from '@/components/TranslationProvider'
+import { useLocale } from '@/components/TranslationProvider'
 import { Navigation, Button } from '@citybeat/ui'
-import { getUser, getUserProfile } from '@citybeat/lib/supabase/auth'
 import { AuthError } from '@citybeat/ui/auth'
 
 interface Campaign {
@@ -18,7 +17,7 @@ interface Campaign {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const t = useTranslations()
+  const locale = useLocale()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
@@ -34,26 +33,31 @@ export default function DashboardPage() {
     const loadDashboard = async () => {
       try {
         setIsLoading(true)
-        const userResult = await getUser()
-        if (userResult.error || !userResult.user) {
-          router.push('/login')
+        const response = await fetch('/api/dashboard')
+
+        if (response.status === 401) {
+          router.push(`/${locale}/login`)
           return
         }
 
-        const profileResult = await getUserProfile(userResult.user.id)
-        if (profileResult.profile) {
-          setProfile(profileResult.profile)
+        if (!response.ok) {
+          throw new Error('Failed to load dashboard')
         }
 
-        // TODO: Fetch campaigns from Supabase when API is ready
-        // For now, show empty state
-        setCampaigns([])
-        setStats({
-          totalImpressions: 0,
-          totalClicks: 0,
-          activeCampaigns: 0,
-          ctr: 0,
-        })
+        const data = (await response.json()) as {
+          profile: any
+          campaigns: Campaign[]
+          stats: {
+            totalImpressions: number
+            totalClicks: number
+            activeCampaigns: number
+            ctr: number
+          }
+        }
+
+        setProfile(data.profile)
+        setCampaigns(data.campaigns)
+        setStats(data.stats)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load dashboard')
       } finally {
@@ -62,7 +66,7 @@ export default function DashboardPage() {
     }
 
     loadDashboard()
-  }, [router])
+  }, [locale, router])
 
   if (isLoading) {
     return (
@@ -90,7 +94,10 @@ export default function DashboardPage() {
             </p>
           </div>
           {profile?.is_advertiser && (
-            <Button className="bg-red-600 hover:bg-red-700">
+            <Button
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => router.push(`/${locale}/ads`)}
+            >
               Create Campaign
             </Button>
           )}
@@ -141,7 +148,10 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">Your Campaigns</h2>
             {profile?.is_advertiser && campaigns.length > 0 && (
-              <Button className="bg-red-600 hover:bg-red-700">
+              <Button
+                className="bg-red-600 hover:bg-red-700"
+                onClick={() => router.push(`/${locale}/ads`)}
+              >
                 New Campaign
               </Button>
             )}

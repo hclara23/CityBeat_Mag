@@ -55,19 +55,23 @@ export default function SignupPage() {
 
       // Create user profile
       if (result.user) {
-        await createUserProfile(result.user.id, {
+        const profileResult = await createUserProfile(result.user.id, {
           email: data.email,
           fullName: data.fullName,
           companyName: data.companyName,
           phoneNumber: data.phoneNumber,
           isAdvertiser: data.isAdvertiser,
         })
+
+        if (profileResult.error) {
+          return { error: profileResult.error }
+        }
       }
 
       setMessage(result.message || localeCopy.message)
       // Redirect to login after a delay
       setTimeout(() => {
-        router.push('/login')
+        router.push(`/${locale}/login`)
       }, 3000)
 
       return {}
@@ -98,7 +102,7 @@ export default function SignupPage() {
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               {localeCopy.haveAccount}{' '}
-              <Link href="/login" className="text-red-600 hover:text-red-700 font-semibold">
+              <Link href={`/${locale}/login`} className="text-red-600 hover:text-red-700 font-semibold">
                 {localeCopy.signIn}
               </Link>
             </p>

@@ -38,7 +38,7 @@ export default function LoginPage() {
         return { error: result.error }
       }
       // Redirect to dashboard on successful login
-      router.push('/dashboard')
+      router.push(`/${locale}/dashboard`)
       return {}
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'An error occurred' }
@@ -61,14 +61,14 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               {localeCopy.noAccount}{' '}
-              <Link href="/signup" className="text-red-600 hover:text-red-700 font-semibold">
+              <Link href={`/${locale}/signup`} className="text-red-600 hover:text-red-700 font-semibold">
                 {localeCopy.signUp}
               </Link>
             </p>
           </div>
 
           <div className="mt-4 text-center">
-            <Link href="/reset-password" className="text-sm text-gray-500 hover:text-gray-700">
+            <Link href={`/${locale}/reset-password`} className="text-sm text-gray-500 hover:text-gray-700">
               {localeCopy.forgotPassword}
             </Link>
           </div>

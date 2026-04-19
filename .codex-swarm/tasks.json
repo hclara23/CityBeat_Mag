@@ -6113,12 +6113,45 @@
       "doc_updated_by": "agentctl",
       "description": "Trace the generated Graphify fetch bridge, then audit the CityBeat app for bugs, errors, broken routes, broken API flows, and failed checks without modifying unrelated user changes.",
       "doc": "## Summary\n\nTraced the Graphify fetch bridge and audited the app with type-check, lint, production build, graph traversal, route/link inspection, auth review, billing/ads flow review, and schema review. The trace showed fetch is mostly a generic inferred hub rather than a single true abstraction. Concrete findings were recorded for lint failure, protected-route auth, missing billing API, ads locale routes, checkout/success mismatch, SQL/schema drift, and stubbed features.\n\n## Scope\n\nTraced Graphify fetch paths, verified the noisy fetch hub against source, ran type-check/lint/build, inspected auth redirects, protected-route middleware, billing API calls, ads route links, checkout/success behavior, dashboard/billing/analytics stubs, Supabase schema drift, and SQL migration consistency.\n\n## Risks\n\nStatic audit cannot prove live Supabase, Sanity, Stripe, or worker runtime behavior without configured production secrets and browser/API smoke tests. Graphify AST extraction creates false hubs for generic names like fetch, POST, and GET, so graph edges were verified against source before treating them as findings.\n\n## Verify Steps\n\nRan npm run type-check, npm run lint, npm run build, Graphify query/path/explain commands against graphify-out/graph.json, and targeted source inspection with rg/Test-Path/Get-Content. Type-check and build passed. Lint failed before source linting because eslint.config.mjs imports eslint/config while the installed ESLint package is 8.57.1.\n\n## Rollback Plan\n\nThis audit changed only task tracking artifacts. Revert the audit task commit if the task record should be removed; no app runtime files need rollback."
+    },
+    {
+      "id": "202604191815-AN10NV",
+      "title": "Fix audited app issues",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "202604191801-VWASZY"
+      ],
+      "tags": [
+        "bugfix",
+        "nextjs"
+      ],
+      "verify": [
+        "npm run type-check",
+        "npm run lint",
+        "npm run build"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: implement the audited fixes and verify with type-check lint and build."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: patch lint auth billing ads routes checkout success schema stubs and image warnings."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-04-19T18:15:20+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Fix the audit findings for lint configuration, auth middleware, missing billing customer portal route, ads locale routing, checkout and success flow consistency, SQL/schema drift, stubbed dashboard billing analytics data paths where safe, and image warnings."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "d9ece7491e015c6ecdbaa57e98f26dffbc2f183ad6cbd1375cb1ca55917bcb1b"
+    "checksum": "5ffef448e741f13521f1a709785262282ec981e76dd65b4c34a6faefa355df8f"
   }
 }

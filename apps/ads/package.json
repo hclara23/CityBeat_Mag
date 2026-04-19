@@ -19,6 +19,7 @@
     "stripe": "^13.8.0",
     "axios": "^1.6.0",
     "zustand": "^4.4.0",
+    "@supabase/ssr": "^0.2.0",
     "@supabase/supabase-js": "^2.38.0"
   },
   "devDependencies": {

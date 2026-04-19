@@ -2,8 +2,10 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Navigation, Button, Card } from '@citybeat/ui'
+import { Button, Card } from '@citybeat/ui'
 import Link from 'next/link'
+import { useLocale } from '@/components/TranslationProvider'
+import { AdsNavigation as Navigation } from '@/components/AdsNavigation'
 
 interface OrderDetails {
   campaignId: string
@@ -17,9 +19,9 @@ interface OrderDetails {
 
 function SuccessContent() {
   const router = useRouter()
+  const locale = useLocale()
   const searchParams = useSearchParams()
   const campaignId = searchParams.get('campaign_id')
-  const sessionId = searchParams.get('session_id')
 
   const [order, setOrder] = useState<OrderDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -37,8 +39,26 @@ function SuccessContent() {
         const response = await fetch(`/api/campaigns/${campaignId}`)
         if (!response.ok) throw new Error('Failed to fetch order details')
 
-        const data = (await response.json()) as { data: OrderDetails }
-        setOrder(data.data)
+        const data = (await response.json()) as {
+          data: {
+            id: string
+            name: string
+            adType: string
+            billingCycle: string
+            amount: number
+            status: string
+            createdAt: string
+          }
+        }
+        setOrder({
+          campaignId: data.data.id,
+          campaignName: data.data.name,
+          adType: data.data.adType,
+          billingCycle: data.data.billingCycle,
+          amount: data.data.amount,
+          status: data.data.status,
+          createdAt: data.data.createdAt,
+        })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load order details')
       } finally {
@@ -84,7 +104,7 @@ function SuccessContent() {
             <h2 className="text-2xl font-bold text-red-900 mb-4">Order Error</h2>
             <p className="text-red-800 mb-6">{error || 'Unable to load order details'}</p>
             <div className="flex gap-4 justify-center">
-              <Link href="/campaigns">
+              <Link href={`/${locale}/campaigns`}>
                 <Button variant="secondary">Back to Campaigns</Button>
               </Link>
               <Button onClick={() => router.refresh()}>
@@ -219,10 +239,10 @@ function SuccessContent() {
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center">
-          <Link href="/campaigns">
+          <Link href={`/${locale}/campaigns`}>
             <Button className="px-8">View All Campaigns</Button>
           </Link>
-          <Link href={`/campaigns/${campaignId}`}>
+          <Link href={`/${locale}/campaigns/${campaignId}`}>
             <Button variant="secondary" className="px-8">
               View Campaign Details
             </Button>

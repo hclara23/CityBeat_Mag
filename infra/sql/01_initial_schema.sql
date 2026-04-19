@@ -277,8 +277,6 @@ CREATE INDEX idx_ad_clicks_ad_id ON ad_clicks(ad_id);
 CREATE INDEX idx_ad_clicks_session_id ON ad_clicks(session_id);
 CREATE INDEX idx_article_reads_session_id ON article_reads(session_id);
 CREATE INDEX idx_newsletter_signups_email ON newsletter_signups(email);
-CREATE INDEX idx_payments_user_id ON payments(user_id);
-CREATE INDEX idx_payments_ad_id ON payments(ad_id);
 CREATE INDEX idx_payments_status ON payments(status);
 
 -- Full text search on briefs
@@ -343,6 +341,9 @@ CREATE POLICY "Users can view their own profile" ON profiles
 CREATE POLICY "Users can update their own profile" ON profiles
   FOR UPDATE USING (auth.uid() = id);
 
+CREATE POLICY "Users can create own profile on signup" ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
 -- RLS policies for campaigns
 CREATE POLICY "Advertisers can view their own campaigns" ON campaigns
   FOR SELECT USING (auth.uid() = advertiser_id);
@@ -363,6 +364,10 @@ CREATE POLICY "Advertisers can view campaign analytics" ON analytics
 
 -- RLS policies for subscriptions
 CREATE POLICY "Advertisers can view their subscriptions" ON subscriptions
+  FOR SELECT USING (auth.uid() = advertiser_id);
+
+-- RLS policies for payments
+CREATE POLICY "Advertisers can view their payments" ON payments
   FOR SELECT USING (auth.uid() = advertiser_id);
 
 -- RLS policies for ad purchases

@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Navigation, Button, Card } from '@citybeat/ui'
+import { Button, Card } from '@citybeat/ui'
 import Link from 'next/link'
+import { useLocale } from '@/components/TranslationProvider'
+import { AdsNavigation as Navigation } from '@/components/AdsNavigation'
 
 interface Campaign {
   id: string
@@ -18,7 +19,7 @@ interface Campaign {
 }
 
 export default function CampaignsPage() {
-  const router = useRouter()
+  const locale = useLocale()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -82,7 +83,7 @@ export default function CampaignsPage() {
               Manage your advertising campaigns and track performance
             </p>
           </div>
-          <Link href="/newsletter">
+          <Link href={`/${locale}/newsletter`}>
             <Button className="bg-red-600 hover:bg-red-700">
               Create New Campaign
             </Button>
@@ -118,7 +119,7 @@ export default function CampaignsPage() {
                   <p className="text-gray-600 mb-4 text-sm">
                     Reach readers in our daily newsletter
                   </p>
-                  <Link href="/newsletter">
+                  <Link href={`/${locale}/newsletter`}>
                     <Button className="w-full">Get Started</Button>
                   </Link>
                 </div>
@@ -132,7 +133,7 @@ export default function CampaignsPage() {
                   <p className="text-gray-600 mb-4 text-sm">
                     Get featured in our editorial content
                   </p>
-                  <Link href="/sponsored">
+                  <Link href={`/${locale}/sponsored`}>
                     <Button className="w-full">Get Started</Button>
                   </Link>
                 </div>
@@ -146,7 +147,7 @@ export default function CampaignsPage() {
                   <p className="text-gray-600 mb-4 text-sm">
                     Place ads throughout the website
                   </p>
-                  <Link href="/banners">
+                  <Link href={`/${locale}/banners`}>
                     <Button className="w-full">Get Started</Button>
                   </Link>
                 </div>
@@ -236,7 +237,7 @@ export default function CampaignsPage() {
                         Processing...
                       </Button>
                     )}
-                    <Link href={`/campaigns/${campaign.id}`}>
+                    <Link href={`/${locale}/campaigns/${campaign.id}`}>
                       <Button variant="secondary" size="sm">
                         View Details
                       </Button>

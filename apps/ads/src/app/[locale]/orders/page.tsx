@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Navigation, Button, Card } from '@citybeat/ui'
+import { Button, Card } from '@citybeat/ui'
 import Link from 'next/link'
+import { AdsNavigation as Navigation } from '@/components/AdsNavigation'
+import { useLocale } from '@/components/TranslationProvider'
 
 interface Order {
   id: string
@@ -19,7 +20,7 @@ interface Order {
 }
 
 export default function OrdersPage() {
-  const router = useRouter()
+  const locale = useLocale()
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -153,7 +154,7 @@ export default function OrdersPage() {
                 ? "You haven't created any advertising campaigns yet."
                 : `No ${filter} campaigns at this time.`}
             </p>
-            <Link href="/campaigns">
+            <Link href={`/${locale}/campaigns`}>
               <Button>Create New Campaign</Button>
             </Link>
           </Card>
@@ -217,7 +218,7 @@ export default function OrdersPage() {
 
                   {/* Actions */}
                   <div className="flex gap-2 md:flex-col">
-                    <Link href={`/campaigns/${order.campaignId}`}>
+                    <Link href={`/${locale}/campaigns/${order.campaignId}`}>
                       <Button variant="secondary" size="sm" className="w-full">
                         View Campaign
                       </Button>

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Navigation, Button, Card } from '@citybeat/ui'
+import { Button, Card } from '@citybeat/ui'
 import Link from 'next/link'
+import { useLocale } from '@/components/TranslationProvider'
+import { AdsNavigation as Navigation } from '@/components/AdsNavigation'
 
 interface Campaign {
   id: string
@@ -19,6 +21,7 @@ interface Campaign {
 
 export default function CampaignDetailPage() {
   const router = useRouter()
+  const locale = useLocale()
   const params = useParams()
   const campaignId = params.id as string
 
@@ -96,7 +99,7 @@ export default function CampaignDetailPage() {
       })
       if (!response.ok) throw new Error('Failed to delete campaign')
 
-      router.push('/campaigns')
+      router.push(`/${locale}/campaigns`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete campaign')
     } finally {
@@ -170,7 +173,7 @@ export default function CampaignDetailPage() {
             <p className="text-gray-600 mb-6">
               The campaign you are looking for does not exist.
             </p>
-            <Link href="/campaigns">
+            <Link href={`/${locale}/campaigns`}>
               <Button>Back to Campaigns</Button>
             </Link>
           </Card>
@@ -196,7 +199,7 @@ export default function CampaignDetailPage() {
       <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/campaigns" className="text-red-600 hover:text-red-700 mb-4">
+          <Link href={`/${locale}/campaigns`} className="text-red-600 hover:text-red-700 mb-4">
             ← Back to Campaigns
           </Link>
 
@@ -403,7 +406,7 @@ export default function CampaignDetailPage() {
             </Button>
           )}
 
-          <Link href="/campaigns" className="ml-auto">
+          <Link href={`/${locale}/campaigns`} className="ml-auto">
             <Button variant="secondary">Back to List</Button>
           </Link>
         </div>

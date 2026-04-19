@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { withLocale } from '@/components/citybeat/content'
@@ -208,9 +209,11 @@ export default function CreatorDashboard() {
                 >
                   {/* Thumbnail */}
                   {article.imageUrl ? (
-                    <img
+                    <Image
                       src={article.imageUrl}
                       alt={article.title}
+                      width={128}
+                      height={80}
                       className="h-20 w-32 flex-shrink-0 rounded-lg object-cover"
                     />
                   ) : (

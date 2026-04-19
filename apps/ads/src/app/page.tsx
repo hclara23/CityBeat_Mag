@@ -18,7 +18,7 @@ export default function Home() {
       ],
       price: '$500',
       period: '/month',
-      href: '/newsletter',
+      href: '/en/newsletter',
       color: 'from-blue-500 to-blue-600',
     },
     {
@@ -34,7 +34,7 @@ export default function Home() {
       ],
       price: '$750+',
       period: '/post',
-      href: '/sponsored',
+      href: '/en/sponsored',
       color: 'from-green-500 to-green-600',
     },
     {
@@ -50,7 +50,7 @@ export default function Home() {
       ],
       price: '$300+',
       period: '/month',
-      href: '/banners',
+      href: '/en/banners',
       color: 'from-purple-500 to-purple-600',
     },
   ]

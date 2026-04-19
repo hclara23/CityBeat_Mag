@@ -7,9 +7,11 @@ import { Button } from '@citybeat/ui'
 import { AuthError } from '@citybeat/ui/auth'
 import { updatePassword } from '@citybeat/lib/supabase/auth'
 import Link from 'next/link'
+import { useLocale } from '@/components/TranslationProvider'
 
 export default function UpdatePasswordPage() {
   const router = useRouter()
+  const locale = useLocale()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
@@ -41,7 +43,7 @@ export default function UpdatePasswordPage() {
         setError(result.error)
       } else {
         // Redirect to login after successful password update
-        router.push('/login')
+        router.push(`/${locale}/login`)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -88,7 +90,7 @@ export default function UpdatePasswordPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-sm text-gray-500 hover:text-gray-700">
+            <Link href={`/${locale}/login`} className="text-sm text-gray-500 hover:text-gray-700">
               Back to sign in
             </Link>
           </div>

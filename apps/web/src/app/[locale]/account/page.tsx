@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from '@/components/TranslationProvider'
+import { useLocale } from '@/components/TranslationProvider'
 import { Navigation, Button, Input } from '@citybeat/ui'
 import { getUser, getUserProfile, updateProfile, signOut } from '@citybeat/lib/supabase/auth'
 import { AuthError } from '@citybeat/ui/auth'
@@ -19,7 +19,7 @@ interface UserProfile {
 
 export default function AccountPage() {
   const router = useRouter()
-  const t = useTranslations()
+  const locale = useLocale()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -37,7 +37,7 @@ export default function AccountPage() {
         setIsLoading(true)
         const userResult = await getUser()
         if (userResult.error || !userResult.user) {
-          router.push('/login')
+          router.push(`/${locale}/login`)
           return
         }
 
@@ -58,7 +58,7 @@ export default function AccountPage() {
     }
 
     loadProfile()
-  }, [router])
+  }, [locale, router])
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -96,7 +96,7 @@ export default function AccountPage() {
   const handleSignOut = async () => {
     try {
       await signOut()
-      router.push('/login')
+      router.push(`/${locale}/login`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign out')
     }

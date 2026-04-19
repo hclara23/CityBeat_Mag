@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { SiteFooter } from '@/components/citybeat/SiteFooter'
 import { useLocale } from '@/components/TranslationProvider'
@@ -322,8 +323,15 @@ export default function ContributePage() {
           {/* Image upload */}
           <Field label={t.imageLabel}>
             {imagePreview ? (
-              <div className="relative overflow-hidden rounded-xl">
-                <img src={imagePreview} alt="Preview" className="h-56 w-full object-cover" />
+              <div className="relative h-56 overflow-hidden rounded-xl">
+                <Image
+                  src={imagePreview}
+                  alt="Preview"
+                  fill
+                  unoptimized
+                  sizes="(max-width: 768px) 100vw, 768px"
+                  className="object-cover"
+                />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}

@@ -7,6 +7,7 @@ function mapCampaign(row: any) {
   return {
     id: row.id,
     name: row.name,
+    campaignName: row.name,
     adType: row.ad_type,
     billingCycle: row.billing_cycle,
     status: row.status,

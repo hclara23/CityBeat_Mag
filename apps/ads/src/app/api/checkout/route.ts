@@ -13,12 +13,14 @@ interface CheckoutRequest {
   campaignId: string
   adType: string
   billingCycle: string
+  locale?: string
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CheckoutRequest
     const { campaignId, adType, billingCycle } = body
+    const locale = body.locale === 'es' ? 'es' : 'en'
 
     if (!campaignId || !adType || !billingCycle) {
       return NextResponse.json(
@@ -44,6 +46,8 @@ export async function POST(request: NextRequest) {
     if (!(await isAdvertiser(userId))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).replace(/\/$/, '')
 
     // Create Stripe session
     const session = await stripe.checkout.sessions.create({
@@ -74,8 +78,8 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/en/ads'}/success?campaign_id=${campaignId}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/en/ads'}/campaigns`,
+      success_url: `${appUrl}/${locale}/success?campaign_id=${campaignId}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/${locale}/campaigns`,
       metadata: {
         advertiserId: userId,
         campaignId,
