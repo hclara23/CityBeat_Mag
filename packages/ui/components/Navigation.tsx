@@ -19,9 +19,10 @@ export function Navigation({
 }: NavigationProps) {
   const navItems = items.length > 0 ? items : [
     { label: 'Home', href: '/en' },
-    { label: 'Briefs', href: '/en/briefs' },
-    { label: 'Ads', href: '/en/ads' },
-    { label: 'Studio', href: '/studio' },
+    { label: 'Stories', href: '/en/briefs' },
+    { label: 'Events', href: '/en#events' },
+    { label: 'Directory', href: '/en#directory' },
+    { label: 'Submit', href: '/en/contribute' },
   ]
 
   return (

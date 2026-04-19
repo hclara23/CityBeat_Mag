@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { getAdProducts, getEvents, getTopStories, withLocale, type Locale } from '@/components/citybeat/content'
+import { localArticles } from '@/lib/localArticles'
 
 type HomePageProps = {
   params: {
@@ -11,8 +12,16 @@ type HomePageProps = {
 
 export default function Home({ params }: HomePageProps) {
   const locale = (params.locale || 'en') as Locale
-  const featured = getTopStories(locale)[0]
-  const secondaryStories = getTopStories(locale).slice(1)
+  const importedStories = localArticles.slice(0, 3).map((article) => ({
+    title: article.title,
+    dek: article.excerpt,
+    category: article.category,
+    image: article.image ?? 'https://picsum.photos/seed/citybeat-local/1600/1000',
+    href: `/briefs/${article.slug}`,
+  }))
+  const stories = importedStories.length > 0 ? importedStories : getTopStories(locale)
+  const featured = stories[0]
+  const secondaryStories = stories.slice(1)
   const events = getEvents(locale)
   const adProducts = getAdProducts(locale)
   const copy = {

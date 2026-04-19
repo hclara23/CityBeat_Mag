@@ -6195,12 +6195,44 @@
       "doc_updated_by": "agentctl",
       "description": "Remove Ads, Write, and Studio links from the CityBeat main top navigation while keeping the remaining menu links, locale switcher, and Advertise CTA.",
       "doc": "## Summary\n\nRemoved Ads, Write, and Studio from the CityBeat main header navigation. The remaining top menu links are Stories, Events, Directory, and Submit, with the language switcher and Advertise CTA unchanged.\n\n## Scope\n\nUpdated apps/web/src/components/citybeat/SiteHeader.tsx only for runtime UI. Task tracking artifacts were updated through agentctl. Existing unrelated .env.production.template and src/lib/articles and media changes were left untouched.\n\n## Risks\n\nLow risk. This removes only header navigation entries; the underlying Ads, Creator, and Studio routes remain available by direct URL or other CTAs.\n\n## Verify Steps\n\nnpm run type-check passed. npm run lint passed. npm run build passed.\n\n## Rollback Plan\n\nRevert this task commit to restore Ads, Write, and Studio in the main header nav."
+    },
+    {
+      "id": "202604191853-PM1B0J",
+      "title": "Import local author articles",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "content",
+        "articles",
+        "ui"
+      ],
+      "verify": [
+        "npm run type-check",
+        "npm run lint",
+        "npm run build"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: inspect local author folders, convert article documents and media, wire them into the website, and verify."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: convert local author folders into website article content and public media assets."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-04-19T18:53:08+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Import articles and media from the local articles and media author folders into the website, expose them on homepage and Stories pages, and keep Sanity data as an additional source where available."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "327958a41365467a6a3520feb7e75e6b50d16eda36736f67fbde6aab390a93f4"
+    "checksum": "b5420f41b471c9643928306fdbf2dc660d40976ae051547e7c0d0b8c1ce71b92"
   }
 }
