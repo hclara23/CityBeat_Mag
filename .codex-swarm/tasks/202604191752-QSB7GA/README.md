@@ -1,13 +1,15 @@
 ---
 id: "202604191752-QSB7GA"
 title: "Graph CityBeat app with Graphify"
-status: "DOING"
+status: "DONE"
 priority: "med"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "925067d927ebfb6167ae8344675dd1e1f4e6f4e1", message: "📝 QSB7GA document Graphify app graph setup and scoped outputs" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: install Graphify locally, scope the graph to CityBeat app code, generate AST graph outputs, and document limitations around skipped semantic extraction." }
+  - { author: "ORCHESTRATOR", body: "verified: generated Graphify AST graph outputs, confirmed graph.html graph.json and GRAPH_REPORT.md exist, and benchmark reported 38.5x token reduction." }
 doc_version: 2
 doc_updated_at: "2026-04-19T17:57:17+00:00"
 doc_updated_by: "agentctl"
