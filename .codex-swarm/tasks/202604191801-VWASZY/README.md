@@ -1,13 +1,15 @@
 ---
 id: "202604191801-VWASZY"
 title: "Trace Graphify fetch bridge and audit app"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "353718e6cc763580dbd90a27a9973bda78bdee5c", message: "🧪 VWASZY audit Graphify fetch bridge and app failures" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: trace the Graphify fetch bridge, run lint typecheck build and targeted static review, then report concrete bugs with file references." }
+  - { author: "ORCHESTRATOR", body: "verified: traced the Graphify fetch bridge, ran npm type-check/build/lint, and recorded source-level route auth billing ads schema findings." }
 doc_version: 2
 doc_updated_at: "2026-04-19T18:08:53+00:00"
 doc_updated_by: "agentctl"
