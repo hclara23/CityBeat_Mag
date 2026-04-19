@@ -1,15 +1,17 @@
 ---
 id: "202604191815-AN10NV"
 title: "Fix audited app issues"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202604191801-VWASZY"]
 tags: ["bugfix", "nextjs"]
 verify: ["npm run type-check", "npm run lint", "npm run build"]
+commit: { hash: "47a4e595e8f4f1180eaea64ee8c9eda3b55cb334", message: "🛠️ AN10NV fix audited app issues" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implement the audited fixes and verify with type-check lint and build." }
   - { author: "ORCHESTRATOR", body: "Start: patch lint auth billing ads routes checkout success schema stubs and image warnings." }
+  - { author: "ORCHESTRATOR", body: "verified: fixed the audited lint auth billing ads checkout schema image and UI issues, then passed npm run type-check, npm run lint, and npm run build." }
 doc_version: 2
 doc_updated_at: "2026-04-19T18:32:22+00:00"
 doc_updated_by: "agentctl"
