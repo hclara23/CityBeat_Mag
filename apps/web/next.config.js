@@ -33,7 +33,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/:path*',
+        source: '/((?!studio).*)',
         headers: [
           {
             key: 'Strict-Transport-Security',
