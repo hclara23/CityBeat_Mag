@@ -106,5 +106,9 @@ CityBeat_Magazine_Secrets.md
 # Local development
 *.local.json
 .claude/
+.graphify-venv/
+graphify-out/
+.graphify_*.json
+.graphify_*.txt
 
 # Build artifacts
