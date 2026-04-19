@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### High-Level Structure
 
-```
+```text
 ├── apps/
 │   ├── web/              # Main public site (Next.js, next-intl for i18n)
 │   └── ads/              # Advertiser self-serve portal (Next.js + Stripe)
@@ -48,6 +48,7 @@ The core automation (services/worker) runs on a cron schedule and performs:
 6. Log event to Supabase
 
 **Key handlers**:
+
 - `handlers/automation.ts` — Brief ingestion orchestration
 - `handlers/stripe.ts` — Payment webhook processing
 - `handlers/emails.ts` — Email template rendering
@@ -179,7 +180,7 @@ See `END_TO_END_TESTING_GUIDE.md` for detailed procedures.
 
 ### Worker Secrets (services/worker/.env.production)
 
-```
+```text
 SANITY_PROJECT_ID
 SANITY_DATASET (set to "production")
 SANITY_WRITE_TOKEN
@@ -194,18 +195,19 @@ NEWS_API_KEY
 
 ### Web App (apps/web/.env.local)
 
-```
+```text
 NEXT_PUBLIC_SANITY_PROJECT_ID
 NEXT_PUBLIC_SANITY_DATASET
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 NEXT_PUBLIC_APP_URL
 SANITY_API_TOKEN
+SANITY_EDITOR_TOKEN   # Required for embedded /studio route — set in Vercel env vars, never commit the real value
 ```
 
 ### Ads Portal (apps/ads/.env.local)
 
-```
+```text
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
@@ -259,8 +261,8 @@ import { /* tracking */ } from '@citybeat/lib/tracking'
 
 ### Production Deployment
 
-- **Web**: Deploy to Cloudflare Pages (production branch triggers auto-deploy)
-- **Ads**: Deploy to Cloudflare Pages
+- **Web** (`city-beat-mag`): Deployed to Vercel — push to `main` triggers auto-deploy at [citybeatmag.co](https://citybeatmag.co)
+- **Ads** (`city-beat-ads`): Deployed to Vercel — push to `main` triggers auto-deploy at [city-beat-ads.vercel.app](https://city-beat-ads.vercel.app)
 - **Worker**: `cd services/worker && npm run deploy`
 - **Sanity Studio**: `cd sanity && npm run deploy`
 
@@ -269,9 +271,18 @@ import { /* tracking */ } from '@citybeat/lib/tracking'
 ### Worker Logs
 
 Monitor execution via Cloudflare Dashboard:
-1. Go to https://dash.cloudflare.com/
+
+1. Go to <https://dash.cloudflare.com/>
 2. Navigate to Workers → citybeat-worker → Logs tab
 3. Filter by timestamp to find recent runs
+
+### Sanity Studio (/studio)
+
+The studio is embedded in the web app via `next-sanity/studio` at `apps/web/src/app/studio/[[...index]]/page.tsx`.
+
+- `apps/web/next.config.js` excludes `/studio` from the `X-Frame-Options` header — Sanity Studio uses iframes internally and requires this
+- CORS for `https://citybeatmag.co` is managed automatically via Sanity's hosted studio integration
+- `SANITY_EDITOR_TOKEN` must be set in Vercel environment variables (Production) for the studio to authenticate
 
 ### Sanity API Issues
 
