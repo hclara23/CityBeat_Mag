@@ -1,13 +1,15 @@
 ---
 id: "202604262109-WKN7CY"
 title: "Link footer access to editor login"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "c362fee5a665e6cd9b78fa02fb12a66e8334c53a", message: "✨ WKN7CY link access footer to editor login" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: update footer access navigation to point writers and editors to login, then set existing Supabase profiles to editor access and verify the app build." }
+  - { author: "ORCHESTRATOR", body: "verified: footer login link checks passed, profile API route check passed, authenticated editor gate check passed, npm run type-check passed, and npm run build passed with /api/profile included." }
 doc_version: 2
 doc_updated_at: "2026-04-26T21:12:44+00:00"
 doc_updated_by: "agentctl"
