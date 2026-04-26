@@ -1,13 +1,15 @@
 ---
 id: "202604262210-KG9AEJ"
 title: "Restore Supabase-backed editor roles"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "a71e020cfe8ae9924fcf0c23ee27918507910d7b", message: "🔒 KG9AEJ restore Supabase profile role checks" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: pull configured Supabase environment variables, restore role checks to production profile flags, update existing profiles through the service role, verify, push, and deploy." }
+  - { author: "ORCHESTRATOR", body: "verified: restored Supabase-backed role checks, confirmed configured Vercel Supabase env variable names, ran focused role checks, npm run type-check, and npm run build successfully." }
 doc_version: 2
 doc_updated_at: "2026-04-26T22:13:04+00:00"
 doc_updated_by: "agentctl"
