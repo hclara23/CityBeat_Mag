@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   locale TEXT DEFAULT 'en',
   is_advertiser BOOLEAN DEFAULT FALSE,
   is_editor BOOLEAN DEFAULT FALSE,
+  is_writer BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -209,3 +210,96 @@ CREATE POLICY "Public insertion for ad purchases (webhook)" ON ad_purchases
 
 CREATE POLICY "Advertisers can update their ad purchases" ON ad_purchases
   FOR UPDATE USING (auth.uid() = advertiser_id);
+
+-- CMS Tables
+CREATE TABLE IF NOT EXISTS categories (
+  slug TEXT PRIMARY KEY,
+  name_en TEXT NOT NULL,
+  name_es TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS articles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  excerpt TEXT,
+  content JSONB NOT NULL DEFAULT '[]',
+  image_url TEXT,
+  author_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  category_id TEXT REFERENCES categories(slug) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'draft',
+  language TEXT NOT NULL DEFAULT 'en',
+  published_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS article_tags (
+  article_id UUID REFERENCES articles(id) ON DELETE CASCADE,
+  tag_id UUID REFERENCES tags(id) ON DELETE CASCADE,
+  PRIMARY KEY (article_id, tag_id)
+);
+
+CREATE TABLE IF NOT EXISTS article_analytics (
+  article_id UUID PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
+  view_count INTEGER DEFAULT 0,
+  unique_visitors INTEGER DEFAULT 0,
+  last_viewed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- CMS RLS Policies
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE article_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE article_analytics ENABLE ROW LEVEL SECURITY;
+
+-- Categories: Anyone can view
+CREATE POLICY "Public categories access" ON categories
+  FOR SELECT USING (true);
+
+-- Articles: Anyone can view published
+CREATE POLICY "Public articles access" ON articles
+  FOR SELECT USING (status = 'published' OR auth.uid() = author_id OR (SELECT is_editor FROM profiles WHERE id = auth.uid()));
+
+-- Articles: Writers can create
+CREATE POLICY "Writers can create articles" ON articles
+  FOR INSERT WITH CHECK (
+    auth.uid() = author_id AND 
+    (SELECT is_writer OR is_editor FROM profiles WHERE id = auth.uid())
+  );
+
+-- Articles: Writers can update their own
+CREATE POLICY "Writers can update own articles" ON articles
+  FOR UPDATE USING (
+    auth.uid() = author_id OR 
+    (SELECT is_editor FROM profiles WHERE id = auth.uid())
+  );
+
+-- Tags: Anyone can view, writers can create
+CREATE POLICY "Public tags access" ON tags FOR SELECT USING (true);
+CREATE POLICY "Writers can create tags" ON tags FOR INSERT WITH CHECK (true);
+
+-- Article Tags: Same as articles
+CREATE POLICY "Article tags access" ON article_tags FOR SELECT USING (true);
+CREATE POLICY "Writers can manage article tags" ON article_tags FOR ALL USING (true);
+
+-- Article Analytics: Only editors and authors can view detailed stats
+CREATE POLICY "View article analytics" ON article_analytics
+  FOR SELECT USING (
+    (SELECT is_editor FROM profiles WHERE id = auth.uid()) OR
+    EXISTS (SELECT 1 FROM articles WHERE id = article_id AND author_id = auth.uid())
+  );
+
+-- Create CMS indexes
+CREATE INDEX IF NOT EXISTS idx_articles_status ON articles(status);
+CREATE INDEX IF NOT EXISTS idx_articles_author ON articles(author_id);
+CREATE INDEX IF NOT EXISTS idx_articles_category ON articles(category_id);
+CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);

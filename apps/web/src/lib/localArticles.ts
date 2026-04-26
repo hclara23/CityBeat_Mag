@@ -29,7 +29,7 @@ export const localArticles = [
     "source": "H. Caleb Lara",
     "author": "H. Caleb Lara",
     "status": "published",
-    "image": "/articles-media/restoring-memory-rebuilding-legacy-the-story-of-ben-dowell-and-a-communi.jpg",
+    "image": "/articles-media/restoring-memory-rebuilding-legacy-the-story-of-ben-dowell-and-a-communi.webp",
     "sourcePath": "H.Caleb_Lara/Ben_Dowell/Ben Dwell's Gravestone.docx"
   },
   {
@@ -45,7 +45,7 @@ export const localArticles = [
     "source": "H. Caleb Lara",
     "author": "H. Caleb Lara",
     "status": "published",
-    "image": "/articles-media/from-dust-to-light-how-freemasonry-took-root-in-el-paso.jpg",
+    "image": "/articles-media/from-dust-to-light-how-freemasonry-took-root-in-el-paso.webp",
     "sourcePath": "H.Caleb_Lara/Freemasonry/From Dust to Light How Freemasonry Took Root in El Paso (1).docx"
   },
   {
@@ -61,7 +61,7 @@ export const localArticles = [
     "source": "H. Caleb Lara",
     "author": "H. Caleb Lara",
     "status": "published",
-    "image": "/articles-media/james-avery-pleasant-ii-el-paso-s-rising-lightweight-and-the-yokai-revol.jpg",
+    "image": "/articles-media/james-avery-pleasant-ii-el-paso-s-rising-lightweight-and-the-yokai-revol.webp",
     "sourcePath": "H.Caleb_Lara/James/James_Pleasant_Yokai_Article.docx"
   },
   {
@@ -77,7 +77,7 @@ export const localArticles = [
     "source": "H. Caleb Lara",
     "author": "H. Caleb Lara",
     "status": "published",
-    "image": "/articles-media/ciudad-maderas-a-modern-approach-to-real-estate-investment-in-mexico.jpg",
+    "image": "/articles-media/ciudad-maderas-a-modern-approach-to-real-estate-investment-in-mexico.webp",
     "sourcePath": "H.Caleb_Lara/Madera/Ciudad Maderas Article.docx"
   },
   {
@@ -93,7 +93,7 @@ export const localArticles = [
     "source": "Caleb Lara",
     "author": "Caleb Lara",
     "status": "published",
-    "image": "/articles-media/rey-de-la-luna-el-pasos-cosmic-barrio-takes-the-stage.jpg",
+    "image": "/articles-media/rey-de-la-luna-el-pasos-cosmic-barrio-takes-the-stage.webp",
     "sourcePath": "H.Caleb_Lara/Rey De La Luna/Rey de la Luna.docx"
   },
   {
@@ -109,7 +109,7 @@ export const localArticles = [
     "source": "H. Caleb Lara",
     "author": "H. Caleb Lara",
     "status": "published",
-    "image": "/articles-media/leon-claire-metz-guardian-of-el-paso-s-memory-and-the-case-for-a-lasting.jpg",
+    "image": "/articles-media/leon-claire-metz-guardian-of-el-paso-s-memory-and-the-case-for-a-lasting.webp",
     "sourcePath": "H.Caleb_Lara/Leon_Metz/Leon_Metz_Honor_Condensed.docx"
   },
   {
@@ -125,7 +125,7 @@ export const localArticles = [
     "source": "Caleb Lara",
     "author": "Caleb Lara",
     "status": "published",
-    "image": "/articles-media/builders-of-the-desert-reimagining-el-paso-through-its-own-story.jpg",
+    "image": "/articles-media/builders-of-the-desert-reimagining-el-paso-through-its-own-story.webp",
     "sourcePath": "CityBeat_Admin/BOTD/Article_BOTD.docx"
   },
   {
@@ -141,7 +141,7 @@ export const localArticles = [
     "source": "Martha Vera",
     "author": "Martha Vera",
     "status": "published",
-    "image": "/articles-media/the-gaspar-enriquez-community-center.jpg",
+    "image": "/articles-media/the-gaspar-enriquez-community-center.webp",
     "sourcePath": "CityBeat_Admin/WEB  Jan 2024/web  The Gaspar Enriquez Community Center.docx"
   },
   {
@@ -157,7 +157,7 @@ export const localArticles = [
     "source": "Herman Delgado",
     "author": "Herman Delgado",
     "status": "published",
-    "image": "/articles-media/utep-dance-team-pick-ups.jpg",
+    "image": "/articles-media/utep-dance-team-pick-ups.webp",
     "sourcePath": "CityBeat_Admin/WEB  Jan 2024/web  UTEP DANCE TEAM.docx"
   },
   {
@@ -173,7 +173,7 @@ export const localArticles = [
     "source": "Trey franks",
     "author": "Trey franks",
     "status": "published",
-    "image": "/articles-media/a-peoples-right-to-self-defense.jpg",
+    "image": "/articles-media/a-peoples-right-to-self-defense.webp",
     "sourcePath": "CityBeat_Admin/WEB  Jan 2024/web  A People’s Right to Self.docx"
   },
   {
@@ -189,7 +189,7 @@ export const localArticles = [
     "source": "Romaree Herbert",
     "author": "Romaree Herbert",
     "status": "published",
-    "image": "/articles-media/state-of-mind-preventative-heart-health-check.jpg",
+    "image": "/articles-media/state-of-mind-preventative-heart-health-check.webp",
     "sourcePath": "CityBeat_Admin/WEB  Jan 2024/web  State of Mind.docx"
   },
   {
@@ -205,7 +205,7 @@ export const localArticles = [
     "source": "Martha Vera",
     "author": "Martha Vera",
     "status": "published",
-    "image": "/articles-media/minervas-unmatched-experience-minerva-for-sheriff.jpg",
+    "image": "/articles-media/minervas-unmatched-experience-minerva-for-sheriff.webp",
     "sourcePath": "CityBeat_Admin/WEB  Jan 2024/web  MINERVA’S UNMATCHED EXPERIENCE.docx"
   },
   {
@@ -221,7 +221,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/the-gaspar-enriquez-community-center-opening.jpg",
+    "image": "/articles-media/the-gaspar-enriquez-community-center-opening.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/WEB NOV DWC 2023/Gaspar Enriquez Artist and Philanthropist.docx"
   },
   {
@@ -237,7 +237,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/a-message-from-rabbi-stephen-a-leon.jpg",
+    "image": "/articles-media/a-message-from-rabbi-stephen-a-leon.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/WEB NOV DWC 2023/A Message From Rabbi Stephen A.docx"
   },
   {
@@ -253,7 +253,7 @@ export const localArticles = [
     "source": "Romaree Herbert",
     "author": "Romaree Herbert",
     "status": "published",
-    "image": "/articles-media/state-of-mind-magic-mushrooms.jpg",
+    "image": "/articles-media/state-of-mind-magic-mushrooms.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/WEB NOV DWC 2023/StateOfMindMagicMushroomsNov2023.docx"
   },
   {
@@ -269,7 +269,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/friday-night-fights.jpg",
+    "image": "/articles-media/friday-night-fights.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/WEB NOV DWC 2023/FIGHT NIGHT.docx"
   },
   {
@@ -285,7 +285,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/atomic-blossom-pretty-tough.jpg",
+    "image": "/articles-media/atomic-blossom-pretty-tough.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/WEB NOV DWC 2023/ATOMIC BLOSSOM.docx"
   },
   {
@@ -301,7 +301,7 @@ export const localArticles = [
     "source": "Romaree Herbert",
     "author": "Romaree Herbert",
     "status": "published",
-    "image": "/articles-media/happenings-at-keystone-heritage-park.jpg",
+    "image": "/articles-media/happenings-at-keystone-heritage-park.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/WEB NOV DWC 2023/Keystone Heritage Park Nov2023.docx"
   },
   {
@@ -317,7 +317,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/community.jpg",
+    "image": "/articles-media/community.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/EvENTS Community.docx"
   },
   {
@@ -333,7 +333,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/howdy-everyone-in-this-issue-id-like-to-take-a-few-moments-to-share-with.jpg",
+    "image": "/articles-media/howdy-everyone-in-this-issue-id-like-to-take-a-few-moments-to-share-with.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/newestarticle/Pledge History.docx"
   },
   {
@@ -349,7 +349,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/gluten-free-toasted-pecan-and-coconut-caramel-brownies.jpg",
+    "image": "/articles-media/gluten-free-toasted-pecan-and-coconut-caramel-brownies.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/1223 GLUTEN FREE TOASTED PECAN AND.docx"
   },
   {
@@ -365,7 +365,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/high-performance-building-continued.jpg",
+    "image": "/articles-media/high-performance-building-continued.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/HighPerformanceBuildingContinued_CityBeat.docx"
   },
   {
@@ -381,7 +381,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/social-security-question.jpg",
+    "image": "/articles-media/social-security-question.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/Social Security Question 112023.docx"
   },
   {
@@ -397,7 +397,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/bricks-minifigs-el-paso.jpg",
+    "image": "/articles-media/bricks-minifigs-el-paso.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/bricksminifigsstoryandad/Bricks & Minifigs® El Paso Story.docx"
   },
   {
@@ -413,7 +413,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/have-you-been-newly-diagnosed-with-diabetes-never-received-a-dsmes-cours.jpg",
+    "image": "/articles-media/have-you-been-newly-diagnosed-with-diabetes-never-received-a-dsmes-cours.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/DSMES article draft.docx"
   },
   {
@@ -429,7 +429,7 @@ export const localArticles = [
     "source": "CityBeat Magazine",
     "author": "CityBeat Magazine",
     "status": "published",
-    "image": "/articles-media/results-of-this-fight-stephanie-han-5-0-el-paso-tx-w-ud8-over-simone-da-.jpg",
+    "image": "/articles-media/results-of-this-fight-stephanie-han-5-0-el-paso-tx-w-ud8-over-simone-da-.webp",
     "sourcePath": "CityBeat_Admin/NOV DEC 23/Han 11_3_2023comaineventfig/Results of this fight.docx"
   }
 ] satisfies LocalArticle[]

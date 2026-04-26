@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { withLocale } from '@/components/citybeat/content'
+import { RichTextEditor } from './RichTextEditor'
 
 const CATEGORIES = ['news', 'culture', 'events', 'business'] as const
 type Category = typeof CATEGORIES[number]
@@ -21,6 +22,7 @@ export interface ArticleFormValues {
   authorName: string
   excerpt: string
   bodyText: string
+  content: any
   category: Category | ''
   tags: string
   assetId: string
@@ -111,6 +113,7 @@ export function ArticleForm({ locale, initialValues, articleId, mode }: ArticleF
     authorName: initialValues?.authorName ?? '',
     excerpt: initialValues?.excerpt ?? '',
     bodyText: initialValues?.bodyText ?? '',
+    content: initialValues?.content ?? null,
     category: initialValues?.category ?? '',
     tags: initialValues?.tags ?? '',
     assetId: initialValues?.assetId ?? '',
@@ -167,7 +170,7 @@ export function ArticleForm({ locale, initialValues, articleId, mode }: ArticleF
   const validate = (): boolean => {
     const errs: Partial<Record<keyof ArticleFormValues, string>> = {}
     if (!values.title.trim()) errs.title = t.titleRequired
-    if (!values.bodyText.trim()) errs.bodyText = t.bodyRequired
+    if (!values.content && !values.bodyText.trim()) errs.bodyText = t.bodyRequired
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -182,6 +185,7 @@ export function ArticleForm({ locale, initialValues, articleId, mode }: ArticleF
       title: values.title.trim(),
       authorName: values.authorName.trim(),
       excerpt: values.excerpt.trim(),
+      content: values.content,
       bodyText: values.bodyText.trim(),
       category: values.category,
       tags: values.tags
@@ -373,15 +377,10 @@ export function ArticleForm({ locale, initialValues, articleId, mode }: ArticleF
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/60">
               {t.bodyLabel}
             </label>
-            <textarea
-              value={values.bodyText}
-              onChange={set('bodyText')}
+            <RichTextEditor
+              content={values.content || values.bodyText}
+              onChange={(c) => setValues((v) => ({ ...v, content: c }))}
               placeholder={t.bodyPlaceholder}
-              disabled={busy}
-              rows={18}
-              className={`w-full resize-y rounded-lg border bg-white/5 px-4 py-3 font-sans text-sm leading-relaxed text-white placeholder-white/20 outline-none transition focus:border-brand-neon disabled:opacity-50 ${
-                errors.bodyText ? 'border-red-500' : 'border-white/15'
-              }`}
             />
             {errors.bodyText && <p className="mt-1 text-xs text-red-400">{errors.bodyText}</p>}
           </div>

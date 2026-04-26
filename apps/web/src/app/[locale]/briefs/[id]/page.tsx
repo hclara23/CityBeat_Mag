@@ -60,49 +60,20 @@ export default function BriefDetailPage() {
           return
         }
 
-        // Fetch the specific brief
-        const query = `*[_type == "brief" && (_id == $id || slug.current == $id) && status == "published"] {
-          _id,
-          "slug": slug.current,
-          title,
-          content,
-          contentEN,
-          contentES,
-          category,
-          publishedAt,
-          source,
-          status
-        }[0]`
-
-        const data = await sanityClient.fetch<Brief | null>(query, { id })
-
-        if (!data) {
+        // Fetch from Supabase via API (or directly if allowed)
+        const res = await fetch(`/api/creator/articles/${id}`)
+        if (res.ok) {
+          const data = await res.json()
+          setBrief(data.article)
+          // Fetch related (simplification for now)
+          const relatedRes = await fetch(`/api/briefs?category=${data.article.category}`)
+          if (relatedRes.ok) {
+            const relatedData = await relatedRes.json()
+            setRelatedBriefs(relatedData.data.filter((b: any) => b.id !== id).slice(0, 3))
+          }
+        } else {
           setError('Brief not found')
-          setLoading(false)
-          return
         }
-
-        setBrief(data)
-
-        // Fetch related briefs from the same category
-        const relatedQuery = `*[_type == "brief" && category == $category && _id != $id && status == "published"] | order(publishedAt desc) [0...3] {
-          _id,
-          "slug": slug.current,
-          title,
-          content,
-          contentEN,
-          contentES,
-          category,
-          publishedAt,
-          source,
-          status
-        }`
-
-        const relatedData = await sanityClient.fetch<Brief[]>(relatedQuery, {
-          category: data.category,
-          id: data._id,
-        })
-        setRelatedBriefs(Array.isArray(relatedData) ? relatedData : [])
       } catch (error) {
         console.error('Failed to fetch brief:', error)
         setError('Failed to load brief')
@@ -115,7 +86,9 @@ export default function BriefDetailPage() {
   }, [id])
 
   const contentParagraphs = brief
-    ? getBriefContent(brief, locale).split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean)
+    ? (typeof brief.content === 'string'
+        ? getBriefContent(brief, locale).split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)
+        : (brief.content as any).content?.filter((b: any) => b.type === 'paragraph').map((b: any) => b.content?.map((c: any) => c.text).join('') || '').filter(Boolean) || [])
     : []
 
   if (loading) {

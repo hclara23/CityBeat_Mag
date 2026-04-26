@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sanityServerClient } from '@/lib/sanity'
+import { createServerClient } from '@citybeat/lib/supabase/server'
 import { localArticles } from '@/lib/localArticles'
+import { cookies } from 'next/headers'
 
 function getLocalBriefs() {
   return localArticles.map((article) => ({
@@ -20,29 +21,29 @@ function getLocalBriefs() {
   }))
 }
 
+function readonlyCookieStore(store: Awaited<ReturnType<typeof cookies>>) {
+  return { getAll: () => store.getAll(), setAll: () => {} }
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const locale = searchParams.get('locale') || 'en'
   const limit = parseInt(searchParams.get('limit') || '10', 10)
   const offset = parseInt(searchParams.get('offset') || '0', 10)
   const localBriefs = getLocalBriefs()
+  const cookieStore = readonlyCookieStore(await cookies())
+  const supabase = createServerClient(cookieStore)
 
   try {
-    const query = `
-      *[_type == "brief" && status == "published"] | order(publishedAt desc) [$offset...$offset + $limit] {
-        _id,
-        "slug": slug.current,
-        title,
-        content,
-        contentEN,
-        contentES,
-        category,
-        publishedAt,
-        source
-      }
-    `
+    const { data: briefs, error, count } = await supabase
+      .from('brief_submissions')
+      .select('*', { count: 'exact' })
+      .eq('status', 'published')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
-    const briefs = await sanityServerClient.fetch(query, { offset, limit })
+    if (error) throw error
+
     const combinedBriefs = [
       ...localBriefs,
       ...(Array.isArray(briefs) ? briefs : []),
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       data: page,
-      total: combinedBriefs.length,
+      total: (count || 0) + localBriefs.length,
       limit,
       offset,
       locale,
@@ -69,11 +70,4 @@ export async function GET(request: NextRequest) {
       warning: 'Returned local briefs because remote briefs could not be loaded',
     })
   }
-}
-
-export async function POST() {
-  return NextResponse.json(
-    { error: 'Not implemented' },
-    { status: 501 }
-  )
 }

@@ -8,6 +8,7 @@ export interface Profile {
   locale: string
   is_advertiser: boolean
   is_editor: boolean
+  is_writer: boolean
   created_at: string
   updated_at: string
 }
@@ -127,4 +128,44 @@ export interface Conversion {
   count: number
   revenue: number | null
   created_at: string
+}
+
+export interface Category {
+  slug: string
+  name_en: string
+  name_es: string
+  created_at: string
+}
+
+export interface Article {
+  id: string
+  slug: string
+  title: string
+  excerpt: string | null
+  content: any // JSONB structure
+  image_url: string | null
+  author_id: string | null
+  category_id: string | null
+  status: 'draft' | 'pending_review' | 'published' | 'scheduled'
+  language: 'en' | 'es'
+  published_at: string | null
+  created_at: string
+  updated_at: string
+  // Optional relations
+  author?: Profile
+  category?: Category
+  tags?: Tag[]
+}
+
+export interface Tag {
+  id: string
+  name: string
+  created_at: string
+}
+
+export interface ArticleAnalytics {
+  article_id: string
+  view_count: number
+  unique_visitors: number
+  last_viewed_at: string
 }

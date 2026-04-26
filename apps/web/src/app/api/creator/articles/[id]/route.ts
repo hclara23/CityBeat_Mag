@@ -1,20 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getServerUser } from '@citybeat/lib/supabase/server'
-import { getSanityWriteClient, sanityServerClient } from '@/lib/sanity'
+import { getServerUser, createServerClient } from '@citybeat/lib/supabase/server'
 
 function readonlyCookieStore(store: Awaited<ReturnType<typeof cookies>>) {
   return { getAll: () => store.getAll(), setAll: () => {} }
 }
 
-function toPortableText(text: string) {
+function textToContent(text: string) {
   return text.split('\n\n').filter(Boolean).map((paragraph, i) => ({
-    _type: 'block',
-    _key: `block-${i}`,
-    style: 'normal',
-    markDefs: [],
-    children: [{ _type: 'span', _key: `span-${i}`, marks: [], text: paragraph.trim() }],
+    type: 'paragraph',
+    content: [{ type: 'text', text: paragraph.trim() }],
   }))
+}
+
+function contentToText(content: any): string {
+  if (!Array.isArray(content)) return ''
+  return content
+    .map(block => {
+      if (block.type === 'paragraph' && Array.isArray(block.content)) {
+        return block.content.map((c: any) => c.text || '').join('')
+      }
+      return ''
+    })
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -27,19 +36,32 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
   }
 
   const { id } = await params
-  const query = `*[_type == "article" && _id == $id && author == $authorEmail][0] {
-    _id, _createdAt, title, slug, author, excerpt, category, tags, status, publishedAt,
-    "imageUrl": image.asset->url,
-    "imageAssetId": image.asset._ref,
-    body
-  }`
+  const supabase = createServerClient(cookieStore)
 
   try {
-    const article = await sanityServerClient.fetch(query, { id, authorEmail: user.email })
-    if (!article) {
+    const { data: article, error } = await supabase
+      .from('articles')
+      .select('*')
+      .eq('id', id)
+      .eq('author_id', user.id)
+      .single()
+
+    if (error || !article) {
       return NextResponse.json({ error: 'Article not found' }, { status: 404 })
     }
-    return NextResponse.json({ article })
+
+    // Transform for frontend compatibility
+    const transformedArticle = {
+      ...article,
+      _id: article.id,
+      _createdAt: article.created_at,
+      imageUrl: article.image_url,
+      category: article.category_id,
+      content: article.content,
+      bodyText: contentToText(article.content),
+    }
+
+    return NextResponse.json({ article: transformedArticle })
   } catch (error) {
     console.error('Error fetching article:', error)
     return NextResponse.json({ error: 'Failed to fetch article' }, { status: 500 })
@@ -54,13 +76,16 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
 
   const { id } = await params
+  const supabase = createServerClient(cookieStore)
 
-  // Verify ownership
-  const existing = await sanityServerClient.fetch(
-    `*[_type == "article" && _id == $id && author == $authorEmail][0]{ _id, status }`,
-    { id, authorEmail: user.email }
-  )
-  if (!existing) {
+  // Verify ownership and status
+  const { data: existing, error: fetchError } = await supabase
+    .from('articles')
+    .select('status, author_id')
+    .eq('id', id)
+    .single()
+
+  if (fetchError || !existing || existing.author_id !== user.id) {
     return NextResponse.json({ error: 'Article not found' }, { status: 404 })
   }
   if (existing.status === 'published') {
@@ -74,10 +99,10 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { title, authorName, excerpt, bodyText, category, tags, assetId, submitForReview } = body as {
+  const { title, excerpt, content, bodyText, category, tags, assetId, submitForReview } = body as {
     title?: string
-    authorName?: string
     excerpt?: string
+    content?: any
     bodyText?: string
     category?: string
     tags?: string[]
@@ -85,22 +110,53 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     submitForReview?: boolean
   }
 
-  const patch: Record<string, unknown> = {}
-  if (title) patch.title = (title as string).trim()
-  if (authorName !== undefined) patch.authorName = (authorName as string).trim()
-  if (excerpt !== undefined) patch.excerpt = excerpt
-  if (bodyText !== undefined) patch.body = toPortableText(bodyText as string)
-  if (category !== undefined) patch.category = category
-  if (Array.isArray(tags)) patch.tags = tags
-  if (submitForReview) patch.status = 'pending_review'
-  if (assetId) {
-    patch.image = { _type: 'image', asset: { _type: 'reference', _ref: assetId } }
+  const updateData: any = {
+    updated_at: new Date().toISOString()
   }
+  if (title) updateData.title = title.trim()
+  if (excerpt !== undefined) updateData.excerpt = excerpt
+  if (content !== undefined) updateData.content = content
+  else if (bodyText !== undefined) updateData.content = textToContent(bodyText)
+  if (category !== undefined) updateData.category_id = category || null
+  if (submitForReview) {
+    updateData.status = 'pending_review'
+    updateData.published_at = new Date().toISOString()
+  }
+  if (assetId !== undefined) updateData.image_url = assetId
 
   try {
-    const client = getSanityWriteClient()
-    const updated = await client.patch(id).set(patch).commit()
-    return NextResponse.json({ article: updated })
+    const { data: updated, error } = await supabase
+      .from('articles')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // Handle tags if provided
+    if (Array.isArray(tags)) {
+      // Clear existing tags
+      await supabase.from('article_tags').delete().eq('article_id', id)
+      
+      if (tags.length > 0) {
+        const tagInserts = tags.map(name => ({ name: name.trim().toLowerCase() }))
+        const { data: tagData } = await supabase
+          .from('tags')
+          .upsert(tagInserts, { onConflict: 'name' })
+          .select()
+
+        if (tagData) {
+          const articleTagInserts = tagData.map(t => ({
+            article_id: id,
+            tag_id: t.id
+          }))
+          await supabase.from('article_tags').insert(articleTagInserts)
+        }
+      }
+    }
+
+    return NextResponse.json({ article: { ...updated, _id: updated.id } })
   } catch (error) {
     console.error('Error updating article:', error)
     return NextResponse.json({ error: 'Failed to update article' }, { status: 500 })
@@ -115,12 +171,15 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   }
 
   const { id } = await params
+  const supabase = createServerClient(cookieStore)
 
-  const existing = await sanityServerClient.fetch(
-    `*[_type == "article" && _id == $id && author == $authorEmail][0]{ _id, status }`,
-    { id, authorEmail: user.email }
-  )
-  if (!existing) {
+  const { data: existing, error: fetchError } = await supabase
+    .from('articles')
+    .select('status, author_id')
+    .eq('id', id)
+    .single()
+
+  if (fetchError || !existing || existing.author_id !== user.id) {
     return NextResponse.json({ error: 'Article not found' }, { status: 404 })
   }
   if (existing.status === 'published') {
@@ -128,8 +187,8 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    const client = getSanityWriteClient()
-    await client.delete(id)
+    const { error } = await supabase.from('articles').delete().eq('id', id)
+    if (error) throw error
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting article:', error)

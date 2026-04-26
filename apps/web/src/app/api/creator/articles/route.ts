@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getServerUser } from '@citybeat/lib/supabase/server'
-import { getSanityWriteClient, sanityServerClient } from '@/lib/sanity'
+import { getServerUser, createServerClient } from '@citybeat/lib/supabase/server'
 
 function slugify(text: string): string {
   return text
@@ -13,13 +12,10 @@ function slugify(text: string): string {
     .slice(0, 96)
 }
 
-function toPortableText(text: string) {
+function textToContent(text: string) {
   return text.split('\n\n').filter(Boolean).map((paragraph, i) => ({
-    _type: 'block',
-    _key: `block-${i}`,
-    style: 'normal',
-    markDefs: [],
-    children: [{ _type: 'span', _key: `span-${i}`, marks: [], text: paragraph.trim() }],
+    type: 'paragraph',
+    content: [{ type: 'text', text: paragraph.trim() }],
   }))
 }
 
@@ -39,27 +35,42 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
+  const supabase = createServerClient(cookieStore)
 
-  const statusFilter = status ? `&& status == "${status}"` : ''
-  const query = `
-    *[_type == "article" && author == $authorEmail ${statusFilter}] | order(_createdAt desc) {
-      _id,
-      _createdAt,
+  let query = supabase
+    .from('articles')
+    .select(`
+      id,
+      created_at,
       title,
       slug,
-      author,
       excerpt,
-      category,
-      tags,
+      category_id,
       status,
-      publishedAt,
-      "imageUrl": image.asset->url,
-    }
-  `
+      published_at,
+      image_url
+    `)
+    .eq('author_id', user.id)
+    .order('created_at', { ascending: false })
+
+  if (status) {
+    query = query.eq('status', status)
+  }
 
   try {
-    const articles = await sanityServerClient.fetch(query, { authorEmail: user.email })
-    return NextResponse.json({ articles })
+    const { data: articles, error } = await query
+    if (error) throw error
+
+    // Transform to match existing frontend expectations if necessary
+    const transformedArticles = articles.map(a => ({
+      ...a,
+      _id: a.id, // Legacy compat
+      _createdAt: a.created_at,
+      imageUrl: a.image_url,
+      category: a.category_id,
+    }))
+
+    return NextResponse.json({ articles: transformedArticles })
   } catch (error) {
     console.error('Error fetching articles:', error)
     return NextResponse.json({ error: 'Failed to fetch articles' }, { status: 500 })
@@ -80,14 +91,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { title, authorName, excerpt, bodyText, category, tags, assetId, submitForReview } = body as {
+  const { title, excerpt, content, bodyText, category, tags, assetId, submitForReview } = body as {
     title?: string
-    authorName?: string
     excerpt?: string
+    content?: any
     bodyText?: string
     category?: string
     tags?: string[]
-    assetId?: string
+    assetId?: string // This is now the URL or path from Supabase Storage
     submitForReview?: boolean
   }
 
@@ -96,31 +107,49 @@ export async function POST(request: NextRequest) {
   }
 
   const slug = slugify(title)
-  const doc: { _type: string; [key: string]: unknown } = {
-    _type: 'article',
+  const supabase = createServerClient(cookieStore)
+
+  const articleData = {
     title: title.trim(),
-    slug: { _type: 'slug', current: slug },
-    author: user.email,
+    slug,
+    author_id: user.id,
     excerpt: excerpt || '',
-    body: bodyText ? toPortableText(bodyText as string) : [],
-    category: category || '',
-    tags: Array.isArray(tags) ? tags : [],
+    content: content || (bodyText ? textToContent(bodyText as string) : []),
+    category_id: category || null,
     status: submitForReview ? 'pending_review' : 'draft',
-    publishedAt: new Date().toISOString(),
-  }
-
-  if (authorName && typeof authorName === 'string') {
-    doc.authorName = authorName.trim()
-  }
-
-  if (assetId && typeof assetId === 'string') {
-    doc.image = { _type: 'image', asset: { _type: 'reference', _ref: assetId } }
+    published_at: submitForReview ? new Date().toISOString() : null,
+    image_url: assetId || null, // Assuming assetId is the URL for now
   }
 
   try {
-    const client = getSanityWriteClient()
-    const created = await client.create(doc)
-    return NextResponse.json({ article: created }, { status: 201 })
+    const { data: created, error } = await supabase
+      .from('articles')
+      .insert(articleData)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // Handle tags if provided
+    if (Array.isArray(tags) && tags.length > 0) {
+      // 1. Ensure tags exist
+      const tagInserts = tags.map(name => ({ name: name.trim().toLowerCase() }))
+      const { data: tagData } = await supabase
+        .from('tags')
+        .upsert(tagInserts, { onConflict: 'name' })
+        .select()
+
+      if (tagData) {
+        // 2. Link tags to article
+        const articleTagInserts = tagData.map(t => ({
+          article_id: created.id,
+          tag_id: t.id
+        }))
+        await supabase.from('article_tags').insert(articleTagInserts)
+      }
+    }
+
+    return NextResponse.json({ article: { ...created, _id: created.id } }, { status: 201 })
   } catch (error) {
     console.error('Error creating article:', error)
     return NextResponse.json({ error: 'Failed to create article' }, { status: 500 })
