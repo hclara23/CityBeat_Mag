@@ -6014,11 +6014,15 @@
     {
       "id": "202602072200-8534E1",
       "title": "Fix Vercel monorepo builds",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "48369db194286824d269146c2bef5c607059160e",
+        "message": "🐛 8534E1 fix typed brief content parser for Vercel build"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
@@ -6027,12 +6031,17 @@
         {
           "author": "CODER",
           "body": "Start: reproduce the current Vercel deployment failure locally, trace the failing Next.js build output, and apply only the root-cause fix."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: reproduced the original Next.js implicit-any build failure, fixed the typed content parser, then reran npm run build and npm run type-check successfully across the monorepo."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-02-07T22:00:59+00:00",
+      "doc_updated_at": "2026-04-26T20:29:28+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Adjust Vercel build/install commands for monorepo so workspace packages resolve."
+      "description": "Adjust Vercel build/install commands for monorepo so workspace packages resolve.",
+      "doc": "## Summary\n\nFixed the current Vercel deployment failure by typing the briefs detail page content parser. The failed build was caused by an any-typed structured-content branch that made contentParagraphs any and triggered noImplicitAny in the JSX map callback.\n\n## Scope\n\nUpdated apps/web/src/app/[locale]/briefs/[id]/page.tsx only. Added explicit BriefContent, RichTextBlock, and RichTextSpan types; adjusted localized content fallback handling; and replaced the inline any-based parser with getContentParagraphs returning string[].\n\n## Risks\n\nLow risk. The change preserves existing string content rendering and keeps support for structured paragraph blocks. Structured content with unexpected shapes now renders as empty text instead of relying on any-typed access.\n\n## Verify Steps\n\nnpm run build passed after reproducing the original failure. npm run type-check passed across the monorepo.\n\n## Rollback Plan\n\nRevert the implementation commit to restore the previous briefs detail page content typing and parser. No database, environment, or deployment configuration changes are required to roll back.\n\n## Notes\n\nRoot cause: the Vercel/Next.js build failed under strict TypeScript because contentParagraphs was inferred as any after the structured Sanity content branch used any casts. The build failure was reproduced locally before the fix."
     },
     {
       "id": "202604142058-FZ6Z5D",
@@ -6259,6 +6268,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "bdd5233fd715899b51c74d6cccde7c8fac95e7b7530c016246a5f25570799265"
+    "checksum": "9e8f5520fc901f44ab859717f4ef05a00ff7642842bd20ad786224b035fdb02a"
   }
 }

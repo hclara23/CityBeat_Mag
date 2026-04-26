@@ -1,14 +1,16 @@
 ---
 id: "202602072200-8534E1"
 title: "Fix Vercel monorepo builds"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "48369db194286824d269146c2bef5c607059160e", message: "🐛 8534E1 fix typed brief content parser for Vercel build" }
 comments:
   - { author: "ORCHESTRATOR", body: "Updated Vercel configs to run installs/builds from repo root for workspace resolution." }
   - { author: "CODER", body: "Start: reproduce the current Vercel deployment failure locally, trace the failing Next.js build output, and apply only the root-cause fix." }
+  - { author: "ORCHESTRATOR", body: "verified: reproduced the original Next.js implicit-any build failure, fixed the typed content parser, then reran npm run build and npm run type-check successfully across the monorepo." }
 doc_version: 2
 doc_updated_at: "2026-04-26T20:29:28+00:00"
 doc_updated_by: "agentctl"
