@@ -14,9 +14,9 @@ interface Brief {
   _id: string
   slug?: string
   title: string
-  content: string
-  contentEN: string
-  contentES: string
+  content: BriefContent
+  contentEN?: string | null
+  contentES?: string | null
   excerpt?: string
   category: string
   publishedAt: string
@@ -25,13 +25,38 @@ interface Brief {
   status: string
 }
 
+type BriefContent = string | { content?: RichTextBlock[] } | null
+
+interface RichTextBlock {
+  type?: string
+  content?: RichTextSpan[]
+}
+
+interface RichTextSpan {
+  text?: string
+}
+
 function getBriefHref(locale: string, brief: Brief) {
   return `/${locale}/briefs/${brief.slug || brief._id}`
 }
 
 function getBriefContent(brief: Brief, locale: string) {
   const localized = locale === 'es' ? brief.contentES : brief.contentEN
-  return localized || brief.content
+  return localized || (typeof brief.content === 'string' ? brief.content : '')
+}
+
+function getContentParagraphs(brief: Brief, locale: string): string[] {
+  if (typeof brief.content === 'string') {
+    return getBriefContent(brief, locale)
+      .split(/\n{2,}/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+  }
+
+  return brief.content?.content
+    ?.filter((block) => block.type === 'paragraph')
+    .map((block) => block.content?.map((span) => span.text).join('') || '')
+    .filter(Boolean) || []
 }
 
 export default function BriefDetailPage() {
@@ -85,11 +110,7 @@ export default function BriefDetailPage() {
     fetchBrief()
   }, [id])
 
-  const contentParagraphs = brief
-    ? (typeof brief.content === 'string'
-        ? getBriefContent(brief, locale).split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)
-        : (brief.content as any).content?.filter((b: any) => b.type === 'paragraph').map((b: any) => b.content?.map((c: any) => c.text).join('') || '').filter(Boolean) || [])
-    : []
+  const contentParagraphs = brief ? getContentParagraphs(brief, locale) : []
 
   if (loading) {
     return (

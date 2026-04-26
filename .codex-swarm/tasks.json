@@ -6014,7 +6014,7 @@
     {
       "id": "202602072200-8534E1",
       "title": "Fix Vercel monorepo builds",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
@@ -6023,6 +6023,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "Updated Vercel configs to run installs/builds from repo root for workspace resolution."
+        },
+        {
+          "author": "CODER",
+          "body": "Start: reproduce the current Vercel deployment failure locally, trace the failing Next.js build output, and apply only the root-cause fix."
         }
       ],
       "doc_version": 2,
@@ -6236,12 +6240,25 @@
       "doc_updated_by": "agentctl",
       "description": "Import articles and media from the local articles and media author folders into the website, expose them on homepage and Stories pages, and keep Sanity data as an additional source where available.",
       "doc": "## Summary\n\nImported the local author article folders into the website as published story content. The site now has 26 deduplicated local articles, each with a matching public media asset, visible from the homepage, Stories list, story detail pages, and the briefs API fallback.\n\n## Scope\n\nConverted DOCX article text from CityBeat_Admin and H.Caleb_Lara into apps/web/src/lib/localArticles.ts. Copied only referenced media into apps/web/public/articles-media. Updated the homepage to feature imported stories, updated Stories list/detail pages to render local content and images, kept Sanity briefs as an additional source, added API fallback data, and removed Ads/Studio from the shared default navigation fallback.\n\n## Risks\n\nThe imported articles are static generated content, so future changes in the source articles and media folder require regenerating the dataset. The source articles include English copy only in the extracted files, so contentES currently mirrors contentEN. The raw source media folder remains untracked to avoid committing hundreds of megabytes.\n\n## Verify Steps\n\nnpm run type-check passed. npm run lint passed. npm run build passed. Runtime smoke check passed on local dev server: /en/briefs returned 200, an imported story route returned 200, and /api/briefs?limit=3 returned imported article data with /articles-media image paths.\n\n## Rollback Plan\n\nRevert the task commit to remove apps/web/src/lib/localArticles.ts, apps/web/public/articles-media, the homepage and briefs route changes, API fallback changes, and the shared default navigation fallback change. The untracked source articles and media folder is not part of the rollback."
+    },
+    {
+      "id": "202604262004-TZ2DT8",
+      "title": "Migrate Sanity to Supabase CMS",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "human",
+      "depends_on": [],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-04-26T20:04:56+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Replaces Sanity with a custom Supabase-backed CMS including Tiptap editor, admin dashboard, and image optimization."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "41ca57e18920a7bcf43828ab00c49b22f9a9eed46e524ddb0f6ff1ff97a1e634"
+    "checksum": "bdd5233fd715899b51c74d6cccde7c8fac95e7b7530c016246a5f25570799265"
   }
 }
