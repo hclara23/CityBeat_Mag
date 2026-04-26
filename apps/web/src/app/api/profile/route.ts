@@ -21,8 +21,8 @@ export async function GET() {
       ...profile,
       id: user.id,
       email: profile?.email ?? user.email,
-      is_editor: true,
-      is_writer: true,
+      is_editor: profile?.is_editor ?? false,
+      is_writer: profile?.is_writer ?? false,
     },
   })
 }

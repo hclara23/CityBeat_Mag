@@ -6290,12 +6290,31 @@
       "doc_updated_by": "agentctl",
       "description": "Update the footer Access menu so writers and editors can reach the app login, and promote existing profiles for editor access in Supabase.",
       "doc": "## Summary\n\nUpdated the footer Access menu so writers and editors have a direct login link. Added the missing profile API route and made authenticated users editor-capable so existing accounts can reach editor/admin workflows without waiting on a production database role update.\n\n## Scope\n\nChanged apps/web/src/components/citybeat/SiteFooter.tsx to link Access to /login with Writers & Editors copy. Added apps/web/src/app/api/profile/route.ts for authenticated profile responses. Updated packages/lib/src/supabase/server.ts so isEditor returns true for authenticated users.\n\n## Risks\n\nThis intentionally broadens editor access to every authenticated user, matching the request to make all current accounts editor-capable. Re-tighten isEditor to profile.is_editor when per-user roles need to be enforced again. Production Vercel env does not currently expose Supabase service-role credentials, so no direct database mutation was performed from this checkout.\n\n## Verify Steps\n\nFocused static checks for the footer login link, profile API route, and authenticated editor gate passed. npm run type-check passed. npm run build passed and listed /api/profile in the web build output.\n\n## Rollback Plan\n\nRevert the implementation commit to restore the Studio footer link, remove /api/profile, and return isEditor to checking profile.is_editor. If database roles are later updated directly, roll those back separately in Supabase.\n\n## Notes\n\nAttempted to pull production Vercel environment variables for a direct Supabase update, but the project currently only exposes Sanity env vars and no Supabase service-role key. The deployed app change provides the requested access behavior for all authenticated accounts."
+    },
+    {
+      "id": "202604262210-KG9AEJ",
+      "title": "Restore Supabase-backed editor roles",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: pull configured Supabase environment variables, restore role checks to production profile flags, update existing profiles through the service role, verify, push, and deploy."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-04-26T22:10:26+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Use real Supabase profile role flags for writer/editor access now that production Supabase env vars are configured, and seed existing profiles with editor/writer access."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "1a27d602a6d05492130b33eb4b57c7b4d757f359e4e304bbddf83295f463bb6b"
+    "checksum": "a832cb32b06a74b2c0b708c5db498f79fa52084e05ac48dab722b3c96a1777c9"
   }
 }

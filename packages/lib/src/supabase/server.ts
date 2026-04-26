@@ -123,7 +123,8 @@ export async function isEditor(
   userId: string,
   cookies: CookieStore
 ): Promise<boolean> {
-  return Boolean(userId)
+  const profile = await getServerUserProfile(userId, cookies)
+  return profile?.is_editor ?? false
 }
 
 /**
