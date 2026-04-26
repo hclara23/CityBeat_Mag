@@ -6262,12 +6262,31 @@
       "doc_updated_at": "2026-04-26T20:04:56+00:00",
       "doc_updated_by": "agentctl",
       "description": "Replaces Sanity with a custom Supabase-backed CMS including Tiptap editor, admin dashboard, and image optimization."
+    },
+    {
+      "id": "202604262109-WKN7CY",
+      "title": "Link footer access to editor login",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: update footer access navigation to point writers and editors to login, then set existing Supabase profiles to editor access and verify the app build."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-04-26T21:09:13+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Update the footer Access menu so writers and editors can reach the app login, and promote existing profiles for editor access in Supabase."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "9e8f5520fc901f44ab859717f4ef05a00ff7642842bd20ad786224b035fdb02a"
+    "checksum": "ae0b4a44d397dc8c8ba096c4896794f6ab3987fcd788e1e053ea9598d69cca90"
   }
 }
