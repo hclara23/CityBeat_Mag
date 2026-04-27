@@ -6433,7 +6433,7 @@
     {
       "id": "202604270304-KGMY7C",
       "title": "Route editors away from advertiser dashboard",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
@@ -6447,23 +6447,31 @@
         "npm run type-check --workspace=@citybeat/web",
         "npm run build --workspace=@citybeat/web"
       ],
+      "commit": {
+        "hash": "61330f633fadddcaa592baceacbd05793e26068c",
+        "message": "🔐 KGMY7C route editors away from advertiser dashboard"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: authenticated profile works; editor login was still routed to advertiser dashboard and schema-mismatched review queue returned 500."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: editor login routes by profile role, admin queue handles absent review schema without 500, and lint, type-check, and production build pass."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-04-27T03:04:12+00:00",
+      "doc_updated_at": "2026-04-27T03:05:23+00:00",
       "doc_updated_by": "agentctl",
       "description": "After login, route editor and writer users by profile role and prevent the admin review queue from returning a 500 while the review article schema is absent.",
-      "doc": "## Summary\n\nLogin now routes editors to /admin and writers to /creator based on /api/profile. The admin queue returns an empty queue instead of 500 when the review-article schema is not present.\n\n## Scope\n\nIn scope: apps/web/src/app/[locale]/login/page.tsx and apps/web/src/app/api/admin/articles/route.ts. Out of scope: full CMS schema migration and dashboard advertiser data repair.\n\n## Risks\n\nLow to moderate risk. Login redirects change by role, and the admin queue avoids exposing schema errors while still requiring editor authorization.\n\n## Verify Steps\n\n- ...\n\n## Rollback Plan\n\n- ..."
+      "doc": "## Summary\n\nLogin now routes editors to /admin and writers to /creator based on /api/profile. The admin queue returns an empty queue instead of 500 when the review-article schema is not present.\n\n## Scope\n\nIn scope: apps/web/src/app/[locale]/login/page.tsx and apps/web/src/app/api/admin/articles/route.ts. Out of scope: full CMS schema migration and dashboard advertiser data repair.\n\n## Risks\n\nLow to moderate risk. Login redirects change by role, and the admin queue avoids exposing schema errors while still requiring editor authorization.\n\n## Verify Steps\n\nnpm run lint --workspace=@citybeat/web passed. npm run type-check --workspace=@citybeat/web passed. npm run build --workspace=@citybeat/web passed.\n\n## Rollback Plan\n\nRevert the login role-routing change and the admin queue schema fallback."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "3bd540e095a2ae925c578da255600a1686e51057dcec7fb71dd224a2af2d63b4"
+    "checksum": "15607bf09d35e11df723c6af08d996de017a5606cb4b752d653401cae192a807"
   }
 }
