@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { withLocale } from '@/components/citybeat/content'
@@ -97,8 +98,8 @@ export default function ReviewArticlePage({ params }: { params: Promise<{ id: st
           </header>
 
           {article.image_url && (
-            <div className="my-10 aspect-video rounded-xl overflow-hidden border border-white/10">
-              <img src={article.image_url} alt="" className="w-full h-full object-cover" />
+            <div className="relative my-10 aspect-video overflow-hidden rounded-xl border border-white/10">
+              <Image src={article.image_url} alt="" fill className="object-cover" sizes="(min-width: 1024px) 896px, 100vw" />
             </div>
           )}
 
