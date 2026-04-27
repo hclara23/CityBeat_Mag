@@ -6470,7 +6470,7 @@
     {
       "id": "202604270330-B235A3",
       "title": "Add admin dashboard navigation",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
@@ -6484,23 +6484,31 @@
         "npm run type-check --workspace=@citybeat/web",
         "npm run build --workspace=@citybeat/web"
       ],
+      "commit": {
+        "hash": "409d318a91934612cca0837c4e1c15b824b2c403",
+        "message": "✨ B235A3 add admin dashboard navigation"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: admin user lands on /admin, but the dashboard lacks direct navigation to creator/editor surfaces."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: admin dashboard exposes editor and writer workspace links, all existing page shortcuts, and passes lint, type-check, and production build."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-04-27T03:31:02+00:00",
+      "doc_updated_at": "2026-04-27T03:32:24+00:00",
       "doc_updated_by": "agentctl",
       "description": "Make the admin dashboard the operational landing page for the main editor account and expose links to creator studio, article creation, review queue, account, billing, advertising, and public pages.",
-      "doc": "## Summary\n\nAdd role-aware admin dashboard navigation so the main editor can reach creator studio, new article, review queue, account, billing, ads, and public pages from /admin.\n\n## Scope\n\nIn scope: the admin dashboard page UI and links to existing routes. Out of scope: creating new dashboard pages, changing database schema, or replacing the CMS/editor workflow.\n\n## Risks\n\nLow risk. This is a UI navigation change on an already authenticated admin page and does not alter access control.\n\n## Verify Steps\n\n- ...\n\n## Rollback Plan\n\n- ..."
+      "doc": "## Summary\n\nAdd role-aware admin dashboard navigation so the main editor can reach creator studio, new article, review queue, account, billing, ads, and public pages from /admin.\n\n## Scope\n\nIn scope: the admin dashboard page UI and links to existing routes. Out of scope: creating new dashboard pages, changing database schema, or replacing the CMS/editor workflow.\n\n## Risks\n\nLow risk. This is a UI navigation change on an already authenticated admin page and does not alter access control.\n\n## Verify Steps\n\nnpm run lint --workspace=@citybeat/web passed. npm run type-check --workspace=@citybeat/web passed. npm run build --workspace=@citybeat/web passed.\n\n## Rollback Plan\n\nRevert the admin dashboard navigation additions in apps/web/src/app/[locale]/admin/page.tsx."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "97962614f39ffa9174f665e547fd9e267e60aebc362cb947c166addc38c34793"
+    "checksum": "de416db93954bd1a06ea2525595d006578ce4c1f007c2222b99ca258fbcb3ccc"
   }
 }

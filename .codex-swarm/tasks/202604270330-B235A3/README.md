@@ -1,14 +1,16 @@
 ---
 id: "202604270330-B235A3"
 title: "Add admin dashboard navigation"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["admin", "ui", "auth"]
 verify: ["npm run lint --workspace=@citybeat/web", "npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "409d318a91934612cca0837c4e1c15b824b2c403", message: "✨ B235A3 add admin dashboard navigation" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: admin user lands on /admin, but the dashboard lacks direct navigation to creator/editor surfaces." }
+  - { author: "ORCHESTRATOR", body: "verified: admin dashboard exposes editor and writer workspace links, all existing page shortcuts, and passes lint, type-check, and production build." }
 doc_version: 2
 doc_updated_at: "2026-04-27T03:32:24+00:00"
 doc_updated_by: "agentctl"
