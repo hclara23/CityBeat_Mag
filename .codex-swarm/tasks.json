@@ -6466,12 +6466,41 @@
       "doc_updated_by": "agentctl",
       "description": "After login, route editor and writer users by profile role and prevent the admin review queue from returning a 500 while the review article schema is absent.",
       "doc": "## Summary\n\nLogin now routes editors to /admin and writers to /creator based on /api/profile. The admin queue returns an empty queue instead of 500 when the review-article schema is not present.\n\n## Scope\n\nIn scope: apps/web/src/app/[locale]/login/page.tsx and apps/web/src/app/api/admin/articles/route.ts. Out of scope: full CMS schema migration and dashboard advertiser data repair.\n\n## Risks\n\nLow to moderate risk. Login redirects change by role, and the admin queue avoids exposing schema errors while still requiring editor authorization.\n\n## Verify Steps\n\nnpm run lint --workspace=@citybeat/web passed. npm run type-check --workspace=@citybeat/web passed. npm run build --workspace=@citybeat/web passed.\n\n## Rollback Plan\n\nRevert the login role-routing change and the admin queue schema fallback."
+    },
+    {
+      "id": "202604270330-B235A3",
+      "title": "Add admin dashboard navigation",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "admin",
+        "ui",
+        "auth"
+      ],
+      "verify": [
+        "npm run lint --workspace=@citybeat/web",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: admin user lands on /admin, but the dashboard lacks direct navigation to creator/editor surfaces."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-04-27T03:31:02+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Make the admin dashboard the operational landing page for the main editor account and expose links to creator studio, article creation, review queue, account, billing, advertising, and public pages.",
+      "doc": "## Summary\n\nAdd role-aware admin dashboard navigation so the main editor can reach creator studio, new article, review queue, account, billing, ads, and public pages from /admin.\n\n## Scope\n\nIn scope: the admin dashboard page UI and links to existing routes. Out of scope: creating new dashboard pages, changing database schema, or replacing the CMS/editor workflow.\n\n## Risks\n\nLow risk. This is a UI navigation change on an already authenticated admin page and does not alter access control.\n\n## Verify Steps\n\n- ...\n\n## Rollback Plan\n\n- ..."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "15607bf09d35e11df723c6af08d996de017a5606cb4b752d653401cae192a807"
+    "checksum": "97962614f39ffa9174f665e547fd9e267e60aebc362cb947c166addc38c34793"
   }
 }
