@@ -43,7 +43,18 @@ export default function LoginPage() {
         return { error: result.error || 'Unable to sign in' }
       }
 
-      router.replace(`/${locale}/dashboard`)
+      const profileResponse = await fetch('/api/profile')
+      const profileResult = profileResponse.ok
+        ? ((await profileResponse.json()) as { profile?: { is_editor?: boolean; is_writer?: boolean } })
+        : null
+      const profile = profileResult?.profile
+      const nextPath = profile?.is_editor
+        ? '/admin'
+        : profile?.is_writer
+          ? '/creator'
+          : '/dashboard'
+
+      router.replace(`/${locale}${nextPath}`)
       router.refresh()
       return {}
     } catch (error) {

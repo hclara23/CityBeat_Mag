@@ -40,7 +40,19 @@ export async function GET(request: NextRequest) {
 
   try {
     const { data: articles, error } = await query
-    if (error) throw error
+    if (error) {
+      const message = error.message?.toLowerCase() ?? ''
+      const isMissingReviewSchema =
+        message.includes('column') ||
+        message.includes('relationship') ||
+        message.includes('schema cache')
+
+      if (isMissingReviewSchema) {
+        return NextResponse.json({ articles: [] })
+      }
+
+      throw error
+    }
 
     // Transform for response
     const transformedArticles = articles.map((a: any) => ({
