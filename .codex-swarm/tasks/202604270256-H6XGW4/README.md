@@ -1,14 +1,16 @@
 ---
 id: "202604270256-H6XGW4"
 title: "Fix Supabase SSR cookie adapter"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["auth", "supabase", "vercel"]
 verify: ["npm run lint --workspace=@citybeat/web", "npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "d32ee25bb23117ae73809ad2d8556feabb6e1b95", message: "🔐 H6XGW4 fix Supabase SSR cookie adapter" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: reproduced live login returning 200 without Set-Cookie headers and traced it to the installed Supabase SSR cookie API." }
+  - { author: "ORCHESTRATOR", body: "verified: matched Supabase SSR cookie get/set/remove API and verified lint, type-check, and production build." }
 doc_version: 2
 doc_updated_at: "2026-04-27T02:57:07+00:00"
 doc_updated_by: "agentctl"
