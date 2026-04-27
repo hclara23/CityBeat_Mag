@@ -1,14 +1,16 @@
 ---
 id: "202604270352-V36FNN"
 title: "Fix creator image upload and article creation"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["creator", "supabase", "upload"]
 verify: ["npm run lint --workspace=@citybeat/web", "npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "c0155ffba6e4b391d1bf43941680aa169d5d88bf", message: "🛠️ V36FNN fix creator upload and article creation" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: creator upload and article create were returning 500 due to storage and Supabase schema mismatches." }
+  - { author: "ORCHESTRATOR", body: "verified: creator upload and article create APIs build cleanly, with Supabase compatibility migration documented for live application." }
 doc_version: 2
 doc_updated_at: "2026-04-27T03:52:55+00:00"
 doc_updated_by: "agentctl"

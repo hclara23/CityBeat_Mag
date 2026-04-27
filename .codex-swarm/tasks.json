@@ -6507,7 +6507,7 @@
     {
       "id": "202604270352-V36FNN",
       "title": "Fix creator image upload and article creation",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
@@ -6521,23 +6521,31 @@
         "npm run type-check --workspace=@citybeat/web",
         "npm run build --workspace=@citybeat/web"
       ],
+      "commit": {
+        "hash": "c0155ffba6e4b391d1bf43941680aa169d5d88bf",
+        "message": "🛠️ V36FNN fix creator upload and article creation"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: creator upload and article create were returning 500 due to storage and Supabase schema mismatches."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: creator upload and article create APIs build cleanly, with Supabase compatibility migration documented for live application."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-04-27T03:52:42+00:00",
+      "doc_updated_at": "2026-04-27T03:52:55+00:00",
       "doc_updated_by": "agentctl",
       "description": "Wire Creator Studio upload and article creation to the production Supabase schema, add creator compatibility migration, and use service-role storage for media uploads.",
-      "doc": "## Summary\n\nCreator image uploads now use service-role storage and article creation maps form data to the production schema with categories, authors, creator fields, and compatibility columns.\n\n## Scope\n\nIn scope: creator upload API, creator article create/list API, and a Supabase migration for Creator Studio compatibility. Out of scope: full edit/delete route rewrite and visual editor redesign.\n\n## Risks\n\nModerate risk because it touches production content writes. The API still requires an authenticated writer/editor profile, while storage and write operations can use the existing service-role key server-side.\n\n## Verify Steps\n\n- ...\n\n## Rollback Plan\n\n- ..."
+      "doc": "## Summary\n\nCreator image uploads now use service-role storage and article creation maps form data to the production schema with categories, authors, creator fields, and compatibility columns.\n\n## Scope\n\nIn scope: creator upload API, creator article create/list API, and a Supabase migration for Creator Studio compatibility. Out of scope: full edit/delete route rewrite and visual editor redesign.\n\n## Risks\n\nModerate risk because it touches production content writes. The API still requires an authenticated writer/editor profile, while storage and write operations can use the existing service-role key server-side.\n\n## Verify Steps\n\nnpm run lint --workspace=@citybeat/web passed. npm run type-check --workspace=@citybeat/web passed. npm run build --workspace=@citybeat/web passed. Live verification still requires applying apps/web/supabase/migrations/20260427034000_creator_workflow_compat.sql in Supabase.\n\n## Rollback Plan\n\nRevert the creator upload/API changes and do not apply, or roll back, the Creator Studio compatibility migration."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "b7a92fa13950bc80bfd4f9e6752c2869893d877476752f6f2d507cf5df12d54d"
+    "checksum": "7e9cbcd1f220b65a05e271d778446e3ec6be9882a9c9c1609c28827d31e01630"
   }
 }
