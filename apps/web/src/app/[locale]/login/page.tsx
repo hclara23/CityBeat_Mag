@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LoginForm } from '@citybeat/ui/auth'
-import { signIn } from '@citybeat/lib/supabase/auth'
 import Link from 'next/link'
 import { useLocale } from '@/components/TranslationProvider'
 
@@ -33,12 +32,19 @@ export default function LoginPage() {
   const handleSubmit = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      const result = await signIn(email, password)
-      if (result.error) {
-        return { error: result.error }
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const result = (await response.json()) as { error?: string }
+
+      if (!response.ok) {
+        return { error: result.error || 'Unable to sign in' }
       }
-      // Redirect to dashboard on successful login
-      router.push(`/${locale}/dashboard`)
+
+      router.replace(`/${locale}/dashboard`)
+      router.refresh()
       return {}
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'An error occurred' }

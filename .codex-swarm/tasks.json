@@ -6355,12 +6355,41 @@
       "doc_updated_by": "agentctl",
       "description": "Replace the admin article review image preview with next/image and allow Supabase-hosted image URLs so Vercel lint/build stays clean.",
       "doc": "## Summary\n\nReplace the admin review page's raw img element with next/image and configure Next to allow Supabase-hosted images.\n\n## Scope\n\nIn scope: apps/web/src/app/[locale]/admin/review/[id]/page.tsx and apps/web/next.config.js. Out of scope: broader admin UI changes, Supabase schema changes, and auth changes.\n\n## Risks\n\nLow risk. The preview image remains decorative with empty alt text. next/image remote host validation requires Supabase domains to be allowlisted.\n\n## Verify Steps\n\nnpm run lint --workspace=@citybeat/web passed. npm run type-check --workspace=@citybeat/web passed. npm run build --workspace=@citybeat/web passed.\n\n## Rollback Plan\n\nRevert commit 9bc076d to restore the previous img element and remove the Supabase remote image allowlist entry."
+    },
+    {
+      "id": "202604270240-XC70DG",
+      "title": "Fix login session cookie handoff",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "auth",
+        "supabase",
+        "vercel"
+      ],
+      "verify": [
+        "npm run lint --workspace=@citybeat/web",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: traced dashboard 401 after login to a missing server-visible Supabase session cookie."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-04-27T02:41:00+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Move password sign-in to a server route that writes Supabase auth cookies before redirecting users to the dashboard.",
+      "doc": "## Summary\n\nLogin now posts credentials to a server-side auth route so Supabase session cookies are written before navigating to the dashboard.\n\n## Scope\n\nIn scope: apps/web/src/app/api/auth/login/route.ts and apps/web/src/app/[locale]/login/page.tsx. Out of scope: signup, password reset, dashboard data model changes, and Supabase schema changes.\n\n## Risks\n\n- ...\n\n## Verify Steps\n\n- ...\n\n## Rollback Plan\n\n- ..."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "dbf7976c99da738d847bc40238693ccba88dfc148e6839f1e4edd976dce17eed"
+    "checksum": "eba8c77b9af21d68d58580785204bf01b15faae440098f9348e81e2d77966fca"
   }
 }
