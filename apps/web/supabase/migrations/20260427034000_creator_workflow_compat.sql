@@ -44,10 +44,12 @@ create table if not exists article_tags (
 alter table tags enable row level security;
 alter table article_tags enable row level security;
 
-create policy if not exists "Public tags access" on tags
+drop policy if exists "Public tags access" on tags;
+create policy "Public tags access" on tags
   for select using (true);
 
-create policy if not exists "Writers can create tags" on tags
+drop policy if exists "Writers can create tags" on tags;
+create policy "Writers can create tags" on tags
   for insert with check (
     exists (
       select 1 from profiles
@@ -56,10 +58,12 @@ create policy if not exists "Writers can create tags" on tags
     )
   );
 
-create policy if not exists "Article tags read access" on article_tags
+drop policy if exists "Article tags read access" on article_tags;
+create policy "Article tags read access" on article_tags
   for select using (true);
 
-create policy if not exists "Writers manage article tags" on article_tags
+drop policy if exists "Writers manage article tags" on article_tags;
+create policy "Writers manage article tags" on article_tags
   for all using (
     exists (
       select 1 from profiles
@@ -68,7 +72,8 @@ create policy if not exists "Writers manage article tags" on article_tags
     )
   );
 
-create policy if not exists "Writers create articles" on articles
+drop policy if exists "Writers create articles" on articles;
+create policy "Writers create articles" on articles
   for insert with check (
     created_by = auth.uid()
     and exists (
@@ -78,7 +83,8 @@ create policy if not exists "Writers create articles" on articles
     )
   );
 
-create policy if not exists "Writers update own articles" on articles
+drop policy if exists "Writers update own articles" on articles;
+create policy "Writers update own articles" on articles
   for update using (
     created_by = auth.uid()
     or exists (
