@@ -16,16 +16,21 @@ export const createServerClient = (cookies: CookieStore) =>
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
     {
       cookies: {
-        getAll() {
-          return cookies.getAll()
+        get(name: string) {
+          return cookies.getAll().find((cookie) => cookie.name === name)?.value
         },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options: Record<string, unknown> }>) {
+        set(name: string, value: string, options: Record<string, unknown>) {
           try {
-            cookies.setAll(cookiesToSet)
+            cookies.setAll([{ name, value, options }])
           } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware handling
-            // cookie setting separately.
+            // Server Components cannot write cookies; middleware handles refresh writes.
+          }
+        },
+        remove(name: string, options: Record<string, unknown>) {
+          try {
+            cookies.setAll([{ name, value: '', options: { ...options, maxAge: 0 } }])
+          } catch {
+            // Server Components cannot write cookies; middleware handles refresh writes.
           }
         },
       },

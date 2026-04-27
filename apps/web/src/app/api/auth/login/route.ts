@@ -3,12 +3,6 @@ import { createServerClient } from '@supabase/ssr'
 
 export const dynamic = 'force-dynamic'
 
-type CookieToSet = {
-  name: string
-  value: string
-  options: Record<string, unknown>
-}
-
 export async function POST(request: Request) {
   let body: { email?: unknown; password?: unknown }
 
@@ -33,23 +27,26 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ ok: true })
+  const requestCookies = request.headers
+    .get('cookie')
+    ?.split(';')
+    .map((cookie) => {
+      const [name, ...valueParts] = cookie.trim().split('=')
+      return { name, value: valueParts.join('=') }
+    })
+    .filter((cookie) => cookie.name)
+    ?? []
+
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      getAll() {
-        return request.headers
-          .get('cookie')
-          ?.split(';')
-          .map((cookie) => {
-            const [name, ...valueParts] = cookie.trim().split('=')
-            return { name, value: valueParts.join('=') }
-          })
-          .filter((cookie) => cookie.name)
-          ?? []
+      get(name: string) {
+        return requestCookies.find((cookie) => cookie.name === name)?.value
       },
-      setAll(cookiesToSet: CookieToSet[]) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, options)
-        })
+      set(name: string, value: string, options: Record<string, unknown>) {
+        response.cookies.set(name, value, options)
+      },
+      remove(name: string, options: Record<string, unknown>) {
+        response.cookies.set(name, '', { ...options, maxAge: 0 })
       },
     },
   })

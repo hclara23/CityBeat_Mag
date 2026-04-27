@@ -50,13 +50,14 @@ export default async function middleware(request: NextRequest) {
   if (supabaseUrl && supabaseAnonKey) {
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
+        get(name: string) {
+          return request.cookies.get(name)?.value
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
-          })
+        set(name: string, value: string, options: Record<string, unknown>) {
+          response.cookies.set(name, value, options)
+        },
+        remove(name: string, options: Record<string, unknown>) {
+          response.cookies.set(name, '', { ...options, maxAge: 0 })
         },
       },
     })
