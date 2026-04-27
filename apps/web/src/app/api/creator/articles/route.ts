@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getServerUser, createServerClient } from '@citybeat/lib/supabase/server'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { getServerUser, createServerClient, getServerUserProfile } from '@citybeat/lib/supabase/server'
 
 function slugify(text: string): string {
   return text
@@ -26,6 +27,68 @@ function readonlyCookieStore(store: Awaited<ReturnType<typeof cookies>>) {
   }
 }
 
+function createWriteClient(cookieStore: ReturnType<typeof readonlyCookieStore>) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (supabaseUrl && serviceRoleKey) {
+    return createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  }
+
+  return createServerClient(cookieStore)
+}
+
+function hasCreatorAccess(profile: any) {
+  return Boolean(profile?.is_writer || profile?.is_editor || ['admin', 'editor'].includes(profile?.role))
+}
+
+async function getCategoryId(supabase: SupabaseClient, slug?: string) {
+  const categorySlug = slug || 'news'
+  const { data: existing } = await supabase
+    .from('categories')
+    .select('id')
+    .eq('slug', categorySlug)
+    .maybeSingle()
+
+  if (existing?.id) return existing.id as string
+
+  const title = categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1)
+  const { data: created, error } = await supabase
+    .from('categories')
+    .insert({
+      slug: categorySlug,
+      name_en: title,
+      name_es: title,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+  return created.id as string
+}
+
+async function getAuthorId(supabase: SupabaseClient, name: string) {
+  const authorName = name.trim() || 'CityBeat Staff'
+  const { data: existing } = await supabase
+    .from('authors')
+    .select('id')
+    .eq('name', authorName)
+    .maybeSingle()
+
+  if (existing?.id) return existing.id as string
+
+  const { data: created, error } = await supabase
+    .from('authors')
+    .insert({ name: authorName })
+    .select('id')
+    .single()
+
+  if (error) throw error
+  return created.id as string
+}
+
 export async function GET(request: NextRequest) {
   const cookieStore = readonlyCookieStore(await cookies())
   const user = await getServerUser(cookieStore)
@@ -35,7 +98,7 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
-  const supabase = createServerClient(cookieStore)
+  const supabase = createWriteClient(cookieStore)
 
   let query = supabase
     .from('articles')
@@ -50,7 +113,7 @@ export async function GET(request: NextRequest) {
       published_at,
       image_url
     `)
-    .eq('author_id', user.id)
+    .eq('created_by', user.id)
     .order('created_at', { ascending: false })
 
   if (status) {
@@ -83,6 +146,10 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const profile = await getServerUserProfile(user.id, cookieStore)
+  if (!hasCreatorAccess(profile)) {
+    return NextResponse.json({ error: 'Writer access is required' }, { status: 403 })
+  }
 
   let body: Record<string, unknown>
   try {
@@ -107,18 +174,23 @@ export async function POST(request: NextRequest) {
   }
 
   const slug = slugify(title)
-  const supabase = createServerClient(cookieStore)
+  const supabase = createWriteClient(cookieStore)
 
+  const contentValue = content || (bodyText ? textToContent(bodyText as string) : [])
+  const categoryId = await getCategoryId(supabase, category)
+  const authorId = await getAuthorId(supabase, typeof body.authorName === 'string' ? body.authorName : user.email ?? '')
   const articleData = {
     title: title.trim(),
-    slug,
-    author_id: user.id,
+    slug: `${slug}-${Date.now().toString(36)}`,
+    author_id: authorId,
+    created_by: user.id,
     excerpt: excerpt || '',
-    content: content || (bodyText ? textToContent(bodyText as string) : []),
-    category_id: category || null,
+    content: contentValue,
+    category_id: categoryId,
     status: submitForReview ? 'pending_review' : 'draft',
-    published_at: submitForReview ? new Date().toISOString() : null,
-    image_url: assetId || null, // Assuming assetId is the URL for now
+    published_at: null,
+    cover_image_path: assetId || null,
+    image_url: assetId || null,
   }
 
   try {

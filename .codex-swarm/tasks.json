@@ -6503,12 +6503,41 @@
       "doc_updated_by": "agentctl",
       "description": "Make the admin dashboard the operational landing page for the main editor account and expose links to creator studio, article creation, review queue, account, billing, advertising, and public pages.",
       "doc": "## Summary\n\nAdd role-aware admin dashboard navigation so the main editor can reach creator studio, new article, review queue, account, billing, ads, and public pages from /admin.\n\n## Scope\n\nIn scope: the admin dashboard page UI and links to existing routes. Out of scope: creating new dashboard pages, changing database schema, or replacing the CMS/editor workflow.\n\n## Risks\n\nLow risk. This is a UI navigation change on an already authenticated admin page and does not alter access control.\n\n## Verify Steps\n\nnpm run lint --workspace=@citybeat/web passed. npm run type-check --workspace=@citybeat/web passed. npm run build --workspace=@citybeat/web passed.\n\n## Rollback Plan\n\nRevert the admin dashboard navigation additions in apps/web/src/app/[locale]/admin/page.tsx."
+    },
+    {
+      "id": "202604270352-V36FNN",
+      "title": "Fix creator image upload and article creation",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "creator",
+        "supabase",
+        "upload"
+      ],
+      "verify": [
+        "npm run lint --workspace=@citybeat/web",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: creator upload and article create were returning 500 due to storage and Supabase schema mismatches."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-04-27T03:52:42+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Wire Creator Studio upload and article creation to the production Supabase schema, add creator compatibility migration, and use service-role storage for media uploads.",
+      "doc": "## Summary\n\nCreator image uploads now use service-role storage and article creation maps form data to the production schema with categories, authors, creator fields, and compatibility columns.\n\n## Scope\n\nIn scope: creator upload API, creator article create/list API, and a Supabase migration for Creator Studio compatibility. Out of scope: full edit/delete route rewrite and visual editor redesign.\n\n## Risks\n\nModerate risk because it touches production content writes. The API still requires an authenticated writer/editor profile, while storage and write operations can use the existing service-role key server-side.\n\n## Verify Steps\n\n- ...\n\n## Rollback Plan\n\n- ..."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "de416db93954bd1a06ea2525595d006578ce4c1f007c2222b99ca258fbcb3ccc"
+    "checksum": "b7a92fa13950bc80bfd4f9e6752c2869893d877476752f6f2d507cf5df12d54d"
   }
 }

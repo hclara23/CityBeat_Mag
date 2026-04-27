@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getServerUser, createServerClient } from '@citybeat/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 
 function readonlyCookieStore(store: Awaited<ReturnType<typeof cookies>>) {
   return { getAll: () => store.getAll(), setAll: () => {} }
+}
+
+function createStorageClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return null
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 }
 
 export async function POST(request: NextRequest) {
@@ -27,7 +41,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const supabase = createServerClient(cookieStore)
+    const supabase = createStorageClient() ?? createServerClient(cookieStore)
     const arrayBuffer = await file.arrayBuffer()
     const inputBuffer = Buffer.from(arrayBuffer)
 
@@ -39,6 +53,8 @@ export async function POST(request: NextRequest) {
 
     const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
     const filePath = `articles/${fileName}`
+
+    await supabase.storage.createBucket('media', { public: true }).catch(() => null)
 
     const { data, error } = await supabase.storage
       .from('media')
@@ -54,7 +70,7 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(filePath)
 
     return NextResponse.json({
-      assetId: data.path,
+      assetId: publicUrl,
       url: publicUrl,
     })
   } catch (error) {
