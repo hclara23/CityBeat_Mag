@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
       status,
       published_at,
       image_url,
-      author:profiles!articles_author_id_fkey(email, full_name)
+      byline:authors!articles_author_id_fkey(name),
+      creator:profiles!articles_created_by_fkey(email, full_name)
     `)
     .order('created_at', { ascending: false })
 
@@ -40,25 +41,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const { data: articles, error } = await query
-    if (error) {
-      const message = error.message?.toLowerCase() ?? ''
-      const isMissingReviewSchema =
-        message.includes('column') ||
-        message.includes('relationship') ||
-        message.includes('schema cache')
-
-      if (isMissingReviewSchema) {
-        return NextResponse.json({ articles: [] })
-      }
-
-      throw error
-    }
+    if (error) throw error
 
     // Transform for response
     const transformedArticles = articles.map((a: any) => ({
       ...a,
-      author_email: a.author?.email,
-      author_name: a.author?.full_name
+      author_email: a.creator?.email,
+      author_name: a.byline?.name || a.creator?.full_name || a.creator?.email,
     }))
 
     return NextResponse.json({ articles: transformedArticles })

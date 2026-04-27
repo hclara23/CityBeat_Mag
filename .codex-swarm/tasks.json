@@ -6540,12 +6540,41 @@
       "doc_updated_by": "agentctl",
       "description": "Wire Creator Studio upload and article creation to the production Supabase schema, add creator compatibility migration, and use service-role storage for media uploads.",
       "doc": "## Summary\n\nCreator image uploads now use service-role storage and article creation maps form data to the production schema with categories, authors, creator fields, and compatibility columns.\n\n## Scope\n\nIn scope: creator upload API, creator article create/list API, and a Supabase migration for Creator Studio compatibility. Out of scope: full edit/delete route rewrite and visual editor redesign.\n\n## Risks\n\nModerate risk because it touches production content writes. The API still requires an authenticated writer/editor profile, while storage and write operations can use the existing service-role key server-side.\n\n## Verify Steps\n\nnpm run lint --workspace=@citybeat/web passed. npm run type-check --workspace=@citybeat/web passed. npm run build --workspace=@citybeat/web passed. Live verification still requires applying apps/web/supabase/migrations/20260427034000_creator_workflow_compat.sql in Supabase.\n\n## Rollback Plan\n\nRevert the creator upload/API changes and do not apply, or roll back, the Creator Studio compatibility migration."
+    },
+    {
+      "id": "202604270425-FSASV8",
+      "title": "Fix admin review queue article join",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "admin",
+        "supabase",
+        "creator"
+      ],
+      "verify": [
+        "npm run lint --workspace=@citybeat/web",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: pending review articles existed in Creator Studio but admin queue was empty due to an invalid profiles join on articles.author_id."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-04-27T04:25:14+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Update admin review queue and article detail APIs to use production article author/profile relationships so pending_review articles appear.",
+      "doc": "## Summary\n\nAdmin article list/detail APIs now read byline data from authors and submitter data from profiles via created_by, matching the production schema.\n\n## Scope\n\n- ...\n\n## Risks\n\nLow risk. This changes select joins and response shaping while preserving editor authorization and status filtering.\n\n## Verify Steps\n\n- ...\n\n## Rollback Plan\n\n- ...\n\n\n## Verify Steps\n\n- ...\n\n## Rollback Plan\n\n- ..."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "7e9cbcd1f220b65a05e271d778446e3ec6be9882a9c9c1609c28827d31e01630"
+    "checksum": "0c0834308907966ae90e49bd9bc4106b9cd87e260d18b58a28931bc8f3006f43"
   }
 }

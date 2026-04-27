@@ -64,14 +64,23 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       .from('articles')
       .select(`
         *,
-        author:profiles!articles_author_id_fkey(email, full_name)
+        byline:authors!articles_author_id_fkey(name),
+        creator:profiles!articles_created_by_fkey(email, full_name)
       `)
       .eq('id', id)
       .single()
 
     if (error) throw error
 
-    return NextResponse.json({ article: data })
+    return NextResponse.json({
+      article: {
+        ...data,
+        author: {
+          email: data.creator?.email,
+          full_name: data.byline?.name || data.creator?.full_name || data.creator?.email,
+        },
+      },
+    })
   } catch (error) {
     console.error('Admin GET error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
