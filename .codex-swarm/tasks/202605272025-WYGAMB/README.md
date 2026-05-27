@@ -1,14 +1,16 @@
 ---
 id: "202605272025-WYGAMB"
 title: "Fix creator publish workflow"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["creator", "backend", "frontend"]
 verify: ["npm run lint --workspace=@citybeat/web", "npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "cd73f9bba335a22feafdbb822eb8960745115d87", message: "🛠️ WYGAMB fix creator publish workflow" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: creator dashboard has no submit/publish actions and the article update route checks author_id instead of created_by." }
+  - { author: "ORCHESTRATOR", body: "verified: lint, type-check, and production build passed after wiring draft submit and editor publish actions through the creator article update route." }
 doc_version: 2
 doc_updated_at: "2026-05-27T20:28:26+00:00"
 doc_updated_by: "agentctl"
