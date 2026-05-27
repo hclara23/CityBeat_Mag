@@ -23,7 +23,7 @@ const copy = {
   },
 }
 
-const LOGIN_TIMEOUT_MS = 15000
+const LOGIN_TIMEOUT_MS = 45000
 
 async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
   const controller = new AbortController()
@@ -39,9 +39,11 @@ async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
   }
 }
 
-function getLoginError(error: unknown) {
+function getLoginError(error: unknown, stage: 'sign-in' | 'profile') {
   if (error instanceof DOMException && error.name === 'AbortError') {
-    return 'Authentication timed out. Check that the Supabase project is active and the Vercel environment variables are current.'
+    return stage === 'sign-in'
+      ? 'Sign-in timed out. Supabase may still be warming up after restore. Wait a minute and try again.'
+      : 'Sign-in succeeded, but loading your editor profile timed out. Refresh the page and try /en/admin.'
   }
 
   if (error instanceof Error) {
@@ -60,18 +62,30 @@ export default function LoginPage() {
   const handleSubmit = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      const response = await fetchWithTimeout('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
+      let response: Response
+      try {
+        response = await fetchWithTimeout('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        })
+      } catch (error) {
+        return { error: getLoginError(error, 'sign-in') }
+      }
+
       const result = (await response.json()) as { error?: string }
 
       if (!response.ok) {
         return { error: result.error || 'Unable to sign in' }
       }
 
-      const profileResponse = await fetchWithTimeout('/api/profile')
+      let profileResponse: Response
+      try {
+        profileResponse = await fetchWithTimeout('/api/profile')
+      } catch (error) {
+        return { error: getLoginError(error, 'profile') }
+      }
+
       const profileResult = profileResponse.ok
         ? ((await profileResponse.json()) as { profile?: { is_editor?: boolean; is_writer?: boolean } })
         : null
@@ -86,7 +100,7 @@ export default function LoginPage() {
       router.refresh()
       return {}
     } catch (error) {
-      return { error: getLoginError(error) }
+      return { error: getLoginError(error, 'sign-in') }
     } finally {
       setIsLoading(false)
     }
