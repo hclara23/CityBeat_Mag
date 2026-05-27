@@ -6758,12 +6758,40 @@
       "doc_updated_by": "agentctl",
       "description": "Consolidate the auth sign-in and user profile queries into a single API response to fix the browser login timeout issue",
       "doc": "## Summary\n\nConsolidated the auth sign-in API response and the user profile retrieval into a single atomic API network request to fix the browser login page hang/timeout issue.\n\n## Scope\n\n- Modify login route apps/web/src/app/api/auth/login/route.ts to return user profile roles\n- Update login page apps/web/src/app/[locale]/login/page.tsx to read profile from login response\n\n## Risks\n\nLow. Consolidating the sequential API call improves robustness and avoids race conditions, keeping standard session behaviors intact.\n\n## Verify Steps\n\n1. Ran npm run build successfully\n2. Ran npm run type-check successfully\n3. Ran npm run lint successfully\n\n## Rollback Plan\n\nRevert the changes in login/page.tsx and auth/login/route.ts to restore separate login and profile requests."
+    },
+    {
+      "id": "202605272156-0FS3EJ",
+      "title": "Fix dashboard and analytics table queries",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "auth",
+        "backend",
+        "frontend"
+      ],
+      "verify": [
+        "npm run lint --workspace=@citybeat/web",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: modifying dashboard and analytics API routes to use the correct database schema."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-05-27T21:56:43+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Modify dashboard and analytics API routes to use correct ad_campaigns and ad_events database tables instead of non-existent campaigns and analytics tables"
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "d12049e63c503a3bcbf12523a27142260a893f003a792b584e5e37d5dd89c7b9"
+    "checksum": "582c4f7d02a500253c33d0cbaa6d19ef623392c8b61b269219d9dbd17292e254"
   }
 }

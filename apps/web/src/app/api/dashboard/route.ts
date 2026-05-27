@@ -6,11 +6,10 @@ export const dynamic = 'force-dynamic'
 
 type CampaignRow = {
   id: string
-  name: string
   status: string
   created_at: string
-  impressions?: number | null
-  clicks?: number | null
+  placement?: any
+  sponsor?: any
 }
 
 function getCookieStore() {
@@ -21,17 +20,6 @@ function getCookieStore() {
     setAll: () => {
       // Route handlers do not need to write refreshed cookies for these reads.
     },
-  }
-}
-
-function mapCampaign(row: CampaignRow) {
-  return {
-    id: row.id,
-    name: row.name,
-    status: row.status,
-    created_at: row.created_at,
-    impressions: Number(row.impressions ?? 0),
-    clicks: Number(row.clicks ?? 0),
   }
 }
 
@@ -47,9 +35,15 @@ export async function GET() {
   const profile = await getServerUserProfile(user.id, cookieStore)
 
   const { data, error } = await supabase
-    .from('campaigns')
-    .select('*')
-    .eq('advertiser_id', user.id)
+    .from('ad_campaigns')
+    .select(`
+      id,
+      status,
+      created_at,
+      placement:ad_placements(name, key),
+      sponsor:sponsors(name)
+    `)
+    .eq('created_by', user.id)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -59,7 +53,37 @@ export async function GET() {
     )
   }
 
-  const campaigns = (data ?? []).map(mapCampaign)
+  let events: { campaign_id: string; event_type: string }[] = []
+  if (data && data.length > 0) {
+    const campaignIds = data.map((c) => c.id)
+    const { data: eventsData, error: eventsError } = await supabase
+      .from('ad_events')
+      .select('campaign_id, event_type')
+      .in('campaign_id', campaignIds)
+    if (!eventsError && eventsData) {
+      events = eventsData
+    }
+  }
+
+  const campaigns = (data ?? []).map((row: any) => {
+    const campaignEvents = events.filter((e) => e.campaign_id === row.id)
+    const impressions = campaignEvents.filter((e) => e.event_type === 'impression').length
+    const clicks = campaignEvents.filter((e) => e.event_type === 'click').length
+
+    const placementName = row.placement?.[0]?.name || row.placement?.name || 'Placement'
+    const sponsorName = row.sponsor?.[0]?.name || row.sponsor?.name || 'Sponsor'
+    const campaignName = `${sponsorName} - ${placementName}`
+
+    return {
+      id: row.id,
+      name: campaignName,
+      status: row.status,
+      created_at: row.created_at,
+      impressions,
+      clicks,
+    }
+  })
+
   const totalImpressions = campaigns.reduce((sum, campaign) => sum + campaign.impressions, 0)
   const totalClicks = campaigns.reduce((sum, campaign) => sum + campaign.clicks, 0)
 

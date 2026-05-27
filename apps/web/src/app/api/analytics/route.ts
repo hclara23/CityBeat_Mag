@@ -76,9 +76,9 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerClient(cookieStore)
     const { data: campaigns, error: campaignsError } = await supabase
-      .from('campaigns')
+      .from('ad_campaigns')
       .select('id')
-      .eq('advertiser_id', user.id)
+      .eq('created_by', user.id)
 
     if (campaignsError) throw campaignsError
 
@@ -90,17 +90,23 @@ export async function GET(request: NextRequest) {
     }
 
     let query = supabase
-      .from('analytics')
-      .select('campaign_id,event_type,event_date')
+      .from('ad_events')
+      .select('campaign_id, event_type, occurred_at')
       .in('campaign_id', selectedCampaignIds)
 
-    if (startDate) query = query.gte('event_date', startDate)
-    if (endDate) query = query.lte('event_date', endDate)
+    if (startDate) query = query.gte('occurred_at', startDate)
+    if (endDate) query = query.lte('occurred_at', `${endDate}T23:59:59.999Z`)
 
     const { data, error } = await query
     if (error) throw error
 
-    return NextResponse.json(summarize((data ?? []) as AnalyticsRow[], campaignId, startDate, endDate))
+    const mappedData = (data ?? []).map((row: any) => ({
+      campaign_id: row.campaign_id,
+      event_type: row.event_type,
+      event_date: row.occurred_at ? new Date(row.occurred_at).toISOString().split('T')[0] : '',
+    }))
+
+    return NextResponse.json(summarize(mappedData as AnalyticsRow[], campaignId, startDate, endDate))
   } catch (error) {
     console.error('Error fetching analytics:', error)
     return NextResponse.json(
