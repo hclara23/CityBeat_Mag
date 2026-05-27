@@ -67,6 +67,7 @@ export default function LoginPage() {
         response = await fetchWithTimeout('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
           body: JSON.stringify({ email, password }),
         })
       } catch (error) {
@@ -81,7 +82,7 @@ export default function LoginPage() {
 
       let profileResponse: Response
       try {
-        profileResponse = await fetchWithTimeout('/api/profile')
+        profileResponse = await fetchWithTimeout('/api/profile', { cache: 'no-store' })
       } catch (error) {
         return { error: getLoginError(error, 'profile') }
       }

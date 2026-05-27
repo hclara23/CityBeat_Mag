@@ -15,6 +15,7 @@ interface LoginFormProps {
 export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = '' }: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
 
@@ -73,19 +74,32 @@ export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = 
         autoComplete="email"
       />
 
-      <Input
-        type="password"
-        label="Password"
-        placeholder="••••••••"
-        value={password}
-        onChange={(e) => {
-          setPassword(e.target.value)
-          if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: undefined })
-        }}
-        error={fieldErrors.password}
-        disabled={isLoading}
-        autoComplete="current-password"
-      />
+      <div className="relative">
+        <Input
+          type={showPassword ? 'text' : 'password'}
+          label="Password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => {
+            setPassword(e.target.value)
+            if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: undefined })
+          }}
+          error={fieldErrors.password}
+          disabled={isLoading}
+          autoComplete="current-password"
+          className="pr-20"
+        />
+        <button
+          type="button"
+          className="absolute right-3 top-9 rounded px-2 py-1 text-xs font-semibold uppercase tracking-wide text-brand-neon transition hover:text-white disabled:cursor-not-allowed disabled:text-white/35"
+          onClick={() => setShowPassword((value) => !value)}
+          aria-pressed={showPassword}
+          aria-label={showPassword ? 'Hide password' : 'Show password'}
+          disabled={isLoading || !password}
+        >
+          {showPassword ? 'Hide' : 'Show'}
+        </button>
+      </div>
 
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? 'Signing in...' : 'Sign In'}
