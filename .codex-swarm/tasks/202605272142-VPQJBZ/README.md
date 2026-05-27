@@ -1,14 +1,16 @@
 ---
 id: "202605272142-VPQJBZ"
 title: "Consolidate login and profile queries"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["auth", "frontend", "production"]
 verify: ["npm run lint --workspace=@citybeat/web", "npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "634cbadf9a16834d9d9c217e53ad1f19557a8931", message: "🐛 VPQJBZ verified: successfully consolidated login and profile fetches into a single atomic API network call, resolving the browser login hang. | details: The production next.js build compiles cleanly, and all typescript/lint verifications pass without error." }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: beginning optimization of editor login flow by consolidating auth session and profile retrieval into a single fast API response." }
+  - { author: "ORCHESTRATOR", body: "verified: successfully consolidated login and profile fetches into a single atomic API network call, resolving the browser login hang. | details: The production next.js build compiles cleanly, and all typescript/lint verifications pass without error." }
 doc_version: 2
 doc_updated_at: "2026-05-27T21:43:04+00:00"
 doc_updated_by: "agentctl"
