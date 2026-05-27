@@ -1,9 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { getServerUser, createServerClient } from '@citybeat/lib/supabase/server'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { getServerUser, createServerClient, getServerUserProfile } from '@citybeat/lib/supabase/server'
 
 function readonlyCookieStore(store: Awaited<ReturnType<typeof cookies>>) {
   return { getAll: () => store.getAll(), setAll: () => {} }
+}
+
+function createWriteClient(cookieStore: ReturnType<typeof readonlyCookieStore>) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (supabaseUrl && serviceRoleKey) {
+    return createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  }
+
+  return createServerClient(cookieStore)
+}
+
+function hasEditorAccess(profile: any) {
+  return Boolean(profile?.is_editor || ['admin', 'editor'].includes(profile?.role))
+}
+
+async function getCategoryId(supabase: SupabaseClient, slug?: string) {
+  const categorySlug = slug || 'news'
+  const { data: existing } = await supabase
+    .from('categories')
+    .select('id')
+    .eq('slug', categorySlug)
+    .maybeSingle()
+
+  if (existing?.id) return existing.id as string
+
+  const title = categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1)
+  const { data: created, error } = await supabase
+    .from('categories')
+    .insert({
+      slug: categorySlug,
+      name_en: title,
+      name_es: title,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+  return created.id as string
 }
 
 function textToContent(text: string) {
@@ -36,14 +79,18 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
   }
 
   const { id } = await params
-  const supabase = createServerClient(cookieStore)
+  const supabase = createWriteClient(cookieStore)
 
   try {
     const { data: article, error } = await supabase
       .from('articles')
-      .select('*')
+      .select(`
+        *,
+        category:categories!articles_category_id_fkey(slug),
+        byline:authors!articles_author_id_fkey(name)
+      `)
       .eq('id', id)
-      .eq('author_id', user.id)
+      .eq('created_by', user.id)
       .single()
 
     if (error || !article) {
@@ -56,7 +103,8 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       _id: article.id,
       _createdAt: article.created_at,
       imageUrl: article.image_url,
-      category: article.category_id,
+      category: article.category?.slug ?? article.category_id,
+      authorName: article.byline?.name ?? '',
       content: article.content,
       bodyText: contentToText(article.content),
     }
@@ -76,19 +124,20 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
 
   const { id } = await params
-  const supabase = createServerClient(cookieStore)
+  const profile = await getServerUserProfile(user.id, cookieStore)
+  const supabase = createWriteClient(cookieStore)
 
   // Verify ownership and status
   const { data: existing, error: fetchError } = await supabase
     .from('articles')
-    .select('status, author_id')
+    .select('status, created_by')
     .eq('id', id)
     .single()
 
-  if (fetchError || !existing || existing.author_id !== user.id) {
+  if (fetchError || !existing || existing.created_by !== user.id) {
     return NextResponse.json({ error: 'Article not found' }, { status: 404 })
   }
-  if (existing.status === 'published') {
+  if (existing.status === 'published' && !hasEditorAccess(profile)) {
     return NextResponse.json({ error: 'Published articles cannot be edited' }, { status: 403 })
   }
 
@@ -99,7 +148,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { title, excerpt, content, bodyText, category, tags, assetId, submitForReview } = body as {
+  const { title, excerpt, content, bodyText, category, tags, assetId, submitForReview, status } = body as {
     title?: string
     excerpt?: string
     content?: any
@@ -108,6 +157,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     tags?: string[]
     assetId?: string
     submitForReview?: boolean
+    status?: 'draft' | 'pending_review' | 'published' | 'rejected' | 'approved'
   }
 
   const updateData: any = {
@@ -117,10 +167,20 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   if (excerpt !== undefined) updateData.excerpt = excerpt
   if (content !== undefined) updateData.content = content
   else if (bodyText !== undefined) updateData.content = textToContent(bodyText)
-  if (category !== undefined) updateData.category_id = category || null
-  if (submitForReview) {
+  if (category !== undefined) updateData.category_id = category ? await getCategoryId(supabase, category) : null
+
+  if (status) {
+    if (!['draft', 'pending_review', 'published', 'rejected', 'approved'].includes(status)) {
+      return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
+    }
+    if (status === 'published' && !hasEditorAccess(profile)) {
+      return NextResponse.json({ error: 'Editor access is required to publish' }, { status: 403 })
+    }
+    updateData.status = status
+    updateData.published_at = status === 'published' ? new Date().toISOString() : null
+  } else if (submitForReview) {
     updateData.status = 'pending_review'
-    updateData.published_at = new Date().toISOString()
+    updateData.published_at = null
   }
   if (assetId !== undefined) updateData.image_url = assetId
 
@@ -171,15 +231,15 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   }
 
   const { id } = await params
-  const supabase = createServerClient(cookieStore)
+  const supabase = createWriteClient(cookieStore)
 
   const { data: existing, error: fetchError } = await supabase
     .from('articles')
-    .select('status, author_id')
+    .select('status, created_by')
     .eq('id', id)
     .single()
 
-  if (fetchError || !existing || existing.author_id !== user.id) {
+  if (fetchError || !existing || existing.created_by !== user.id) {
     return NextResponse.json({ error: 'Article not found' }, { status: 404 })
   }
   if (existing.status === 'published') {

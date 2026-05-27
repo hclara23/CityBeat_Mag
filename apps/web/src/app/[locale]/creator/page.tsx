@@ -42,6 +42,10 @@ const copy = {
     emptyHint: 'Start with your first article — tell El Paso\'s story.',
     write: 'Write Your First Article',
     edit: 'Edit',
+    submitReview: 'Submit Review',
+    publish: 'Publish',
+    publishing: 'Publishing...',
+    submitting: 'Submitting...',
     delete: 'Delete',
     deleteConfirm: 'Are you sure you want to delete this article?',
     category: 'Category',
@@ -58,6 +62,10 @@ const copy = {
     emptyHint: 'Comienza con tu primer artículo — cuenta la historia de El Paso.',
     write: 'Escribe Tu Primer Artículo',
     edit: 'Editar',
+    submitReview: 'Enviar Revisión',
+    publish: 'Publicar',
+    publishing: 'Publicando...',
+    submitting: 'Enviando...',
     delete: 'Eliminar',
     deleteConfirm: '¿Seguro que deseas eliminar este artículo?',
     category: 'Categoría',
@@ -74,8 +82,10 @@ export default function CreatorDashboard() {
 
   const [articles, setArticles] = useState<Article[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [canPublish, setCanPublish] = useState(false)
   const [filter, setFilter] = useState<ArticleStatus | 'all'>('all')
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   const loadArticles = useCallback(async () => {
     try {
@@ -95,6 +105,15 @@ export default function CreatorDashboard() {
   useEffect(() => {
     getUser().then(({ user, error }) => {
       if (error || !user) router.push(withLocale(locale, '/login'))
+      else {
+        fetch('/api/profile')
+          .then((res) => res.ok ? res.json() : null)
+          .then((data) => {
+            const profile = data?.profile
+            setCanPublish(Boolean(profile?.is_editor || ['admin', 'editor'].includes(profile?.role)))
+          })
+          .catch(() => setCanPublish(false))
+      }
     })
   }, [router, locale])
 
@@ -110,6 +129,26 @@ export default function CreatorDashboard() {
       setArticles((prev) => prev.filter((a) => a._id !== id))
     } finally {
       setDeleting(null)
+    }
+  }
+
+  const handleStatusChange = async (id: string, status: ArticleStatus) => {
+    setUpdatingStatus(id)
+    try {
+      const res = await fetch(`/api/creator/articles/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to update article')
+      }
+      await loadArticles()
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to update article')
+    } finally {
+      setUpdatingStatus(null)
     }
   }
 
@@ -254,6 +293,24 @@ export default function CreatorDashboard() {
                       >
                         {t.edit}
                       </Link>
+                    )}
+                    {(article.status === 'draft' || article.status === 'rejected') && (
+                      <button
+                        onClick={() => handleStatusChange(article._id, 'pending_review')}
+                        disabled={updatingStatus === article._id}
+                        className="rounded-md border border-amber-400/40 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-300 transition hover:border-amber-300 hover:text-amber-200 disabled:opacity-40"
+                      >
+                        {updatingStatus === article._id ? t.submitting : t.submitReview}
+                      </button>
+                    )}
+                    {canPublish && (article.status === 'pending_review' || article.status === 'approved') && (
+                      <button
+                        onClick={() => handleStatusChange(article._id, 'published')}
+                        disabled={updatingStatus === article._id}
+                        className="rounded-md bg-brand-neon px-4 py-1.5 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-40"
+                      >
+                        {updatingStatus === article._id ? t.publishing : t.publish}
+                      </button>
                     )}
                     {(article.status === 'draft' || article.status === 'rejected') && (
                       <button

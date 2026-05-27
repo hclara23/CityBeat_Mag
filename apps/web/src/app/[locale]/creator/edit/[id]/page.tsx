@@ -8,19 +8,6 @@ import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/supabase/auth'
 
-function portableTextToString(body: unknown): string {
-  if (!Array.isArray(body)) return ''
-  return body
-    .filter((block: any) => block._type === 'block')
-    .map((block: any) =>
-      (block.children ?? [])
-        .filter((child: any) => child._type === 'span')
-        .map((child: any) => child.text ?? '')
-        .join('')
-    )
-    .join('\n\n')
-}
-
 export default function EditArticlePage() {
   const router = useRouter()
   const params = useParams()
@@ -58,10 +45,11 @@ export default function EditArticlePage() {
           title: article.title ?? '',
           authorName: article.authorName ?? (user.user_metadata?.full_name ?? ''),
           excerpt: article.excerpt ?? '',
-          bodyText: portableTextToString(article.body),
+          bodyText: article.bodyText ?? '',
+          content: article.content ?? null,
           category: article.category ?? '',
           tags: (article.tags ?? []).join(', '),
-          assetId: article.imageAssetId ?? '',
+          assetId: article.imageUrl ?? '',
           imagePreviewUrl: article.imageUrl ?? '',
         })
       } catch (err) {
