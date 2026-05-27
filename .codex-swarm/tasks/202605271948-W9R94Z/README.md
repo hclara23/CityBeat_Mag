@@ -1,14 +1,16 @@
 ---
 id: "202605271948-W9R94Z"
 title: "Harden browser login after Supabase restore"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["auth", "frontend", "production"]
 verify: ["npm run lint --workspace=@citybeat/web", "npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "a50f654c8d20cf54162f4a5a1202ad788ecda59e", message: "🛠️ W9R94Z harden restored Supabase login" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: terminal verification shows production auth succeeds quickly, but the browser login page can still time out after Supabase restore." }
+  - { author: "ORCHESTRATOR", body: "verified: lint, type-check, and production build passed after increasing browser login timeout and separating timeout errors by login stage." }
 doc_version: 2
 doc_updated_at: "2026-05-27T19:49:35+00:00"
 doc_updated_by: "agentctl"
