@@ -1,14 +1,16 @@
 ---
 id: "202605271925-9JD9MW"
 title: "Troubleshoot editor login failure"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["auth", "frontend", "production"]
 verify: ["npm run lint --workspace=@citybeat/web", "npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "fa21f62a779d91e0a53fe8b92b5f792abea1a59e", message: "🛠️ 9JD9MW improve editor login diagnostics" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: production login hangs because the Supabase host no longer resolves and the admin review route also shows a React client runtime error." }
+  - { author: "ORCHESTRATOR", body: "verified: lint, type-check, and production build passed after adding auth service diagnostics and correcting the review page params pattern." }
 doc_version: 2
 doc_updated_at: "2026-05-27T19:27:21+00:00"
 doc_updated_by: "agentctl"
