@@ -3,6 +3,26 @@ import { createServerClient } from '@supabase/ssr'
 
 export const dynamic = 'force-dynamic'
 
+function getAuthErrorResponse(message: string) {
+  const isNetworkFailure =
+    message.toLowerCase().includes('fetch failed') ||
+    message.toLowerCase().includes('network') ||
+    message.toLowerCase().includes('enotfound') ||
+    message.toLowerCase().includes('eai_again')
+
+  if (isNetworkFailure) {
+    return NextResponse.json(
+      {
+        error:
+          'Authentication service is unreachable. Check the Supabase project URL and API keys in Vercel.',
+      },
+      { status: 503 }
+    )
+  }
+
+  return NextResponse.json({ error: message }, { status: 401 })
+}
+
 export async function POST(request: Request) {
   let body: { email?: unknown; password?: unknown }
 
@@ -54,7 +74,7 @@ export async function POST(request: Request) {
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 401 })
+    return getAuthErrorResponse(error.message)
   }
 
   return response

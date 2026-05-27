@@ -6577,12 +6577,40 @@
       "doc_updated_by": "agentctl",
       "description": "Update admin review queue and article detail APIs to use production article author/profile relationships so pending_review articles appear.",
       "doc": "## Summary\n\nAdmin article list/detail APIs now read byline data from authors and submitter data from profiles via created_by, matching the production schema.\n\n## Scope\n\nIn scope: admin article list API and admin article detail API relationship selects and response shaping. Out of scope: creator article submission flow, database schema changes, and dashboard visual redesign.\n\n## Risks\n\nLow risk. This changes select joins and response shaping while preserving editor authorization and status filtering.\n\n## Verify Steps\n\nnpm run lint --workspace=@citybeat/web passed. npm run type-check --workspace=@citybeat/web passed. npm run build --workspace=@citybeat/web passed.\n\n## Rollback Plan\n\nRevert the two admin API route changes to restore the previous select shape if the production schema differs unexpectedly.\n\n## Notes\n\nThe previous queue fallback returned an empty array for relationship/schema errors, masking the invalid join. Errors now surface so production issues are visible."
+    },
+    {
+      "id": "202605271925-9JD9MW",
+      "title": "Troubleshoot editor login failure",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "auth",
+        "frontend",
+        "production"
+      ],
+      "verify": [
+        "npm run lint --workspace=@citybeat/web",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: production login hangs because the Supabase host no longer resolves and the admin review route also shows a React client runtime error."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-05-27T19:25:01+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Diagnose production editor login failure, improve auth error handling, and fix the admin review page client runtime issue found during investigation."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "e472f13cfc321de1cb6a8e74e178947c28394d7fffcea360cd92f9ae276a82cb"
+    "checksum": "c02e3c644b6dceb7edbfb54311c1beb609e34f03b52af7fb8614a68ddcea06ca"
   }
 }

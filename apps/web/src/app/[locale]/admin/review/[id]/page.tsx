@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -22,10 +22,10 @@ interface Article {
   }
 }
 
-export default function ReviewArticlePage({ params }: { params: Promise<{ id: string }> }) {
+export default function ReviewArticlePage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const locale = useLocale() as 'en' | 'es'
-  const { id } = use(params)
+  const { id } = params
   
   const [article, setArticle] = useState<Article | null>(null)
   const [isLoading, setIsLoading] = useState(true)

@@ -23,6 +23,34 @@ const copy = {
   },
 }
 
+const LOGIN_TIMEOUT_MS = 15000
+
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), LOGIN_TIMEOUT_MS)
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    })
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
+}
+
+function getLoginError(error: unknown) {
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return 'Authentication timed out. Check that the Supabase project is active and the Vercel environment variables are current.'
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return 'An error occurred'
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const locale = useLocale() as 'en' | 'es'
@@ -32,7 +60,7 @@ export default function LoginPage() {
   const handleSubmit = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetchWithTimeout('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -43,7 +71,7 @@ export default function LoginPage() {
         return { error: result.error || 'Unable to sign in' }
       }
 
-      const profileResponse = await fetch('/api/profile')
+      const profileResponse = await fetchWithTimeout('/api/profile')
       const profileResult = profileResponse.ok
         ? ((await profileResponse.json()) as { profile?: { is_editor?: boolean; is_writer?: boolean } })
         : null
@@ -58,7 +86,7 @@ export default function LoginPage() {
       router.refresh()
       return {}
     } catch (error) {
-      return { error: error instanceof Error ? error.message : 'An error occurred' }
+      return { error: getLoginError(error) }
     } finally {
       setIsLoading(false)
     }
