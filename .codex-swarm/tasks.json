@@ -6688,12 +6688,45 @@
       "doc_updated_by": "agentctl",
       "description": "Wire creator dashboard actions and article update API so drafts can be submitted for review and editor accounts can publish reviewed articles from the creator workflow.",
       "doc": "## Summary\n\nCreator workflow now uses articles.created_by for ownership, preserves edit form content, maps category slugs to IDs, and exposes dashboard actions to submit drafts/rejected articles for review and publish reviewed articles for editor accounts.\n\n## Scope\n\nIn scope: creator dashboard action buttons, creator article detail/update/delete API ownership/status handling, and edit page initial value mapping. Out of scope: rich text editor redesign and admin review page layout changes.\n\n## Risks\n\nModerate risk because it updates content status transitions. The publish action is restricted to editor/admin profiles, and writer accounts can only submit drafts or rejected articles for review.\n\n## Verify Steps\n\nnpm run lint --workspace=@citybeat/web passed. npm run type-check --workspace=@citybeat/web passed. npm run build --workspace=@citybeat/web passed.\n\n## Rollback Plan\n\nRevert the creator dashboard, edit page, and creator article route changes to restore the previous draft-only workflow."
+    },
+    {
+      "id": "202605272105-W4A0M0",
+      "title": "Improve login usability and favicon handling",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "auth",
+        "frontend",
+        "production"
+      ],
+      "verify": [
+        "npm run lint --workspace=@citybeat/web",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "commit": {
+        "hash": "6d634be1bdf85a4561029b61fa30f18489910f89",
+        "message": "✨ 202605272105-W4A0M0 improve login visibility and favicon handling"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: completed login password visibility, no-store login/profile fetches, and a static favicon asset. | details: Lint, type-check, and production build pass."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-05-27T21:12:10+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Add a password visibility option on the editor login form, prevent /favicon.ico from returning 500, and verify the production login endpoint after the Supabase restore.",
+      "doc": "## Summary\nAdded a password visibility toggle to the shared login form and added a static favicon asset so browser requests to /favicon.ico no longer hit a failing dynamic path.\n\n## Scope\n- Updated packages/ui/components/auth/LoginForm.tsx to let users show or hide the password while signing in.\n- Updated apps/web/src/app/[locale]/login/page.tsx to disable browser caching for login and profile requests.\n- Added apps/web/public/favicon.ico as a static icon asset.\n\n## Risks\nLow. The form change is UI-only and keeps the existing submit flow. The fetch option only prevents cached auth/profile responses. The favicon is a static public asset.\n\n## Verify Steps\n- npm run lint --workspace=@citybeat/web\n- npm run type-check --workspace=@citybeat/web\n- npm run build --workspace=@citybeat/web\n\n## Rollback Plan\nRevert commit 6d634be1bdf8 to remove the login form toggle, no-store fetch options, and static favicon asset."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "f99106480fba55f9c502c33404528f7b38c03c0d27b615da1afe846eb6f0efb7"
+    "checksum": "4c0650c3527daf1e0b9af80693564a6f87372683163e7d5ad664a462d1d67667"
   }
 }
