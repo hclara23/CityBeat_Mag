@@ -6717,16 +6717,44 @@
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-05-27T21:12:10+00:00",
+      "doc_updated_at": "2026-05-27T21:19:01+00:00",
       "doc_updated_by": "agentctl",
       "description": "Add a password visibility option on the editor login form, prevent /favicon.ico from returning 500, and verify the production login endpoint after the Supabase restore.",
-      "doc": "## Summary\nAdded a password visibility toggle to the shared login form and added a static favicon asset so browser requests to /favicon.ico no longer hit a failing dynamic path.\n\n## Scope\n- Updated packages/ui/components/auth/LoginForm.tsx to let users show or hide the password while signing in.\n- Updated apps/web/src/app/[locale]/login/page.tsx to disable browser caching for login and profile requests.\n- Added apps/web/public/favicon.ico as a static icon asset.\n\n## Risks\nLow. The form change is UI-only and keeps the existing submit flow. The fetch option only prevents cached auth/profile responses. The favicon is a static public asset.\n\n## Verify Steps\n- npm run lint --workspace=@citybeat/web\n- npm run type-check --workspace=@citybeat/web\n- npm run build --workspace=@citybeat/web\n\n## Rollback Plan\nRevert commit 6d634be1bdf8 to remove the login form toggle, no-store fetch options, and static favicon asset."
+      "doc": "## Summary\nAdded a password visibility toggle to the shared login form and added a canonical App Router favicon so browser requests to /favicon.ico no longer hit a failing dynamic path.\n\n## Scope\n- Updated packages/ui/components/auth/LoginForm.tsx to let users show or hide the password while signing in.\n- Updated apps/web/src/app/[locale]/login/page.tsx to disable browser caching for login and profile requests.\n- Added apps/web/src/app/favicon.ico as the Next.js favicon asset.\n\n## Risks\nLow. The form change is UI-only and keeps the existing submit flow. The fetch option only prevents cached auth/profile responses. The favicon is a static app asset.\n\n## Verify Steps\n- npm run lint --workspace=@citybeat/web\n- npm run type-check --workspace=@citybeat/web\n- npm run build --workspace=@citybeat/web\n\n## Rollback Plan\nRevert commits 6d634be1bdf8 and the favicon relocation commit to remove the login form toggle, no-store fetch options, and favicon asset."
+    },
+    {
+      "id": "202605272142-VPQJBZ",
+      "title": "Consolidate login and profile queries",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "auth",
+        "frontend",
+        "production"
+      ],
+      "verify": [
+        "npm run lint --workspace=@citybeat/web",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: beginning optimization of editor login flow by consolidating auth session and profile retrieval into a single fast API response."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-05-27T21:42:42+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Consolidate the auth sign-in and user profile queries into a single API response to fix the browser login timeout issue"
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "4c0650c3527daf1e0b9af80693564a6f87372683163e7d5ad664a462d1d67667"
+    "checksum": "7559f37af662264541b93fc5f15a96083a716520c0f0a359d7681593acb9cd50"
   }
 }

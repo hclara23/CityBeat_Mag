@@ -71,11 +71,40 @@ export async function POST(request: Request) {
     },
   })
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
     return getAuthErrorResponse(error.message)
   }
 
-  return response
+  const user = data.user
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_editor, is_writer, is_advertiser')
+    .eq('id', user.id)
+    .single()
+
+  const finalResponse = NextResponse.json({
+    ok: true,
+    profile: {
+      is_editor: profile?.is_editor ?? false,
+      is_writer: profile?.is_writer ?? false,
+      is_advertiser: profile?.is_advertiser ?? false,
+    },
+  })
+
+  // Copy cookies from dynamic response to finalResponse
+  response.cookies.getAll().forEach((cookie) => {
+    finalResponse.cookies.set(cookie.name, cookie.value, {
+      path: cookie.path,
+      domain: cookie.domain,
+      expires: cookie.expires,
+      maxAge: cookie.maxAge,
+      secure: cookie.secure,
+      httpOnly: cookie.httpOnly,
+      sameSite: cookie.sameSite,
+    })
+  })
+
+  return finalResponse
 }

@@ -74,23 +74,16 @@ export default function LoginPage() {
         return { error: getLoginError(error, 'sign-in') }
       }
 
-      const result = (await response.json()) as { error?: string }
+      const result = (await response.json()) as {
+        error?: string
+        profile?: { is_editor?: boolean; is_writer?: boolean }
+      }
 
       if (!response.ok) {
         return { error: result.error || 'Unable to sign in' }
       }
 
-      let profileResponse: Response
-      try {
-        profileResponse = await fetchWithTimeout('/api/profile', { cache: 'no-store' })
-      } catch (error) {
-        return { error: getLoginError(error, 'profile') }
-      }
-
-      const profileResult = profileResponse.ok
-        ? ((await profileResponse.json()) as { profile?: { is_editor?: boolean; is_writer?: boolean } })
-        : null
-      const profile = profileResult?.profile
+      const profile = result.profile
       const nextPath = profile?.is_editor
         ? '/admin'
         : profile?.is_writer
