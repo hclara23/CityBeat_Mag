@@ -141,6 +141,40 @@ async function handleCheckoutCompleted(session: any, env: Env): Promise<void> {
 
     // Extract metadata
     const metadata = session.metadata || {}
+    const listingId = metadata.listing_id
+    const ownerId = metadata.owner_id
+
+    if (listingId && ownerId) {
+      const supabaseUrl = env.SUPABASE_URL
+      const supabaseServiceKey = env.SUPABASE_SERVICE_ROLE_KEY
+
+      if (supabaseUrl && supabaseServiceKey) {
+        const supabaseResponse = await fetch(`${supabaseUrl}/rest/v1/directory_listings?id=eq.${listingId}`, {
+          method: 'PATCH',
+          headers: {
+            apikey: supabaseServiceKey,
+            Authorization: `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({
+            owner_id: ownerId,
+            claim_status: 'pending_approval',
+            stripe_subscription_id: session.subscription || null,
+            claimed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }),
+        })
+
+        if (!supabaseResponse.ok) {
+          console.warn('Supabase directory listing claim update failed:', supabaseResponse.statusText)
+        } else {
+          console.log('Directory listing claim update recorded in Supabase for session:', session.id)
+        }
+      }
+      return
+    }
+
     const companyName = metadata.companyName || 'Valued Customer'
     const contactName = metadata.contactName || ''
     const phone = metadata.phone || ''

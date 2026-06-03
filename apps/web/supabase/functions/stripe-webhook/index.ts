@@ -43,16 +43,43 @@ serve(async (req) => {
 
   const session = event.data.object as Stripe.Checkout.Session
   const campaignId = session.metadata?.campaign_id
+  const listingId = session.metadata?.listing_id
+  const ownerId = session.metadata?.owner_id
   const paymentIntentId = session.payment_intent?.toString()
 
-  if (!campaignId) {
-    return new Response(JSON.stringify({ error: 'Missing campaign_id' }), {
-      status: 400,
+  const supabase = createClient(supabaseUrl, serviceRoleKey)
+
+  if (listingId && ownerId) {
+    const { error: updateError } = await supabase
+      .from('directory_listings')
+      .update({
+        owner_id: ownerId,
+        claim_status: 'pending_approval',
+        stripe_subscription_id: session.subscription || null,
+        claimed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', listingId)
+
+    if (updateError) {
+      return new Response(JSON.stringify({ error: updateError.message }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    return new Response(JSON.stringify({ received: true, listing_id: listingId, new_status: 'pending_approval' }), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey)
+  if (!campaignId) {
+    return new Response(JSON.stringify({ error: 'Missing campaign_id or listing_id' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
 
   const { error: updateError } = await supabase
     .from('ad_campaigns')

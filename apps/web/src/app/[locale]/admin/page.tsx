@@ -18,8 +18,8 @@ interface PendingArticle {
 
 const primaryAdminLinks = [
   { href: '/creator', label: 'Creator Studio', description: 'Manage drafts, review status, and submitted work.' },
-  { href: '/creator/new', label: 'Create Article', description: 'Open the writing workspace for a new story.' },
   { href: '/admin', label: 'Review Queue', description: 'Approve, reject, and publish submitted articles.' },
+  { href: '/admin/claims', label: 'Claims Queue', description: 'Review, approve, or reject business directory claims.' },
   { href: '/contribute', label: 'Public Submit Form', description: 'View the contributor intake page readers use.' },
 ]
 

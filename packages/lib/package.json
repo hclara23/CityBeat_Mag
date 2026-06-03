@@ -37,7 +37,9 @@
     "@sentry/nextjs": "^7.109.0",
     "@supabase/ssr": "^0.2.0",
     "@supabase/supabase-js": "^2.38.0",
-    "next-sanity": "^9.0.0"
+    "dotenv": "^17.4.2",
+    "next-sanity": "^9.0.0",
+    "puppeteer": "^25.1.0"
   },
   "devDependencies": {
     "typescript": "^5.2.0"

@@ -6865,12 +6865,41 @@
       "doc_updated_by": "agentctl",
       "description": "Update login route cookie getter to check response.cookies, allowing authenticated profiles query immediately after signIn.",
       "doc": "## Summary\n\nUpdate the /api/auth/login route to check response.cookies in addition to request.cookies inside the get(name) cookie retriever. This ensures the supabase client can read the session cookie set by signInWithPassword during the same request lifecycle, enabling the profiles query to run authenticated.\n\n## Scope\n\nModifies apps/web/src/app/api/auth/login/route.ts\n\n## Risks\n\nLow. Changes the temporary route-specific supabase cookie getter to check response.cookies first.\n\n## Verify Steps\n\nRun npm run lint/type-check/build inside @citybeat/web workspace, and run a node script to verify login and profiles retrieval succeed with correct role indicators.\n\n## Rollback Plan\n\nRevert change in apps/web/src/app/api/auth/login/route.ts."
+    },
+    {
+      "id": "202606031854-H17BNS",
+      "title": "Implement City Directory and Google Maps Scraper",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "verify": [
+        "npm run lint --workspace=@citybeat/web",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "commit": {
+        "hash": "627a271c60618c2f6d6e921181acba882a9c84aa",
+        "message": "✅ 25PSWJ close: update task status to DONE and document verification details"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: implement local business directory with Puppeteer scraper, Stripe monthly claims, and manual editor approval workflow."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-03T18:55:04+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Create local business directory with Puppeteer scraper, Stripe monthly claims, and manual editor approval workflow.",
+      "doc": "## Summary\n\nImplement local business directory with a Puppeteer crawler for pre-populating businesses, Stripe-based claiming subscription upgrade, and manual editor approval dashboard.\n\n## Scope\n\nIncludes database schema modifications (directory_listings table), a Puppeteer scraper script, Stripe checkout endpoints, and directory UI pages.\n\n## Risks\n\nLow. The feature is modular and self-contained; it does not impact core article pages or existing login/auth flows.\n\n## Verify Steps\n\nRun full typecheck, linting, and Next.js production builds. Validate scraper and Stripe checkout handoff manually.\n\n## Rollback Plan\n\nDelete the new database tables, routes, and views, and revert commits to restore the clean main branch status."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "b5c5c1967b1c1ab6d960e7e8dfbc2c65a270e25bd9293508fb9a243be4ff7863"
+    "checksum": "e3adc6092486f52b1012a11b52386d34ab1094dc41e4c4458f0c3d5480a378fd"
   }
 }
