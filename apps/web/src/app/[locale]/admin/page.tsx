@@ -20,16 +20,19 @@ const primaryAdminLinks = [
   { href: '/creator', label: 'Creator Studio', description: 'Manage drafts, review status, and submitted work.' },
   { href: '/admin', label: 'Review Queue', description: 'Approve, reject, and publish submitted articles.' },
   { href: '/admin/claims', label: 'Claims Queue', description: 'Review, approve, or reject business directory claims.' },
+  { href: '/admin/directory', label: 'Directory Manager', description: 'Add, edit, upgrade, verify, sponsor, or delete business listings.' },
   { href: '/contribute', label: 'Public Submit Form', description: 'View the contributor intake page readers use.' },
 ]
 
 const pageLinks = [
   { href: '/', label: 'Home' },
   { href: '/briefs', label: 'Stories' },
+  { href: '/directory', label: 'Directory' },
+  { href: '/admin/directory', label: 'Dir. Manager' },
+  { href: '/admin/claims', label: 'Claims Queue' },
   { href: '/ads', label: 'Advertise' },
   { href: '/ads/campaigns', label: 'Ad Campaigns' },
-  { href: '/ads/orders', label: 'Ad Orders' },
-  { href: '/dashboard', label: 'Advertiser Dashboard' },
+  { href: '/dashboard', label: 'Adv. Dashboard' },
   { href: '/account', label: 'Account' },
   { href: '/billing', label: 'Billing' },
   { href: '/privacy', label: 'Privacy' },
