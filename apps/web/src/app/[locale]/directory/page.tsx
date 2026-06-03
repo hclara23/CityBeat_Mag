@@ -20,6 +20,7 @@ interface Listing {
   tier: 'basic' | 'premium'
   claim_status: 'unclaimed' | 'pending_approval' | 'approved'
   image_url: string | null
+  is_sponsored?: boolean
 }
 
 const CATEGORIES = ['All', 'Restaurant', 'Cafe', 'Coffee Shop', 'Bar']
@@ -114,8 +115,9 @@ export default function DirectoryPage() {
     return <div className="flex items-center gap-0.5">{stars}</div>
   }
 
-  const premiumListings = listings.filter((l) => l.tier === 'premium')
-  const basicListings = listings.filter((l) => l.tier !== 'premium')
+  const sponsoredListings = listings.filter((l) => l.is_sponsored)
+  const premiumListings = listings.filter((l) => l.tier === 'premium' && !l.is_sponsored)
+  const basicListings = listings.filter((l) => l.tier !== 'premium' && !l.is_sponsored)
 
   return (
     <CityBeatShell locale={locale}>
@@ -190,6 +192,99 @@ export default function DirectoryPage() {
             </div>
           ) : (
             <div className="space-y-16">
+              {/* Sponsored Listings Section */}
+              <div>
+                {sponsoredListings.length > 0 ? (
+                  <div>
+                    <h2 className="font-sans text-xl font-bold uppercase tracking-wider text-brand-gold mb-6 flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-brand-gold animate-pulse" />
+                      Sponsored Listings
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {sponsoredListings.map((listing) => (
+                        <Link
+                          key={listing.id}
+                          href={`/directory/${listing.id}`}
+                          className="group relative rounded-2xl border-2 border-brand-gold bg-brand-ink/90 overflow-hidden shadow-[0_0_20px_rgba(255,215,0,0.06)] hover:shadow-[0_0_30px_rgba(255,215,0,0.18)] hover:border-brand-gold transition-all duration-300 flex flex-col min-h-[400px]"
+                        >
+                          <div className="absolute top-4 right-4 z-10 bg-brand-gold text-black font-black text-[9px] tracking-widest px-2.5 py-1 rounded">
+                            ★ SPONSORED
+                          </div>
+
+                          <div className="relative h-48 w-full bg-brand-charcoal overflow-hidden">
+                            <Image
+                              src={listing.image_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&auto=format&fit=crop&q=60'}
+                              alt={listing.name}
+                              fill
+                              sizes="(max-width: 768px) 100vw, 33vw"
+                              className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-brand-ink via-transparent to-transparent" />
+                          </div>
+
+                          <div className="p-6 flex flex-col flex-grow">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-brand-gold bg-brand-gold/10 px-2 py-0.5 rounded">
+                                {listing.category}
+                              </span>
+                            </div>
+
+                            <h3 className="font-sans text-2xl font-extrabold tracking-tight text-white mt-3 group-hover:text-brand-gold transition leading-snug">
+                              {listing.name}
+                            </h3>
+
+                            {listing.rating && (
+                              <div className="flex items-center gap-2 mt-2">
+                                {renderStars(listing.rating)}
+                                <span className="text-xs font-bold text-white/70">
+                                  {listing.rating} ({listing.user_ratings_total} {t.reviews})
+                                </span>
+                              </div>
+                            )}
+
+                            <p className="mt-3 text-sm text-white/60 line-clamp-3 leading-relaxed flex-grow">
+                              {listing.description || (locale === 'es' ? 'Socio patrocinado de primer nivel. Haz clic para conocer más detalles sobre el menú, los horarios y su historia.' : 'A top-tier sponsored favorite. Click to learn more details about their menu, hours, and story.')}
+                            </p>
+
+                            {listing.address && (
+                              <p className="mt-4 text-xs text-white/40 flex items-center gap-1.5 border-t border-white/5 pt-4">
+                                <svg className="h-4.5 w-4.5 text-brand-gold flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span className="truncate">{listing.address}</span>
+                              </p>
+                            )}
+
+                            <div className="mt-5 pt-1">
+                              <span className="w-full text-center block rounded bg-brand-gold group-hover:bg-yellow-400 text-black font-bold uppercase tracking-wider text-xs py-2.5 transition shadow-[0_4px_12px_rgba(255,215,0,0.2)]">
+                                {t.viewDetails}
+                              </span>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gradient-to-r from-brand-charcoal/40 via-brand-dark/60 to-brand-ink/40 border border-brand-gold/25 rounded-2xl p-6.5 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_15px_rgba(255,215,0,0.03)] mb-8">
+                    <div className="flex items-center gap-4 text-left">
+                      <span className="text-3xl text-brand-gold animate-pulse">★</span>
+                      <div>
+                        <h3 className="text-white font-extrabold text-base uppercase tracking-wider">Want your business listed on top?</h3>
+                        <p className="text-white/60 text-xs mt-1 max-w-xl">Get premium exposure and be the first business customers see when searching the CityBeat Directory.</p>
+                      </div>
+                    </div>
+                    <a
+                      href="mailto:ads@citybeatmag.co"
+                      className="px-5 py-2.5 rounded bg-brand-gold hover:bg-yellow-400 text-black font-black uppercase tracking-wider text-xs transition shadow-[0_4px_12px_rgba(255,215,0,0.15)] flex-shrink-0"
+                    >
+                      Advertise With Us
+                    </a>
+                  </div>
+                )}
+              </div>
+
               {/* Premium Listings Section */}
               {premiumListings.length > 0 && (
                 <div>

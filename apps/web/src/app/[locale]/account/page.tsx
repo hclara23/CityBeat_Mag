@@ -14,6 +14,9 @@ interface UserProfile {
   company_name?: string
   phone_number?: string
   is_advertiser: boolean
+  email_notifications_enabled: boolean
+  sms_notifications_enabled: boolean
+  review_points: number
   created_at: string
 }
 
@@ -29,6 +32,8 @@ export default function AccountPage() {
     fullName: '',
     company: '',
     phone: '',
+    emailNotificationsEnabled: true,
+    smsNotificationsEnabled: true,
   })
 
   useEffect(() => {
@@ -48,6 +53,8 @@ export default function AccountPage() {
             fullName: profileResult.profile.full_name || '',
             company: profileResult.profile.company_name || '',
             phone: profileResult.profile.phone_number || '',
+            emailNotificationsEnabled: profileResult.profile.email_notifications_enabled ?? true,
+            smsNotificationsEnabled: profileResult.profile.sms_notifications_enabled ?? true,
           })
         }
       } catch (err) {
@@ -71,6 +78,8 @@ export default function AccountPage() {
         fullName: formData.fullName,
         companyName: formData.company,
         phoneNumber: formData.phone,
+        emailNotificationsEnabled: formData.emailNotificationsEnabled,
+        smsNotificationsEnabled: formData.smsNotificationsEnabled,
       })
 
       if (result.error) {
@@ -83,6 +92,8 @@ export default function AccountPage() {
             full_name: formData.fullName,
             company_name: formData.company,
             phone_number: formData.phone,
+            email_notifications_enabled: formData.emailNotificationsEnabled,
+            sms_notifications_enabled: formData.smsNotificationsEnabled,
           })
         }
       }
@@ -101,6 +112,37 @@ export default function AccountPage() {
       setError(err instanceof Error ? err.message : 'Failed to sign out')
     }
   }
+
+  const points = profile?.review_points ?? 0
+  let levelBadge = '🥉 Bronze Reviewer'
+  let nextLevelPoints = 50
+  let currentLevelPoints = 0
+  let levelName = 'Level 1'
+
+  if (points >= 200) {
+    levelBadge = '👑 Elite Reviewer'
+    levelName = 'Level 4 (Max)'
+    nextLevelPoints = points
+  } else if (points >= 100) {
+    levelBadge = '🥇 Gold Reviewer'
+    levelName = 'Level 3'
+    currentLevelPoints = 100
+    nextLevelPoints = 200
+  } else if (points >= 50) {
+    levelBadge = '🥈 Silver Reviewer'
+    levelName = 'Level 2'
+    currentLevelPoints = 50
+    nextLevelPoints = 100
+  } else {
+    levelBadge = '🥉 Bronze Reviewer'
+    levelName = 'Level 1'
+    currentLevelPoints = 0
+    nextLevelPoints = 50
+  }
+
+  const progressPercent = nextLevelPoints === currentLevelPoints
+    ? 100
+    : Math.min(100, Math.max(0, ((points - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100))
 
   if (isLoading) {
     return (
@@ -184,11 +226,74 @@ export default function AccountPage() {
               />
             </div>
 
+            <div className="space-y-4 pt-6 mt-6 border-t border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">Notification Preferences</h3>
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="emailNotificationsEnabled"
+                  checked={formData.emailNotificationsEnabled}
+                  onChange={(e) => setFormData({ ...formData, emailNotificationsEnabled: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mt-1"
+                />
+                <label htmlFor="emailNotificationsEnabled" className="text-sm font-medium text-gray-700">
+                  Enable Email Notifications when my claimed business listings receive new reviews
+                </label>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="smsNotificationsEnabled"
+                  checked={formData.smsNotificationsEnabled}
+                  onChange={(e) => setFormData({ ...formData, smsNotificationsEnabled: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mt-1"
+                />
+                <label htmlFor="smsNotificationsEnabled" className="text-sm font-medium text-gray-700">
+                  Enable Text/SMS Notifications for new reviews (requires a valid phone number)
+                </label>
+              </div>
+            </div>
+
             <Button type="submit" className="w-full mt-6" disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </form>
         </div>
+
+        {/* Reviewer Dashboard Section (Gamified Points & Levels) */}
+        {!profile?.is_advertiser && (
+          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg p-6 border border-gray-200 mb-8 text-white shadow-md">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-2xl font-black uppercase text-amber-400 tracking-wide">Reviewer Dashboard</h2>
+                <p className="text-xs text-white/60 mt-1 uppercase font-bold tracking-wider">{levelName} Tally</p>
+              </div>
+              <span className="text-3xl filter drop-shadow">{levelBadge.split(' ')[0]}</span>
+            </div>
+
+            <div className="flex items-baseline gap-2 mb-6">
+              <span className="text-4xl font-extrabold text-white">{points}</span>
+              <span className="text-sm font-bold text-white/50">points earned</span>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-xs font-bold text-white/70 mb-2">
+                <span>{levelBadge} Progress</span>
+                <span>{points} / {nextLevelPoints} pts</span>
+              </div>
+              <div className="w-full h-3 rounded-full bg-white/10 overflow-hidden border border-white/5">
+                <div
+                  className="h-full bg-amber-400 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-white/40 mt-2 italic">
+                {points >= 200 ? 'You have unlocked the highest Level! Thank you for reviewing.' : `Earn ${nextLevelPoints - points} more points to reach the next Level.`}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Security Section */}
         <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 mb-8">

@@ -163,6 +163,11 @@ export default function ListingDetailPage() {
   const [instagram, setInstagram] = useState('')
   const [twitter, setTwitter] = useState('')
   const [hoursState, setHoursState] = useState<Record<string, string>>({})
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState('')
+  const [address, setAddress] = useState('')
+  const [phone, setPhone] = useState('')
+  const [website, setWebsite] = useState('')
 
   // Banners from searchParams
   const statusParam = searchParams.get('status')
@@ -177,6 +182,8 @@ export default function ListingDetailPage() {
   const [userComment, setUserComment] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
   const [reviewSuccess, setReviewSuccess] = useState('')
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([])
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
 
   const fetchReviews = useCallback(async () => {
     try {
@@ -211,6 +218,11 @@ export default function ListingDetailPage() {
           setFacebook(l.social_links?.facebook || '')
           setInstagram(l.social_links?.instagram || '')
           setTwitter(l.social_links?.twitter || '')
+          setName(l.name || '')
+          setCategory(l.category || '')
+          setAddress(l.address || '')
+          setPhone(l.phone || '')
+          setWebsite(l.website || '')
           
           const defaultHours: Record<string, string> = {}
           DAYS_OF_WEEK.forEach(day => {
@@ -238,16 +250,20 @@ export default function ListingDetailPage() {
     }
   }, [id, fetchReviews])
 
-  // Redirect basic tier listings to claim page unless user is an editor/admin
+  // Redirect basic tier listings to claim page unless user is the owner or an editor/admin
   useEffect(() => {
-    if (listing && listing.tier !== 'premium' && !isEditor) {
-      router.replace(`/${locale}/directory/${listing.id}/claim`)
+    if (listing) {
+      const isOwner = userProfile && listing.owner_id === userProfile.id && listing.claim_status === 'approved';
+      if (listing.tier !== 'premium' && !isEditor && !isOwner) {
+        router.replace(`/${locale}/directory/${listing.id}/claim`)
+      }
     }
-  }, [listing, isEditor, locale, router])
+  }, [listing, userProfile, isEditor, locale, router])
 
   const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
+    const isPremiumOrEditor = (listing?.tier === 'premium' || isEditor)
     try {
       const response = await fetch(`/api/directory/${id}`, {
         method: 'PATCH',
@@ -255,14 +271,19 @@ export default function ListingDetailPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          description,
-          image_url: imageUrl,
-          gallery_urls: galleryInput.split('\n').map(u => u.trim()).filter(Boolean),
-          social_links: {
+          name,
+          category,
+          address,
+          phone,
+          website,
+          description: isPremiumOrEditor ? description : undefined,
+          image_url: isPremiumOrEditor ? imageUrl : undefined,
+          gallery_urls: isPremiumOrEditor ? galleryInput.split('\n').map(u => u.trim()).filter(Boolean) : undefined,
+          social_links: isPremiumOrEditor ? {
             facebook,
             instagram,
             twitter,
-          },
+          } : undefined,
           hours: hoursState
         }),
       })
@@ -282,6 +303,44 @@ export default function ListingDetailPage() {
     }
   }
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    
+    setUploadingPhotos(true)
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        const response = await fetch('/api/creator/upload', {
+          method: 'POST',
+          body: formData,
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.url) {
+            setUploadedPhotos(prev => [...prev, data.url])
+          }
+        } else {
+          const errorData = await response.json()
+          alert(errorData.error || 'Failed to upload image')
+        }
+      }
+    } catch (err) {
+      console.error('Error uploading photos:', err)
+      alert('An error occurred while uploading photos')
+    } finally {
+      setUploadingPhotos(false)
+    }
+  }
+
+  const removeUploadedPhoto = (indexToRemove: number) => {
+    setUploadedPhotos(prev => prev.filter((_, index) => index !== indexToRemove))
+  }
+
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!userProfile) return
@@ -296,6 +355,7 @@ export default function ListingDetailPage() {
         body: JSON.stringify({
           rating: userRating,
           comment: userComment,
+          photo_urls: uploadedPhotos,
         }),
       })
 
@@ -303,6 +363,7 @@ export default function ListingDetailPage() {
         setReviewSuccess(t.successReview)
         setUserComment('')
         setUserRating(5)
+        setUploadedPhotos([])
         // Refresh listing details to get the new rating/user_ratings_total
         const resListing = await fetch(`/api/directory/${id}`)
         if (resListing.ok) {
@@ -366,8 +427,9 @@ export default function ListingDetailPage() {
 
   const isOwner = listing.owner_id === userProfile?.id && listing.claim_status === 'approved'
   const showEditButton = isOwner || isEditor
+  const visitorPhotos = reviews.flatMap((rev) => rev.photo_urls || []).filter(Boolean)
 
-  if (listing && listing.tier !== 'premium' && !isEditor) {
+  if (listing && listing.tier !== 'premium' && !isEditor && !isOwner) {
     return (
       <CityBeatShell locale={locale}>
         <div className="citybeat-app min-h-screen flex flex-col items-center justify-center py-20">
@@ -436,81 +498,194 @@ export default function ListingDetailPage() {
                 {t.editTitle}
               </h2>
               <form onSubmit={handleSaveChanges} className="space-y-6">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon mb-2">
-                    {t.descriptionLabel}
-                  </label>
-                  <textarea
-                    rows={6}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Provide a detailed description of your business..."
-                    className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon mb-2">
-                    {t.imageUrlLabel}
-                  </label>
-                  <input
-                    type="text"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://example.com/banner.jpg"
-                    className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon mb-2">
-                    {t.galleryLabel}
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={galleryInput}
-                    onChange={(e) => setGalleryInput(e.target.value)}
-                    placeholder="https://example.com/photo1.jpg&#10;https://example.com/photo2.jpg"
-                    className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Basic Details (Editable by all verified owners/editors) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-6 border-b border-white/10">
+                  <div className="sm:col-span-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-brand-neon mb-4">Basic Information</h3>
+                  </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon mb-2">
-                      {t.socialFb}
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
+                      Business Name
                     </label>
                     <input
                       type="text"
-                      value={facebook}
-                      onChange={(e) => setFacebook(e.target.value)}
-                      placeholder="https://facebook.com/yourpage"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
                       className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon mb-2">
-                      {t.socialIg}
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
+                      Category
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      required
+                      className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition"
+                    >
+                      <option value="Restaurant">Restaurant</option>
+                      <option value="Cafe">Cafe</option>
+                      <option value="Coffee Shop">Coffee Shop</option>
+                      <option value="Bar">Bar</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
+                      Address
                     </label>
                     <input
                       type="text"
-                      value={instagram}
-                      onChange={(e) => setInstagram(e.target.value)}
-                      placeholder="https://instagram.com/yourpage"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="e.g. 123 Main St, El Paso, TX"
                       className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon mb-2">
-                      {t.socialTw}
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
+                      Phone Number
                     </label>
                     <input
                       type="text"
-                      value={twitter}
-                      onChange={(e) => setTwitter(e.target.value)}
-                      placeholder="https://twitter.com/yourpage"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. (915) 555-0199"
                       className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition"
                     />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
+                      Website URL
+                    </label>
+                    <input
+                      type="text"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      placeholder="https://example.com"
+                      className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition"
+                    />
+                  </div>
+                </div>
+
+                {/* Premium Details (Locked for Basic Tier) */}
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
+                        {t.descriptionLabel}
+                      </label>
+                      {listing.tier !== 'premium' && !isEditor && (
+                        <Link href={`/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
+                          🔒 Premium Feature - Click to Unlock
+                        </Link>
+                      )}
+                    </div>
+                    <textarea
+                      rows={6}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      disabled={listing.tier !== 'premium' && !isEditor}
+                      placeholder={listing.tier === 'premium' || isEditor ? "Provide a detailed description of your business..." : "Upgrade to Premium to write a rich custom description."}
+                      className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
+                        {t.imageUrlLabel}
+                      </label>
+                      {listing.tier !== 'premium' && !isEditor && (
+                        <Link href={`/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
+                          🔒 Premium Feature - Click to Unlock
+                        </Link>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      disabled={listing.tier !== 'premium' && !isEditor}
+                      placeholder={listing.tier === 'premium' || isEditor ? "https://example.com/banner.jpg" : "Upgrade to Premium to upload a custom banner."}
+                      className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
+                        {t.galleryLabel}
+                      </label>
+                      {listing.tier !== 'premium' && !isEditor && (
+                        <Link href={`/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
+                          🔒 Premium Feature - Click to Unlock
+                        </Link>
+                      )}
+                    </div>
+                    <textarea
+                      rows={4}
+                      value={galleryInput}
+                      onChange={(e) => setGalleryInput(e.target.value)}
+                      disabled={listing.tier !== 'premium' && !isEditor}
+                      placeholder={listing.tier === 'premium' || isEditor ? "https://example.com/photo1.jpg\nhttps://example.com/photo2.jpg" : "Upgrade to Premium to build a photo gallery."}
+                      className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
+                        Social Media Links
+                      </label>
+                      {listing.tier !== 'premium' && !isEditor && (
+                        <Link href={`/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
+                          🔒 Premium Feature - Click to Unlock
+                        </Link>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-white/50 mb-1">
+                          {t.socialFb}
+                        </label>
+                        <input
+                          type="text"
+                          value={facebook}
+                          onChange={(e) => setFacebook(e.target.value)}
+                          disabled={listing.tier !== 'premium' && !isEditor}
+                          placeholder={listing.tier === 'premium' || isEditor ? "https://facebook.com/yourpage" : "Locked"}
+                          className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-white/50 mb-1">
+                          {t.socialIg}
+                        </label>
+                        <input
+                          type="text"
+                          value={instagram}
+                          onChange={(e) => setInstagram(e.target.value)}
+                          disabled={listing.tier !== 'premium' && !isEditor}
+                          placeholder={listing.tier === 'premium' || isEditor ? "https://instagram.com/yourpage" : "Locked"}
+                          className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-white/50 mb-1">
+                          {t.socialTw}
+                        </label>
+                        <input
+                          type="text"
+                          value={twitter}
+                          onChange={(e) => setTwitter(e.target.value)}
+                          disabled={listing.tier !== 'premium' && !isEditor}
+                          placeholder={listing.tier === 'premium' || isEditor ? "https://twitter.com/yourpage" : "Locked"}
+                          className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -662,6 +837,32 @@ export default function ListingDetailPage() {
                   </div>
                 )}
 
+                {/* Visitor Photos Grid */}
+                {visitorPhotos.length > 0 && (
+                  <div className="citybeat-panel rounded-2xl p-8 border border-white/10">
+                    <h2 className="font-display text-2xl font-black uppercase text-white tracking-wide mb-6 flex items-center gap-2">
+                      <span>Visitor Photos</span>
+                      <span className="text-xs bg-brand-neon/15 text-brand-neon px-2.5 py-0.5 rounded-full font-bold">
+                        {visitorPhotos.length}
+                      </span>
+                    </h2>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                      {visitorPhotos.map((url, i) => (
+                        <div key={i} className="relative h-20 sm:h-24 rounded-lg overflow-hidden bg-brand-charcoal border border-white/10 cursor-pointer hover:opacity-80 transition group">
+                          <Image
+                            src={url}
+                            alt=""
+                            fill
+                            sizes="(max-width: 768px) 33vw, 15vw"
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            onClick={() => window.open(url, '_blank')}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Reviews Section */}
                 <div className="citybeat-panel rounded-2xl p-8 border border-white/10 space-y-8">
                   <div>
@@ -716,6 +917,22 @@ export default function ListingDetailPage() {
                                     <p className="text-white/70 text-sm mt-2.5 leading-relaxed whitespace-pre-line">
                                       {rev.comment}
                                     </p>
+                                  )}
+                                  {rev.photo_urls && rev.photo_urls.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-3.5">
+                                      {rev.photo_urls.map((photoUrl: string, idx: number) => (
+                                        <div key={idx} className="relative h-16 w-16 rounded overflow-hidden border border-white/10 bg-brand-charcoal cursor-pointer hover:opacity-80 transition flex-shrink-0">
+                                          <Image
+                                            src={photoUrl}
+                                            alt=""
+                                            fill
+                                            sizes="64px"
+                                            className="object-cover"
+                                            onClick={() => window.open(photoUrl, '_blank')}
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -777,6 +994,44 @@ export default function ListingDetailPage() {
                             placeholder={t.commentPlaceholder}
                             className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none text-sm transition"
                           />
+                        </div>
+
+                        {/* Review Image Upload Area */}
+                        <div className="space-y-3">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
+                            Add Photos (optional)
+                          </label>
+                          <div className="flex flex-wrap gap-3 items-center">
+                            {uploadedPhotos.map((photoUrl, idx) => (
+                              <div key={idx} className="relative h-20 w-20 rounded border border-white/20 overflow-hidden bg-brand-charcoal group">
+                                <Image
+                                  src={photoUrl}
+                                  alt=""
+                                  fill
+                                  sizes="80px"
+                                  className="object-cover"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeUploadedPhoto(idx)}
+                                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                            <label className={`h-20 w-20 rounded border border-dashed border-white/20 hover:border-brand-neon cursor-pointer flex flex-col items-center justify-center gap-1 transition ${uploadingPhotos ? 'pointer-events-none opacity-50 bg-white/5' : 'hover:bg-white/5 bg-black/20'}`}>
+                              <span className="text-white/60 text-lg font-bold">{uploadingPhotos ? '...' : '+'}</span>
+                              <span className="text-[10px] text-white/50">{uploadingPhotos ? 'Uploading' : 'Upload'}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handlePhotoUpload}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
                         </div>
 
                         <button

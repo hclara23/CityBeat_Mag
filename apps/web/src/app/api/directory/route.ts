@@ -43,8 +43,9 @@ export async function GET(request: NextRequest) {
     dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%,address.ilike.%${query}%`);
   }
 
-  // Order: Premium listings first, then by rating desc, then by review count desc, then name asc
+  // Order: Sponsored listings first, then Premium tier first, then by rating desc, then by review count desc, then name asc
   const { data, error } = await dbQuery
+    .order('is_sponsored', { ascending: false })
     .order('tier', { ascending: false })
     .order('rating', { ascending: false, nullsFirst: false })
     .order('user_ratings_total', { ascending: false, nullsFirst: false })

@@ -181,30 +181,60 @@ export async function getUser() {
   return { user }
 }
 
-/**
- * Update user profile information
- */
 export async function updateProfile(updates: {
   fullName?: string
   companyName?: string
   phoneNumber?: string
   avatarUrl?: string
   locale?: string
+  emailNotificationsEnabled?: boolean
+  smsNotificationsEnabled?: boolean
+  reviewPoints?: number
 }) {
   const supabase = createClient()
 
+  // 1. Update Auth metadata
+  const authData: any = {}
+  if (updates.fullName !== undefined) authData.full_name = updates.fullName
+  if (updates.companyName !== undefined) authData.company_name = updates.companyName
+  if (updates.phoneNumber !== undefined) authData.phone_number = updates.phoneNumber
+  if (updates.avatarUrl !== undefined) authData.avatar_url = updates.avatarUrl
+  if (updates.locale !== undefined) authData.locale = updates.locale
+
   const { data, error } = await supabase.auth.updateUser({
-    data: {
-      full_name: updates.fullName,
-      company_name: updates.companyName,
-      phone_number: updates.phoneNumber,
-      avatar_url: updates.avatarUrl,
-      locale: updates.locale,
-    },
+    data: authData
   })
 
   if (error) {
     return { error: error.message }
+  }
+
+  // 2. Update profiles table
+  const profileUpdates: any = {}
+  if (updates.fullName !== undefined) profileUpdates.full_name = updates.fullName
+  if (updates.companyName !== undefined) profileUpdates.company_name = updates.companyName
+  if (updates.phoneNumber !== undefined) profileUpdates.phone_number = updates.phoneNumber
+  if (updates.avatarUrl !== undefined) profileUpdates.avatar_url = updates.avatarUrl
+  if (updates.locale !== undefined) profileUpdates.locale = updates.locale
+  if (updates.emailNotificationsEnabled !== undefined) {
+    profileUpdates.email_notifications_enabled = updates.emailNotificationsEnabled
+  }
+  if (updates.smsNotificationsEnabled !== undefined) {
+    profileUpdates.sms_notifications_enabled = updates.smsNotificationsEnabled
+  }
+  if (updates.reviewPoints !== undefined) {
+    profileUpdates.review_points = updates.reviewPoints
+  }
+
+  if (Object.keys(profileUpdates).length > 0) {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update(profileUpdates)
+      .eq('id', data.user.id)
+
+    if (profileError) {
+      return { error: profileError.message }
+    }
   }
 
   return { user: data.user }

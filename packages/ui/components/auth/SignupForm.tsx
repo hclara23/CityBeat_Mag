@@ -175,18 +175,38 @@ export function SignupForm({
         autoComplete="new-password"
       />
 
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="isAdvertiser"
-          checked={formData.isAdvertiser}
-          onChange={(e) => handleChange('isAdvertiser', e.target.checked)}
-          disabled={isLoading}
-          className="w-4 h-4 text-red-600 rounded focus:ring-red-600"
-        />
-        <label htmlFor="isAdvertiser" className="text-sm text-gray-700">
-          I want to advertise with CityBeat
+      <div className="space-y-2">
+        <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">
+          Account Type
         </label>
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            key="regular"
+            type="button"
+            onClick={() => handleChange('isAdvertiser', false)}
+            disabled={isLoading}
+            className={`py-3 px-4 rounded-lg border text-sm font-bold transition text-center ${
+              !formData.isAdvertiser
+                ? 'border-red-600 bg-red-50 text-red-700'
+                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            👤 Regular User
+          </button>
+          <button
+            key="business"
+            type="button"
+            onClick={() => handleChange('isAdvertiser', true)}
+            disabled={isLoading}
+            className={`py-3 px-4 rounded-lg border text-sm font-bold transition text-center ${
+              formData.isAdvertiser
+                ? 'border-red-600 bg-red-50 text-red-700'
+                : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            💼 Business Owner
+          </button>
+        </div>
       </div>
 
       <Button type="submit" className="w-full" disabled={isLoading}>

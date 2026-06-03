@@ -59,12 +59,14 @@ export async function POST(
   }
 
   try {
-    const { rating, comment } = await request.json()
+    const { rating, comment, photo_urls } = await request.json()
     const intRating = parseInt(rating, 10)
 
     if (isNaN(intRating) || intRating < 1 || intRating > 5) {
       return NextResponse.json({ error: 'Rating must be an integer between 1 and 5' }, { status: 400 })
     }
+
+    const cleanPhotoUrls = Array.isArray(photo_urls) ? photo_urls.filter((u) => typeof u === 'string') : []
 
     const supabase = createServerClient(cookieStore)
 
@@ -76,6 +78,7 @@ export async function POST(
         user_id: user.id,
         rating: intRating,
         comment: comment || '',
+        photo_urls: cleanPhotoUrls,
       })
       .select('*')
       .single()
@@ -84,16 +87,34 @@ export async function POST(
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
 
-    // Recalculate average rating and total count
+    // Award review points to regular users
+    const { data: reviewerProfile } = await supabase
+      .from('profiles')
+      .select('is_advertiser, review_points')
+      .eq('id', user.id)
+      .single()
+
+    if (reviewerProfile && !reviewerProfile.is_advertiser) {
+      const updatedPoints = (reviewerProfile.review_points || 0) + 10
+      await supabase
+        .from('profiles')
+        .update({ review_points: updatedPoints })
+        .eq('id', user.id)
+    }
+
+    // Recalculate listing rating aggregates
     const { data: allReviews, error: reviewsError } = await supabase
       .from('directory_reviews')
       .select('rating')
       .eq('listing_id', id)
 
+    let average = 0
+    let count = 0
+
     if (!reviewsError && allReviews) {
-      const count = allReviews.length
+      count = allReviews.length
       const sum = allReviews.reduce((acc, curr) => acc + curr.rating, 0)
-      const average = parseFloat((sum / count).toFixed(2))
+      average = parseFloat((sum / count).toFixed(2))
 
       // Update listing metrics
       await supabase
@@ -104,6 +125,51 @@ export async function POST(
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
+    }
+
+    // Query listing details and trigger owner notifications
+    const { data: listing } = await supabase
+      .from('directory_listings')
+      .select('name, owner_id')
+      .eq('id', id)
+      .single()
+
+    if (listing && listing.owner_id) {
+      const { data: ownerProfile } = await supabase
+        .from('profiles')
+        .select('email, phone_number, email_notifications_enabled, sms_notifications_enabled')
+        .eq('id', listing.owner_id)
+        .single()
+
+      if (ownerProfile) {
+        // Email Notification
+        if (ownerProfile.email_notifications_enabled && ownerProfile.email) {
+          const emailSubject = `New review for ${listing.name}`
+          const emailBody = `Hello,\n\nYour business "${listing.name}" has received a new ${intRating}-star review.\n\nReview comment:\n"${comment || '(No comment)'}"\n\nCheck your directory listing to reply to customers.`
+          
+          await supabase.from('sent_notifications').insert({
+            user_id: listing.owner_id,
+            type: 'email',
+            recipient: ownerProfile.email,
+            subject: emailSubject,
+            body: emailBody,
+          })
+          console.log(`[ALERT EMAIL] Review notification sent to owner email ${ownerProfile.email}`)
+        }
+
+        // SMS/Text Notification
+        if (ownerProfile.sms_notifications_enabled && ownerProfile.phone_number) {
+          const smsBody = `CityBeat Alert: ${listing.name} got a new ${intRating}-star review. Read comment: "${comment ? comment.substring(0, 40) + '...' : 'none'}".`
+          
+          await supabase.from('sent_notifications').insert({
+            user_id: listing.owner_id,
+            type: 'sms',
+            recipient: ownerProfile.phone_number,
+            body: smsBody,
+          })
+          console.log(`[ALERT SMS] Review notification sent to owner text ${ownerProfile.phone_number}`)
+        }
+      }
     }
 
     return NextResponse.json({ review: newReview })

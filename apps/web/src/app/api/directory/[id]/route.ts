@@ -101,6 +101,9 @@ export async function PATCH(
   if ('name' in body) allowedUpdates.name = body.name
   if ('phone' in body) allowedUpdates.phone = body.phone
   if ('website' in body) allowedUpdates.website = body.website
+  if ('category' in body) allowedUpdates.category = body.category
+  if ('address' in body) allowedUpdates.address = body.address
+  if ('hours' in body) allowedUpdates.hours = body.hours
 
   // Premium only fields
   if (listing.tier === 'premium' || isEditor) {
@@ -108,7 +111,6 @@ export async function PATCH(
     if ('image_url' in body) allowedUpdates.image_url = body.image_url
     if ('gallery_urls' in body) allowedUpdates.gallery_urls = body.gallery_urls
     if ('social_links' in body) allowedUpdates.social_links = body.social_links
-    if ('hours' in body) allowedUpdates.hours = body.hours
   }
 
   allowedUpdates.updated_at = new Date().toISOString()

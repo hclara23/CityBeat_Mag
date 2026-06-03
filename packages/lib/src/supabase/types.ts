@@ -9,6 +9,22 @@ export interface Profile {
   is_advertiser: boolean
   is_editor: boolean
   is_writer: boolean
+  email_notifications_enabled: boolean
+  sms_notifications_enabled: boolean
+  review_points: number
+  created_at: string
+  updated_at: string
+}
+
+export interface DirectoryClaim {
+  id: string
+  listing_id: string
+  user_id: string
+  verification_method: 'email' | 'phone' | 'postcard'
+  verification_code: string
+  status: 'pending' | 'code_sent' | 'verified' | 'rejected'
+  email_address: string | null
+  phone_number: string | null
   created_at: string
   updated_at: string
 }

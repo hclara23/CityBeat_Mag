@@ -36,9 +36,29 @@ export async function GET(request: NextRequest) {
     .eq('claim_status', 'pending_approval')
     .order('claimed_at', { ascending: false })
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  const { data: postcardClaims, error: postcardError } = await supabase
+    .from('directory_claims')
+    .select(`
+      id,
+      listing_id,
+      user_id,
+      verification_method,
+      verification_code,
+      status,
+      created_at,
+      listing:directory_listings(name, address, category),
+      profile:profiles(email)
+    `)
+    .eq('verification_method', 'postcard')
+    .in('status', ['pending', 'code_sent'])
+    .order('created_at', { ascending: false })
+
+  if (error || postcardError) {
+    return NextResponse.json({ error: error?.message || postcardError?.message }, { status: 500 })
   }
 
-  return NextResponse.json({ claims: claims || [] })
+  return NextResponse.json({
+    claims: claims || [],
+    postcardClaims: postcardClaims || []
+  })
 }

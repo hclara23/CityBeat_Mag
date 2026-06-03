@@ -113,6 +113,90 @@ export default function ClaimPage() {
     }
   }, [id, t.unclaimedStatusError])
 
+  const [claimMethod, setClaimMethod] = useState<'email' | 'phone' | 'postcard'>('email')
+  const [contactInput, setContactInput] = useState('')
+  const [claimStep, setClaimStep] = useState<'select_method' | 'enter_code' | 'verified'>('select_method')
+  const [verificationCode, setVerificationCode] = useState('')
+  const [verifying, setVerifying] = useState(false)
+  const [claimSuccessMsg, setClaimSuccessMsg] = useState('')
+  const [claimErrorMsg, setClaimErrorMsg] = useState('')
+
+  const handleStartClaim = async () => {
+    setVerifying(true)
+    setClaimErrorMsg('')
+    try {
+      const contactInfo = claimMethod === 'postcard' ? '' : contactInput
+      if (claimMethod !== 'postcard' && !contactInfo) {
+        setClaimErrorMsg(locale === 'es' ? 'Por favor ingrese la información de contacto.' : 'Please enter contact details.')
+        setVerifying(false)
+        return
+      }
+
+      const res = await fetch(`/api/directory/${id}/claim/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ method: claimMethod, contactInfo }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setClaimStep('enter_code')
+        setClaimSuccessMsg(
+          claimMethod === 'postcard'
+            ? (locale === 'es'
+                ? '¡Tarjeta postal solicitada! La enviaremos por correo en 5-7 días. Ingrese el código cuando la reciba.'
+                : 'Postcard requested! We will mail it in 5-7 days. Enter the code when you receive it.')
+            : (locale === 'es'
+                ? `Código enviado con éxito a ${contactInfo}`
+                : `Code sent successfully to ${contactInfo}`)
+        )
+      } else {
+        setClaimErrorMsg(data.error || 'Failed to start claim process')
+      }
+    } catch (err) {
+      console.error(err)
+      setClaimErrorMsg('An error occurred. Please try again.')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  const handleVerifyClaim = async () => {
+    setVerifying(true)
+    setClaimErrorMsg('')
+    try {
+      if (!verificationCode) {
+        setClaimErrorMsg(locale === 'es' ? 'Por favor ingrese el código de verificación.' : 'Please enter the verification code.')
+        setVerifying(false)
+        return
+      }
+
+      const res = await fetch(`/api/directory/${id}/claim/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: verificationCode }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        setClaimStep('verified')
+        setClaimSuccessMsg(
+          locale === 'es'
+            ? '¡Felicitaciones! Su negocio ha sido reclamado con éxito. Ahora puede editar la información básica.'
+            : 'Congratulations! Your business is successfully verified. You can now edit basic details.'
+        )
+        router.refresh()
+      } else {
+        setClaimErrorMsg(data.error || 'Invalid verification code')
+      }
+    } catch (err) {
+      console.error(err)
+      setClaimErrorMsg('An error occurred. Please try again.')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
   const handleCheckoutRedirect = async () => {
     setRedirecting(true)
     try {
@@ -246,13 +330,201 @@ export default function ClaimPage() {
                       </button>
                     </div>
                   ) : (
-                    <button
-                      onClick={handleCheckoutRedirect}
-                      disabled={redirecting}
-                      className="w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-sm py-4 hover:bg-cyan-300 transition shadow-[0_4px_16px_rgba(0,240,255,0.3)] disabled:opacity-50"
-                    >
-                      {redirecting ? t.redirecting : t.checkoutBtn}
-                    </button>
+                    <div className="space-y-8">
+                      {claimErrorMsg && (
+                        <div className="p-4 bg-brand-magenta/10 border border-brand-magenta/30 text-brand-magenta rounded-xl text-xs font-bold text-center">
+                          ⚠ {claimErrorMsg}
+                        </div>
+                      )}
+
+                      {claimSuccessMsg && claimStep !== 'verified' && (
+                        <div className="p-4 bg-brand-neon/10 border border-brand-neon/30 text-brand-neon rounded-xl text-xs font-bold text-center">
+                          ✓ {claimSuccessMsg}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                        {/* Option 1: Claim Free */}
+                        <div className="citybeat-panel rounded-xl p-5 border border-white/10 flex flex-col justify-between bg-black/20">
+                          <div>
+                            <h3 className="font-display text-lg font-bold text-white uppercase tracking-wide mb-2">
+                              Option 1: Claim Free
+                            </h3>
+                            <p className="text-xs text-white/60 leading-relaxed mb-4">
+                              Verify ownership to correct spelling, update phone/website, and edit basic info for free.
+                            </p>
+
+                            {claimStep === 'select_method' && (
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <label className="block text-[10px] font-bold uppercase tracking-wider text-brand-neon">
+                                    Verification Method
+                                  </label>
+                                  <div className="flex flex-col gap-2">
+                                    <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 cursor-pointer text-xs">
+                                      <input
+                                        type="radio"
+                                        name="claim_method"
+                                        checked={claimMethod === 'email'}
+                                        onChange={() => { setClaimMethod('email'); setClaimErrorMsg('') }}
+                                        className="accent-brand-neon"
+                                      />
+                                      <span>📧 Email Address</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 cursor-pointer text-xs">
+                                      <input
+                                        type="radio"
+                                        name="claim_method"
+                                        checked={claimMethod === 'phone'}
+                                        onChange={() => { setClaimMethod('phone'); setClaimErrorMsg('') }}
+                                        className="accent-brand-neon"
+                                      />
+                                      <span>💬 SMS / Text Message</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 cursor-pointer text-xs">
+                                      <input
+                                        type="radio"
+                                        name="claim_method"
+                                        checked={claimMethod === 'postcard'}
+                                        onChange={() => { setClaimMethod('postcard'); setClaimErrorMsg('') }}
+                                        className="accent-brand-neon"
+                                      />
+                                      <span>📮 Mail Postcard to Business</span>
+                                    </label>
+                                  </div>
+                                </div>
+
+                                {claimMethod === 'email' && (
+                                  <input
+                                    type="email"
+                                    placeholder="owner@mybusiness.com"
+                                    value={contactInput}
+                                    onChange={(e) => setContactInput(e.target.value)}
+                                    className="w-full rounded p-2.5 border border-white/15 bg-black/40 text-xs text-white focus:border-brand-neon focus:outline-none"
+                                  />
+                                )}
+
+                                {claimMethod === 'phone' && (
+                                  <input
+                                    type="tel"
+                                    placeholder="+1 (555) 000-0000"
+                                    value={contactInput}
+                                    onChange={(e) => setContactInput(e.target.value)}
+                                    className="w-full rounded p-2.5 border border-white/15 bg-black/40 text-xs text-white focus:border-brand-neon focus:outline-none"
+                                  />
+                                )}
+
+                                {claimMethod === 'postcard' && (
+                                  <div className="p-3 bg-white/5 border border-white/5 rounded text-[11px] text-white/70">
+                                    Postcard will be mailed to: <strong className="text-white">{listing?.address || 'Listed Business Address'}</strong>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {claimStep === 'enter_code' && (
+                              <div className="space-y-4">
+                                <label className="block text-[10px] font-bold uppercase tracking-wider text-brand-neon">
+                                  Verification Code
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder="Enter 6-digit code"
+                                  maxLength={6}
+                                  value={verificationCode}
+                                  onChange={(e) => setVerificationCode(e.target.value)}
+                                  className="w-full text-center tracking-widest text-lg font-bold rounded p-2.5 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none"
+                                />
+                              </div>
+                            )}
+
+                            {claimStep === 'verified' && (
+                              <div className="text-center py-4 space-y-4">
+                                <span className="text-4xl">🎉</span>
+                                <p className="text-xs text-white/75">{claimSuccessMsg}</p>
+                                <Link
+                                  href={`/directory/${id}`}
+                                  className="inline-block w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3"
+                                >
+                                  Manage Basic Info
+                                </Link>
+                              </div>
+                            )}
+                          </div>
+
+                          {claimStep !== 'verified' && (
+                            <div className="mt-6 space-y-2">
+                              {claimStep === 'select_method' ? (
+                                <button
+                                  onClick={handleStartClaim}
+                                  disabled={verifying}
+                                  className="w-full text-center rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-3 transition disabled:opacity-50"
+                                >
+                                  {verifying ? 'Requesting...' : 'Request Verification Code'}
+                                </button>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={handleVerifyClaim}
+                                    disabled={verifying}
+                                    className="w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3 transition hover:bg-cyan-300 disabled:opacity-50"
+                                  >
+                                    {verifying ? 'Verify Code' : 'Verify Code'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setClaimStep('select_method'); setClaimSuccessMsg(''); setClaimErrorMsg('') }}
+                                    className="w-full text-center text-xs text-white/50 hover:text-white underline mt-2 block"
+                                  >
+                                    Try Another Method
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Option 2: Claim Premium */}
+                        <div className="citybeat-panel rounded-xl p-5 border border-brand-gold/30 bg-gradient-to-b from-brand-charcoal to-brand-dark flex flex-col justify-between shadow-[0_0_15px_rgba(255,215,0,0.05)]">
+                          <div>
+                            <h3 className="font-display text-lg font-black text-brand-gold uppercase tracking-wide mb-2 flex items-center justify-between">
+                              <span>Option 2: Premium</span>
+                              <span className="text-xs bg-brand-gold/10 text-brand-gold px-2 py-0.5 rounded font-bold">$19/mo</span>
+                            </h3>
+                            <p className="text-xs text-white/60 leading-relaxed mb-4">
+                              Instantly unlock premium features, cover banners, visual photos gallery, priority placement, and direct social links.
+                            </p>
+
+                            <ul className="text-[11px] text-white/80 space-y-2.5 pl-1 my-4">
+                              <li className="flex items-center gap-2">
+                                <span className="text-brand-neon font-black">✓</span>
+                                {t.premiumRank}
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <span className="text-brand-neon font-black">✓</span>
+                                {t.premiumCover}
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <span className="text-brand-neon font-black">✓</span>
+                                {t.premiumGallery}
+                              </li>
+                              <li className="flex items-center gap-2">
+                                <span className="text-brand-neon font-black">✓</span>
+                                {t.premiumSocial}
+                              </li>
+                            </ul>
+                          </div>
+
+                          <button
+                            onClick={handleCheckoutRedirect}
+                            disabled={redirecting}
+                            className="w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3.5 hover:bg-cyan-300 transition shadow-[0_4px_12px_rgba(0,240,255,0.25)] disabled:opacity-50 mt-6"
+                          >
+                            {redirecting ? t.redirecting : 'Verify & Go Premium'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
