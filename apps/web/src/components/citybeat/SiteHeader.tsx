@@ -51,6 +51,12 @@ export function SiteHeader() {
           <Link href={localizedPath} className="text-xs font-bold uppercase tracking-[0.22em] text-white/60 hover:text-white">
             {otherLocale}
           </Link>
+          <Link href={withLocale(locale, '/login')} className="text-xs font-bold uppercase tracking-[0.22em] text-white/70 hover:text-white transition">
+            {locale === 'es' ? 'Iniciar Sesión' : 'Sign In'}
+          </Link>
+          <Link href={withLocale(locale, '/signup')} className="rounded-md border border-brand-neon px-4 py-2 text-sm font-black uppercase tracking-wider text-brand-neon transition hover:bg-brand-neon hover:text-black">
+            {locale === 'es' ? 'Crear Cuenta' : 'Register'}
+          </Link>
           <Link href={withLocale(locale, '/ads')} className="rounded-md bg-brand-neon px-4 py-2 text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300">
             {locale === 'es' ? 'Anunciar' : 'Advertise'}
           </Link>
@@ -82,6 +88,20 @@ export function SiteHeader() {
             ))}
             <Link href={localizedPath} className="text-sm font-bold uppercase tracking-[0.22em] text-brand-neon">
               {locale === 'es' ? 'Cambiar a ' : 'Switch to '}{otherLocale.toUpperCase()}
+            </Link>
+            <Link
+              href={withLocale(locale, '/login')}
+              onClick={() => setOpen(false)}
+              className="font-display text-3xl font-black text-white/70 hover:text-white"
+            >
+              {locale === 'es' ? 'Iniciar Sesión' : 'Sign In'}
+            </Link>
+            <Link
+              href={withLocale(locale, '/signup')}
+              onClick={() => setOpen(false)}
+              className="font-display text-3xl font-black text-brand-neon hover:text-cyan-300"
+            >
+              {locale === 'es' ? 'Crear Cuenta' : 'Register'}
             </Link>
           </div>
         </nav>

@@ -577,7 +577,7 @@ export default function ListingDetailPage() {
                         {t.descriptionLabel}
                       </label>
                       {listing.tier !== 'premium' && !isEditor && (
-                        <Link href={`/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
+                        <Link href={`/${locale}/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
                           🔒 Premium Feature - Click to Unlock
                         </Link>
                       )}
@@ -1218,7 +1218,7 @@ export default function ListingDetailPage() {
                     </ul>
 
                     <Link
-                      href={`/directory/${listing.id}/claim`}
+                      href={`/${locale}/directory/${listing.id}/claim`}
                       className="w-full text-center block rounded-md bg-brand-neon hover:bg-cyan-300 text-black font-black uppercase tracking-wider text-xs py-3.5 transition shadow-[0_4px_12px_rgba(0,240,255,0.25)]"
                     >
                       {t.claimBtn}

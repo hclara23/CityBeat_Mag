@@ -204,7 +204,7 @@ export default function DirectoryPage() {
                       {sponsoredListings.map((listing) => (
                         <Link
                           key={listing.id}
-                          href={`/directory/${listing.id}`}
+                          href={`/${locale}/directory/${listing.id}`}
                           className="group relative rounded-2xl border-2 border-brand-gold bg-brand-ink/90 overflow-hidden shadow-[0_0_20px_rgba(255,215,0,0.06)] hover:shadow-[0_0_30px_rgba(255,215,0,0.18)] hover:border-brand-gold transition-all duration-300 flex flex-col min-h-[400px]"
                         >
                           <div className="absolute top-4 right-4 z-10 bg-brand-gold text-black font-black text-[9px] tracking-widest px-2.5 py-1 rounded">
@@ -296,7 +296,7 @@ export default function DirectoryPage() {
                     {premiumListings.map((listing) => (
                       <Link
                         key={listing.id}
-                        href={`/directory/${listing.id}`}
+                        href={`/${locale}/directory/${listing.id}`}
                         className="group relative rounded-2xl border border-brand-neon bg-brand-ink/90 overflow-hidden shadow-[0_0_20px_rgba(0,240,255,0.06)] hover:shadow-[0_0_30px_rgba(0,240,255,0.18)] hover:border-brand-magenta transition-all duration-300 flex flex-col min-h-[400px]"
                       >
                         {/* Glow tag header */}
@@ -416,7 +416,7 @@ export default function DirectoryPage() {
                         {listing.claim_status === 'unclaimed' && (
                           <div className="mt-4 pt-3 border-t border-white/5">
                             <Link
-                              href={`/directory/${listing.id}/claim`}
+                              href={`/${locale}/directory/${listing.id}/claim`}
                               className="w-full text-center block rounded bg-brand-neon hover:bg-cyan-300 text-black font-extrabold uppercase tracking-wider text-[9px] py-1.5 transition"
                             >
                               {t.claimBtn}
