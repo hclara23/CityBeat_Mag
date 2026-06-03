@@ -103,7 +103,7 @@ export default function DirectoryPage() {
       stars.push(
         <svg
           key={i}
-          className={`h-4 w-4 ${i <= floor ? 'text-brand-gold fill-brand-gold' : 'text-gray-600'}`}
+          className={`h-3.5 w-3.5 ${i <= floor ? 'text-brand-gold fill-brand-gold' : 'text-gray-600'}`}
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
         >
@@ -193,15 +193,16 @@ export default function DirectoryPage() {
               {/* Premium Listings Section */}
               {premiumListings.length > 0 && (
                 <div>
-                  <h2 className="font-display text-2xl font-black uppercase tracking-wider text-brand-neon mb-8 flex items-center gap-2">
+                  <h2 className="font-sans text-xl font-bold uppercase tracking-wider text-brand-neon mb-6 flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full bg-brand-neon animate-pulse" />
                     {t.premiumTitle}
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {premiumListings.map((listing) => (
-                      <div
+                      <Link
                         key={listing.id}
-                        className="group relative rounded-2xl border border-brand-neon bg-brand-ink/90 overflow-hidden shadow-[0_0_20px_rgba(0,240,255,0.06)] hover:shadow-[0_0_30px_rgba(0,240,255,0.18)] hover:border-brand-magenta transition-all duration-300 flex flex-col min-h-[420px]"
+                        href={`/directory/${listing.id}`}
+                        className="group relative rounded-2xl border border-brand-neon bg-brand-ink/90 overflow-hidden shadow-[0_0_20px_rgba(0,240,255,0.06)] hover:shadow-[0_0_30px_rgba(0,240,255,0.18)] hover:border-brand-magenta transition-all duration-300 flex flex-col min-h-[400px]"
                       >
                         {/* Glow tag header */}
                         <div className="absolute top-4 right-4 z-10 bg-brand-neon text-black font-black text-[9px] tracking-widest px-2.5 py-1 rounded">
@@ -228,7 +229,8 @@ export default function DirectoryPage() {
                             </span>
                           </div>
 
-                          <h3 className="font-display text-2xl font-black tracking-tight text-white mt-3 group-hover:text-brand-neon transition">
+                          {/* Changed to clean, highly legible font-sans with tracking-tight */}
+                          <h3 className="font-sans text-2xl font-extrabold tracking-tight text-white mt-3 group-hover:text-brand-neon transition leading-snug">
                             {listing.name}
                           </h3>
 
@@ -256,15 +258,12 @@ export default function DirectoryPage() {
                           )}
 
                           <div className="mt-5 pt-1">
-                            <Link
-                              href={`/directory/${listing.id}`}
-                              className="w-full text-center block rounded-md bg-brand-neon hover:bg-cyan-300 text-black font-bold uppercase tracking-wider text-xs py-3 transition shadow-[0_4px_12px_rgba(0,240,255,0.2)]"
-                            >
+                            <span className="w-full text-center block rounded bg-brand-neon group-hover:bg-cyan-300 text-black font-bold uppercase tracking-wider text-xs py-2.5 transition shadow-[0_4px_12px_rgba(0,240,255,0.2)]">
                               {t.viewDetails}
-                            </Link>
+                            </span>
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -273,63 +272,62 @@ export default function DirectoryPage() {
               {/* Basic Listings Section */}
               {basicListings.length > 0 && (
                 <div>
-                  <h2 className="font-display text-2xl font-black uppercase tracking-wider text-white/50 mb-8">
+                  <h2 className="font-sans text-xl font-bold uppercase tracking-wider text-white/40 mb-6">
                     {t.basicTitle}
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Smaller, simpler boxes: grid layout with tight spacing and smaller elements */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {basicListings.map((listing) => (
                       <div
                         key={listing.id}
-                        className="citybeat-panel rounded-xl p-6 border border-white/10 hover:border-white/20 transition-all flex flex-col min-h-[220px]"
+                        className="citybeat-panel rounded-xl p-4.5 border border-white/10 hover:border-white/15 transition-all flex flex-col justify-between min-h-[160px]"
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-white/40 bg-white/5 px-2 py-0.5 rounded">
-                            {listing.category}
-                          </span>
-                          {listing.claim_status === 'unclaimed' ? (
-                            <span className="text-[9px] font-black uppercase tracking-widest text-brand-gold border border-brand-gold/25 px-2 py-0.5 rounded bg-brand-gold/5">
-                              {t.claimBadge}
+                        <div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-white/40 bg-white/5 px-2 py-0.5 rounded">
+                              {listing.category}
                             </span>
-                          ) : (
-                            <span className="text-[9px] font-black uppercase tracking-widest text-white/40 bg-white/5 px-2 py-0.5 rounded">
-                              {t.pendingBadge}
-                            </span>
+                            {listing.claim_status === 'unclaimed' ? (
+                              <span className="text-[8px] font-bold uppercase tracking-widest text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded bg-brand-gold/5">
+                                {t.claimBadge}
+                              </span>
+                            ) : (
+                              <span className="text-[8px] font-bold uppercase tracking-widest text-white/40 bg-white/5 px-1.5 py-0.5 rounded">
+                                {t.pendingBadge}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Highly legible font-sans with clean styling */}
+                          <h3 className="font-sans text-base font-bold tracking-normal text-white mt-2.5 line-clamp-1 leading-snug">
+                            {listing.name}
+                          </h3>
+
+                          {listing.rating && (
+                            <div className="flex items-center gap-1 mt-1">
+                              {renderStars(listing.rating)}
+                              <span className="text-[9px] text-white/50 font-bold">
+                                {listing.rating}
+                              </span>
+                            </div>
                           )}
+
+                          <p className="text-[11px] text-white/50 mt-2 line-clamp-1 leading-relaxed">
+                            {listing.address}
+                          </p>
                         </div>
 
-                        <h3 className="font-display text-xl font-bold tracking-tight text-white mt-3 line-clamp-1">
-                          {listing.name}
-                        </h3>
-
-                        {listing.rating && (
-                          <div className="flex items-center gap-1.5 mt-1.5">
-                            {renderStars(listing.rating)}
-                            <span className="text-[10px] text-white/50">
-                              {listing.rating} ({listing.user_ratings_total})
-                            </span>
-                          </div>
-                        )}
-
-                        <p className="text-xs text-white/50 mt-3 line-clamp-2 leading-relaxed flex-grow">
-                          {listing.address}
-                        </p>
-
-                        <div className="mt-5 pt-4 border-t border-white/5 flex gap-3 items-center">
-                          <Link
-                            href={`/directory/${listing.id}`}
-                            className="flex-1 text-center rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-[10px] py-2 transition"
-                          >
-                            {t.viewDetails}
-                          </Link>
-                          {listing.claim_status === 'unclaimed' && (
+                        {/* Direct claim button linking to claim redirect page */}
+                        {listing.claim_status === 'unclaimed' && (
+                          <div className="mt-4 pt-3 border-t border-white/5">
                             <Link
                               href={`/directory/${listing.id}/claim`}
-                              className="flex-1 text-center rounded bg-brand-neon hover:bg-cyan-300 text-black font-black uppercase tracking-wider text-[10px] py-2 transition"
+                              className="w-full text-center block rounded bg-brand-neon hover:bg-cyan-300 text-black font-extrabold uppercase tracking-wider text-[9px] py-1.5 transition"
                             >
                               {t.claimBtn}
                             </Link>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -147,6 +147,8 @@ export default function ListingDetailPage() {
   // Banners from searchParams
   const statusParam = searchParams.get('status')
 
+  const isEditor = userProfile?.is_editor ?? false
+
   useEffect(() => {
     const fetchDetails = async () => {
       try {
@@ -190,6 +192,13 @@ export default function ListingDetailPage() {
       fetchDetails()
     }
   }, [id])
+
+  // Redirect basic tier listings to claim page unless user is an editor/admin
+  useEffect(() => {
+    if (listing && listing.tier !== 'premium' && !isEditor) {
+      router.replace(`/${locale}/directory/${listing.id}/claim`)
+    }
+  }, [listing, isEditor, locale, router])
 
   const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -270,8 +279,18 @@ export default function ListingDetailPage() {
   }
 
   const isOwner = listing.owner_id === userProfile?.id && listing.claim_status === 'approved'
-  const isEditor = userProfile?.is_editor ?? false
   const showEditButton = isOwner || isEditor
+
+  if (listing && listing.tier !== 'premium' && !isEditor) {
+    return (
+      <CityBeatShell locale={locale}>
+        <div className="citybeat-app min-h-screen flex flex-col items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-neon"></div>
+          <p className="text-white/60 mt-4 font-medium">Redirecting to claim page...</p>
+        </div>
+      </CityBeatShell>
+    )
+  }
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.name + ' ' + (listing.address || ''))}`
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(listing.name + ' ' + (listing.address || ''))}`
