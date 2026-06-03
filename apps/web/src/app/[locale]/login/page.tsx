@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { LoginForm } from '@citybeat/ui/auth'
 import Link from 'next/link'
 import { useLocale } from '@/components/TranslationProvider'
@@ -53,11 +53,14 @@ function getLoginError(error: unknown, stage: 'sign-in' | 'profile') {
   return 'An error occurred'
 }
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const locale = useLocale() as 'en' | 'es'
   const localeCopy = copy[locale]
   const [isLoading, setIsLoading] = useState(false)
+
+  const redirectTo = searchParams.get('redirectTo')
 
   const handleSubmit = async (email: string, password: string) => {
     setIsLoading(true)
@@ -84,11 +87,15 @@ export default function LoginPage() {
       }
 
       const profile = result.profile
-      const nextPath = profile?.is_editor
+      let nextPath = profile?.is_editor
         ? '/admin'
         : profile?.is_writer
           ? '/creator'
           : '/dashboard'
+
+      if (redirectTo && redirectTo.startsWith('/')) {
+        nextPath = redirectTo
+      }
 
       router.replace(`/${locale}${nextPath}`)
       router.refresh()
@@ -128,5 +135,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }

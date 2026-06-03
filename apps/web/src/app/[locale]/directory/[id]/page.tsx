@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -82,6 +82,16 @@ const translations = {
     claimCancelled: 'Payment was cancelled. You can try claiming again anytime.',
     mapsBtn: 'Open in Google Maps',
     appleMapsBtn: 'Open in Apple Maps',
+    reviewsTitle: 'Customer Reviews',
+    writeReview: 'Write a Review',
+    ratingLabel: 'Your Rating',
+    commentPlaceholder: 'Share your experience with this business...',
+    submitReview: 'Submit Review',
+    submittingReview: 'Submitting...',
+    noReviews: 'No reviews yet. Be the first to leave a review!',
+    logInToReview: 'Please sign in to leave a review.',
+    loginToReviewBtn: 'Sign In to Review',
+    successReview: 'Review submitted successfully!',
   },
   es: {
     backToDirectory: '← Volver al Directorio',
@@ -113,10 +123,20 @@ const translations = {
     socialIg: 'Enlace de Instagram',
     socialTw: 'Enlace de Twitter',
     claimSuccess: '¡Pago de reclamación exitoso!',
-    claimSuccessSub: 'Su solicitud de reclamación ha sido enviada para revisión. Un editor la aprobará en breve.',
+    claimSuccessSub: 'Su solicitud de reclamación ha sido enviada para revisión. Un editor la aprobá en breve.',
     claimCancelled: 'El pago fue cancelado. Puede intentar reclamar de nuevo en cualquier momento.',
     mapsBtn: 'Abrir en Google Maps',
     appleMapsBtn: 'Abrir en Apple Maps',
+    reviewsTitle: 'Reseñas de Clientes',
+    writeReview: 'Escribir una Reseña',
+    ratingLabel: 'Tu Calificación',
+    commentPlaceholder: 'Comparte tu experiencia con este negocio...',
+    submitReview: 'Enviar Reseña',
+    submittingReview: 'Enviando...',
+    noReviews: 'Aún no hay reseñas. ¡Sé el primero en dejar una!',
+    logInToReview: 'Inicia sesión para dejar una reseña.',
+    loginToReviewBtn: 'Iniciar Sesión para Reseñar',
+    successReview: '¡Reseña enviada con éxito!',
   }
 }
 
@@ -148,6 +168,30 @@ export default function ListingDetailPage() {
   const statusParam = searchParams.get('status')
 
   const isEditor = userProfile?.is_editor ?? false
+
+  // Reviews state variables
+  const [reviews, setReviews] = useState<any[]>([])
+  const [reviewsLoading, setReviewsLoading] = useState(true)
+  const [userRating, setUserRating] = useState(5)
+  const [hoverRating, setHoverRating] = useState<number | null>(null)
+  const [userComment, setUserComment] = useState('')
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [reviewSuccess, setReviewSuccess] = useState('')
+
+  const fetchReviews = useCallback(async () => {
+    try {
+      setReviewsLoading(true)
+      const res = await fetch(`/api/directory/${id}/reviews`)
+      if (res.ok) {
+        const data = await res.json()
+        setReviews(data.reviews || [])
+      }
+    } catch (err) {
+      console.error('Error fetching reviews:', err)
+    } finally {
+      setReviewsLoading(false)
+    }
+  }, [id])
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -190,8 +234,9 @@ export default function ListingDetailPage() {
 
     if (id) {
       fetchDetails()
+      fetchReviews()
     }
-  }, [id])
+  }, [id, fetchReviews])
 
   // Redirect basic tier listings to claim page unless user is an editor/admin
   useEffect(() => {
@@ -234,6 +279,47 @@ export default function ListingDetailPage() {
       alert('An error occurred while saving')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!userProfile) return
+    setSubmittingReview(true)
+    setReviewSuccess('')
+    try {
+      const response = await fetch(`/api/directory/${id}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          rating: userRating,
+          comment: userComment,
+        }),
+      })
+
+      if (response.ok) {
+        setReviewSuccess(t.successReview)
+        setUserComment('')
+        setUserRating(5)
+        // Refresh listing details to get the new rating/user_ratings_total
+        const resListing = await fetch(`/api/directory/${id}`)
+        if (resListing.ok) {
+          const data = await resListing.json()
+          setListing(data.listing)
+        }
+        // Refresh reviews
+        await fetchReviews()
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to submit review')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('An error occurred while submitting your review')
+    } finally {
+      setSubmittingReview(false)
     }
   }
 
@@ -575,6 +661,145 @@ export default function ListingDetailPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Reviews Section */}
+                <div className="citybeat-panel rounded-2xl p-8 border border-white/10 space-y-8">
+                  <div>
+                    <h2 className="font-display text-2xl font-black uppercase text-white tracking-wide mb-6">
+                      {t.reviewsTitle}
+                    </h2>
+                    
+                    {reviewsLoading ? (
+                      <div className="flex items-center gap-2 text-white/50 text-sm">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-neon"></div>
+                        <span>Loading reviews...</span>
+                      </div>
+                    ) : reviews.length === 0 ? (
+                      <p className="text-white/60 text-sm italic">{t.noReviews}</p>
+                    ) : (
+                      <div className="space-y-6">
+                        {reviews.map((rev) => {
+                          const reviewerName = rev.profiles?.full_name || rev.profiles?.email || 'Anonymous'
+                          const avatarInitials = reviewerName.substring(0, 2).toUpperCase()
+                          return (
+                            <div key={rev.id} className="pb-6 border-b border-white/5 last:border-0 last:pb-0">
+                              <div className="flex items-start gap-4">
+                                {rev.profiles?.avatar_url ? (
+                                  <div className="relative h-10 w-10 rounded-full overflow-hidden flex-shrink-0 bg-brand-charcoal">
+                                    <Image
+                                      src={rev.profiles.avatar_url}
+                                      alt={reviewerName}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="h-10 w-10 rounded-full bg-brand-neon/10 border border-brand-neon/20 flex items-center justify-center font-bold text-brand-neon text-sm flex-shrink-0">
+                                    {avatarInitials}
+                                  </div>
+                                )}
+                                <div className="flex-grow">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <h4 className="font-bold text-white text-sm">{reviewerName}</h4>
+                                    <span className="text-[10px] text-white/40">
+                                      {new Date(rev.created_at).toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric'
+                                      })}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center mt-1">
+                                    {renderStars(rev.rating)}
+                                  </div>
+                                  {rev.comment && (
+                                    <p className="text-white/70 text-sm mt-2.5 leading-relaxed whitespace-pre-line">
+                                      {rev.comment}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Leave a Review Form */}
+                  <div className="pt-6 border-t border-white/5">
+                    <h3 className="font-display text-xl font-bold uppercase text-white tracking-wide mb-4">
+                      {t.writeReview}
+                    </h3>
+
+                    {userProfile ? (
+                      <form onSubmit={handleSubmitReview} className="space-y-4">
+                        {reviewSuccess && (
+                          <div className="p-3 bg-brand-neon/10 border border-brand-neon/30 text-brand-neon rounded-md text-xs font-bold">
+                            {reviewSuccess}
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon mb-2">
+                            {t.ratingLabel}
+                          </label>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => {
+                              const active = hoverRating !== null ? star <= hoverRating : star <= userRating
+                              return (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  onClick={() => setUserRating(star)}
+                                  onMouseEnter={() => setHoverRating(star)}
+                                  onMouseLeave={() => setHoverRating(null)}
+                                  className="p-1 focus:outline-none transition-transform active:scale-95"
+                                >
+                                  <svg
+                                    className={`h-7 w-7 ${active ? 'text-brand-gold fill-brand-gold' : 'text-white/20'}`}
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        <div>
+                          <textarea
+                            rows={4}
+                            value={userComment}
+                            onChange={(e) => setUserComment(e.target.value)}
+                            placeholder={t.commentPlaceholder}
+                            className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none text-sm transition"
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={submittingReview}
+                          className="px-5 py-2.5 rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs hover:bg-cyan-300 transition shadow-[0_4px_12px_rgba(0,240,255,0.2)] disabled:opacity-50"
+                        >
+                          {submittingReview ? t.submittingReview : t.submitReview}
+                        </button>
+                      </form>
+                    ) : (
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
+                        <p className="text-sm text-white/70 mb-4">{t.logInToReview}</p>
+                        <Link
+                          href={`/${locale}/login?redirectTo=/directory/${id}`}
+                          className="inline-block rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs px-5 py-2.5 hover:bg-cyan-300 transition"
+                        >
+                          {t.loginToReviewBtn}
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Right Column: Contact info & Hours */}
