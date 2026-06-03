@@ -6795,12 +6795,40 @@
       "doc_updated_by": "agentctl",
       "description": "Modify dashboard and analytics API routes to use correct ad_campaigns and ad_events database tables instead of non-existent campaigns and analytics tables",
       "doc": "## Summary\n\nCorrected the table targets inside the dashboard and analytics API endpoints, migrating their PostgREST queries from the non-existent campaigns and analytics tables to the active ad_campaigns and ad_events tables.\n\n## Scope\n\n- Update apps/web/src/app/api/dashboard/route.ts to select from ad_campaigns and ad_events\n- Update apps/web/src/app/api/analytics/route.ts to select from ad_campaigns and ad_events\n\n## Risks\n\nLow. Bypassing non-existent database relations and targeting correct schema tables ensures correct data retrieval for advertiser dashboards.\n\n## Verify Steps\n\n1. Ran npm run build successfully\n2. Ran npm run type-check successfully\n3. Ran npm run lint successfully\n\n## Rollback Plan\n\nRevert changes in apps/web/src/app/api/dashboard/route.ts and apps/web/src/app/api/analytics/route.ts to target campaigns and analytics tables."
+    },
+    {
+      "id": "202606031802-PRFFQ1",
+      "title": "Fix TypeError during cookie parsing on login",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "auth",
+        "backend",
+        "frontend"
+      ],
+      "verify": [
+        "npm run lint --workspace=@citybeat/web",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: refactor login route to use standard NextRequest cookies. This avoids TypeError crash due to URL-encoded cookie parsing."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-03T18:02:26+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Refactor login route to use standard NextRequest cookies retrieval to prevent TypeError crash on URL-encoded cookie strings during authentication."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "2e8cb4107eb7a3771106ca3e2a47e6b2d6ccb01c0027c35212969a59be7c9e17"
+    "checksum": "9d5e5fa96eb45178e17c5b87684ab8c107197d226f7dd2350e35204e95cb6646"
   }
 }

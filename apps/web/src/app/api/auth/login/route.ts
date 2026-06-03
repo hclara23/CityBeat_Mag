@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +23,7 @@ function getAuthErrorResponse(message: string) {
   return NextResponse.json({ error: message }, { status: 401 })
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   let body: { email?: unknown; password?: unknown }
 
   try {
@@ -47,20 +47,11 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ ok: true })
-  const requestCookies = request.headers
-    .get('cookie')
-    ?.split(';')
-    .map((cookie) => {
-      const [name, ...valueParts] = cookie.trim().split('=')
-      return { name, value: valueParts.join('=') }
-    })
-    .filter((cookie) => cookie.name)
-    ?? []
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
-        return requestCookies.find((cookie) => cookie.name === name)?.value
+        return request.cookies.get(name)?.value
       },
       set(name: string, value: string, options: Record<string, unknown>) {
         response.cookies.set(name, value, options)
@@ -84,27 +75,20 @@ export async function POST(request: Request) {
     .eq('id', user.id)
     .single()
 
-  const finalResponse = NextResponse.json({
-    ok: true,
-    profile: {
-      is_editor: profile?.is_editor ?? false,
-      is_writer: profile?.is_writer ?? false,
-      is_advertiser: profile?.is_advertiser ?? false,
-    },
-  })
-
-  // Copy cookies from dynamic response to finalResponse
-  response.cookies.getAll().forEach((cookie) => {
-    finalResponse.cookies.set(cookie.name, cookie.value, {
-      path: cookie.path,
-      domain: cookie.domain,
-      expires: cookie.expires,
-      maxAge: cookie.maxAge,
-      secure: cookie.secure,
-      httpOnly: cookie.httpOnly,
-      sameSite: cookie.sameSite,
-    })
-  })
+  const finalResponse = new NextResponse(
+    JSON.stringify({
+      ok: true,
+      profile: {
+        is_editor: profile?.is_editor ?? false,
+        is_writer: profile?.is_writer ?? false,
+        is_advertiser: profile?.is_advertiser ?? false,
+      },
+    }),
+    {
+      status: 200,
+      headers: response.headers,
+    }
+  )
 
   return finalResponse
 }
