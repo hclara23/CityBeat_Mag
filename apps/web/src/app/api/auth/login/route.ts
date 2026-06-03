@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
-        return request.cookies.get(name)?.value
+        return response.cookies.get(name)?.value ?? request.cookies.get(name)?.value
       },
       set(name: string, value: string, options: Record<string, unknown>) {
         response.cookies.set(name, value, options)

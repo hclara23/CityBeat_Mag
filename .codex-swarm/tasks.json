@@ -6832,12 +6832,31 @@
       "doc_updated_by": "agentctl",
       "description": "Refactor login route to use standard NextRequest cookies retrieval to prevent TypeError crash on URL-encoded cookie strings during authentication.",
       "doc": "## Summary\n\nRefactored the /api/auth/login route in apps/web/src/app/api/auth/login/route.ts to retrieve cookie values using standard, built-in NextRequest.cookies.get(name)?.value rather than a manual header string-split. Next.js automatically handles URL-decoding, preventing the TypeError: Cannot create property 'user' on string crash when Supabase SSR library receives URL-encoded session strings.\n\n## Scope\n\nModifies apps/web/src/app/api/auth/login/route.ts to use NextRequest.cookies instead of parsing raw headers.\n\n## Risks\n\nLow risk. Leverages standard Next.js cookie utility functions instead of a custom cookie string splitter.\n\n## Verify Steps\n\nRun: 1. npm run type-check --workspace=@citybeat/web, 2. npm run lint --workspace=@citybeat/web, 3. npm run build --workspace=@citybeat/web. All compilation checks and builds must pass successfully.\n\n## Rollback Plan\n\nRevert the commit to restore the previous custom header cookie parsing logic in apps/web/src/app/api/auth/login/route.ts."
+    },
+    {
+      "id": "202606031810-25PSWJ",
+      "title": "Fix profile role retrieval on login",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: fix login route cookie getter to check response.cookies, allowing authenticated profiles query immediately after signIn."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-03T18:10:14+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Update login route cookie getter to check response.cookies, allowing authenticated profiles query immediately after signIn."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "b2c289b38e34d47bf1caf47eb190fbfe952058760c560264d72bd31678e8d293"
+    "checksum": "71a0145c8dd80772dce5e392ee8d0439a89c903c37e22463385d91d32025666f"
   }
 }
