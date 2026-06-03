@@ -6836,27 +6836,41 @@
     {
       "id": "202606031810-25PSWJ",
       "title": "Fix profile role retrieval on login",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
       "tags": [],
+      "verify": [
+        "npm run lint --workspace=@citybeat/web",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "commit": {
+        "hash": "5090c1b31617083dfe0a401049ef4ad86ac13c2b",
+        "message": "🐛 25PSWJ fix: check response.cookies in login route getter | details: fallback to request.cookies if not found, enabling authenticated profiles query immediately after signIn."
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: fix login route cookie getter to check response.cookies, allowing authenticated profiles query immediately after signIn."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: verified using Next.js types that response.cookies.get(name)?.value works, ran all verify workspace linting, typechecking, and production builds successfully."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-06-03T18:10:14+00:00",
+      "doc_updated_at": "2026-06-03T18:10:27+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Update login route cookie getter to check response.cookies, allowing authenticated profiles query immediately after signIn."
+      "description": "Update login route cookie getter to check response.cookies, allowing authenticated profiles query immediately after signIn.",
+      "doc": "## Summary\n\nUpdate the /api/auth/login route to check response.cookies in addition to request.cookies inside the get(name) cookie retriever. This ensures the supabase client can read the session cookie set by signInWithPassword during the same request lifecycle, enabling the profiles query to run authenticated.\n\n## Scope\n\nModifies apps/web/src/app/api/auth/login/route.ts\n\n## Risks\n\nLow. Changes the temporary route-specific supabase cookie getter to check response.cookies first.\n\n## Verify Steps\n\nRun npm run lint/type-check/build inside @citybeat/web workspace, and run a node script to verify login and profiles retrieval succeed with correct role indicators.\n\n## Rollback Plan\n\nRevert change in apps/web/src/app/api/auth/login/route.ts."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "71a0145c8dd80772dce5e392ee8d0439a89c903c37e22463385d91d32025666f"
+    "checksum": "b5c5c1967b1c1ab6d960e7e8dfbc2c65a270e25bd9293508fb9a243be4ff7863"
   }
 }

@@ -1,14 +1,16 @@
 ---
 id: "202606031810-25PSWJ"
 title: "Fix profile role retrieval on login"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
 verify: ["npm run lint --workspace=@citybeat/web", "npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "5090c1b31617083dfe0a401049ef4ad86ac13c2b", message: "🐛 25PSWJ fix: check response.cookies in login route getter | details: fallback to request.cookies if not found, enabling authenticated profiles query immediately after signIn." }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: fix login route cookie getter to check response.cookies, allowing authenticated profiles query immediately after signIn." }
+  - { author: "ORCHESTRATOR", body: "verified: verified using Next.js types that response.cookies.get(name)?.value works, ran all verify workspace linting, typechecking, and production builds successfully." }
 doc_version: 2
 doc_updated_at: "2026-06-03T18:10:27+00:00"
 doc_updated_by: "agentctl"
