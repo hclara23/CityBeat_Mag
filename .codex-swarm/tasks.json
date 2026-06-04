@@ -6975,12 +6975,39 @@
       "doc_updated_by": "agentctl",
       "description": "Deploy a protected Vercel Cron endpoint for Crawlee directory ingestion and seed restaurants plus auto dealers from OpenStreetMap into unpublished CityBeat directory review rows.",
       "doc": "## Summary\nAdded a protected Vercel Cron endpoint for daily Crawlee directory ingestion and seeded El Paso County restaurants plus auto dealers into the CityBeat directory review workflow.\n\n## Scope\n- Refactored the Crawlee ingest implementation into a reusable @citybeat/lib directory module.\n- Added Restaurant and Auto Dealer focused ingestion for the El Paso County bounding box.\n- Added a protected Next.js route at /api/cron/directory-ingest that runs the ingest with Supabase service credentials.\n- Added a Vercel Cron schedule for daily runs at 10:00 UTC.\n- Added CRON_SECRET to Vercel Production.\n- Ran a production ingest for Restaurants and Auto Dealers.\n\n## Risks\nModerate. Vercel Cron on Hobby can only run daily and serverless runtime limits may constrain very large crawls. The endpoint is protected with CRON_SECRET, and all ingested records remain unpublished for editor review.\n\n## Verify Steps\n- npm run type-check --workspace=@citybeat/lib\n- npm run type-check --workspace=@citybeat/web\n- npm run build --workspace=@citybeat/web\n- npm run directory:ingest:write --workspace=@citybeat/lib -- --categories=Restaurant,\"Auto Dealer\" --limit=5000\n- Verified Supabase has 814 unpublished Restaurant rows and 43 unpublished Auto Dealer rows from OSM.\n\n## Rollback Plan\nRemove or disable the Vercel Cron entry, delete /api/cron/directory-ingest, revert the Crawlee ingest refactor, and delete unpublished OSM rows for Restaurant and Auto Dealer if the seed should be removed."
+    },
+    {
+      "id": "202606040154-4PBXFW",
+      "title": "Add directory publish all action",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "admin",
+        "frontend"
+      ],
+      "verify": [
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: implementing directory publish-all control and production publish pass."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-04T01:54:23+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Add a bulk publish control for unpublished directory listings and use it to publish pending businesses."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "90f7add9d6097679deda0f5a2a9e63f167781a24614cfe105e757eddbadb76e7"
+    "checksum": "2cfcfb08970eff1e179da19c488b248e4abfe309f7d0e80406aac4c1ee5d4dfc"
   }
 }

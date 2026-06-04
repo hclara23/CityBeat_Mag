@@ -365,6 +365,7 @@ export default function AdminDirectoryPage() {
   const [editingListing, setEditingListing] = useState<Listing | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [notice, setNotice] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const loadListings = useCallback(async (params: {
@@ -450,6 +451,26 @@ export default function AdminDirectoryPage() {
     } finally { setActionLoading(null) }
   }
 
+  const handlePublishAll = async () => {
+    if (unpublished === 0) return
+    if (!window.confirm(`Publish all ${unpublished} unlisted directory listing${unpublished === 1 ? '' : 's'}?`)) return
+
+    setActionLoading('publish-all')
+    setNotice('')
+    try {
+      const res = await fetch('/api/admin/directory/publish-all', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Publish all failed')
+
+      setListings(prev => prev.map(listing => ({ ...listing, is_published: true })))
+      setNotice(`Published ${data.published || 0} listing${data.published === 1 ? '' : 's'}.`)
+    } catch (e: any) {
+      setNotice(e.message || 'Publish all failed')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   // Stats
   const total = listings.length
   const unclaimed = listings.filter(l => l.claim_status === 'unclaimed').length
@@ -475,14 +496,29 @@ export default function AdminDirectoryPage() {
             <h1 className="font-display text-4xl font-black tracking-tight uppercase">Directory Manager</h1>
             <p className="mt-1 text-white/50 text-sm">Add, edit, upgrade, verify, and delete business listings</p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex-shrink-0 inline-flex items-center gap-2 rounded-lg bg-brand-neon px-5 py-3 text-sm font-black uppercase tracking-wider text-black hover:bg-cyan-300 transition shadow-[0_4px_16px_rgba(0,240,255,0.25)]"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
-            Add Listing
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={handlePublishAll}
+              disabled={unpublished === 0 || actionLoading === 'publish-all'}
+              className="flex-shrink-0 inline-flex items-center justify-center gap-2 rounded-lg border border-brand-neon/60 px-5 py-3 text-sm font-black uppercase tracking-wider text-brand-neon hover:bg-brand-neon/10 transition disabled:cursor-not-allowed disabled:border-white/10 disabled:text-white/30 disabled:hover:bg-transparent"
+            >
+              {actionLoading === 'publish-all' ? 'Publishing...' : 'Publish All'}
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex-shrink-0 inline-flex items-center justify-center gap-2 rounded-lg bg-brand-neon px-5 py-3 text-sm font-black uppercase tracking-wider text-black hover:bg-cyan-300 transition shadow-[0_4px_16px_rgba(0,240,255,0.25)]"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+              Add Listing
+            </button>
+          </div>
         </div>
+
+        {notice && (
+          <div className="mb-6 rounded-lg border border-brand-neon/30 bg-brand-neon/10 px-4 py-3 text-sm font-bold text-brand-neon">
+            {notice}
+          </div>
+        )}
 
         {/* Stats Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
