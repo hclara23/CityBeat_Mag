@@ -1,14 +1,16 @@
 ---
 id: "202606040154-4PBXFW"
 title: "Add directory publish all action"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["directory", "admin", "frontend"]
 verify: ["npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "7e577c316cb947036a11a878ce299dbc584c18b2", message: "✨ 4PBXFW add directory publish all action" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implementing directory publish-all control and production publish pass." }
+  - { author: "ORCHESTRATOR", body: "verified: added directory publish-all control and published current pending listings." }
 doc_version: 2
 doc_updated_at: "2026-06-04T01:59:18+00:00"
 doc_updated_by: "agentctl"
