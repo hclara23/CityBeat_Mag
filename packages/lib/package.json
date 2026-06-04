@@ -31,17 +31,21 @@
     }
   },
   "scripts": {
+    "directory:ingest": "tsx src/scripts/ingest-directory-crawlee.ts",
+    "directory:ingest:write": "tsx src/scripts/ingest-directory-crawlee.ts --write",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@sentry/nextjs": "^7.109.0",
     "@supabase/ssr": "^0.2.0",
     "@supabase/supabase-js": "^2.38.0",
+    "crawlee": "^3.16.0",
     "dotenv": "^17.4.2",
     "next-sanity": "^9.0.0",
     "puppeteer": "^25.1.0"
   },
   "devDependencies": {
+    "tsx": "^4.22.4",
     "typescript": "^5.2.0"
   }
 }
