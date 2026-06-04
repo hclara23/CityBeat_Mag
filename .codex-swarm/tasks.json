@@ -6894,12 +6894,60 @@
       "doc_updated_by": "agentctl",
       "description": "Create local business directory with Puppeteer scraper, Stripe monthly claims, and manual editor approval workflow.",
       "doc": "## Summary\n\nImplement local business directory with a Puppeteer crawler for pre-populating businesses, Stripe-based claiming subscription upgrade, and manual editor approval dashboard.\n\n## Scope\n\nIncludes database schema modifications (directory_listings table), a Puppeteer scraper script, Stripe checkout endpoints, and directory UI pages.\n\n## Risks\n\nLow. The feature is modular and self-contained; it does not impact core article pages or existing login/auth flows.\n\n## Verify Steps\n\nRun full typecheck, linting, and Next.js production builds. Validate scraper and Stripe checkout handoff manually.\n\n## Rollback Plan\n\nDelete the new database tables, routes, and views, and revert commits to restore the clean main branch status."
+    },
+    {
+      "id": "202606031948-TKSXHX",
+      "title": "Directory Claims, Reviewer Points, and Verification",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "verified-claims",
+        "reviews"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-03T19:48:17+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Implement user roles, reviewer points, photo uploads, claim verification dashboard, and admin postcard claim reviews."
+    },
+    {
+      "id": "202606040049-89S6AR",
+      "title": "Add Crawlee directory ingest",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "crawlee",
+        "ingest"
+      ],
+      "verify": [
+        "npm run type-check --workspace=@citybeat/lib"
+      ],
+      "commit": {
+        "hash": "1a559257848c170a4505dc0270bdbbe7cc55ce84",
+        "message": "✨ 202606040049-89S6AR add Crawlee directory ingest"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: added Crawlee OpenStreetMap directory ingest, ran dry-run and write-mode checks, and confirmed 250 unpublished OSM listings in Supabase."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-04T01:00:08+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Replace direct-publish directory scraping with a Crawlee-based OpenStreetMap ingest script that rate limits requests, deduplicates records, and inserts unpublished listings for editor review.",
+      "doc": "## Summary\nAdded a Crawlee-based directory ingest script that pulls El Paso business candidates from OpenStreetMap/Overpass, deduplicates them, and writes unpublished review candidates to Supabase.\n\n## Scope\n- Installed Crawlee and tsx in @citybeat/lib.\n- Added npm scripts for dry-run and write-mode directory ingestion.\n- Added packages/lib/src/scripts/ingest-directory-crawlee.ts with rate-limited Overpass crawling, category mapping, normalization, and Supabase upserts.\n- Added packages/lib/src/scripts/README.md with operating instructions and safety defaults.\n- Ran a controlled production write of 250 unpublished OSM listings for admin review.\n\n## Risks\nModerate. The crawler touches production data when run with --write, but inserted rows are unpublished and use source-prefixed IDs to avoid collisions with existing Google place IDs. Overpass may rate-limit large runs, so imports should be batched.\n\n## Verify Steps\n- npm run type-check --workspace=@citybeat/lib\n- npm run directory:ingest --workspace=@citybeat/lib -- --limit=5 --category=Restaurant\n- npm run directory:ingest:write --workspace=@citybeat/lib -- --limit=250\n- Verified Supabase has 250 unpublished OSM directory listings.\n\n## Rollback Plan\nDelete unpublished rows where google_place_id starts with osm:, then revert the Crawlee dependency, ingest scripts, and package script changes."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "e3adc6092486f52b1012a11b52386d34ab1094dc41e4c4458f0c3d5480a378fd"
+    "checksum": "16254c67f708ec5a34133de2bf6322a5faf537aa5fd57ea66325a1288cc1935d"
   }
 }
