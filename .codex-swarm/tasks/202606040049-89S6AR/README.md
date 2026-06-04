@@ -1,12 +1,15 @@
 ---
 id: "202606040049-89S6AR"
 title: "Add Crawlee directory ingest"
-status: "TODO"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["directory", "crawlee", "ingest"]
 verify: ["npm run type-check --workspace=@citybeat/lib"]
+commit: { hash: "1a559257848c170a4505dc0270bdbbe7cc55ce84", message: "✨ 202606040049-89S6AR add Crawlee directory ingest" }
+comments:
+  - { author: "ORCHESTRATOR", body: "verified: added Crawlee OpenStreetMap directory ingest, ran dry-run and write-mode checks, and confirmed 250 unpublished OSM listings in Supabase." }
 doc_version: 2
 doc_updated_at: "2026-06-04T01:00:08+00:00"
 doc_updated_by: "agentctl"
