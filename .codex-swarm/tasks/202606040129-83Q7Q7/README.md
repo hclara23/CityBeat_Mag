@@ -1,12 +1,15 @@
 ---
 id: "202606040129-83Q7Q7"
 title: "Automate Crawlee directory ingest"
-status: "TODO"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["directory", "crawlee", "vercel"]
 verify: ["npm run type-check --workspace=@citybeat/lib", "npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "fd35a09e458235d350220f1a3d0dc57859a1830a", message: "✨ 202606040129-83Q7Q7 automate Crawlee directory ingest" }
+comments:
+  - { author: "ORCHESTRATOR", body: "verified: deployed protected Vercel Cron endpoint, configured CRON_SECRET, seeded 814 Restaurant and 43 Auto Dealer unpublished OSM listings, and confirmed unauthenticated cron access returns 401." }
 doc_version: 2
 doc_updated_at: "2026-06-04T01:31:00+00:00"
 doc_updated_by: "agentctl"

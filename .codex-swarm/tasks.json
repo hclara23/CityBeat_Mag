@@ -6942,12 +6942,45 @@
       "doc_updated_by": "agentctl",
       "description": "Replace direct-publish directory scraping with a Crawlee-based OpenStreetMap ingest script that rate limits requests, deduplicates records, and inserts unpublished listings for editor review.",
       "doc": "## Summary\nAdded a Crawlee-based directory ingest script that pulls El Paso business candidates from OpenStreetMap/Overpass, deduplicates them, and writes unpublished review candidates to Supabase.\n\n## Scope\n- Installed Crawlee and tsx in @citybeat/lib.\n- Added npm scripts for dry-run and write-mode directory ingestion.\n- Added packages/lib/src/scripts/ingest-directory-crawlee.ts with rate-limited Overpass crawling, category mapping, normalization, and Supabase upserts.\n- Added packages/lib/src/scripts/README.md with operating instructions and safety defaults.\n- Ran a controlled production write of 250 unpublished OSM listings for admin review.\n\n## Risks\nModerate. The crawler touches production data when run with --write, but inserted rows are unpublished and use source-prefixed IDs to avoid collisions with existing Google place IDs. Overpass may rate-limit large runs, so imports should be batched.\n\n## Verify Steps\n- npm run type-check --workspace=@citybeat/lib\n- npm run directory:ingest --workspace=@citybeat/lib -- --limit=5 --category=Restaurant\n- npm run directory:ingest:write --workspace=@citybeat/lib -- --limit=250\n- Verified Supabase has 250 unpublished OSM directory listings.\n\n## Rollback Plan\nDelete unpublished rows where google_place_id starts with osm:, then revert the Crawlee dependency, ingest scripts, and package script changes."
+    },
+    {
+      "id": "202606040129-83Q7Q7",
+      "title": "Automate Crawlee directory ingest",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "crawlee",
+        "vercel"
+      ],
+      "verify": [
+        "npm run type-check --workspace=@citybeat/lib",
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "commit": {
+        "hash": "fd35a09e458235d350220f1a3d0dc57859a1830a",
+        "message": "✨ 202606040129-83Q7Q7 automate Crawlee directory ingest"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: deployed protected Vercel Cron endpoint, configured CRON_SECRET, seeded 814 Restaurant and 43 Auto Dealer unpublished OSM listings, and confirmed unauthenticated cron access returns 401."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-04T01:31:00+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Deploy a protected Vercel Cron endpoint for Crawlee directory ingestion and seed restaurants plus auto dealers from OpenStreetMap into unpublished CityBeat directory review rows.",
+      "doc": "## Summary\nAdded a protected Vercel Cron endpoint for daily Crawlee directory ingestion and seeded El Paso County restaurants plus auto dealers into the CityBeat directory review workflow.\n\n## Scope\n- Refactored the Crawlee ingest implementation into a reusable @citybeat/lib directory module.\n- Added Restaurant and Auto Dealer focused ingestion for the El Paso County bounding box.\n- Added a protected Next.js route at /api/cron/directory-ingest that runs the ingest with Supabase service credentials.\n- Added a Vercel Cron schedule for daily runs at 10:00 UTC.\n- Added CRON_SECRET to Vercel Production.\n- Ran a production ingest for Restaurants and Auto Dealers.\n\n## Risks\nModerate. Vercel Cron on Hobby can only run daily and serverless runtime limits may constrain very large crawls. The endpoint is protected with CRON_SECRET, and all ingested records remain unpublished for editor review.\n\n## Verify Steps\n- npm run type-check --workspace=@citybeat/lib\n- npm run type-check --workspace=@citybeat/web\n- npm run build --workspace=@citybeat/web\n- npm run directory:ingest:write --workspace=@citybeat/lib -- --categories=Restaurant,\"Auto Dealer\" --limit=5000\n- Verified Supabase has 814 unpublished Restaurant rows and 43 unpublished Auto Dealer rows from OSM.\n\n## Rollback Plan\nRemove or disable the Vercel Cron entry, delete /api/cron/directory-ingest, revert the Crawlee ingest refactor, and delete unpublished OSM rows for Restaurant and Auto Dealer if the seed should be removed."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "16254c67f708ec5a34133de2bf6322a5faf537aa5fd57ea66325a1288cc1935d"
+    "checksum": "90f7add9d6097679deda0f5a2a9e63f167781a24614cfe105e757eddbadb76e7"
   }
 }
