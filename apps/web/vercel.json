@@ -8,5 +8,11 @@
     "devCommand": "cd ../.. && npm run dev --workspace=@citybeat/web",
     "installCommand": "cd ../.. && npm ci",
     "outputDirectory": "apps/web/.next"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/directory-ingest",
+      "schedule": "0 10 * * *"
+    }
+  ]
 }

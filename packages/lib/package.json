@@ -28,6 +28,10 @@
     "./supabase/server": {
       "import": "./src/supabase/server.ts",
       "types": "./src/supabase/server.ts"
+    },
+    "./directory/ingest": {
+      "import": "./src/directory/crawlee-ingest.ts",
+      "types": "./src/directory/crawlee-ingest.ts"
     }
   },
   "scripts": {
@@ -36,6 +40,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@crawlee/basic": "^3.16.0",
     "@sentry/nextjs": "^7.109.0",
     "@supabase/ssr": "^0.2.0",
     "@supabase/supabase-js": "^2.38.0",
