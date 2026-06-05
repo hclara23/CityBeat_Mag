@@ -1,14 +1,16 @@
 ---
 id: "202606050431-88C3XT"
 title: "Add platform roles and Stripe Connect foundation"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["backend", "stripe", "roles"]
 verify: ["npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "6335f0b9c615efcbe2590cd3779af4dda8a3d3fa", message: "✨ 88C3XT add platform roles and Stripe Connect foundation" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: adding platform roles, sales revenue schema, and Stripe Connect onboarding foundation." }
+  - { author: "ORCHESTRATOR", body: "verified: added platform role, sales revenue, and Stripe Connect foundation | details: production migration still requires CityBeat Supabase access." }
 doc_version: 2
 doc_updated_at: "2026-06-05T04:46:08+00:00"
 doc_updated_by: "agentctl"
