@@ -1,14 +1,16 @@
 ---
 id: "202606050523-2Y99QW"
 title: "Hide developer account from admins"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["backend", "roles", "supabase"]
 verify: ["npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "af4d772a217fa49556c0941fa64bdee4d30906d4", message: "🛡️ 202606050523-2Y99QW hide developer account from admins" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: Correct production owner/admin roles and add Supabase/API guards so admins cannot discover developer accounts." }
+  - { author: "ORCHESTRATOR", body: "verified: production role setup confirmed, Supabase migration applied, migration list matched, and lib/web type-check plus web production build passed." }
 doc_version: 2
 doc_updated_at: "2026-06-05T05:36:01+00:00"
 doc_updated_by: "agentctl"
