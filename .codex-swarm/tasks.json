@@ -7087,7 +7087,7 @@
     {
       "id": "202606050550-ZE50PA",
       "title": "Add daily auto article research agent",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
@@ -7102,22 +7102,31 @@
         "npm run type-check --workspace=@citybeat/web",
         "npm run build --workspace=@citybeat/web"
       ],
+      "commit": {
+        "hash": "b2d5d364321f53795ec0b5a0491416aacb697a29",
+        "message": "📰 202606050550-ZE50PA add daily auto article research agent"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: Add a daily source-backed article drafting cron that inserts generated El Paso stories as pending_review for human editors."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: migration applied, type-checks passed, dry-run found local El Paso topics, live run created three pending-review drafts, repeat run created zero more, and the web production build passed."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-06-05T05:50:00+00:00",
+      "doc_updated_at": "2026-06-05T06:13:10+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Create a production cron workflow that finds recent El Paso topics online, drafts three source-backed articles per day, and places them into the review queue for human approval before publishing."
+      "description": "Create a production cron workflow that finds recent El Paso topics online, drafts three source-backed articles per day, and places them into the review queue for human approval before publishing.",
+      "doc": "## Summary\n\nAdded a daily source-backed auto article agent that drafts El Paso story candidates into the human review queue.\n\n## Scope\n\nAdded article generation metadata columns, a reusable @citybeat/lib auto-article generator, a protected /api/cron/auto-articles route, and a second daily Vercel cron. The agent uses local El Paso RSS feeds first, falls back to GDELT search, filters for local relevance, stores source URLs, caps itself at three generated drafts per UTC day, and inserts drafts as pending_review under citybeat@yahoo.com.\n\n## Risks\n\nSource feeds can include irrelevant items, so the filter excludes staff profiles and requires local terms. Drafts remain unpublished and require human review. The app now uses the Hobby plan maximum of two Vercel cron jobs.\n\n## Verify Steps\n\nsupabase db push --dry-run; supabase db push --yes; npm run type-check --workspace=@citybeat/lib; npm run type-check --workspace=@citybeat/web; dry-run agent invocation; live one-time agent invocation; repeat invocation daily-cap check; npm run build --workspace=@citybeat/web; supabase migration list.\n\n## Rollback Plan\n\nRemove the /api/cron/auto-articles route and Vercel cron entry, revert the package export and generator module, and apply a follow-up migration to drop generated article metadata if no longer needed.\n\n## Notes\n\nCreated three pending-review production drafts for today and verified the second run generated zero additional drafts because the daily cap was reached."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "ed3f61b12b428b940af0333d29935df7c6c8559b2994b2d0f5999100011b6408"
+    "checksum": "9ef1209f371fe7345af916bc7eca445d482b4267b4b8cdbf88de7df9cdad36fc"
   }
 }

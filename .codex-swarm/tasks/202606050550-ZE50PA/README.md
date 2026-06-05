@@ -1,14 +1,16 @@
 ---
 id: "202606050550-ZE50PA"
 title: "Add daily auto article research agent"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["backend", "cron", "articles", "automation"]
 verify: ["npm run type-check --workspace=@citybeat/lib", "npm run type-check --workspace=@citybeat/web", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "b2d5d364321f53795ec0b5a0491416aacb697a29", message: "📰 202606050550-ZE50PA add daily auto article research agent" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: Add a daily source-backed article drafting cron that inserts generated El Paso stories as pending_review for human editors." }
+  - { author: "ORCHESTRATOR", body: "verified: migration applied, type-checks passed, dry-run found local El Paso topics, live run created three pending-review drafts, repeat run created zero more, and the web production build passed." }
 doc_version: 2
 doc_updated_at: "2026-06-05T06:13:10+00:00"
 doc_updated_by: "agentctl"
