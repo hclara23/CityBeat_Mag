@@ -36,6 +36,10 @@
     "./directory/ingest": {
       "import": "./src/directory/crawlee-ingest.ts",
       "types": "./src/directory/crawlee-ingest.ts"
+    },
+    "./content/auto-articles": {
+      "import": "./src/content/auto-article-agent.ts",
+      "types": "./src/content/auto-article-agent.ts"
     }
   },
   "scripts": {
