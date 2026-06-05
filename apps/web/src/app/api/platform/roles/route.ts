@@ -117,6 +117,9 @@ export async function PATCH(request: NextRequest) {
 
   const target = await getServerUserProfile(targetUserId, cookieStore)
   if (!target) return NextResponse.json({ error: 'Target profile not found' }, { status: 404 })
+  if (!hasDeveloperAccess(actor) && hasDeveloperAccess(target)) {
+    return NextResponse.json({ error: 'Target profile not found' }, { status: 404 })
+  }
 
   const { error: updateError } = await supabase
     .from('profiles')

@@ -7047,12 +7047,39 @@
       "doc_updated_by": "agentctl",
       "description": "Add developer/sales role infrastructure, payout account records, sales/revenue ledger schema, and protected Stripe Connect onboarding APIs.",
       "doc": "## Summary\nAdd the first platform foundation for developer/admin/sales roles, Stripe Connect payout onboarding, and revenue/CRM data structures.\n\n## Scope\n- Add an additive Supabase migration for platform roles, connected payout accounts, revenue split rules, sales orders, revenue ledger entries, CRM leads, and CRM activities.\n- Add shared role helpers for developer, admin, writer, and sales access.\n- Add protected platform APIs for role status/grants and Stripe Connect account/onboarding links.\n- Add an account-page payout onboarding section that opens Stripe Connect.\n- Update key admin and creator access checks so developer access is treated above editor/admin.\n\n## Risks\n- Production database migration could not be applied from this workspace because the logged-in Supabase CLI does not have the CityBeat project ref available and no direct database URL/access token is present.\n- The Stripe onboarding routes require STRIPE_SECRET_KEY and the new database tables before they can be used successfully in production.\n- This phase does not yet create sales checkout sessions, transfers, or the sales CRM dashboard UI.\n\n## Verify Steps\n- npm run type-check --workspace=@citybeat/lib\n- npm run type-check --workspace=@citybeat/web\n- npm run build --workspace=@citybeat/web\n\n## Rollback Plan\n- Revert this code commit to remove the new APIs and payout UI.\n- If the SQL migration has been applied, disable access by setting sales_dashboard_enabled/is_sales/is_developer false as needed; destructive table rollback should only happen after exporting revenue/CRM data."
+    },
+    {
+      "id": "202606050523-2Y99QW",
+      "title": "Hide developer account from admins",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "backend",
+        "roles",
+        "supabase"
+      ],
+      "verify": [
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: Correct production owner/admin roles and add Supabase/API guards so admins cannot discover developer accounts."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-05T05:23:17+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Set production owner/admin roles and add policy/API guards so admins cannot discover developer accounts."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "7d574d609e64b3b678750edb7acc714f52cb38d6d38bf5b22fb009d62217c620"
+    "checksum": "18ad7af2acc51174d9502867091c8880f2e6ebb86b41f843a146ee91152a0fc7"
   }
 }
