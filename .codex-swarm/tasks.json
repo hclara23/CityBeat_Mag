@@ -7011,12 +7011,39 @@
       "doc_updated_by": "agentctl",
       "description": "Add a bulk publish control for unpublished directory listings and use it to publish pending businesses.",
       "doc": "## Summary\nAdd a bulk Publish All action to the admin directory manager so editors can publish every currently unlisted business in one operation.\n\n## Scope\n- Add an authenticated admin API endpoint at /api/admin/directory/publish-all.\n- Add a Publish All button beside Add Listing on the directory manager page.\n- Publish current production pending/unlisted directory listings.\n\n## Risks\n- Bulk publication is intentionally broad and affects every directory listing with is_published = false.\n- The button includes a confirmation prompt and is disabled when there are no unlisted records in the loaded admin view.\n\n## Verify Steps\n- npm run type-check --workspace=@citybeat/web\n- npm run build --workspace=@citybeat/web\n- Confirm production pending count is 0 after the service-role update.\n\n## Rollback Plan\n- Revert the UI/API commit if the bulk action should be removed.\n- To undo the production data change, manually set specific directory_listings rows back to is_published = false from Supabase backups or targeted IDs."
+    },
+    {
+      "id": "202606050431-88C3XT",
+      "title": "Add platform roles and Stripe Connect foundation",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "backend",
+        "stripe",
+        "roles"
+      ],
+      "verify": [
+        "npm run type-check --workspace=@citybeat/web",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: adding platform roles, sales revenue schema, and Stripe Connect onboarding foundation."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-05T04:31:25+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Add developer/sales role infrastructure, payout account records, sales/revenue ledger schema, and protected Stripe Connect onboarding APIs."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "e134fdf80a27b2f3d0abe8aebca5efc6f2c6a96150c0c2568f9beff9757c90be"
+    "checksum": "82d5515be4c21002056ec38f393d7a9fe06a6a0859af925835654f6716d75945"
   }
 }

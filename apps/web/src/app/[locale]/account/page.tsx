@@ -14,10 +14,24 @@ interface UserProfile {
   company_name?: string
   phone_number?: string
   is_advertiser: boolean
+  is_developer?: boolean
+  is_editor?: boolean
+  is_writer?: boolean
+  is_sales?: boolean
+  sales_dashboard_enabled?: boolean
+  stripe_connect_onboarding_complete?: boolean
   email_notifications_enabled: boolean
   sms_notifications_enabled: boolean
   review_points: number
   created_at: string
+}
+
+interface ConnectedAccount {
+  stripe_account_id: string
+  onboarding_complete: boolean
+  charges_enabled: boolean
+  payouts_enabled: boolean
+  details_submitted: boolean
 }
 
 export default function AccountPage() {
@@ -26,8 +40,10 @@ export default function AccountPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isConnectingStripe, setIsConnectingStripe] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [connectedAccount, setConnectedAccount] = useState<ConnectedAccount | null>(null)
   const [formData, setFormData] = useState({
     fullName: '',
     company: '',
@@ -56,6 +72,12 @@ export default function AccountPage() {
             emailNotificationsEnabled: profileResult.profile.email_notifications_enabled ?? true,
             smsNotificationsEnabled: profileResult.profile.sms_notifications_enabled ?? true,
           })
+        }
+
+        const accountResponse = await fetch('/api/platform/connect/account', { cache: 'no-store' })
+        if (accountResponse.ok) {
+          const accountData = await accountResponse.json()
+          setConnectedAccount(accountData.account)
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load profile')
@@ -101,6 +123,29 @@ export default function AccountPage() {
       setError(err instanceof Error ? err.message : 'Failed to update profile')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleConnectStripe = async () => {
+    setError('')
+    setSuccess('')
+    setIsConnectingStripe(true)
+
+    try {
+      const response = await fetch('/api/platform/connect/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          returnUrl: `/${locale}/account`,
+          refreshUrl: `/${locale}/account`,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to start Stripe onboarding')
+      window.location.href = data.url
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start Stripe onboarding')
+      setIsConnectingStripe(false)
     }
   }
 
@@ -259,6 +304,43 @@ export default function AccountPage() {
               {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </form>
+        </div>
+
+        {/* Payout Account Section */}
+        <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 mb-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Earnings Payout Account</h2>
+              <p className="text-sm text-gray-600">
+                Connect a bank account through Stripe to receive approved earnings, commissions, or revenue shares.
+              </p>
+              <p className="mt-3 text-sm font-medium text-gray-900">
+                Status:{' '}
+                {connectedAccount?.onboarding_complete || profile?.stripe_connect_onboarding_complete
+                  ? 'Ready for payouts'
+                  : connectedAccount
+                    ? 'Onboarding incomplete'
+                    : 'Not connected'}
+              </p>
+              {connectedAccount?.stripe_account_id && (
+                <p className="mt-1 font-mono text-xs text-gray-500">
+                  Stripe account: {connectedAccount.stripe_account_id}
+                </p>
+              )}
+            </div>
+            <Button
+              type="button"
+              onClick={handleConnectStripe}
+              disabled={isConnectingStripe}
+              className="shrink-0"
+            >
+              {isConnectingStripe
+                ? 'Opening Stripe...'
+                : connectedAccount
+                  ? 'Continue Stripe Setup'
+                  : 'Add Bank Account'}
+            </Button>
+          </div>
         </div>
 
         {/* Reviewer Dashboard Section (Gamified Points & Levels) */}

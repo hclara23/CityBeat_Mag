@@ -110,7 +110,7 @@ export default function CreatorDashboard() {
           .then((res) => res.ok ? res.json() : null)
           .then((data) => {
             const profile = data?.profile
-            setCanPublish(Boolean(profile?.is_editor || ['admin', 'editor'].includes(profile?.role)))
+            setCanPublish(Boolean(profile?.is_editor || profile?.is_developer || ['developer', 'admin', 'editor'].includes(profile?.role)))
           })
           .catch(() => setCanPublish(false))
       }

@@ -29,6 +29,10 @@
       "import": "./src/supabase/server.ts",
       "types": "./src/supabase/server.ts"
     },
+    "./supabase/roles": {
+      "import": "./src/supabase/roles.ts",
+      "types": "./src/supabase/roles.ts"
+    },
     "./directory/ingest": {
       "import": "./src/directory/crawlee-ingest.ts",
       "types": "./src/directory/crawlee-ingest.ts"

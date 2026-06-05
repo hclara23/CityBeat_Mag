@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient, getServerUser, getServerUserProfile } from '@citybeat/lib/supabase/server'
+import { hasAdminAccess } from '@citybeat/lib/supabase/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ async function requireEditor(cookieStore: ReturnType<typeof getCookieStore>) {
   const user = await getServerUser(cookieStore)
   if (!user) return { error: 'Unauthorized', status: 401 }
   const profile = await getServerUserProfile(user.id, cookieStore)
-  if (!profile?.is_editor) return { error: 'Forbidden', status: 403 }
+  if (!hasAdminAccess(profile)) return { error: 'Forbidden', status: 403 }
   return { user, profile }
 }
 

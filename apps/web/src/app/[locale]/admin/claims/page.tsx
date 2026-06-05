@@ -73,7 +73,7 @@ export default function AdminClaimsDashboard() {
       fetch(`/api/profile?id=${user.id}`)
         .then(res => res.json())
         .then(data => {
-          if (!data.profile?.is_editor) {
+          if (!data.profile?.is_editor && !data.profile?.can_manage_platform) {
             router.push(withLocale(locale, '/creator'))
           } else {
             setIsAdmin(true)

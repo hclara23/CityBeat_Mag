@@ -21,7 +21,7 @@ function createWriteClient(cookieStore: ReturnType<typeof readonlyCookieStore>) 
 }
 
 function hasEditorAccess(profile: any) {
-  return Boolean(profile?.is_editor || ['admin', 'editor'].includes(profile?.role))
+  return Boolean(profile?.is_developer || profile?.is_editor || ['developer', 'admin', 'editor'].includes(profile?.role))
 }
 
 async function getCategoryId(supabase: SupabaseClient, slug?: string) {

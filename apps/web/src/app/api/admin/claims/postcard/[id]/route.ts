@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient, getServerUser, getServerUserProfile } from '@citybeat/lib/supabase/server'
+import { hasAdminAccess } from '@citybeat/lib/supabase/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +30,7 @@ export async function POST(
   }
 
   const profile = await getServerUserProfile(user.id, cookieStore)
-  if (!profile?.is_editor) {
+  if (!hasAdminAccess(profile)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

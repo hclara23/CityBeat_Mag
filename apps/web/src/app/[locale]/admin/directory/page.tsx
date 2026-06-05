@@ -393,7 +393,7 @@ export default function AdminDirectoryPage() {
       fetch(`/api/profile?id=${user.id}`)
         .then(r => r.json())
         .then(data => {
-          if (!data.profile?.is_editor) { router.push(withLocale(locale, '/creator')); return }
+          if (!data.profile?.is_editor && !data.profile?.can_manage_platform) { router.push(withLocale(locale, '/creator')); return }
           setIsAdmin(true)
           loadListings()
         })

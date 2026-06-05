@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { getPrimaryPlatformRole, hasDeveloperAccess, hasSalesAccess } from '@citybeat/lib/supabase/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
   const user = data.user
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_editor, is_writer, is_advertiser')
+    .select('role, is_developer, is_editor, is_writer, is_sales, is_advertiser, sales_dashboard_enabled')
     .eq('id', user.id)
     .single()
 
@@ -79,9 +80,14 @@ export async function POST(request: NextRequest) {
     JSON.stringify({
       ok: true,
       profile: {
+        primary_role: getPrimaryPlatformRole(profile),
+        is_developer: profile?.is_developer ?? false,
         is_editor: profile?.is_editor ?? false,
         is_writer: profile?.is_writer ?? false,
+        is_sales: profile?.is_sales ?? false,
         is_advertiser: profile?.is_advertiser ?? false,
+        can_manage_platform: hasDeveloperAccess(profile),
+        sales_dashboard_enabled: hasSalesAccess(profile),
       },
     }),
     {
