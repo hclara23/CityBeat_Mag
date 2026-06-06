@@ -7125,27 +7125,36 @@
     {
       "id": "202606060743-5411ZA",
       "title": "Harden login during Supabase timeouts",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "04cc084a0e7f9b628f68004371592b4c99378e30",
+        "message": "🚑 5411ZA harden login timeout handling for Supabase 522 outages"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: harden the login API timeout path after production Supabase Auth and REST calls returned 522 responses during editor sign-in."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: type-check and production build passed for the web workspace | details: direct Supabase fake-auth and service-role profile probes still return 522, confirming the app change only improves timeout handling while Supabase remains the upstream blocker."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-06-06T07:43:49+00:00",
+      "doc_updated_at": "2026-06-06T07:48:00+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Return a controlled outage response from the login API when Supabase Auth or profile lookup hangs, so editor login does not remain stuck while the Supabase project data plane is unavailable."
+      "description": "Return a controlled outage response from the login API when Supabase Auth or profile lookup hangs, so editor login does not remain stuck while the Supabase project data plane is unavailable.",
+      "doc": "## Summary\n\nAdd bounded timeout handling to the production login API so Supabase Auth or profile lookup stalls return a controlled JSON outage response instead of leaving the editor login flow waiting on a slow upstream.\n\n## Scope\n\nLimited to apps/web/src/app/api/auth/login/route.ts. The route now wraps Supabase sign-in and profile lookup with bounded timeouts and maps timeout, 522, and HTML gateway failure messages to a 503 outage response.\n\n## Risks\n\nThis does not repair Supabase project availability. Users will still be unable to sign in while Supabase returns 522, but the app now surfaces a clear outage message. Timeout values may need tuning if Supabase is healthy but unusually slow.\n\n## Verify Steps\n\nRan npm run type-check --workspace @citybeat/web and npm run build --workspace @citybeat/web. Also verified direct Supabase fake auth requests still return 522, confirming the remaining blocker is upstream project availability.\n\n## Rollback Plan\n\nRevert the login route timeout wrapper commit if it causes regressions. The previous route can still authenticate when Supabase is healthy, but it may wait until the platform timeout during upstream 522 conditions."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "b2960bfd6d70e7cf9b54c6aae4b914819ddc4456ec294dd95ca0ade1de583a9e"
+    "checksum": "fca8aa810d13774dbca5e08a3412552358083ec3f5f88389acda2d8d3adb328f"
   }
 }
