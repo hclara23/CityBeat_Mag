@@ -7121,12 +7121,31 @@
       "doc_updated_by": "agentctl",
       "description": "Create a production cron workflow that finds recent El Paso topics online, drafts three source-backed articles per day, and places them into the review queue for human approval before publishing.",
       "doc": "## Summary\n\nAdded a daily source-backed auto article agent that drafts El Paso story candidates into the human review queue.\n\n## Scope\n\nAdded article generation metadata columns, a reusable @citybeat/lib auto-article generator, a protected /api/cron/auto-articles route, and a second daily Vercel cron. The agent uses local El Paso RSS feeds first, falls back to GDELT search, filters for local relevance, stores source URLs, caps itself at three generated drafts per UTC day, and inserts drafts as pending_review under citybeat@yahoo.com.\n\n## Risks\n\nSource feeds can include irrelevant items, so the filter excludes staff profiles and requires local terms. Drafts remain unpublished and require human review. The app now uses the Hobby plan maximum of two Vercel cron jobs.\n\n## Verify Steps\n\nsupabase db push --dry-run; supabase db push --yes; npm run type-check --workspace=@citybeat/lib; npm run type-check --workspace=@citybeat/web; dry-run agent invocation; live one-time agent invocation; repeat invocation daily-cap check; npm run build --workspace=@citybeat/web; supabase migration list.\n\n## Rollback Plan\n\nRemove the /api/cron/auto-articles route and Vercel cron entry, revert the package export and generator module, and apply a follow-up migration to drop generated article metadata if no longer needed.\n\n## Notes\n\nCreated three pending-review production drafts for today and verified the second run generated zero additional drafts because the daily cap was reached."
+    },
+    {
+      "id": "202606060743-5411ZA",
+      "title": "Harden login during Supabase timeouts",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: harden the login API timeout path after production Supabase Auth and REST calls returned 522 responses during editor sign-in."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-06T07:43:49+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Return a controlled outage response from the login API when Supabase Auth or profile lookup hangs, so editor login does not remain stuck while the Supabase project data plane is unavailable."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "9ef1209f371fe7345af916bc7eca445d482b4267b4b8cdbf88de7df9cdad36fc"
+    "checksum": "b2960bfd6d70e7cf9b54c6aae4b914819ddc4456ec294dd95ca0ade1de583a9e"
   }
 }

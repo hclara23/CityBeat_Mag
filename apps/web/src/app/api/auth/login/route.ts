@@ -4,18 +4,43 @@ import { getPrimaryPlatformRole, hasDeveloperAccess, hasSalesAccess } from '@cit
 
 export const dynamic = 'force-dynamic'
 
+const AUTH_TIMEOUT_MS = 18000
+const PROFILE_TIMEOUT_MS = 8000
+
+class SupabaseTimeoutError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'SupabaseTimeoutError'
+  }
+}
+
+function withTimeout<T>(operation: PromiseLike<T>, ms: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>
+
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new SupabaseTimeoutError(message)), ms)
+  })
+
+  return Promise.race([Promise.resolve(operation), timeout]).finally(() => clearTimeout(timeoutId))
+}
+
 function getAuthErrorResponse(message: string) {
+  const lowerMessage = message.toLowerCase()
   const isNetworkFailure =
-    message.toLowerCase().includes('fetch failed') ||
-    message.toLowerCase().includes('network') ||
-    message.toLowerCase().includes('enotfound') ||
-    message.toLowerCase().includes('eai_again')
+    lowerMessage.includes('fetch failed') ||
+    lowerMessage.includes('network') ||
+    lowerMessage.includes('enotfound') ||
+    lowerMessage.includes('eai_again') ||
+    lowerMessage.includes('timed out') ||
+    lowerMessage.includes('522') ||
+    lowerMessage.includes('<!doctype') ||
+    lowerMessage.includes("unexpected token '<'")
 
   if (isNetworkFailure) {
     return NextResponse.json(
       {
         error:
-          'Authentication service is unreachable. Check the Supabase project URL and API keys in Vercel.',
+          'Authentication service is timing out. Supabase is reachable, but the project database/API is not responding.',
       },
       { status: 503 }
     )
@@ -63,18 +88,42 @@ export async function POST(request: NextRequest) {
     },
   })
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  let signInResult: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>
+
+  try {
+    signInResult = await withTimeout(
+      supabase.auth.signInWithPassword({ email, password }),
+      AUTH_TIMEOUT_MS,
+      'Supabase auth timed out'
+    )
+  } catch (error) {
+    return getAuthErrorResponse(error instanceof Error ? error.message : String(error))
+  }
+
+  const { data, error } = signInResult
 
   if (error) {
     return getAuthErrorResponse(error.message)
   }
 
   const user = data.user
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, is_developer, is_editor, is_writer, is_sales, is_advertiser, sales_dashboard_enabled')
-    .eq('id', user.id)
-    .single()
+  let profile = null
+
+  try {
+    const profileResult = await withTimeout(
+      supabase
+        .from('profiles')
+        .select('role, is_developer, is_editor, is_writer, is_sales, is_advertiser, sales_dashboard_enabled')
+        .eq('id', user.id)
+        .single(),
+      PROFILE_TIMEOUT_MS,
+      'Supabase profile lookup timed out'
+    )
+
+    profile = profileResult.data
+  } catch (error) {
+    return getAuthErrorResponse(error instanceof Error ? error.message : String(error))
+  }
 
   const finalResponse = new NextResponse(
     JSON.stringify({
