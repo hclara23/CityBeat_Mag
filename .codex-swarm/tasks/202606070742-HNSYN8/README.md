@@ -1,13 +1,15 @@
 ---
 id: "202606070742-HNSYN8"
 title: "Audit review"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "e791a20f6a39193f8ef0a425425c04b87abe7dc8", message: "🧪 HNSYN8 audit review findings and verification record" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: audit review of auth, directory claims, reviews, upload, payment webhooks, and local verification commands." }
+  - { author: "ORCHESTRATOR", body: "verified: reviewed auth, directory claims, reviews, uploads, payment handlers, worker webhooks, and SQL policy context | details: web/lib/worker type-checks and web lint all passed." }
 doc_version: 2
 doc_updated_at: "2026-06-07T07:46:55+00:00"
 doc_updated_by: "agentctl"

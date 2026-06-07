@@ -7153,27 +7153,36 @@
     {
       "id": "202606070742-HNSYN8",
       "title": "Audit review",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "e791a20f6a39193f8ef0a425425c04b87abe7dc8",
+        "message": "🧪 HNSYN8 audit review findings and verification record"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: audit review of auth, directory claims, reviews, upload, payment webhooks, and local verification commands."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: reviewed auth, directory claims, reviews, uploads, payment handlers, worker webhooks, and SQL policy context | details: web/lib/worker type-checks and web lint all passed."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-06-07T07:42:06+00:00",
+      "doc_updated_at": "2026-06-07T07:46:55+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Review the CityBeat codebase for correctness, security, data access, auth/session, and release-readiness risks without modifying application code."
+      "description": "Review the CityBeat codebase for correctness, security, data access, auth/session, and release-readiness risks without modifying application code.",
+      "doc": "## Summary\n\nAudit completed for CityBeat app auth, directory claims/reviews, creator upload, Stripe/Supabase payment handlers, and local type/lint health. Findings were review-only; no application files were changed.\n\n## Context\n\nThe review followed the approved audit plan for task 202606070742-HNSYN8 and focused on recent production-sensitive areas in the CityBeat monorepo.\n\n## Scope\n\nReviewed targeted high-risk surfaces: apps/web API route handlers, Supabase server/client helpers, directory claim and review flows, creator article/upload APIs, cron routes, Stripe Connect and webhook code, worker webhook handlers, and relevant SQL policy files.\n\n## Risks\n\nConfirmed risks: directory claims can be approved using claimant-supplied contact info; public reviews expose reviewer email; repeated reviews can inflate review_points and listing ratings; creator uploads lack creator-role and size/rate gates; worker Stripe refund matching and webhook replay protections are weak if deployed.\n\n## Verify Steps\n\nCommands run:\n\n- npm run type-check --workspace @citybeat/web\n- npm run type-check --workspace @citybeat/lib\n- npm run lint --workspace @citybeat/web\n- npm run type-check --workspace @citybeat/worker\n\nResult: all passed.\n\n## Rollback Plan\n\nNo application changes were made. Rollback is limited to reverting this audit task record if the workflow artifact is not desired.\n\n## Notes\n\nRecommended next work: fix directory claim trust model first, then remove reviewer email exposure, add review uniqueness/points guards, gate upload by creator role and file size, and harden worker Stripe webhook replay/refund matching."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "083d0d8ff2b3594ff701ac6d3b5c3d59bdb17a16d5c6502bbd69a77d3dc8d7da"
+    "checksum": "fe5d59dc701f8e9f26e9037575cce66fddbc65c966e6af1ba8df76798aeb4ae1"
   }
 }
