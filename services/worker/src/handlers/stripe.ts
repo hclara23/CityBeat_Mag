@@ -1,5 +1,6 @@
 import { Env } from '../index'
 import { emailTemplates, sendEmail } from './emails'
+import { buildRefundPurchaseQuery, isStripeTimestampFresh } from './stripe-security'
 
 export async function handleStripeWebhook(request: Request, env: Env): Promise<Response> {
   try {
@@ -74,6 +75,9 @@ async function verifyStripeSignature(body: string, signature: string, secret: st
 
     const { timestamp, signatures } = parseStripeSignatureHeader(signature)
     if (!timestamp || signatures.length === 0) {
+      return false
+    }
+    if (!isStripeTimestampFresh(timestamp)) {
       return false
     }
 
@@ -232,6 +236,7 @@ async function handleCheckoutCompleted(session: any, env: Env): Promise<void> {
             payment_status: 'completed',
             stripe_customer_id: session.customer || null,
             stripe_subscription_id: session.subscription || null,
+            stripe_payment_intent_id: session.payment_intent || null,
             created_at: new Date().toISOString(),
           }),
         })
@@ -286,16 +291,14 @@ async function handleChargeRefunded(charge: any, env: Env): Promise<void> {
       return
     }
 
-    // Get the invoice associated with the charge to find the session
-    const chargeInvoiceId = charge.invoice
-    if (!chargeInvoiceId) {
-      console.warn('No invoice associated with charge')
-      return
-    }
+    const refundQuery = buildRefundPurchaseQuery({
+      id: typeof charge.id === 'string' ? charge.id : null,
+      payment_intent: typeof charge.payment_intent === 'string' ? charge.payment_intent : null,
+    })
 
-    // Query ad_purchases by metadata or amount
+    // Query ad_purchases by exact Stripe identity only.
     const getResponse = await fetch(
-      `${supabaseUrl}/rest/v1/ad_purchases?amount_total=eq.${charge.amount}&payment_status=eq.completed`,
+      `${supabaseUrl}/rest/v1/ad_purchases?${refundQuery}&limit=1`,
       {
         method: 'GET',
         headers: {

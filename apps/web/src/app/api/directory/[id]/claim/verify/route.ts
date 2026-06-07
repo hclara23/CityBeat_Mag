@@ -36,13 +36,14 @@ export async function POST(
 
     const supabase = createServerClient(cookieStore)
 
-    // Find the latest pending or code_sent claim for this user/listing
+    // Find the latest code-sent claim for this user/listing. Postcard claims
+    // stay pending for manual/admin handling and cannot self-approve here.
     const { data: claim, error: claimError } = await supabase
       .from('directory_claims')
       .select('*')
       .eq('listing_id', listingId)
       .eq('user_id', user.id)
-      .in('status', ['pending', 'code_sent'])
+      .eq('status', 'code_sent')
       .order('created_at', { ascending: false })
       .limit(1)
       .single()

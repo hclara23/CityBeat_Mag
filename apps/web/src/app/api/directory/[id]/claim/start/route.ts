@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient, getServerUser } from '@citybeat/lib/supabase/server'
+import { resolveClaimVerification } from '@/lib/directory-security'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +30,7 @@ export async function POST(
   }
 
   try {
-    const { method, contactInfo } = await request.json()
+    const { method } = await request.json()
     if (!method || !['email', 'phone', 'postcard'].includes(method)) {
       return NextResponse.json({ error: 'Invalid verification method' }, { status: 400 })
     }
@@ -40,7 +41,7 @@ export async function POST(
     // Check if listing exists and is unclaimed
     const { data: listing, error: listingError } = await supabase
       .from('directory_listings')
-      .select('name, claim_status')
+      .select('name, claim_status, phone')
       .eq('id', listingId)
       .single()
 
@@ -48,11 +49,14 @@ export async function POST(
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
     }
 
-    if (listing.claim_status !== 'unclaimed') {
-      return NextResponse.json({ error: 'Listing is already claimed or claim is pending' }, { status: 400 })
-    }
+    const verification = resolveClaimVerification({
+      method,
+      listing,
+    })
 
-    const status = method === 'postcard' ? 'pending' : 'code_sent'
+    if (!verification.ok) {
+      return NextResponse.json({ error: verification.error }, { status: verification.statusCode })
+    }
 
     // Insert claim record
     const { error: claimError } = await supabase
@@ -62,9 +66,9 @@ export async function POST(
         user_id: user.id,
         verification_method: method,
         verification_code: verificationCode,
-        status,
-        email_address: method === 'email' ? contactInfo : null,
-        phone_number: method === 'phone' ? contactInfo : null,
+        status: verification.status,
+        email_address: null,
+        phone_number: verification.notificationType === 'sms' ? verification.recipient : null,
       })
 
     if (claimError) {
@@ -72,30 +76,20 @@ export async function POST(
     }
 
     // Mock notification alerts
-    if (method === 'email') {
-      const emailBody = `Hello,\n\nYour 6-digit verification code to claim "${listing.name}" on CityBeat is: ${verificationCode}\n\nEnter this code on the claim dashboard to verify ownership.`
-      await supabase.from('sent_notifications').insert({
-        user_id: user.id,
-        type: 'email',
-        recipient: contactInfo,
-        subject: `Verify ownership of ${listing.name}`,
-        body: emailBody,
-      })
-      console.log(`[MOCK EMAIL] Verification code sent to ${contactInfo}: ${verificationCode}`)
-    } else if (method === 'phone') {
+    if (verification.notificationType === 'sms' && verification.recipient) {
       const smsBody = `CityBeat Code: ${verificationCode} for ${listing.name}. Enter this code to verify business ownership.`
       await supabase.from('sent_notifications').insert({
         user_id: user.id,
         type: 'sms',
-        recipient: contactInfo,
+        recipient: verification.recipient,
         body: smsBody,
       })
-      console.log(`[MOCK SMS] Verification code sent to ${contactInfo}: ${verificationCode}`)
-    } else if (method === 'postcard') {
+      console.log(`[MOCK SMS] Verification code sent to trusted listing phone ${verification.recipient}: ${verificationCode}`)
+    } else if (verification.notificationType === 'postcard') {
       console.log(`[POSTCARD REQUESTED] Verification code generated for postcard: ${verificationCode}`)
     }
 
-    return NextResponse.json({ status, message: 'Verification request initiated' })
+    return NextResponse.json({ status: verification.status, message: 'Verification request initiated' })
   } catch (error: any) {
     console.error('Error starting verification:', error)
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 })
