@@ -1,13 +1,15 @@
 ---
 id: "202606070750-QW8HVS"
 title: "Fix audit review findings"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "b91fececcc3c26ef6728b54d754e0026d0dd129d", message: "🔒 QW8HVS fix audited trust and payment integrity issues" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: fix approved audit findings with regression tests for claim trust, public reviews, duplicate review points, upload gating, and Stripe worker integrity." }
+  - { author: "ORCHESTRATOR", body: "verified: fixed directory claim trust, public review email exposure, duplicate review points, upload gating, and Stripe worker integrity | details: targeted tests, type-checks, lint, build, and diff check passed." }
 doc_version: 2
 doc_updated_at: "2026-06-07T07:57:52+00:00"
 doc_updated_by: "agentctl"
