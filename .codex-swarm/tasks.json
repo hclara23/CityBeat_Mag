@@ -7149,12 +7149,31 @@
       "doc_updated_by": "agentctl",
       "description": "Return a controlled outage response from the login API when Supabase Auth or profile lookup hangs, so editor login does not remain stuck while the Supabase project data plane is unavailable.",
       "doc": "## Summary\n\nAdd bounded timeout handling to the production login API so Supabase Auth or profile lookup stalls return a controlled JSON outage response instead of leaving the editor login flow waiting on a slow upstream.\n\n## Scope\n\nLimited to apps/web/src/app/api/auth/login/route.ts. The route now wraps Supabase sign-in and profile lookup with bounded timeouts and maps timeout, 522, and HTML gateway failure messages to a 503 outage response.\n\n## Risks\n\nThis does not repair Supabase project availability. Users will still be unable to sign in while Supabase returns 522, but the app now surfaces a clear outage message. Timeout values may need tuning if Supabase is healthy but unusually slow.\n\n## Verify Steps\n\nRan npm run type-check --workspace @citybeat/web and npm run build --workspace @citybeat/web. Also verified direct Supabase fake auth requests still return 522, confirming the remaining blocker is upstream project availability.\n\n## Rollback Plan\n\nRevert the login route timeout wrapper commit if it causes regressions. The previous route can still authenticate when Supabase is healthy, but it may wait until the platform timeout during upstream 522 conditions."
+    },
+    {
+      "id": "202606070742-HNSYN8",
+      "title": "Audit review",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: audit review of auth, directory claims, reviews, upload, payment webhooks, and local verification commands."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-07T07:42:06+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Review the CityBeat codebase for correctness, security, data access, auth/session, and release-readiness risks without modifying application code."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "fca8aa810d13774dbca5e08a3412552358083ec3f5f88389acda2d8d3adb328f"
+    "checksum": "083d0d8ff2b3594ff701ac6d3b5c3d59bdb17a16d5c6502bbd69a77d3dc8d7da"
   }
 }
