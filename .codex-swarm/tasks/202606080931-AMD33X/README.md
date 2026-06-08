@@ -1,13 +1,15 @@
 ---
 id: "202606080931-AMD33X"
 title: "Fix blank admin directory page"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "1a982fda5606dfec663c2efb90c0ef7730ebe6f3", message: "🛠️ 202606080931-AMD33X fix admin directory blank access state" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: reproduce production blank admin directory page, trace client/API root cause, fix, and verify rendered behavior plus type/lint checks." }
+  - { author: "ORCHESTRATOR", body: "verified: fixed the admin directory blank access state | details: lint and type-check passed, and browser checks confirmed visible login redirects without console errors." }
 doc_version: 2
 doc_updated_at: "2026-06-08T09:37:12+00:00"
 doc_updated_by: "agentctl"
