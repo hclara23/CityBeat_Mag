@@ -7229,12 +7229,31 @@
       "doc_updated_by": "agentctl",
       "description": "Publish all pending_review articles, then review the CityBeat app for gaps, bugs, errors, incomplete logic, and operational error notification readiness.",
       "doc": "## Summary\n\nReviewed the app for gaps, bugs, errors, incomplete logic, and error notification readiness. Publishing pending articles could not be completed because no usable Supabase service credentials are available locally and Vercel CLI is not authenticated.\n\n## Context\n\nThe user approved publishing all pending articles and reviewing the whole app. The local `.env.vercel.production.local` file contains empty Supabase values, and `vercel env pull` failed because no Vercel credentials are present.\n\n## Scope\n\nChecked Supabase/Vercel credential availability, article publish paths, Sentry/error notification wiring, Next API routes, admin/creator workflows, directory claims/reviews, Stripe checkout/webhook paths, cron automation, worker scheduled flows, and local verification commands.\n\n## Risks\n\nPending articles remain unpublished until a valid Supabase service-role key or an authenticated production admin/API path is available. Operational error notifications are incomplete: Sentry config exists but is not initialized by Next, shared logger is unused in API/worker paths, and worker scheduled failures only go to console logs. The review also found a Stripe checkout origin trust issue and admin article role-check drift.\n\n## Verify Steps\n\nCommands run:\n\n- node --import tsx --test apps/web/src/lib/directory-security.test.ts\n- node --import tsx --test services/worker/src/handlers/stripe-security.test.ts\n- npm run type-check --workspace @citybeat/web\n- npm run type-check --workspace @citybeat/worker\n- npm run lint --workspace @citybeat/web\n- npm run type-check --workspace @citybeat/lib\n- npm run build --workspace @citybeat/web\n- git diff --check\n\nResult: all passed. The web build still emits the existing Crawlee/browserslist critical dependency warning from the directory-ingest route.\n\n## Rollback Plan\n\nNo application changes were made for this task. Roll back only the task record if desired.\n\n## Notes\n\nRequired to publish articles: provide populated Supabase env values, log in Vercel CLI so `vercel env pull --environment=production` works, or provide an authenticated admin/API path that can publish pending articles. Recommended error notification path: wire existing Sentry config through Next instrumentation and `withSentryConfig`, use the shared logger in API/cron routes, and add worker alert forwarding via Sentry/HTTP/email for scheduled and webhook failures."
+    },
+    {
+      "id": "202606080931-AMD33X",
+      "title": "Fix blank admin directory page",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: reproduce production blank admin directory page, trace client/API root cause, fix, and verify rendered behavior plus type/lint checks."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-08T09:31:40+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Debug and fix the blank page at /en/admin/directory, including rendered verification and local type/lint checks."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "3aa81c49d25da0fcb1bbeb06ee5b30f2a8086981c65d4e6d1c606c6909b55257"
+    "checksum": "cf885db72650d9b53bceecde93a45148bac0822b72271b23cd1cc80295701893"
   }
 }

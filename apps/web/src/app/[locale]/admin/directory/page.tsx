@@ -357,6 +357,7 @@ export default function AdminDirectoryPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [listings, setListings] = useState<Listing[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [accessError, setAccessError] = useState('')
   const [search, setSearch] = useState('')
   const [filterTier, setFilterTier] = useState('')
   const [filterClaim, setFilterClaim] = useState('')
@@ -379,35 +380,74 @@ export default function AdminDirectoryPage() {
       if (params.claim) qs.set('claim_status', params.claim)
       if (params.sponsored) qs.set('is_sponsored', params.sponsored)
       if (params.published) qs.set('is_published', params.published)
-      const res = await fetch(`/api/admin/directory?${qs}`)
-      if (res.ok) {
-        const data = await res.json()
-        setListings(data.listings || [])
+      const res = await fetch(`/api/admin/directory?${qs}`, { cache: 'no-store' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to load directory listings')
       }
-    } catch (e) { console.error(e) } finally { setIsLoading(false) }
+      setListings(data.listings || [])
+    } catch (e) {
+      console.error('Failed to load directory listings', e)
+      setNotice(e instanceof Error ? e.message : 'Failed to load directory listings')
+    } finally { setIsLoading(false) }
   }, [])
 
   useEffect(() => {
-    getUser().then(({ user, error }) => {
-      if (error || !user) { router.push(withLocale(locale, '/login')); return }
-      fetch(`/api/profile?id=${user.id}`)
-        .then(r => r.json())
-        .then(data => {
-          if (!data.profile?.is_editor && !data.profile?.can_manage_platform) { router.push(withLocale(locale, '/creator')); return }
-          setIsAdmin(true)
-          loadListings()
-        })
-    })
+    let cancelled = false
+
+    const checkAdminAccess = async () => {
+      setAccessError('')
+      try {
+        const { user, error } = await getUser()
+        if (cancelled) return
+
+        if (error || !user) {
+          router.replace(withLocale(locale, '/login'))
+          return
+        }
+
+        const res = await fetch('/api/profile', { cache: 'no-store' })
+        const data = await res.json().catch(() => ({}))
+        if (cancelled) return
+
+        if (res.status === 401) {
+          router.replace(withLocale(locale, '/login'))
+          return
+        }
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to verify admin access')
+        }
+
+        if (!data.profile?.is_editor && !data.profile?.can_manage_platform) {
+          router.replace(withLocale(locale, '/creator'))
+          return
+        }
+
+        setIsAdmin(true)
+        await loadListings()
+      } catch (e) {
+        console.error('Failed to verify directory admin access', e)
+        if (!cancelled) {
+          setAccessError(e instanceof Error ? e.message : 'Failed to verify admin access')
+          setIsLoading(false)
+        }
+      }
+    }
+
+    checkAdminAccess()
+    return () => { cancelled = true }
   }, [router, locale, loadListings])
 
   // Debounced search
   useEffect(() => {
+    if (!isAdmin) return
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       loadListings({ search, tier: filterTier, claim: filterClaim, sponsored: filterSponsored, published: filterPublished })
     }, 350)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [search, filterTier, filterClaim, filterSponsored, filterPublished, loadListings])
+  }, [isAdmin, search, filterTier, filterClaim, filterSponsored, filterPublished, loadListings])
 
   const handleSave = async (id: string, updates: Partial<Listing>) => {
     const res = await fetch(`/api/admin/directory/${id}`, {
@@ -478,7 +518,46 @@ export default function AdminDirectoryPage() {
   const sponsored = listings.filter(l => l.is_sponsored).length
   const unpublished = listings.filter(l => !l.is_published).length
 
-  if (!isAdmin) return null
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-brand-dark text-white citybeat-app">
+        <SiteHeader />
+        <main className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4 py-12">
+          <div className="w-full rounded-xl border border-white/10 bg-white/5 p-8 text-center">
+            {accessError ? (
+              <>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-magenta">Admin access error</p>
+                <h1 className="mt-3 font-display text-3xl font-black uppercase tracking-tight">Directory Manager</h1>
+                <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/60">
+                  {accessError}. Refresh the page or sign in again. If this keeps happening, the profile service needs attention.
+                </p>
+                <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="rounded-lg bg-brand-neon px-5 py-3 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300"
+                  >
+                    Retry
+                  </button>
+                  <Link
+                    href={withLocale(locale, '/login')}
+                    className="rounded-lg border border-white/15 px-5 py-3 text-xs font-black uppercase tracking-wider text-white/70 transition hover:bg-white/5"
+                  >
+                    Sign In
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-neon">Checking access</p>
+                <h1 className="mt-3 font-display text-3xl font-black uppercase tracking-tight">Directory Manager</h1>
+                <p className="mt-3 text-sm text-white/50">Verifying your admin permissions...</p>
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-brand-dark text-white citybeat-app">
