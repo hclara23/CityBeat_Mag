@@ -23,17 +23,23 @@ The application uses Docker to build a standalone Next.js image. You must deploy
 Ensure you have the `gcloud` CLI installed and authenticated.
 
 ```bash
-# 1. Build and push the Docker image to Google Artifact Registry
-gcloud builds submit --tag gcr.io/[PROJECT-ID]/citybeat-mag
-
-# 2. Deploy to Cloud Run
-gcloud run deploy citybeat-mag \
-  --image gcr.io/[PROJECT-ID]/citybeat-mag \
+# 1. Build and deploy the main web app
+gcloud run deploy citybeat-mag-web \
+  --source . \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars="NEXT_PUBLIC_FIREBASE_PROJECT_ID=[PROJECT-ID]" \
-  --set-secrets="FIREBASE_SERVICE_ACCOUNT_KEY=firebase-admin-key:latest,STRIPE_SECRET_KEY=stripe-secret-key:latest"
+  --project kerstenblueprint \
+  --set-env-vars="NEXT_PUBLIC_FIREBASE_PROJECT_ID=kerstenblueprint"
+
+# 2. Build and deploy the ads app
+# (Assuming a secondary Dockerfile or deployment config for apps/ads)
+gcloud run deploy citybeat-mag-ads \
+  --source . \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --project kerstenblueprint
 ```
 
 > Note: Ensure your Stripe and Firebase Admin secrets are securely stored in Google Cloud Secret Manager.

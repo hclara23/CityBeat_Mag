@@ -52,6 +52,10 @@
     "./content/auto-articles": {
       "import": "./src/content/auto-article-agent.ts",
       "types": "./src/content/auto-article-agent.ts"
+    },
+    "./sanity/client": {
+      "import": "./src/sanity/client.ts",
+      "types": "./src/sanity/client.ts"
     }
   },
   "scripts": {

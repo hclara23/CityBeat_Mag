@@ -10,8 +10,11 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 # Copy workspace packages package.json if any
 COPY apps/web/package.json ./apps/web/
+COPY apps/ads/package.json ./apps/ads/
 COPY packages/lib/package.json ./packages/lib/
-
+COPY packages/sanity/package.json ./packages/sanity/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/worker/package.json ./packages/worker/
 RUN npm ci
 
 # Rebuild the source code only when needed

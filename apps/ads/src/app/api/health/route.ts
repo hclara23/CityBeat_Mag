@@ -11,9 +11,9 @@ async function checkStripe(): Promise<boolean> {
   }
 }
 
-async function checkSupabase(): Promise<boolean> {
+async function checkFirebase(): Promise<boolean> {
   try {
-    return !!process.env.NEXT_PUBLIC_SUPABASE_URL
+    return !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
   } catch {
     return false
   }
@@ -21,13 +21,13 @@ async function checkSupabase(): Promise<boolean> {
 
 export async function GET() {
   try {
-    const [stripeOk, supabaseOk] = await Promise.all([
+    const [stripeOk, firebaseOk] = await Promise.all([
       checkStripe(),
-      checkSupabase(),
+      checkFirebase(),
     ])
 
-    const status = stripeOk && supabaseOk ? 'healthy' : 'degraded'
-    const statusCode = stripeOk && supabaseOk ? 200 : 503
+    const status = stripeOk && firebaseOk ? 'healthy' : 'degraded'
+    const statusCode = stripeOk && firebaseOk ? 200 : 503
 
     return NextResponse.json(
       {
@@ -36,7 +36,7 @@ export async function GET() {
         checks: {
           app: 'ok',
           stripe: stripeOk ? 'ok' : 'down',
-          supabase: supabaseOk ? 'ok' : 'down',
+          firebase: firebaseOk ? 'ok' : 'down',
         },
       },
       { status: statusCode }

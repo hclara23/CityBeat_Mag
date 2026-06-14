@@ -4,13 +4,10 @@ import { useLiveMode } from '@sanity/react-loader'
 import { VisualEditing } from 'next-sanity'
 import { useEffect, useState } from 'react'
 
-const clientConfig = {
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || '',
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET || 'production',
-}
+import { sanityClient } from '@citybeat/lib/sanity/client'
 
 export default function LiveVisualEditing() {
-  useLiveMode({ client: clientConfig })
+  useLiveMode({ client: sanityClient as any })
   
   const [mounted, setMounted] = useState(false)
   useEffect(() => {

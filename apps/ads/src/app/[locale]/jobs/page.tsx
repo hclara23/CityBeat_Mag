@@ -6,12 +6,12 @@ import { Button, Card } from '@citybeat/ui'
 import Link from 'next/link'
 import { useLocale } from '@/components/TranslationProvider'
 import { AdsNavigation as Navigation } from '@/components/AdsNavigation'
-import { createClient } from '@/utils/supabase/client'
+import { db, auth } from '@citybeat/lib/firebase/client'
+import { doc, getDoc, collection, addDoc } from 'firebase/firestore'
 
 export default function JobsAdvertiserPage() {
   const router = useRouter()
   const locale = useLocale()
-  const supabase = createClient()
   
   const [config, setConfig] = useState<any>(null)
   const [formData, setFormData] = useState({
@@ -26,11 +26,15 @@ export default function JobsAdvertiserPage() {
 
   useEffect(() => {
     const fetchConfig = async () => {
-      const { data } = await supabase.from('site_settings').select('value').eq('id', 'job_board_config').single()
-      if (data) {
-        setConfig(data.value)
-      } else {
-        // Fallback
+      try {
+        const docRef = doc(db, 'site_settings', 'job_board_config')
+        const docSnap = await getDoc(docRef)
+        if (docSnap.exists()) {
+          setConfig(docSnap.data().value)
+        } else {
+          setConfig({ price_usd: 50, duration_days: 30 })
+        }
+      } catch (e) {
         setConfig({ price_usd: 50, duration_days: 30 })
       }
     }
@@ -54,7 +58,7 @@ export default function JobsAdvertiserPage() {
       setError('')
 
       // 1. Get current user
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = auth.currentUser
       
       if (!user) {
         throw new Error('You must be logged in to post a job.')
@@ -69,18 +73,17 @@ export default function JobsAdvertiserPage() {
       const expiresAt = new Date()
       expiresAt.setDate(expiresAt.getDate() + durationDays)
 
-      const { error: dbError } = await supabase.from('jobs').insert({
-        owner_id: user.id,
+      await addDoc(collection(db, 'jobs'), {
+        owner_id: user.uid,
         title: formData.title,
         company_name: formData.company_name,
         location: formData.location,
         description: formData.description,
         apply_url: formData.apply_url,
         is_paid: true,
-        expires_at: expiresAt.toISOString()
+        expires_at: expiresAt.toISOString(),
+        created_at: new Date().toISOString()
       })
-
-      if (dbError) throw dbError
 
       // Redirect to a success page
       router.push(`/${locale}/success?type=job`)

@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env*
+.vercel
+apps/web/.next
+apps/ads/.next
+apps/web/node_modules
+apps/ads/node_modules
+packages/*/node_modules
+packages/*/.next
