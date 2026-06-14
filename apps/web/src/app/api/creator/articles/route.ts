@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { getServerUser, createServerClient, getServerUserProfile } from '@citybeat/lib/supabase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { FieldValue } from 'firebase-admin/firestore'
 
 function slugify(text: string): string {
   return text
@@ -20,118 +21,79 @@ function textToContent(text: string) {
   }))
 }
 
-function readonlyCookieStore(store: Awaited<ReturnType<typeof cookies>>) {
-  return {
-    getAll: () => store.getAll(),
-    setAll: () => {},
-  }
-}
-
-function createWriteClient(cookieStore: ReturnType<typeof readonlyCookieStore>) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (supabaseUrl && serviceRoleKey) {
-    return createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-  }
-
-  return createServerClient(cookieStore)
-}
-
 function hasCreatorAccess(profile: any) {
   return Boolean(profile?.is_developer || profile?.is_writer || profile?.is_editor || ['developer', 'admin', 'editor', 'writer'].includes(profile?.role))
 }
 
-async function getCategoryId(supabase: SupabaseClient, slug?: string) {
+async function getCategoryId(slug?: string) {
   const categorySlug = slug || 'news'
-  const { data: existing } = await supabase
-    .from('categories')
-    .select('id')
-    .eq('slug', categorySlug)
-    .maybeSingle()
+  const snapshot = await adminDb.collection('categories').where('slug', '==', categorySlug).limit(1).get()
 
-  if (existing?.id) return existing.id as string
+  if (!snapshot.empty) return snapshot.docs[0].id
 
   const title = categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1)
-  const { data: created, error } = await supabase
-    .from('categories')
-    .insert({
-      slug: categorySlug,
-      name_en: title,
-      name_es: title,
-    })
-    .select('id')
-    .single()
+  const newCatRef = await adminDb.collection('categories').add({
+    slug: categorySlug,
+    name_en: title,
+    name_es: title,
+    created_at: FieldValue.serverTimestamp()
+  })
 
-  if (error) throw error
-  return created.id as string
+  return newCatRef.id
 }
 
-async function getAuthorId(supabase: SupabaseClient, name: string) {
+async function getAuthorId(name: string) {
   const authorName = name.trim() || 'CityBeat Staff'
-  const { data: existing } = await supabase
-    .from('authors')
-    .select('id')
-    .eq('name', authorName)
-    .maybeSingle()
+  const snapshot = await adminDb.collection('authors').where('name', '==', authorName).limit(1).get()
 
-  if (existing?.id) return existing.id as string
+  if (!snapshot.empty) return snapshot.docs[0].id
 
-  const { data: created, error } = await supabase
-    .from('authors')
-    .insert({ name: authorName })
-    .select('id')
-    .single()
+  const newAuthorRef = await adminDb.collection('authors').add({ 
+    name: authorName,
+    created_at: FieldValue.serverTimestamp() 
+  })
 
-  if (error) throw error
-  return created.id as string
+  return newAuthorRef.id
 }
 
 export async function GET(request: NextRequest) {
-  const cookieStore = readonlyCookieStore(await cookies())
-  const user = await getServerUser(cookieStore)
+  const user = await getServerUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
-  const supabase = createWriteClient(cookieStore)
 
-  let query = supabase
-    .from('articles')
-    .select(`
-      id,
-      created_at,
-      title,
-      slug,
-      excerpt,
-      category_id,
-      status,
-      published_at,
-      image_url
-    `)
-    .eq('created_by', user.id)
-    .order('created_at', { ascending: false })
+  let query = adminDb.collection('articles').where('created_by', '==', user.id)
 
   if (status) {
-    query = query.eq('status', status)
+    query = query.where('status', '==', status)
   }
 
-  try {
-    const { data: articles, error } = await query
-    if (error) throw error
+  query = query.orderBy('created_at', 'desc')
 
-    // Transform to match existing frontend expectations if necessary
-    const transformedArticles = articles.map(a => ({
-      ...a,
-      _id: a.id, // Legacy compat
-      _createdAt: a.created_at,
-      imageUrl: a.image_url,
-      category: a.category_id,
-    }))
+  try {
+    const snapshot = await query.get()
+    
+    const transformedArticles = snapshot.docs.map(doc => {
+      const a = doc.data()
+      return {
+        id: doc.id,
+        created_at: a.created_at?.toDate ? a.created_at.toDate().toISOString() : a.created_at,
+        title: a.title,
+        slug: a.slug,
+        excerpt: a.excerpt,
+        category_id: a.category_id,
+        status: a.status,
+        published_at: a.published_at?.toDate ? a.published_at.toDate().toISOString() : a.published_at,
+        image_url: a.image_url,
+        _id: doc.id,
+        _createdAt: a.created_at?.toDate ? a.created_at.toDate().toISOString() : a.created_at,
+        imageUrl: a.image_url,
+        category: a.category_id,
+      }
+    })
 
     return NextResponse.json({ articles: transformedArticles })
   } catch (error) {
@@ -141,12 +103,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const cookieStore = readonlyCookieStore(await cookies())
-  const user = await getServerUser(cookieStore)
+  const user = await getServerUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  const profile = await getServerUserProfile(user.id, cookieStore)
+  const profile = await getServerUserProfile(user.id)
   if (!hasCreatorAccess(profile)) {
     return NextResponse.json({ error: 'Writer access is required' }, { status: 403 })
   }
@@ -165,7 +126,7 @@ export async function POST(request: NextRequest) {
     bodyText?: string
     category?: string
     tags?: string[]
-    assetId?: string // This is now the URL or path from Supabase Storage
+    assetId?: string 
     submitForReview?: boolean
   }
 
@@ -174,11 +135,11 @@ export async function POST(request: NextRequest) {
   }
 
   const slug = slugify(title)
-  const supabase = createWriteClient(cookieStore)
 
   const contentValue = content || (bodyText ? textToContent(bodyText as string) : [])
-  const categoryId = await getCategoryId(supabase, category)
-  const authorId = await getAuthorId(supabase, typeof body.authorName === 'string' ? body.authorName : user.email ?? '')
+  const categoryId = await getCategoryId(category)
+  const authorId = await getAuthorId(typeof body.authorName === 'string' ? body.authorName : user.email ?? '')
+  
   const articleData = {
     title: title.trim(),
     slug: `${slug}-${Date.now().toString(36)}`,
@@ -191,34 +152,38 @@ export async function POST(request: NextRequest) {
     published_at: null,
     cover_image_path: assetId || null,
     image_url: assetId || null,
+    created_at: FieldValue.serverTimestamp(),
+    updated_at: FieldValue.serverTimestamp()
   }
 
   try {
-    const { data: created, error } = await supabase
-      .from('articles')
-      .insert(articleData)
-      .select()
-      .single()
+    const docRef = await adminDb.collection('articles').add(articleData)
+    const created = { id: docRef.id, ...articleData }
 
-    if (error) throw error
-
-    // Handle tags if provided
     if (Array.isArray(tags) && tags.length > 0) {
-      // 1. Ensure tags exist
-      const tagInserts = tags.map(name => ({ name: name.trim().toLowerCase() }))
-      const { data: tagData } = await supabase
-        .from('tags')
-        .upsert(tagInserts, { onConflict: 'name' })
-        .select()
+      const batch = adminDb.batch()
+      
+      for (const name of tags) {
+        const tagName = name.trim().toLowerCase()
+        const tagQuery = await adminDb.collection('tags').where('name', '==', tagName).limit(1).get()
+        
+        let tagId
+        if (tagQuery.empty) {
+          const tagRef = adminDb.collection('tags').doc()
+          batch.set(tagRef, { name: tagName, created_at: FieldValue.serverTimestamp() })
+          tagId = tagRef.id
+        } else {
+          tagId = tagQuery.docs[0].id
+        }
 
-      if (tagData) {
-        // 2. Link tags to article
-        const articleTagInserts = tagData.map(t => ({
+        const articleTagRef = adminDb.collection('article_tags').doc()
+        batch.set(articleTagRef, {
           article_id: created.id,
-          tag_id: t.id
-        }))
-        await supabase.from('article_tags').insert(articleTagInserts)
+          tag_id: tagId
+        })
       }
+      
+      await batch.commit()
     }
 
     return NextResponse.json({ article: { ...created, _id: created.id } }, { status: 201 })

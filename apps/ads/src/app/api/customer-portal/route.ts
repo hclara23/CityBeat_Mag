@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin, getUserIdFromRequest, isAdvertiser } from '@/lib/supabase'
+import { getUserIdFromRequest, isAdvertiser } from '@/lib/firebase'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,46 +24,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = getSupabaseAdmin()
     let resolvedCustomerId = customerId as string | undefined
 
     if (resolvedCustomerId) {
-      const { data: matches, error } = await supabase
-        .from('ad_purchases')
-        .select('id')
-        .eq('advertiser_id', userId)
-        .eq('stripe_customer_id', resolvedCustomerId)
+      const purchasesSnapshot = await adminDb
+        .collection('ad_purchases')
+        .where('advertiser_id', '==', userId)
+        .where('stripe_customer_id', '==', resolvedCustomerId)
         .limit(1)
+        .get()
 
-      if (error || !matches || matches.length === 0) {
+      if (purchasesSnapshot.empty) {
         return NextResponse.json({ error: 'Customer not found' }, { status: 403 })
       }
     }
 
     if (!resolvedCustomerId) {
-      const { data: subscription } = await supabase
-        .from('subscriptions')
-        .select('stripe_customer_id')
-        .eq('advertiser_id', userId)
-        .not('stripe_customer_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+      const subsSnapshot = await adminDb
+        .collection('subscriptions')
+        .where('advertiser_id', '==', userId)
+        .orderBy('created_at', 'desc')
+        .get()
+        
+      const sub = subsSnapshot.docs.find(d => !!d.data().stripe_customer_id)
 
-      resolvedCustomerId = subscription?.stripe_customer_id || undefined
+      resolvedCustomerId = sub?.data()?.stripe_customer_id || undefined
     }
 
     if (!resolvedCustomerId) {
-      const { data: purchase } = await supabase
-        .from('ad_purchases')
-        .select('stripe_customer_id')
-        .eq('advertiser_id', userId)
-        .not('stripe_customer_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+      const purchasesSnapshot = await adminDb
+        .collection('ad_purchases')
+        .where('advertiser_id', '==', userId)
+        .orderBy('created_at', 'desc')
+        .get()
 
-      resolvedCustomerId = purchase?.stripe_customer_id || undefined
+      const purchase = purchasesSnapshot.docs.find(d => !!d.data().stripe_customer_id)
+
+      resolvedCustomerId = purchase?.data()?.stripe_customer_id || undefined
     }
 
     if (!resolvedCustomerId) {

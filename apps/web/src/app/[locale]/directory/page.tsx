@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { useLocale } from '@/components/TranslationProvider'
+
+const DirectoryMap = dynamic(() => import('@/components/DirectoryMap'), { ssr: false })
 
 interface Listing {
   id: string
@@ -176,6 +179,13 @@ export default function DirectoryPage() {
                 )
               })}
             </div>
+          </div>
+        </section>
+
+        {/* Map Section */}
+        <section className="container-wide mt-12 mb-8 relative z-0">
+          <div className="citybeat-panel rounded-2xl p-4">
+            <DirectoryMap listings={listings} locale={locale} />
           </div>
         </section>
 

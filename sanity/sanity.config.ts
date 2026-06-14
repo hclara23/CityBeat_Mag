@@ -1,5 +1,6 @@
 import {defineConfig} from 'sanity'
 import {structureTool} from 'sanity/structure'
+import {presentationTool} from 'sanity/presentation'
 import {visionTool} from '@sanity/vision'
 import {schemaTypes} from './schemas'
 
@@ -34,6 +35,13 @@ export default defineConfig({
             S.documentTypeListItem('ad').title('Advertisements'),
             S.documentTypeListItem('translation').title('Translations'),
           ]),
+    }),
+    presentationTool({
+      previewUrl: {
+        draftMode: {
+          enable: 'http://localhost:3000/api/draft',
+        },
+      },
     }),
     visionTool(),
   ],

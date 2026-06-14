@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin, getUserIdFromRequest, isAdvertiser, requiresAuth } from '@/lib/supabase'
+import { getUserIdFromRequest, isAdvertiser, requiresAuth } from '@/lib/firebase'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getPrice, type AdType, type BillingCycle } from '@/lib/pricing'
 
 export const dynamic = 'force-dynamic'
@@ -12,7 +13,7 @@ function mapCampaign(row: any) {
     billingCycle: row.billing_cycle,
     status: row.status,
     amount: row.amount_cents,
-    createdAt: row.created_at,
+    createdAt: row.created_at?.toDate ? row.created_at.toDate().toISOString() : row.created_at,
     impressions: row.impressions ?? 0,
     clicks: row.clicks ?? 0,
   }
@@ -34,20 +35,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
 
-    const supabase = getSupabaseAdmin()
-    let query = supabase
-      .from('campaigns')
-      .select('*')
-      .eq('advertiser_id', userId)
+    let query = adminDb.collection('ad_campaigns').where('advertiser_id', '==', userId)
 
     if (status && status !== 'all') {
-      query = query.eq('status', status)
+      query = query.where('status', '==', status)
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false })
-    if (error) throw error
+    query = query.orderBy('created_at', 'desc')
 
-    const campaigns = (data ?? []).map(mapCampaign)
+    const snapshot = await query.get()
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const campaigns = data.map(mapCampaign)
 
     return NextResponse.json({
       data: campaigns,
@@ -93,28 +91,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = getSupabaseAdmin()
-    const { data: campaign, error } = await supabase
-      .from('campaigns')
-      .insert([
-        {
-          advertiser_id: userId,
-          name,
-          description: description || null,
-          ad_type: adType,
-          billing_cycle: billingCycle,
-          amount_cents: amount,
-          status: 'pending',
-          impressions: 0,
-          clicks: 0,
-          start_date: startDate || null,
-          end_date: endDate || null,
-        },
-      ])
-      .select('*')
-      .single()
+    const newCampaign = {
+      advertiser_id: userId,
+      name,
+      description: description || null,
+      ad_type: adType,
+      billing_cycle: billingCycle,
+      amount_cents: amount,
+      status: 'pending',
+      impressions: 0,
+      clicks: 0,
+      start_date: startDate || null,
+      end_date: endDate || null,
+      created_at: new Date()
+    }
 
-    if (error) throw error
+    const docRef = await adminDb.collection('ad_campaigns').add(newCampaign)
+    const campaign = { id: docRef.id, ...newCampaign }
 
     return NextResponse.json({ data: mapCampaign(campaign) }, { status: 201 })
   } catch (error) {

@@ -7257,12 +7257,25 @@
       "doc_updated_by": "agentctl",
       "description": "Debug and fix the blank page at /en/admin/directory, including rendered verification and local type/lint checks.",
       "doc": "## Summary\n\nFixed the admin directory blank-page failure by replacing the unauthenticated null render with visible access-check and error states. The page now catches Supabase/profile verification failures and shows retry/sign-in actions instead of leaving the admin shell empty.\n\n## Scope\n\nChanged apps/web/src/app/[locale]/admin/directory/page.tsx only. The patch covers admin access verification, profile fetch error handling, directory fetch error notices, and gating filter-driven loads until admin access is confirmed.\n\n## Risks\n\nLow. Auth redirects are preserved for logged-out and unauthorized users. Admin users now see an error panel if profile verification fails, which may expose operational failures that were previously hidden as a blank page.\n\n## Verify Steps\n\n1. npm run lint --workspace @citybeat/web: passed. 2. npm run type-check --workspace @citybeat/web: passed. 3. Browser verification: production https://citybeatmag.co/en/admin/directory redirects logged-out users to /en/login with no console errors. 4. Browser verification: local http://localhost:3000/en/admin/directory redirects logged-out users to /en/login with visible content and no console errors.\n\n## Rollback Plan\n\nRevert the commit for task 202606080931-AMD33X to restore the prior directory admin component behavior. No database or environment changes were made."
+    },
+    {
+      "id": "202606131838-5GBTSG",
+      "title": "Migrate to Firebase and Cloud Run",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-06-13T18:38:13+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Migrate the entire application from Supabase to Firebase and Cloud Run, prioritizing speed over zero-downtime. Includes migrating all articles, posts, business directory, and buildout components."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "0e77757babbd18eddafc641d89e8d314821e69d495841764351d531b6a5368a0"
+    "checksum": "5b2f0b98db794cd48e4df5d596b9047e1acc496a9aba6835387fac7344028c1e"
   }
 }

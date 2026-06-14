@@ -21,6 +21,7 @@ const primaryAdminLinks = [
   { href: '/admin', label: 'Review Queue', description: 'Approve, reject, and publish submitted articles.' },
   { href: '/admin/claims', label: 'Claims Queue', description: 'Review, approve, or reject business directory claims.' },
   { href: '/admin/directory', label: 'Directory Manager', description: 'Add, edit, upgrade, verify, sponsor, or delete business listings.' },
+  { href: '/admin/events', label: 'Events Manager', description: 'Review, moderate, and delete scraped events.' },
   { href: '/contribute', label: 'Public Submit Form', description: 'View the contributor intake page readers use.' },
 ]
 
@@ -30,6 +31,7 @@ const pageLinks = [
   { href: '/directory', label: 'Directory' },
   { href: '/admin/directory', label: 'Dir. Manager' },
   { href: '/admin/claims', label: 'Claims Queue' },
+  { href: '/admin/events', label: 'Events' },
   { href: '/ads', label: 'Advertise' },
   { href: '/ads/campaigns', label: 'Ad Campaigns' },
   { href: '/dashboard', label: 'Adv. Dashboard' },

@@ -1,23 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 import { localArticles } from './localArticles'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-
-// Public client for fetching published content
-const publicSupabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export async function getPublishedArticles(limit = 10) {
   try {
-    const { data, error } = await publicSupabase
-      .from('articles')
-      .select('*')
-      .eq('status', 'published')
-      .order('published_at', { ascending: false })
+    const snapshot = await adminDb.collection('articles')
+      .where('status', '==', 'published')
+      .orderBy('published_at', 'desc')
       .limit(limit)
+      .get()
 
-    if (error) throw error
-    return data || []
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
   } catch (err) {
     console.error('Error fetching published articles:', err)
     return []
@@ -26,15 +18,15 @@ export async function getPublishedArticles(limit = 10) {
 
 export async function getArticleBySlug(slug: string) {
   try {
-    const { data, error } = await publicSupabase
-      .from('articles')
-      .select('*')
-      .eq('slug', slug)
-      .eq('status', 'published')
-      .single()
+    const snapshot = await adminDb.collection('articles')
+      .where('slug', '==', slug)
+      .where('status', '==', 'published')
+      .limit(1)
+      .get()
 
-    if (error) throw error
-    return data
+    if (snapshot.empty) throw new Error('Not found')
+    
+    return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() }
   } catch (err) {
     // Fallback to local articles if not found in DB
     return localArticles.find(a => a.slug === slug)

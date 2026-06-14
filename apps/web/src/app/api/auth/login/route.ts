@@ -1,52 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { getPrimaryPlatformRole, hasDeveloperAccess, hasSalesAccess } from '@citybeat/lib/supabase/roles'
+import { adminAuth, adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
 
-const AUTH_TIMEOUT_MS = 18000
-const PROFILE_TIMEOUT_MS = 8000
-
-class SupabaseTimeoutError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'SupabaseTimeoutError'
-  }
+function getPrimaryPlatformRole(profile: any) {
+  if (profile?.is_developer) return 'developer'
+  if (profile?.is_editor) return 'editor'
+  if (profile?.is_sales) return 'sales'
+  if (profile?.is_writer) return 'writer'
+  if (profile?.is_advertiser) return 'advertiser'
+  return 'reader'
 }
 
-function withTimeout<T>(operation: PromiseLike<T>, ms: number, message: string): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout>
-
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new SupabaseTimeoutError(message)), ms)
-  })
-
-  return Promise.race([Promise.resolve(operation), timeout]).finally(() => clearTimeout(timeoutId))
+function hasDeveloperAccess(profile: any) {
+  return Boolean(profile?.is_developer)
 }
 
-function getAuthErrorResponse(message: string) {
-  const lowerMessage = message.toLowerCase()
-  const isNetworkFailure =
-    lowerMessage.includes('fetch failed') ||
-    lowerMessage.includes('network') ||
-    lowerMessage.includes('enotfound') ||
-    lowerMessage.includes('eai_again') ||
-    lowerMessage.includes('timed out') ||
-    lowerMessage.includes('522') ||
-    lowerMessage.includes('<!doctype') ||
-    lowerMessage.includes("unexpected token '<'")
-
-  if (isNetworkFailure) {
-    return NextResponse.json(
-      {
-        error:
-          'Authentication service is timing out. Supabase is reachable, but the project database/API is not responding.',
-      },
-      { status: 503 }
-    )
-  }
-
-  return NextResponse.json({ error: message }, { status: 401 })
+function hasSalesAccess(profile: any) {
+  return Boolean(profile?.sales_dashboard_enabled || profile?.is_developer || profile?.is_sales)
 }
 
 export async function POST(request: NextRequest) {
@@ -65,68 +36,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 500 })
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+  if (!apiKey) {
+    return NextResponse.json({ error: 'Firebase API key is missing' }, { status: 500 })
   }
-
-  const response = NextResponse.json({ ok: true })
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        return response.cookies.get(name)?.value ?? request.cookies.get(name)?.value
-      },
-      set(name: string, value: string, options: Record<string, unknown>) {
-        response.cookies.set(name, value, options)
-      },
-      remove(name: string, options: Record<string, unknown>) {
-        response.cookies.set(name, '', { ...options, maxAge: 0 })
-      },
-    },
-  })
-
-  let signInResult: Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>
 
   try {
-    signInResult = await withTimeout(
-      supabase.auth.signInWithPassword({ email, password }),
-      AUTH_TIMEOUT_MS,
-      'Supabase auth timed out'
-    )
-  } catch (error) {
-    return getAuthErrorResponse(error instanceof Error ? error.message : String(error))
-  }
+    // 1. Authenticate with Firebase via REST API
+    const signInRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, returnSecureToken: true }),
+    })
 
-  const { data, error } = signInResult
+    const signInData = await signInRes.json()
 
-  if (error) {
-    return getAuthErrorResponse(error.message)
-  }
+    if (!signInRes.ok) {
+      return NextResponse.json({ error: signInData.error?.message || 'Authentication failed' }, { status: 401 })
+    }
 
-  const user = data.user
-  let profile = null
+    const idToken = signInData.idToken
 
-  try {
-    const profileResult = await withTimeout(
-      supabase
-        .from('profiles')
-        .select('role, is_developer, is_editor, is_writer, is_sales, is_advertiser, sales_dashboard_enabled')
-        .eq('id', user.id)
-        .single(),
-      PROFILE_TIMEOUT_MS,
-      'Supabase profile lookup timed out'
-    )
+    // 2. Create a session cookie
+    const expiresIn = 60 * 60 * 24 * 5 * 1000 // 5 days
+    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn })
 
-    profile = profileResult.data
-  } catch (error) {
-    return getAuthErrorResponse(error instanceof Error ? error.message : String(error))
-  }
+    const uid = signInData.localId
 
-  const finalResponse = new NextResponse(
-    JSON.stringify({
+    // 3. Fetch user profile from Firestore
+    const profileDoc = await adminDb.collection('profiles').doc(uid).get()
+    const profile = profileDoc.exists ? profileDoc.data() : null
+
+    const response = NextResponse.json({
       ok: true,
       profile: {
         primary_role: getPrimaryPlatformRole(profile),
@@ -138,12 +79,20 @@ export async function POST(request: NextRequest) {
         can_manage_platform: hasDeveloperAccess(profile),
         sales_dashboard_enabled: hasSalesAccess(profile),
       },
-    }),
-    {
-      status: 200,
-      headers: response.headers,
-    }
-  )
+    })
 
-  return finalResponse
+    // Set cookie
+    response.cookies.set('firebase-session', sessionCookie, {
+      maxAge: expiresIn / 1000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      sameSite: 'lax',
+    })
+
+    return response
+  } catch (error: any) {
+    console.error('Firebase auth error:', error)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+  }
 }

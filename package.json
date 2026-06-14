@@ -17,6 +17,7 @@
     "type-check": "turbo run type-check"
   },
   "devDependencies": {
+    "cypress": "^15.17.0",
     "turbo": "^1.10.16"
   },
   "packageManager": "npm@9.0.0"

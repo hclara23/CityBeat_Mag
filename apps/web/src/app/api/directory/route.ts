@@ -1,59 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { adminDb } from '@citybeat/lib/firebase/admin';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.json({ error: 'Supabase is not configured' }, { status: 500 });
-  }
-
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('query') || '';
   const category = searchParams.get('category') || '';
 
-  const response = new NextResponse();
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        return request.cookies.get(name)?.value;
-      },
-      set(name: string, value: string, options: Record<string, unknown>) {
-        response.cookies.set(name, value, options);
-      },
-      remove(name: string, options: Record<string, unknown>) {
-        response.cookies.set(name, '', { ...options, maxAge: 0 });
-      },
-    },
-  });
-
-  let dbQuery = supabase
-    .from('directory_listings')
-    .select('*')
-    .eq('is_published', true);
+  let dbQuery: any = adminDb.collection('directory_listings').where('is_published', '==', true);
 
   if (category) {
-    dbQuery = dbQuery.eq('category', category);
+    dbQuery = dbQuery.where('category', '==', category);
   }
 
-  if (query) {
-    dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%,address.ilike.%${query}%`);
-  }
+  // To support multi-field sorting, we pull the results down and sort in memory 
+  // since Firestore requires composite indexes for complex multi-field orderBys.
+  // We also do the text-search filter in memory since Firestore doesn't support substring match natively.
+  try {
+    const snapshot = await dbQuery.get();
+    
+    let results = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
 
-  // Order: Sponsored listings first, then Premium tier first, then by rating desc, then by review count desc, then name asc
-  const { data, error } = await dbQuery
-    .order('is_sponsored', { ascending: false })
-    .order('tier', { ascending: false })
-    .order('rating', { ascending: false, nullsFirst: false })
-    .order('user_ratings_total', { ascending: false, nullsFirst: false })
-    .order('name', { ascending: true });
+    if (query) {
+      const q = query.toLowerCase();
+      results = results.filter((item: any) => 
+        (item.name?.toLowerCase().includes(q)) ||
+        (item.description?.toLowerCase().includes(q)) ||
+        (item.address?.toLowerCase().includes(q))
+      );
+    }
 
-  if (error) {
+    // Sort: Sponsored first, then Premium tier first, then by rating desc, then by review count desc, then name asc
+    results.sort((a: any, b: any) => {
+      if (a.is_sponsored !== b.is_sponsored) return a.is_sponsored ? -1 : 1;
+      if (a.tier !== b.tier) {
+         // Assuming tier is like 'premium', 'standard', 'free'
+         const tierRank = { 'premium': 3, 'standard': 2, 'free': 1 } as any;
+         const aTier = tierRank[a.tier] || 0;
+         const bTier = tierRank[b.tier] || 0;
+         if (aTier !== bTier) return bTier - aTier;
+      }
+      if ((a.rating || 0) !== (b.rating || 0)) return (b.rating || 0) - (a.rating || 0);
+      if ((a.user_ratings_total || 0) !== (b.user_ratings_total || 0)) return (b.user_ratings_total || 0) - (a.user_ratings_total || 0);
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    return NextResponse.json({ listings: results });
+  } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  return NextResponse.json({ listings: data || [] });
 }

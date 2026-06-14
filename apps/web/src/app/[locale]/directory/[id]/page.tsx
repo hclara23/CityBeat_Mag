@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { useLocale } from '@/components/TranslationProvider'
+import BookmarkButton from '@/components/BookmarkButton'
 
 interface Listing {
   id: string
@@ -445,6 +446,31 @@ export default function ListingDetailPage() {
 
   return (
     <CityBeatShell locale={locale}>
+      {listing && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'LocalBusiness',
+              name: listing.name,
+              image: listing.image_url ? [listing.image_url] : [],
+              '@id': `https://citybeatmag.co/${locale}/directory/${listing.id}`,
+              url: `https://citybeatmag.co/${locale}/directory/${listing.id}`,
+              telephone: listing.phone,
+              address: listing.address ? {
+                '@type': 'PostalAddress',
+                streetAddress: listing.address
+              } : undefined,
+              aggregateRating: listing.rating && listing.user_ratings_total ? {
+                '@type': 'AggregateRating',
+                ratingValue: listing.rating,
+                reviewCount: listing.user_ratings_total
+              } : undefined
+            })
+          }}
+        />
+      )}
       <div className="citybeat-app min-h-screen pb-24">
         {/* Navigation Breadcrumb */}
         <div className="container-wide pt-8 pb-4">
@@ -478,17 +504,18 @@ export default function ListingDetailPage() {
           </div>
         )}
 
-        {/* Edit Button for Verified Owners */}
-        {showEditButton && !editMode && (
-          <div className="container-wide mb-6 flex justify-end">
+        {/* Action Bar */}
+        <div className="container-wide mb-6 flex justify-between items-center">
+          <BookmarkButton contentType="directory" contentId={id} />
+          {showEditButton && !editMode && (
             <button
               onClick={() => setEditMode(true)}
               className="px-5 py-2.5 rounded-md bg-brand-neon text-black font-black uppercase tracking-wider text-xs hover:bg-cyan-300 transition shadow-[0_4px_12px_rgba(0,240,255,0.3)]"
             >
               {t.editListing}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {editMode ? (
           /* EDIT MODE VIEW */
@@ -755,14 +782,14 @@ export default function ListingDetailPage() {
                   </svg>
                   {t.approvedClaim}
                 </div>
-                <h1 className="font-display text-4xl sm:text-6xl font-black text-white uppercase leading-none drop-shadow-md">
+                <h1 className="font-display text-4xl sm:text-6xl font-black text-white uppercase leading-none">
                   {listing.name}
                 </h1>
                 
                 {listing.rating && (
                   <div className="flex items-center gap-3 mt-4">
                     {renderStars(listing.rating)}
-                    <span className="text-sm font-bold text-white drop-shadow">
+                    <span className="text-sm font-bold text-white">
                       {listing.rating} ({listing.user_ratings_total} {t.reviews})
                     </span>
                   </div>

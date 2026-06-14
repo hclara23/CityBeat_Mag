@@ -1,30 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { getServerUser, createServerClient, getServerUserProfile } from '@citybeat/lib/supabase/server'
-import { createClient } from '@supabase/supabase-js'
+import { adminStorage } from '@citybeat/lib/firebase/admin'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import sharp from 'sharp'
 import { canUploadCreatorMedia, validateCreatorUploadFile } from '@/lib/directory-security'
 
 const CREATOR_UPLOAD_RATE_LIMIT = 20
 const CREATOR_UPLOAD_WINDOW_MS = 60 * 60 * 1000
 const uploadAttempts = new Map<string, { count: number; resetAt: number }>()
-
-function readonlyCookieStore(store: Awaited<ReturnType<typeof cookies>>) {
-  return { getAll: () => store.getAll(), setAll: () => {} }
-}
-
-function createStorageClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    return null
-  }
-
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
-}
 
 function checkCreatorUploadRateLimit(userId: string) {
   const now = Date.now()
@@ -44,14 +26,13 @@ function checkCreatorUploadRateLimit(userId: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const cookieStore = readonlyCookieStore(await cookies())
-  const user = await getServerUser(cookieStore)
+  const user = await getServerUser()
   
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const profile = await getServerUserProfile(user.id, cookieStore)
+  const profile = await getServerUserProfile(user.id)
   if (!canUploadCreatorMedia(profile)) {
     return NextResponse.json({ error: 'Writer access is required' }, { status: 403 })
   }
@@ -72,7 +53,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const supabase = createStorageClient() ?? createServerClient(cookieStore)
     const arrayBuffer = await file.arrayBuffer()
     const inputBuffer = Buffer.from(arrayBuffer)
 
@@ -85,20 +65,17 @@ export async function POST(request: NextRequest) {
     const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
     const filePath = `articles/${fileName}`
 
-    await supabase.storage.createBucket('media', { public: true }).catch(() => null)
+    const bucket = adminStorage.bucket()
+    const fileRef = bucket.file(filePath)
 
-    const { data, error } = await supabase.storage
-      .from('media')
-      .upload(filePath, optimizedBuffer, {
+    await fileRef.save(optimizedBuffer, {
+      metadata: {
         contentType: 'image/webp',
-        upsert: false
-      })
+      },
+      public: true,
+    })
 
-    if (error) throw error
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('media')
-      .getPublicUrl(filePath)
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`
 
     return NextResponse.json({
       assetId: publicUrl,

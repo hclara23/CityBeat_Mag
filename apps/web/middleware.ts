@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
-import { createServerClient } from '@supabase/ssr'
+
 import { locales, defaultLocale } from './src/lib/i18n'
 
 // Protected routes that require authentication
@@ -43,31 +43,11 @@ export default async function middleware(request: NextRequest) {
     pathWithoutLocale.startsWith(route)
   )
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  let hasValidSession = false
-
-  if (supabaseUrl && supabaseAnonKey) {
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: Record<string, unknown>) {
-          response.cookies.set(name, value, options)
-        },
-        remove(name: string, options: Record<string, unknown>) {
-          response.cookies.set(name, '', { ...options, maxAge: 0 })
-        },
-      },
-    })
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    hasValidSession = !!user
-  }
+  // Check for Firebase session cookie
+  // We use a lightweight check here at the Edge. The actual secure verification 
+  // happens in the Server Components using firebase-admin.
+  const sessionCookie = request.cookies.get('firebase-session')?.value || request.cookies.get('__session')?.value;
+  let hasValidSession = !!sessionCookie;
 
   // If accessing protected route without session, redirect to login
   if (isProtectedRoute && !hasValidSession) {
@@ -82,6 +62,17 @@ export default async function middleware(request: NextRequest) {
       new URL(`/${locale}/dashboard`, request.nextUrl.origin)
     )
   }
+
+  // Inject hreflang Link headers for SEO
+  const origin = request.nextUrl.origin
+  const linkHeader = locales.map(l => {
+    const alternatePath = pathWithoutLocale === '/' ? `/${l}` : `/${l}${pathWithoutLocale}`
+    return `<${origin}${alternatePath}>; rel="alternate"; hreflang="${l}"`
+  }).join(', ')
+  const defaultPath = pathWithoutLocale === '/' ? `/${defaultLocale}` : `/${defaultLocale}${pathWithoutLocale}`
+  const fullLinkHeader = `${linkHeader}, <${origin}${defaultPath}>; rel="alternate"; hreflang="x-default"`
+
+  response.headers.set('Link', fullLinkHeader)
 
   return response
 }

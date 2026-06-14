@@ -1,52 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { getServerUser, createServerClient, getServerUserProfile } from '@citybeat/lib/supabase/server'
-
-function readonlyCookieStore(store: Awaited<ReturnType<typeof cookies>>) {
-  return { getAll: () => store.getAll(), setAll: () => {} }
-}
-
-function createWriteClient(cookieStore: ReturnType<typeof readonlyCookieStore>) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (supabaseUrl && serviceRoleKey) {
-    return createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-  }
-
-  return createServerClient(cookieStore)
-}
+import { adminDb } from '@citybeat/lib/firebase/admin'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { FieldValue } from 'firebase-admin/firestore'
 
 function hasEditorAccess(profile: any) {
   return Boolean(profile?.is_developer || profile?.is_editor || ['developer', 'admin', 'editor'].includes(profile?.role))
 }
 
-async function getCategoryId(supabase: SupabaseClient, slug?: string) {
+async function getCategoryId(slug?: string) {
   const categorySlug = slug || 'news'
-  const { data: existing } = await supabase
-    .from('categories')
-    .select('id')
-    .eq('slug', categorySlug)
-    .maybeSingle()
+  const snapshot = await adminDb.collection('categories').where('slug', '==', categorySlug).limit(1).get()
 
-  if (existing?.id) return existing.id as string
+  if (!snapshot.empty) return snapshot.docs[0].id
 
   const title = categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1)
-  const { data: created, error } = await supabase
-    .from('categories')
-    .insert({
-      slug: categorySlug,
-      name_en: title,
-      name_es: title,
-    })
-    .select('id')
-    .single()
+  const newCatRef = await adminDb.collection('categories').add({
+    slug: categorySlug,
+    name_en: title,
+    name_es: title,
+    created_at: FieldValue.serverTimestamp()
+  })
 
-  if (error) throw error
-  return created.id as string
+  return newCatRef.id
 }
 
 function textToContent(text: string) {
@@ -72,39 +47,48 @@ function contentToText(content: any): string {
 type RouteContext = { params: Promise<{ id: string }> }
 
 export async function GET(_request: NextRequest, { params }: RouteContext) {
-  const cookieStore = readonlyCookieStore(await cookies())
-  const user = await getServerUser(cookieStore)
+  const user = await getServerUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { id } = await params
-  const supabase = createWriteClient(cookieStore)
 
   try {
-    const { data: article, error } = await supabase
-      .from('articles')
-      .select(`
-        *,
-        category:categories!articles_category_id_fkey(slug),
-        byline:authors!articles_author_id_fkey(name)
-      `)
-      .eq('id', id)
-      .eq('created_by', user.id)
-      .single()
+    const docSnap = await adminDb.collection('articles').doc(id).get()
 
-    if (error || !article) {
+    if (!docSnap.exists) {
       return NextResponse.json({ error: 'Article not found' }, { status: 404 })
+    }
+
+    const article = { id: docSnap.id, ...docSnap.data() } as any
+
+    if (article.created_by !== user.id) {
+       return NextResponse.json({ error: 'Article not found' }, { status: 404 })
+    }
+
+    // Resolve Category Slug
+    let categorySlug = article.category_id
+    if (article.category_id) {
+       const catSnap = await adminDb.collection('categories').doc(article.category_id).get()
+       if (catSnap.exists) categorySlug = catSnap.data()?.slug || article.category_id
+    }
+
+    // Resolve Author Name
+    let authorName = ''
+    if (article.author_id) {
+       const authSnap = await adminDb.collection('authors').doc(article.author_id).get()
+       if (authSnap.exists) authorName = authSnap.data()?.name || ''
     }
 
     // Transform for frontend compatibility
     const transformedArticle = {
       ...article,
       _id: article.id,
-      _createdAt: article.created_at,
+      _createdAt: article.created_at?.toDate ? article.created_at.toDate().toISOString() : article.created_at,
       imageUrl: article.image_url,
-      category: article.category?.slug ?? article.category_id,
-      authorName: article.byline?.name ?? '',
+      category: categorySlug,
+      authorName,
       content: article.content,
       bodyText: contentToText(article.content),
     }
@@ -117,26 +101,23 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
-  const cookieStore = readonlyCookieStore(await cookies())
-  const user = await getServerUser(cookieStore)
+  const user = await getServerUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { id } = await params
-  const profile = await getServerUserProfile(user.id, cookieStore)
-  const supabase = createWriteClient(cookieStore)
+  const profile = await getServerUserProfile(user.id)
 
-  // Verify ownership and status
-  const { data: existing, error: fetchError } = await supabase
-    .from('articles')
-    .select('status, created_by')
-    .eq('id', id)
-    .single()
+  const docRef = adminDb.collection('articles').doc(id)
+  const docSnap = await docRef.get()
 
-  if (fetchError || !existing || existing.created_by !== user.id) {
+  if (!docSnap.exists || docSnap.data()?.created_by !== user.id) {
     return NextResponse.json({ error: 'Article not found' }, { status: 404 })
   }
+  
+  const existing = docSnap.data() as any
+
   if (existing.status === 'published' && !hasEditorAccess(profile)) {
     return NextResponse.json({ error: 'Published articles cannot be edited' }, { status: 403 })
   }
@@ -161,13 +142,16 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   }
 
   const updateData: any = {
-    updated_at: new Date().toISOString()
+    updated_at: FieldValue.serverTimestamp()
   }
   if (title) updateData.title = title.trim()
   if (excerpt !== undefined) updateData.excerpt = excerpt
   if (content !== undefined) updateData.content = content
   else if (bodyText !== undefined) updateData.content = textToContent(bodyText)
-  if (category !== undefined) updateData.category_id = category ? await getCategoryId(supabase, category) : null
+  
+  if (category !== undefined) {
+      updateData.category_id = category ? await getCategoryId(category) : null
+  }
 
   if (status) {
     if (!['draft', 'pending_review', 'published', 'rejected', 'approved'].includes(status)) {
@@ -177,7 +161,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: 'Editor access is required to publish' }, { status: 403 })
     }
     updateData.status = status
-    updateData.published_at = status === 'published' ? new Date().toISOString() : null
+    updateData.published_at = status === 'published' ? FieldValue.serverTimestamp() : null
   } else if (submitForReview) {
     updateData.status = 'pending_review'
     updateData.published_at = null
@@ -185,34 +169,38 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   if (assetId !== undefined) updateData.image_url = assetId
 
   try {
-    const { data: updated, error } = await supabase
-      .from('articles')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
+    await docRef.update(updateData)
+    const updatedSnap = await docRef.get()
+    const updated = { id: updatedSnap.id, ...updatedSnap.data() }
 
     // Handle tags if provided
     if (Array.isArray(tags)) {
       // Clear existing tags
-      await supabase.from('article_tags').delete().eq('article_id', id)
+      const oldTagsQuery = await adminDb.collection('article_tags').where('article_id', '==', id).get()
+      if (!oldTagsQuery.empty) {
+         const deleteBatch = adminDb.batch()
+         oldTagsQuery.docs.forEach(d => deleteBatch.delete(d.ref))
+         await deleteBatch.commit()
+      }
       
       if (tags.length > 0) {
-        const tagInserts = tags.map(name => ({ name: name.trim().toLowerCase() }))
-        const { data: tagData } = await supabase
-          .from('tags')
-          .upsert(tagInserts, { onConflict: 'name' })
-          .select()
+        const batch = adminDb.batch()
+        for (const name of tags) {
+           const tagName = name.trim().toLowerCase()
+           const tagQuery = await adminDb.collection('tags').where('name', '==', tagName).limit(1).get()
+           let tagId
+           if (tagQuery.empty) {
+               const tagRef = adminDb.collection('tags').doc()
+               batch.set(tagRef, { name: tagName, created_at: FieldValue.serverTimestamp() })
+               tagId = tagRef.id
+           } else {
+               tagId = tagQuery.docs[0].id
+           }
 
-        if (tagData) {
-          const articleTagInserts = tagData.map(t => ({
-            article_id: id,
-            tag_id: t.id
-          }))
-          await supabase.from('article_tags').insert(articleTagInserts)
+           const articleTagRef = adminDb.collection('article_tags').doc()
+           batch.set(articleTagRef, { article_id: id, tag_id: tagId })
         }
+        await batch.commit()
       }
     }
 
@@ -224,31 +212,25 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: RouteContext) {
-  const cookieStore = readonlyCookieStore(await cookies())
-  const user = await getServerUser(cookieStore)
+  const user = await getServerUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { id } = await params
-  const supabase = createWriteClient(cookieStore)
+  
+  const docRef = adminDb.collection('articles').doc(id)
+  const docSnap = await docRef.get()
 
-  const { data: existing, error: fetchError } = await supabase
-    .from('articles')
-    .select('status, created_by')
-    .eq('id', id)
-    .single()
-
-  if (fetchError || !existing || existing.created_by !== user.id) {
+  if (!docSnap.exists || docSnap.data()?.created_by !== user.id) {
     return NextResponse.json({ error: 'Article not found' }, { status: 404 })
   }
-  if (existing.status === 'published') {
+  if (docSnap.data()?.status === 'published') {
     return NextResponse.json({ error: 'Published articles cannot be deleted' }, { status: 403 })
   }
 
   try {
-    const { error } = await supabase.from('articles').delete().eq('id', id)
-    if (error) throw error
+    await docRef.delete()
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting article:', error)

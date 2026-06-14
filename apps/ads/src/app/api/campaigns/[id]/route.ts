@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin, getUserIdFromRequest, isAdvertiser, requiresAuth } from '@/lib/supabase'
+import { getUserIdFromRequest, isAdvertiser, requiresAuth } from '@/lib/firebase'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +13,7 @@ function mapCampaign(row: any) {
     billingCycle: row.billing_cycle,
     status: row.status,
     amount: row.amount_cents,
-    createdAt: row.created_at,
+    createdAt: row.created_at?.toDate ? row.created_at.toDate().toISOString() : row.created_at,
     impressions: row.impressions ?? 0,
     clicks: row.clicks ?? 0,
   }
@@ -36,19 +37,17 @@ export async function GET(
 
     const campaignId = params.id
 
-    const supabase = getSupabaseAdmin()
-    const { data: campaign, error } = await supabase
-      .from('campaigns')
-      .select('*')
-      .eq('id', campaignId)
-      .eq('advertiser_id', userId)
-      .single()
+    const docRef = adminDb.collection('ad_campaigns').doc(campaignId)
+    const docSnap = await docRef.get()
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
-      }
-      throw error
+    if (!docSnap.exists) {
+      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    }
+
+    const campaign: any = { id: docSnap.id, ...docSnap.data() }
+
+    if (campaign.advertiser_id !== userId) {
+       return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
     }
 
     return NextResponse.json({ data: mapCampaign(campaign) })
@@ -77,7 +76,13 @@ export async function PATCH(
     const campaignId = params.id
     const body = await request.json()
 
-    const supabase = getSupabaseAdmin()
+    const docRef = adminDb.collection('ad_campaigns').doc(campaignId)
+    const docSnap = await docRef.get()
+
+    if (!docSnap.exists || docSnap.data()?.advertiser_id !== userId) {
+      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    }
+
     const allowedUpdates: Record<string, any> = {}
 
     if (body.name) allowedUpdates.name = body.name
@@ -86,15 +91,10 @@ export async function PATCH(
     if (body.startDate !== undefined) allowedUpdates.start_date = body.startDate
     if (body.endDate !== undefined) allowedUpdates.end_date = body.endDate
 
-    const { data: campaign, error } = await supabase
-      .from('campaigns')
-      .update(allowedUpdates)
-      .eq('id', campaignId)
-      .eq('advertiser_id', userId)
-      .select('*')
-      .single()
+    await docRef.update(allowedUpdates)
 
-    if (error) throw error
+    const updatedSnap = await docRef.get()
+    const campaign = { id: updatedSnap.id, ...updatedSnap.data() }
 
     return NextResponse.json({ data: mapCampaign(campaign) })
   } catch (error) {
@@ -121,14 +121,14 @@ export async function DELETE(
 
     const campaignId = params.id
 
-    const supabase = getSupabaseAdmin()
-    const { error } = await supabase
-      .from('campaigns')
-      .delete()
-      .eq('id', campaignId)
-      .eq('advertiser_id', userId)
+    const docRef = adminDb.collection('ad_campaigns').doc(campaignId)
+    const docSnap = await docRef.get()
 
-    if (error) throw error
+    if (!docSnap.exists || docSnap.data()?.advertiser_id !== userId) {
+       return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    }
+
+    await docRef.delete()
 
     return NextResponse.json({ success: true })
   } catch (error) {

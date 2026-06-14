@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin, getUserIdFromRequest, isAdvertiser, requiresAuth } from '@/lib/supabase'
+import { getUserIdFromRequest, isAdvertiser, requiresAuth } from '@/lib/firebase'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,30 +30,36 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const supabase = getSupabaseAdmin()
-    const { data: purchases, error } = await supabase
-      .from('ad_purchases')
-      .select('id,campaign_id,ad_type,billing_cycle,amount_total,payment_status,created_at')
-      .eq('advertiser_id', userId)
-      .order('created_at', { ascending: false })
+    const purchasesSnapshot = await adminDb
+      .collection('ad_purchases')
+      .where('advertiser_id', '==', userId)
+      .orderBy('created_at', 'desc')
+      .get()
 
-    if (error) throw error
+    const purchases = purchasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
 
-    const campaignIds = (purchases ?? [])
+    const campaignIds = purchases
       .map((purchase: any) => purchase.campaign_id)
       .filter((id: string | null) => !!id)
 
     let campaignMap = new Map<string, string>()
     if (campaignIds.length > 0) {
-      const { data: campaigns } = await supabase
-        .from('campaigns')
-        .select('id,name')
-        .in('id', campaignIds)
+      // Chunk campaign IDs into 10s to avoid Firestore limit
+      const chunks = []
+      for (let i = 0; i < campaignIds.length; i += 10) {
+        chunks.push(campaignIds.slice(i, i + 10))
+      }
+      
+      const campaigns: any[] = []
+      for (const chunk of chunks) {
+          const snapshot = await adminDb.collection('ad_campaigns').where('__name__', 'in', chunk).get()
+          campaigns.push(...snapshot.docs.map(d => ({ id: d.id, name: d.data().name })))
+      }
 
-      campaignMap = new Map((campaigns ?? []).map((c: any) => [c.id, c.name]))
+      campaignMap = new Map(campaigns.map((c: any) => [c.id, c.name]))
     }
 
-    const orders: Order[] = (purchases ?? []).map((purchase: any) => ({
+    const orders: Order[] = purchases.map((purchase: any) => ({
       id: purchase.id,
       campaignName: purchase.campaign_id ? campaignMap.get(purchase.campaign_id) || 'Campaign' : 'Campaign',
       campaignId: purchase.campaign_id,
@@ -60,7 +67,7 @@ export async function GET(request: NextRequest) {
       amount: purchase.amount_total,
       billingCycle: purchase.billing_cycle || 'perpost',
       status: purchase.payment_status,
-      createdAt: purchase.created_at,
+      createdAt: purchase.created_at?.toDate ? purchase.created_at.toDate().toISOString() : purchase.created_at,
     }))
 
     return NextResponse.json({ data: orders })

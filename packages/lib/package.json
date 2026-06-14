@@ -33,6 +33,18 @@
       "import": "./src/supabase/roles.ts",
       "types": "./src/supabase/roles.ts"
     },
+    "./firebase/client": {
+      "import": "./src/firebase/client.ts",
+      "types": "./src/firebase/client.ts"
+    },
+    "./firebase/admin": {
+      "import": "./src/firebase/admin.ts",
+      "types": "./src/firebase/admin.ts"
+    },
+    "./firebase/server": {
+      "import": "./src/firebase/server.ts",
+      "types": "./src/firebase/server.ts"
+    },
     "./directory/ingest": {
       "import": "./src/directory/crawlee-ingest.ts",
       "types": "./src/directory/crawlee-ingest.ts"
@@ -49,11 +61,14 @@
   },
   "dependencies": {
     "@crawlee/basic": "^3.16.0",
+    "@opentelemetry/api": "^1.9.1",
     "@sentry/nextjs": "^7.109.0",
     "@supabase/ssr": "^0.2.0",
     "@supabase/supabase-js": "^2.38.0",
     "crawlee": "^3.16.0",
     "dotenv": "^17.4.2",
+    "firebase": "^12.14.0",
+    "firebase-admin": "^14.0.0",
     "next-sanity": "^9.0.0",
     "puppeteer": "^25.1.0"
   },

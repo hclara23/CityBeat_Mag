@@ -9,6 +9,7 @@ import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { sanityClient } from '@/lib/sanity'
 import { getLocalArticleById, getLocalArticlesByCategory } from '@/lib/localArticles'
 import { useTranslations } from '@/components/TranslationProvider'
+import BookmarkButton from '@/components/BookmarkButton'
 
 interface Brief {
   _id: string
@@ -145,6 +146,33 @@ export default function BriefDetailPage() {
 
   return (
     <div className="min-h-screen bg-white text-gray-950">
+      {brief && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'NewsArticle',
+              headline: brief.title,
+              image: brief.image ? [brief.image] : [],
+              datePublished: brief.publishedAt,
+              author: [{
+                '@type': 'Organization',
+                name: brief.source,
+                url: 'https://citybeatmag.co'
+              }],
+              publisher: {
+                '@type': 'Organization',
+                name: 'CityBeat Mag',
+                logo: {
+                  '@type': 'ImageObject',
+                  url: 'https://citybeatmag.co/logo.png'
+                }
+              }
+            })
+          }}
+        />
+      )}
       <SiteHeader />
 
       <article className="max-w-4xl mx-auto px-4 py-12">
@@ -160,11 +188,14 @@ export default function BriefDetailPage() {
 
         {/* Header */}
         <header className="mb-8 border-b border-gray-200 pb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-xs font-semibold text-primary uppercase bg-primary/10 px-3 py-1 rounded-full">
-              {brief.category}
-            </span>
-            <span className="text-xs text-gray-500">{brief.source}</span>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-semibold text-primary uppercase bg-primary/10 px-3 py-1 rounded-full">
+                {brief.category}
+              </span>
+              <span className="text-xs text-gray-500">{brief.source}</span>
+            </div>
+            <BookmarkButton contentType="article" contentId={brief._id} />
           </div>
 
           <h1 className="text-4xl font-bold text-gray-900 mb-4">

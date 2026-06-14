@@ -351,7 +351,7 @@ export default function AccountPage() {
                 <h2 className="text-2xl font-black uppercase text-amber-400 tracking-wide">Reviewer Dashboard</h2>
                 <p className="text-xs text-white/60 mt-1 uppercase font-bold tracking-wider">{levelName} Tally</p>
               </div>
-              <span className="text-3xl filter drop-shadow">{levelBadge.split(' ')[0]}</span>
+              <span className="text-3xl filter">{levelBadge.split(' ')[0]}</span>
             </div>
 
             <div className="flex items-baseline gap-2 mb-6">

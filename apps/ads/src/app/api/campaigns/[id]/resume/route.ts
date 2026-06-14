@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin, getUserIdFromRequest, isAdvertiser } from '@/lib/supabase'
+import { getUserIdFromRequest, isAdvertiser } from '@/lib/firebase'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,21 +19,24 @@ export async function POST(
 
     const campaignId = params.id
 
-    const supabase = getSupabaseAdmin()
-    const { data: campaign, error } = await supabase
-      .from('campaigns')
-      .update({ status: 'active' })
-      .eq('id', campaignId)
-      .eq('advertiser_id', userId)
-      .select('id,status')
-      .single()
+    const campaignRef = adminDb.collection('ad_campaigns').doc(campaignId)
+    const campaignDoc = await campaignRef.get()
+    
+    if (!campaignDoc.exists) {
+        return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    }
+    
+    const data = campaignDoc.data()
+    if (data?.advertiser_id !== userId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
-    if (error) throw error
+    await campaignRef.update({ status: 'active' })
 
     return NextResponse.json({
       data: {
-        id: campaign.id,
-        status: campaign.status,
+        id: campaignId,
+        status: 'active',
         message: 'Campaign resumed successfully',
       },
     })

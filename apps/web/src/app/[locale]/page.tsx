@@ -3,14 +3,17 @@ import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { getAdProducts, getEvents, getTopStories, withLocale, type Locale } from '@/components/citybeat/content'
 import { localArticles } from '@/lib/localArticles'
-
+import { adminDb } from '@citybeat/lib/firebase/admin'
+import { NewsletterForm } from '@/components/NewsletterForm'
 type HomePageProps = {
   params: {
     locale: string
   }
 }
 
-export default function Home({ params }: HomePageProps) {
+export const dynamic = 'force-dynamic'
+
+export default async function Home({ params }: HomePageProps) {
   const locale = (params.locale || 'en') as Locale
   const importedStories = localArticles.slice(0, 3).map((article) => ({
     title: article.title,
@@ -22,8 +25,33 @@ export default function Home({ params }: HomePageProps) {
   const stories = importedStories.length > 0 ? importedStories : getTopStories(locale)
   const featured = stories[0]
   const secondaryStories = stories.slice(1)
-  const events = getEvents(locale)
   const adProducts = getAdProducts(locale)
+
+  // Fetch dynamic events from Firestore
+  let dbEvents: any[] = []
+  try {
+    const eventsSnapshot = await adminDb.collection('events').orderBy('start_date', 'asc').limit(3).get()
+    dbEvents = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  } catch (err) {
+    console.error('Error fetching events from Firestore:', err)
+  }
+  
+  const staticEvents = getEvents(locale)
+  const events = dbEvents && dbEvents.length > 0 
+    ? dbEvents.map(e => ({
+        title: locale === 'en' ? e.title_en : e.title_es,
+        meta: locale === 'en' ? e.meta_en : e.meta_es,
+        image: e.image_url,
+        ticket_url: e.ticket_url ? `${e.ticket_url}${e.ticket_url.includes('?') ? '&' : '?'}aff=citybeatmag` : null
+      }))
+    : staticEvents.map(e => ({
+        title: e.title,
+        meta: e.meta,
+        image: e.image,
+        ticket_url: null
+      }))
+
+
   const copy = {
     en: {
       regionTag: 'El Paso / Las Cruces / Borderlands',
@@ -112,6 +140,7 @@ export default function Home({ params }: HomePageProps) {
                     alt=""
                     width={900}
                     height={650}
+                    sizes="(max-width: 768px) 100vw, 33vw"
                     className="aspect-[4/3] w-full object-cover opacity-85 transition duration-500 group-hover:scale-105 group-hover:opacity-70"
                   />
                 </div>
@@ -125,22 +154,17 @@ export default function Home({ params }: HomePageProps) {
               </article>
             </Link>
           ))}
-          <div className="citybeat-panel rounded-md p-8">
+          <div className="glass-panel p-8">
             <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-magenta">{localeCopy.weeklyEdit}</p>
             <h2 className="mt-3 text-3xl font-black text-white">{localeCopy.weeklyHeading}</h2>
             <p className="mt-4 text-sm leading-6 text-white/60">
               {localeCopy.weeklyCopy}
             </p>
-            <form className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
-              <input
-                type="email"
-                placeholder={localeCopy.emailPlaceholder}
-                className="rounded-md border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-brand-neon"
-              />
-              <button className="rounded-md bg-brand-neon px-5 py-3 text-sm font-black uppercase tracking-wider text-black">
-                {localeCopy.join}
-              </button>
-            </form>
+            <NewsletterForm 
+              locale={locale} 
+              emailPlaceholder={localeCopy.emailPlaceholder} 
+              joinText={localeCopy.join} 
+            />
           </div>
         </div>
       </section>
@@ -158,11 +182,16 @@ export default function Home({ params }: HomePageProps) {
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             {events.map((event) => (
-              <article key={event.title} className="group overflow-hidden rounded-md bg-black/30">
-                <Image src={event.image} alt="" width={760} height={520} className="aspect-[4/3] w-full object-cover opacity-80 transition duration-500 group-hover:scale-105" />
-                <div className="p-6">
+              <article key={event.title} className="group overflow-hidden glass-panel flex flex-col h-full">
+                <Image src={event.image} alt="" width={760} height={520} sizes="(max-width: 768px) 100vw, 33vw" className="aspect-[4/3] w-full object-cover opacity-80 transition duration-500 group-hover:scale-105" />
+                <div className="p-6 flex-grow flex flex-col">
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-gold">{event.meta}</p>
-                  <h3 className="mt-3 text-2xl font-black text-white">{event.title}</h3>
+                  <h3 className="mt-3 text-2xl font-black text-white flex-grow">{event.title}</h3>
+                  {event.ticket_url && (
+                    <a href={event.ticket_url} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block rounded-md border border-brand-neon/50 px-4 py-2 text-center text-xs font-bold uppercase tracking-widest text-brand-neon hover:bg-brand-neon hover:text-black transition">
+                      {locale === 'es' ? 'Comprar Boletos' : 'Get Tickets'}
+                    </a>
+                  )}
                 </div>
               </article>
             ))}
@@ -188,6 +217,21 @@ export default function Home({ params }: HomePageProps) {
           </div>
         </div>
       </section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            events.map((event) => ({
+              '@context': 'https://schema.org',
+              '@type': 'Event',
+              name: event.title,
+              description: event.meta,
+              image: event.image,
+              url: event.ticket_url || `https://citybeatmag.co/${locale}`,
+            }))
+          ),
+        }}
+      />
     </CityBeatShell>
   )
 }

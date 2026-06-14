@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "kerstenblueprint"
+  },
+  "targets": {
+    "kerstenblueprint": {
+      "hosting": {
+        "web": [
+          "kerstenblueprint"
+        ],
+        "ads": [
+          "kerstenblueprint-ads"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
