@@ -15,6 +15,7 @@ export default function BannerPage() {
   )
   const [description, setDescription] = useState('')
   const [bannerUrl, setBannerUrl] = useState('')
+  const [destinationUrl, setDestinationUrl] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -27,7 +28,20 @@ export default function BannerPage() {
     }
 
     if (!bannerUrl.trim()) {
-      setError('Banner URL is required')
+      setError('Banner image URL is required')
+      return
+    }
+
+    if (!destinationUrl.trim()) {
+      setError('Destination URL is required — it’s where clicks on your banner go')
+      return
+    }
+
+    // Basic URL sanity check so we don't store an unusable link.
+    try {
+      new URL(destinationUrl.trim())
+    } catch {
+      setError('Destination URL must be a full URL, e.g. https://yourbusiness.com')
       return
     }
 
@@ -44,6 +58,7 @@ export default function BannerPage() {
           billingCycle: selectedBilling.cycle,
           description,
           bannerUrl,
+          destinationUrl: destinationUrl.trim(),
         }),
       })
 
@@ -149,6 +164,24 @@ export default function BannerPage() {
                 </div>
 
                 <div>
+                  <label htmlFor="destinationUrl" className="block text-sm font-semibold text-gray-900 mb-2">
+                    Destination URL
+                  </label>
+                  <input
+                    type="url"
+                    id="destinationUrl"
+                    value={destinationUrl}
+                    onChange={(e) => setDestinationUrl(e.target.value)}
+                    placeholder="https://yourbusiness.com/promo"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent outline-none"
+                    required
+                  />
+                  <p className="text-xs text-gray-600 mt-1">
+                    Where readers go when they click your banner (your website, a landing page, or a promo)
+                  </p>
+                </div>
+
+                <div>
                   <label htmlFor="description" className="block text-sm font-semibold text-gray-900 mb-2">
                     Campaign Description (Optional)
                   </label>
@@ -156,7 +189,7 @@ export default function BannerPage() {
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe your banner campaign, target audience, or destination link"
+                    placeholder="Describe your banner campaign or target audience"
                     rows={4}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent outline-none"
                   />
