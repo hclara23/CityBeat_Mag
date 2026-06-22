@@ -1,0 +1,2 @@
+# Keeps apps/ads/public/ present in clean git checkouts so the Docker build's
+# `COPY apps/ads/public` step works in CI (Git doesn't track empty directories).
