@@ -53,8 +53,17 @@ jobs:
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build image (Dockerfile.ads)
-        run: gcloud builds submit --config cloudbuild.ads.yaml --project "$GCP_PROJECT"
+      # Build on the runner instead of `gcloud builds submit`. Cloud Build was
+      # failing opaquely (logs not retrievable) for the ads image while the exact
+      # same Dockerfile built fine locally and via manual submit. Building here
+      # keeps full logs in the Actions console and matches the local build env.
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker gcr.io --quiet
+
+      - name: Build & push image (Dockerfile.ads)
+        run: |
+          docker build -f Dockerfile.ads -t "$IMAGE" .
+          docker push "$IMAGE"
 
       - name: Deploy to Cloud Run
         run: |
