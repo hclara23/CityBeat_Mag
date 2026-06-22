@@ -12,7 +12,10 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x]
+        # Node 20 matches the deploy workflows + Cloud Run runtime. Node 18 cannot
+        # require() ESM-only `jose` (pulled in transitively by firebase-admin), so
+        # `next build` for apps/ads fails on 18 but succeeds on 20.
+        node-version: [20.x]
 
     steps:
       - name: Checkout code
