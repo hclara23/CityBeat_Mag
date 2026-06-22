@@ -4,6 +4,8 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { syncCampaignBanner } from '@/lib/banner-sync'
 
+export const dynamic = 'force-dynamic'
+
 const stripeSecret = process.env.STRIPE_SECRET_KEY ?? ''
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? ''
 

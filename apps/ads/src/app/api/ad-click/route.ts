@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 
+export const dynamic = 'force-dynamic'
+
 const isSafeUrl = (value: string) => {
   try {
     const url = new URL(value)

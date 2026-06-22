@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 
+// Never prerender at build time — this hits Firestore on each request, which
+// hangs (and times out the whole build) when run during static generation.
+export const dynamic = 'force-dynamic'
+
 // This endpoint should be protected by a cron secret or similar in production
 export async function GET() {
   const now = new Date().toISOString()
