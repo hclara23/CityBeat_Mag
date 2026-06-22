@@ -52,18 +52,30 @@ export default function AdminDashboard() {
   const [pending, setPending] = useState<PendingArticle[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [stats, setStats] = useState({ totalViews: 0, topStories: [] })
+  const [loadingStats, setLoadingStats] = useState(true)
 
   const loadData = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/articles?status=pending_review')
+      const [res, statsRes] = await Promise.all([
+        fetch('/api/admin/articles?status=pending_review'),
+        fetch('/api/analytics/dashboard')
+      ])
+      
       if (res.ok) {
         const data = await res.json()
         setPending(data.articles || [])
+      }
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json()
+        setStats(statsData)
       }
     } catch (err) {
       console.error('Failed to load admin data', err)
     } finally {
       setIsLoading(false)
+      setLoadingStats(false)
     }
   }, [])
 
@@ -177,24 +189,36 @@ export default function AdminDashboard() {
             <div className="rounded-xl border border-white/10 bg-white/5 p-6">
               <div className="mb-6">
                 <p className="text-xs uppercase tracking-widest text-white/30 font-bold mb-1">Total Views (24h)</p>
-                <p className="text-3xl font-black">12,402</p>
+                {loadingStats ? (
+                  <div className="h-9 w-24 bg-white/5 rounded animate-pulse" />
+                ) : (
+                  <p className="text-3xl font-black">{stats.totalViews.toLocaleString()}</p>
+                )}
                 <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-brand-neon w-[70%]" />
+                  <div 
+                    className="h-full bg-brand-neon" 
+                    style={{ width: `${Math.min(100, (stats.totalViews / 50000) * 100)}%` }} 
+                  />
                 </div>
               </div>
               
               <div className="space-y-4">
                 <p className="text-xs font-bold uppercase tracking-widest text-white/30 pt-4 border-t border-white/10">Top Stories</p>
-                {[
-                  { t: "Border Crisis deepens...", v: "4.2k" },
-                  { t: "New Art Exhibit in El Paso", v: "2.1k" },
-                  { t: "Music Festival Lineup", v: "1.8k" }
-                ].map((s, i) => (
-                  <div key={i} className="flex items-center justify-between gap-4">
-                    <p className="truncate text-xs text-white/70">{s.t}</p>
-                    <span className="text-[10px] font-bold text-brand-neon">{s.v}</span>
-                  </div>
-                ))}
+                {loadingStats ? (
+                  Array(3).fill(0).map((_, i) => (
+                    <div key={i} className="flex items-center justify-between gap-4">
+                      <div className="h-4 w-32 bg-white/5 rounded animate-pulse" />
+                      <div className="h-4 w-8 bg-white/5 rounded animate-pulse" />
+                    </div>
+                  ))
+                ) : (
+                  stats.topStories.map((s: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between gap-4">
+                      <p className="truncate text-xs text-white/70">{s.t}</p>
+                      <span className="text-[10px] font-bold text-brand-neon">{s.v}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 

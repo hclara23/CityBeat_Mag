@@ -11,15 +11,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: '#00F0FF',
+        primary: '#06B6D4',
         secondary: '#1A1A1A',
-        accent: '#FF00FF',
+        accent: '#D946EF',
         brand: {
           dark: '#0A0A0A',
           charcoal: '#1A1A1A',
-          neon: '#00F0FF',
-          magenta: '#FF00FF',
-          gold: '#FFD700',
+          neon: '#06B6D4',
+          magenta: '#D946EF',
+          gold: '#EAB308',
         },
       },
       fontFamily: {

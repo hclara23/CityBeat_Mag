@@ -3,8 +3,9 @@ import createMiddleware from 'next-intl/middleware'
 
 import { locales, defaultLocale } from './src/lib/i18n'
 
-// Protected routes that require authentication
-const protectedRoutes = ['/dashboard', '/account', '/campaigns', '/ads/campaigns', '/ads/orders', '/billing']
+// Protected routes that require authentication (edge presence-check; real
+// verification happens server-side in route handlers / the /admin layout).
+const protectedRoutes = ['/dashboard', '/account', '/campaigns', '/ads/campaigns', '/ads/orders', '/billing', '/admin', '/creator']
 
 // Auth routes that should redirect to dashboard if already logged in
 const authRoutes = ['/login', '/signup', '/reset-password', '/update-password']
@@ -42,7 +43,7 @@ export default async function middleware(request: NextRequest) {
   // Check for Firebase session cookie
   // We use a lightweight check here at the Edge. The actual secure verification 
   // happens in the Server Components using firebase-admin.
-  const sessionCookie = request.cookies.get('firebase-session')?.value || request.cookies.get('__session')?.value;
+  const sessionCookie = request.cookies.get('__session')?.value;
   let hasValidSession = !!sessionCookie;
 
   // If accessing protected route without session, redirect to login

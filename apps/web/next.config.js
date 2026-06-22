@@ -41,6 +41,29 @@ const nextConfig = {
         source: '/((?!studio).*)',
         headers: [
           {
+            // Defense-in-depth against XSS/clickjacking. 'unsafe-inline' is required
+            // for Next's hydration/inline styles (a nonce-based policy is a future
+            // hardening step); the high-value lockdowns (object-src, base-uri,
+            // frame-ancestors, form-action) are strict. Allowlists cover Stripe,
+            // Firebase/Google, and image hosts the app actually uses.
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "base-uri 'self'",
+              "object-src 'none'",
+              "frame-ancestors 'self'",
+              "form-action 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com https://www.googletagmanager.com",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://*.googleapis.com https://*.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com https://api.stripe.com https://r.stripe.com https://maps.googleapis.com",
+              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.firebaseapp.com",
+              "worker-src 'self' blob:",
+              "manifest-src 'self'",
+            ].join('; '),
+          },
+          {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains',
           },

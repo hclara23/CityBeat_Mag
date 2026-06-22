@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale, type Locale } from '@/components/citybeat/content'
 import { getArticleBySlug } from '@/lib/articles'
+import { jsonLdSafe } from '@/lib/jsonld'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,7 +76,7 @@ export default async function StoryPage({ params }: Props) {
 
   return (
     <CityBeatShell locale={locale}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }} />
       <article className="container-wide max-w-3xl py-16">
         <Link
           href={withLocale(locale, '/stories')}

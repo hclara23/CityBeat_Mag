@@ -7,9 +7,9 @@
   --brand-dark: #0a0a0a;
   --brand-charcoal: #1a1a1a;
   --brand-ink: #050505;
-  --brand-neon: #00f0ff;
-  --brand-magenta: #ff00ff;
-  --brand-gold: #ffd700;
+  --brand-neon: #06b6d4;
+  --brand-magenta: #d946ef;
+  --brand-gold: #eab308;
   --brand-muted: #a3a3a3;
 }
 
@@ -25,11 +25,10 @@
 
   * {
     text-shadow: none !important;
-    -webkit-text-stroke: 0 !important;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-bold tracking-tight;
+    @apply font-display font-bold;
   }
 
   h1 {

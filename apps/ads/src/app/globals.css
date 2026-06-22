@@ -14,11 +14,10 @@
 
   * {
     text-shadow: none !important;
-    -webkit-text-stroke: 0 !important;
   }
 
   h1, h2, h3 {
-    @apply font-display font-bold tracking-tight;
+    @apply font-display font-bold;
   }
 }
 

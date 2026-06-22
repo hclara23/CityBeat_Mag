@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { useLocale } from '@/components/TranslationProvider'
 import BookmarkButton from '@/components/BookmarkButton'
+import { jsonLdSafe } from '@/lib/jsonld'
 
 interface Listing {
   id: string
@@ -543,7 +544,7 @@ export default function ListingDetailPage() {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: jsonLdSafe({
               '@context': 'https://schema.org',
               '@type': 'LocalBusiness',
               name: listing.name,

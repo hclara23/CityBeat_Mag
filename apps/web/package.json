@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@google-analytics/data": "^6.1.0",
     "@supabase/ssr": "^0.2.0",
     "@tailwindcss/forms": "^0.5.6",
     "@tiptap/extension-image": "^3.22.4",
@@ -26,6 +27,7 @@
     "next": "^14.0.0",
     "next-intl": "^3.0.0",
     "nodemailer": "^6.9.14",
+    "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1",
@@ -38,6 +40,7 @@
   "devDependencies": {
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20.0.0",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "autoprefixer": "^10.4.16",

@@ -6,6 +6,7 @@ import { localArticles } from '@/lib/localArticles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { NewsletterForm } from '@/components/NewsletterForm'
 import { AdBanner } from '@/components/citybeat/AdBanner'
+import { jsonLdSafe } from '@/lib/jsonld'
 type HomePageProps = {
   params: {
     locale: string
@@ -226,7 +227,7 @@ export default async function Home({ params }: HomePageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
+          __html: jsonLdSafe(
             events.map((event) => ({
               '@context': 'https://schema.org',
               '@type': 'Event',
