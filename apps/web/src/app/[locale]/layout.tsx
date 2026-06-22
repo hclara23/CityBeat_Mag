@@ -1,6 +1,7 @@
 import { getMessages, locales } from '@/i18n'
 import { TranslationProvider } from '@/components/TranslationProvider'
 import { HreflangTags } from '@/components/HreflangTags'
+import { Analytics } from '@/components/Analytics'
 import { ReactNode } from 'react'
 
 type Props = {
@@ -21,6 +22,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <TranslationProvider locale={locale} messages={messages}>
       <HreflangTags />
+      <Analytics />
       <div className="citybeat-app">
         {children}
       </div>

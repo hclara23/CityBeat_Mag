@@ -16,6 +16,14 @@
     text-shadow: none !important;
   }
 
+  /* No glow on titles — kill every halo vector on headings/display text. */
+  h1, h2, h3, h4, h5, h6,
+  .font-display {
+    text-shadow: none !important;
+    -webkit-text-stroke: 0 !important;
+    filter: none !important;
+  }
+
   h1, h2, h3 {
     @apply font-display font-bold;
   }
