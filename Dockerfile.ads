@@ -1,5 +1,7 @@
 # Cloud Run image for the CityBeat ads portal (service: citybeat-ads).
-FROM node:20-alpine AS base
+# Node 22: firebase-admin@14 requires >=22 and puppeteer@25 requires >=22.12;
+# building on Node 20 (unsupported engine) caused intermittent build failures.
+FROM node:22-alpine AS base
 RUN apk add --no-cache libc6-compat
 
 FROM base AS builder
@@ -26,7 +28,9 @@ ENV NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY \
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID \
     NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID
 
-RUN npx turbo run build --filter=@citybeat/ads
+# Extra heap headroom — next build was getting killed mid-compile under the
+# default ~2GB limit on the build worker.
+RUN NODE_OPTIONS=--max-old-space-size=4096 npx turbo run build --filter=@citybeat/ads
 
 FROM base AS runner
 WORKDIR /app
