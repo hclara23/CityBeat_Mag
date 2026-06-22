@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button, Card } from '@citybeat/ui'
 import Link from 'next/link'
 import { NEWSLETTER_OPTIONS, type BillingOption } from '@/lib/pricing'
@@ -9,7 +8,6 @@ import { useLocale } from '@/components/TranslationProvider'
 import { AdsNavigation as Navigation } from '@/components/AdsNavigation'
 
 export default function NewsletterPage() {
-  const router = useRouter()
   const locale = useLocale()
   const [campaignName, setCampaignName] = useState('')
   const [selectedBilling, setSelectedBilling] = useState<BillingOption>(
@@ -66,7 +64,8 @@ export default function NewsletterPage() {
       }
 
       const { url } = (await checkoutResponse.json()) as { url: string }
-      router.push(url)
+      // Stripe Checkout is an external URL — use a full navigation, not the SPA router.
+      window.location.href = url
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {

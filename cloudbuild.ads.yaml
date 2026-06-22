@@ -14,3 +14,7 @@ images:
   - gcr.io/kerstenblueprint/citybeat-ads:latest
 options:
   machineType: E2_HIGHCPU_8
+  # Stream to Cloud Logging only. Avoids the default GCS logs bucket, which a
+  # service-account submitter (GitHub Actions) can't use — that mismatch makes
+  # `gcloud builds submit` exit 1 even when the build itself succeeds.
+  logging: CLOUD_LOGGING_ONLY

@@ -66,6 +66,7 @@ jobs:
 
       - name: Notify Slack on Success
         if: success()
+        continue-on-error: true
         uses: slackapi/slack-github-action@v1
         with:
           payload: |
@@ -83,6 +84,7 @@ jobs:
 
       - name: Notify Slack on Failure
         if: failure()
+        continue-on-error: true
         uses: slackapi/slack-github-action@v1
         with:
           payload: |
