@@ -8,6 +8,8 @@ import dynamic from 'next/dynamic'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { useLocale } from '@/components/TranslationProvider'
 
+import { AdBanner } from '@/components/citybeat/AdBanner'
+
 const DirectoryMap = dynamic(() => import('@/components/DirectoryMap'), { ssr: false })
 
 interface Listing {
@@ -20,10 +22,20 @@ interface Listing {
   website: string | null
   rating: number | null
   user_ratings_total: number | null
-  tier: 'basic' | 'premium'
+  tier: 'basic' | 'premium' | 'featured'
   claim_status: 'unclaimed' | 'pending_approval' | 'approved'
   image_url: string | null
   is_sponsored?: boolean
+  location_count?: number | null
+}
+
+function LocationBadge({ count }: { count?: number | null }) {
+  if (!count || count < 2) return null
+  return (
+    <span className="ml-2 align-middle inline-block text-[10px] font-black uppercase tracking-wider text-brand-neon bg-brand-neon/10 border border-brand-neon/25 px-1.5 py-0.5 rounded">
+      📍 {count} locations
+    </span>
+  )
 }
 
 const CATEGORIES = ['All', 'Restaurant', 'Cafe', 'Coffee Shop', 'Bar']
@@ -119,8 +131,13 @@ export default function DirectoryPage() {
   }
 
   const sponsoredListings = listings.filter((l) => l.is_sponsored)
-  const premiumListings = listings.filter((l) => l.tier === 'premium' && !l.is_sponsored)
-  const basicListings = listings.filter((l) => l.tier !== 'premium' && !l.is_sponsored)
+  // Featured and Premium both appear in the premium section; Featured ranks first.
+  const premiumListings = listings
+    .filter((l) => (l.tier === 'premium' || l.tier === 'featured') && !l.is_sponsored)
+    .sort((a, b) => (a.tier === 'featured' ? -1 : 0) - (b.tier === 'featured' ? -1 : 0))
+  const basicListings = listings.filter(
+    (l) => l.tier !== 'premium' && l.tier !== 'featured' && !l.is_sponsored
+  )
 
   return (
     <CityBeatShell locale={locale}>
@@ -189,6 +206,11 @@ export default function DirectoryPage() {
           </div>
         </section>
 
+        {/* Sponsored banner (renders only when an active banner exists) */}
+        <div className="container-wide mb-8">
+          <AdBanner placement="directory" locale={locale} />
+        </div>
+
         {/* Content Listings section */}
         <section className="container-wide mt-16">
           {loading ? (
@@ -241,6 +263,7 @@ export default function DirectoryPage() {
 
                             <h3 className="font-sans text-2xl font-extrabold tracking-tight text-white mt-3 group-hover:text-brand-gold transition leading-snug">
                               {listing.name}
+                              <LocationBadge count={listing.location_count} />
                             </h3>
 
                             {listing.rating && (
@@ -337,6 +360,7 @@ export default function DirectoryPage() {
                           {/* Changed to clean, highly legible font-sans with tracking-tight */}
                           <h3 className="font-sans text-2xl font-extrabold tracking-tight text-white mt-3 group-hover:text-brand-neon transition leading-snug">
                             {listing.name}
+                            <LocationBadge count={listing.location_count} />
                           </h3>
 
                           {listing.rating && (
@@ -404,8 +428,9 @@ export default function DirectoryPage() {
                           </div>
 
                           {/* Highly legible font-sans with clean styling */}
-                          <h3 className="font-sans text-base font-bold tracking-normal text-white mt-2.5 line-clamp-1 leading-snug">
+                          <h3 className="font-sans text-base font-bold tracking-normal text-white mt-2.5 leading-snug">
                             {listing.name}
+                            <LocationBadge count={listing.location_count} />
                           </h3>
 
                           {listing.rating && (

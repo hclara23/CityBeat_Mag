@@ -1,91 +1,64 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, getServerUser, getServerUserProfile } from '@citybeat/lib/supabase/server'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
 
-type CampaignRow = {
-  id: string
-  status: string
-  created_at: string
-  placement?: any
-  sponsor?: any
-}
-
-function getCookieStore() {
-  const cookieStore = cookies()
-
-  return {
-    getAll: () => cookieStore.getAll(),
-    setAll: () => {
-      // Route handlers do not need to write refreshed cookies for these reads.
-    },
-  }
+function toIso(v: any): string | null {
+  if (!v) return null
+  if (v?.toDate) return v.toDate().toISOString()
+  return typeof v === 'string' ? v : null
 }
 
 export async function GET() {
-  const cookieStore = getCookieStore()
-  const user = await getServerUser(cookieStore)
-
+  const user = await getServerUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = createServerClient(cookieStore)
-  const profile = await getServerUserProfile(user.id, cookieStore)
+  const profile = await getServerUserProfile(user.id)
 
-  const { data, error } = await supabase
-    .from('ad_campaigns')
-    .select(`
-      id,
-      status,
-      created_at,
-      placement:ad_placements(name, key),
-      sponsor:sponsors(name)
-    `)
-    .eq('created_by', user.id)
-    .order('created_at', { ascending: false })
+  let campaigns: any[] = []
+  try {
+    const snap = await adminDb.collection('ad_campaigns').where('created_by', '==', user.id).get()
+    const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
 
-  if (error) {
-    return NextResponse.json(
-      { error: 'Failed to load dashboard campaigns' },
-      { status: 500 }
-    )
+    const [placementsSnap, sponsorsSnap] = await Promise.all([
+      adminDb.collection('ad_placements').get().catch(() => ({ docs: [] as any[] })),
+      adminDb.collection('sponsors').get().catch(() => ({ docs: [] as any[] })),
+    ])
+    const placementMap = new Map((placementsSnap.docs as any[]).map((d) => [d.id, (d.data() as any).name]))
+    const sponsorMap = new Map((sponsorsSnap.docs as any[]).map((d) => [d.id, (d.data() as any).name]))
+
+    let events: any[] = []
+    if (rows.length > 0) {
+      const evSnap = await adminDb
+        .collection('ad_events')
+        .where('campaign_id', 'in', rows.slice(0, 10).map((r) => r.id))
+        .get()
+        .catch(() => ({ docs: [] as any[] }))
+      events = (evSnap.docs as any[]).map((d) => d.data())
+    }
+
+    campaigns = rows.map((row: any) => {
+      const ce = events.filter((e) => e.campaign_id === row.id)
+      const impressions = ce.filter((e) => e.event_type === 'impression').length
+      const clicks = ce.filter((e) => e.event_type === 'click').length
+      return {
+        id: row.id,
+        name: `${sponsorMap.get(row.sponsor_id) || 'Sponsor'} - ${placementMap.get(row.placement_id) || 'Placement'}`,
+        status: row.status,
+        created_at: toIso(row.created_at),
+        impressions,
+        clicks,
+      }
+    })
+  } catch (error) {
+    console.error('dashboard error:', error)
   }
 
-  let events: { campaign_id: string; event_type: string }[] = []
-  if (data && data.length > 0) {
-    const campaignIds = data.map((c) => c.id)
-    const { data: eventsData, error: eventsError } = await supabase
-      .from('ad_events')
-      .select('campaign_id, event_type')
-      .in('campaign_id', campaignIds)
-    if (!eventsError && eventsData) {
-      events = eventsData
-    }
-  }
-
-  const campaigns = (data ?? []).map((row: any) => {
-    const campaignEvents = events.filter((e) => e.campaign_id === row.id)
-    const impressions = campaignEvents.filter((e) => e.event_type === 'impression').length
-    const clicks = campaignEvents.filter((e) => e.event_type === 'click').length
-
-    const placementName = row.placement?.[0]?.name || row.placement?.name || 'Placement'
-    const sponsorName = row.sponsor?.[0]?.name || row.sponsor?.name || 'Sponsor'
-    const campaignName = `${sponsorName} - ${placementName}`
-
-    return {
-      id: row.id,
-      name: campaignName,
-      status: row.status,
-      created_at: row.created_at,
-      impressions,
-      clicks,
-    }
-  })
-
-  const totalImpressions = campaigns.reduce((sum, campaign) => sum + campaign.impressions, 0)
-  const totalClicks = campaigns.reduce((sum, campaign) => sum + campaign.clicks, 0)
+  const totalImpressions = campaigns.reduce((s, c) => s + c.impressions, 0)
+  const totalClicks = campaigns.reduce((s, c) => s + c.clicks, 0)
 
   return NextResponse.json({
     profile,
@@ -93,7 +66,7 @@ export async function GET() {
     stats: {
       totalImpressions,
       totalClicks,
-      activeCampaigns: campaigns.filter((campaign) => campaign.status === 'active').length,
+      activeCampaigns: campaigns.filter((c) => c.status === 'active').length,
       ctr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
     },
   })

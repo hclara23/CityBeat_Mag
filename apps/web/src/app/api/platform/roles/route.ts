@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, getServerUser, getServerUserProfile } from '@citybeat/lib/supabase/server'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 import {
   canManageRole,
   getPrimaryPlatformRole,
@@ -12,25 +12,6 @@ import {
 } from '@citybeat/lib/supabase/roles'
 
 export const dynamic = 'force-dynamic'
-
-function getCookieStore() {
-  const cookieStore = cookies()
-  return {
-    getAll: () => cookieStore.getAll(),
-    setAll: () => {},
-  }
-}
-
-async function getProfileWithRoles(supabase: ReturnType<typeof createServerClient>, userId: string) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*, profile_roles(role, revoked_at)')
-    .eq('id', userId)
-    .single()
-
-  if (error) return null
-  return data
-}
 
 function roleColumnGrantUpdates(roles: PlatformRole[]) {
   const roleSet = new Set(roles)
@@ -73,12 +54,10 @@ function roleColumnGrantUpdates(roles: PlatformRole[]) {
 }
 
 export async function GET() {
-  const cookieStore = getCookieStore()
-  const user = await getServerUser(cookieStore)
+  const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const supabase = createServerClient(cookieStore)
-  const profile = await getProfileWithRoles(supabase, user.id)
+  const profile = await getServerUserProfile(user.id)
 
   return NextResponse.json({
     profile: {
@@ -94,12 +73,10 @@ export async function GET() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const cookieStore = getCookieStore()
-  const user = await getServerUser(cookieStore)
+  const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const supabase = createServerClient(cookieStore)
-  const actor = await getProfileWithRoles(supabase, user.id)
+  const actor = await getServerUserProfile(user.id)
   if (!hasAdminAccess(actor)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await request.json().catch(() => ({}))
@@ -115,36 +92,27 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: `Not allowed to grant: ${disallowed.join(', ')}` }, { status: 403 })
   }
 
-  const target = await getServerUserProfile(targetUserId, cookieStore)
-  if (!target) return NextResponse.json({ error: 'Target profile not found' }, { status: 404 })
+  const targetDoc = await adminDb.collection('profiles').doc(targetUserId).get()
+  if (!targetDoc.exists) {
+    return NextResponse.json({ error: 'Target profile not found' }, { status: 404 })
+  }
+  const target = targetDoc.data()
+  // Non-developers cannot modify developer accounts.
   if (!hasDeveloperAccess(actor) && hasDeveloperAccess(target)) {
     return NextResponse.json({ error: 'Target profile not found' }, { status: 404 })
   }
 
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .update(roleColumnGrantUpdates(roles))
-    .eq('id', targetUserId)
-
-  if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
+  try {
+    const updates = {
+      ...roleColumnGrantUpdates(roles),
+      granted_roles: roles,
+      updated_at: new Date().toISOString(),
+    }
+    await adminDb.collection('profiles').doc(targetUserId).set(updates, { merge: true })
+    const updated = await adminDb.collection('profiles').doc(targetUserId).get()
+    return NextResponse.json({ profile: { id: updated.id, ...updated.data() } })
+  } catch (error: any) {
+    console.error('roles PATCH error:', error)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
-
-  const rows = roles.map((role) => ({
-    profile_id: targetUserId,
-    role,
-    granted_by: user.id,
-    revoked_at: null,
-  }))
-
-  const { error: roleError } = await supabase
-    .from('profile_roles')
-    .upsert(rows, { onConflict: 'profile_id,role' })
-
-  if (roleError) {
-    return NextResponse.json({ error: roleError.message }, { status: 500 })
-  }
-
-  const updated = await getProfileWithRoles(supabase, targetUserId)
-  return NextResponse.json({ profile: updated })
 }

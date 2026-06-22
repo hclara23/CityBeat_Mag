@@ -2,6 +2,7 @@ node_modules
 .next
 .git
 .env*
+**/.env*
 .vercel
 apps/web/.next
 apps/ads/.next
@@ -9,3 +10,10 @@ apps/web/node_modules
 apps/ads/node_modules
 packages/*/node_modules
 packages/*/.next
+.graphify-venv
+**/.graphify-venv
+*venv*/
+.codex-swarm
+build.log
+*.log
+graphify-out

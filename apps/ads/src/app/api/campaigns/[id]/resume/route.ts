@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserIdFromRequest, isAdvertiser } from '@/lib/firebase'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { syncCampaignBanner } from '@/lib/banner-sync'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +33,7 @@ export async function POST(
     }
 
     await campaignRef.update({ status: 'active' })
+    await syncCampaignBanner(campaignId, { active: true }).catch(() => {})
 
     return NextResponse.json({
       data: {

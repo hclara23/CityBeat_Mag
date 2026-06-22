@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/TranslationProvider'
 import { Navigation, Button, Input } from '@citybeat/ui'
-import { getUser, getUserProfile, updateProfile, signOut } from '@citybeat/lib/supabase/auth'
+import { getUser, getUserProfile, updateProfile, signOut } from '@citybeat/lib/firebase/auth-client'
 import { AuthError } from '@citybeat/ui/auth'
 
 interface UserProfile {

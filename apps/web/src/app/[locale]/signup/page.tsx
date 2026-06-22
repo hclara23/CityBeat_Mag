@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SignupForm } from '@citybeat/ui/auth'
-import { signUp, createUserProfile } from '@citybeat/lib/supabase/auth'
+import { signUp, createUserProfile } from '@citybeat/lib/firebase/auth-client'
 import Link from 'next/link'
 import { useLocale } from '@/components/TranslationProvider'
 

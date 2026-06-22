@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
-import { getUser } from '@citybeat/lib/supabase/auth'
+import { getUser } from '@citybeat/lib/firebase/auth-client'
 
 type ArticleStatus = 'draft' | 'pending_review' | 'approved' | 'rejected' | 'published'
 

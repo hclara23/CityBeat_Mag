@@ -1,66 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, getServerUser } from '@citybeat/lib/supabase/server'
+import { getServerUser } from '@citybeat/lib/firebase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
+import { getPlan, FOUNDING_LIMIT } from '@/lib/pricing'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
 
-function getCookieStore() {
-  const cookieStore = cookies()
-  return {
-    getAll: () => cookieStore.getAll(),
-    setAll: () => {
-      // Route handlers do not need to write refreshed cookies for these reads.
-    },
-  }
-}
-
 export async function POST(request: NextRequest) {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY
   if (!stripeSecretKey) {
-    return NextResponse.json(
-      { error: 'Stripe configuration missing' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Stripe configuration missing' }, { status: 500 })
   }
 
-  const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: '2023-08-16',
-  })
+  const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-08-16' })
 
   try {
-    const { listingId } = await request.json()
+    const body = await request.json()
+    const listingId = body.listingId
     if (!listingId) {
       return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
     }
 
-    const cookieStore = getCookieStore()
-    const user = await getServerUser(cookieStore)
+    // Default to standard monthly Premium when no plan is specified.
+    const plan = getPlan(body.plan) || getPlan('premium_monthly')!
 
+    const user = await getServerUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = createServerClient(cookieStore)
-
-    // Check if listing exists and is unclaimed or owned by current user
-    const { data: listing, error: listingError } = await supabase
-      .from('directory_listings')
-      .select('*')
-      .eq('id', listingId)
-      .maybeSingle()
-
-    if (listingError || !listing) {
+    const doc = await adminDb.collection('directory_listings').doc(listingId).get()
+    if (!doc.exists) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
     }
+    const listing = { id: doc.id, ...(doc.data() as any) }
 
     if (listing.claim_status === 'approved' && listing.owner_id !== user.id) {
       return NextResponse.json({ error: 'Listing is already claimed and approved' }, { status: 400 })
     }
 
+    // Founding 100: enforce the launch-promo cap server-side.
+    if (plan.founding) {
+      const count = await adminDb
+        .collection('directory_listings')
+        .where('founding_member', '==', true)
+        .count()
+        .get()
+        .then((s: any) => s.data().count)
+        .catch(() => 0)
+      if (count >= FOUNDING_LIMIT) {
+        return NextResponse.json(
+          { error: 'The Founding 100 launch offer is sold out. Please choose another plan.', founding_sold_out: true },
+          { status: 409 }
+        )
+      }
+    }
+
     const origin = request.headers.get('origin') || new URL(request.url).origin
 
-    // Create a Checkout Session for $19/mo subscription
+    // Multi-location brands are billed PER LOCATION: the plan fee is multiplied
+    // by the number of locations consolidated under this listing.
+    const locationCount = Math.max(1, Number(listing.location_count) || 1)
+    const perLocationNote =
+      locationCount > 1 ? ` — ${locationCount} locations × ${plan.priceLabel}` : ''
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -69,16 +72,14 @@ export async function POST(request: NextRequest) {
         {
           price_data: {
             currency: 'usd',
-            unit_amount: 1900, // $19.00
-            recurring: {
-              interval: 'month',
-            },
+            unit_amount: plan.unitAmount,
+            recurring: { interval: plan.interval },
             product_data: {
-              name: `CityBeat Directory Premium: ${listing.name}`,
-              description: `Claim and upgrade your business listing to Premium. Access high-res photo gallery, custom description, social media links, and open hours.`,
+              name: `CityBeat Directory ${plan.label}: ${listing.name}${perLocationNote}`,
+              description: plan.description,
             },
           },
-          quantity: 1,
+          quantity: locationCount,
         },
       ],
       success_url: `${origin}/directory/${listing.id}?status=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -86,6 +87,10 @@ export async function POST(request: NextRequest) {
       metadata: {
         listing_id: listing.id,
         owner_id: user.id,
+        plan: plan.id,
+        tier: plan.tier,
+        founding: plan.founding ? 'true' : 'false',
+        location_count: String(locationCount),
       },
     })
 

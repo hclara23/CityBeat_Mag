@@ -6,7 +6,7 @@ import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { ArticleForm, ArticleFormValues } from '../../_components/ArticleForm'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
-import { getUser } from '@citybeat/lib/supabase/auth'
+import { getUser } from '@citybeat/lib/firebase/auth-client'
 
 export default function EditArticlePage() {
   const router = useRouter()

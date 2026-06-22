@@ -24,7 +24,7 @@ interface Listing {
   category: string
   address: string | null
   image_url: string | null
-  tier: 'basic' | 'premium'
+  tier: 'basic' | 'premium' | 'featured'
 }
 
 // Temporary geocoding for UI demonstration. In production, coordinates should be added to the DB.

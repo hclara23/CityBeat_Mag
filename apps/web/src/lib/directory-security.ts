@@ -26,6 +26,7 @@ type ClaimListing = {
   name: string
   claim_status: string
   phone?: string | null
+  email?: string | null
 }
 
 type ClaimVerificationInput = {
@@ -38,7 +39,7 @@ type ClaimVerificationResult =
   | {
       ok: true
       status: 'code_sent' | 'pending'
-      notificationType: 'sms' | 'postcard'
+      notificationType: 'sms' | 'email' | 'postcard'
       recipient: string | null
     }
   | {
@@ -90,10 +91,19 @@ export function resolveClaimVerification({
   }
 
   if (method === 'email') {
+    const trustedEmail = listing.email?.trim()
+    if (!trustedEmail) {
+      return {
+        ok: false,
+        statusCode: 400,
+        error: 'Email verification is unavailable for this listing.',
+      }
+    }
     return {
-      ok: false,
-      statusCode: 400,
-      error: 'Email verification is unavailable for this listing.',
+      ok: true,
+      status: 'code_sent',
+      notificationType: 'email',
+      recipient: trustedEmail,
     }
   }
 

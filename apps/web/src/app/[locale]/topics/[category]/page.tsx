@@ -1,180 +1,87 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Card, Button } from '@citybeat/ui'
-import { SiteHeader } from '@/components/citybeat/SiteHeader'
-import { sanityClient } from '@/lib/sanity'
-import { localArticles } from '@/lib/localArticles'
-import { useTranslations } from '@/components/TranslationProvider'
+import { notFound } from 'next/navigation'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
+import { withLocale, type Locale } from '@/components/citybeat/content'
+import { getPublishedArticles, CATEGORY_IDS } from '@/lib/articles'
 
-interface Brief {
-  _id: string
-  slug?: string
-  title: string
-  content: string
-  contentEN: string
-  contentES: string
-  excerpt?: string
-  category: string
-  publishedAt: string
-  source: string
-  image?: string | null
-  status: string
+export const dynamic = 'force-dynamic'
+
+type Props = {
+  params: { locale: string; category: string }
 }
 
-function getBriefHref(locale: string, brief: Brief) {
-  return `/${locale}/briefs/${brief.slug || brief._id}`
+const categoryLabels: Record<string, { en: string; es: string }> = {
+  news: { en: 'News', es: 'Noticias' },
+  business: { en: 'Business', es: 'Negocios' },
+  events: { en: 'Events', es: 'Eventos' },
+  culture: { en: 'Culture', es: 'Cultura' },
 }
 
-function getBriefContent(brief: Brief, locale: string) {
-  const localized = locale === 'es' ? brief.contentES : brief.contentEN
-  return localized || brief.content
-}
+export default async function TopicPage({ params }: Props) {
+  const locale = (params.locale || 'en') as Locale
+  const category = params.category
 
-export default function TopicHubPage() {
-  const params = useParams()
-  const locale = (params.locale as string) || 'en'
-  const category = (params.category as string) || ''
-  const t = useTranslations()
+  if (!(CATEGORY_IDS as readonly string[]).includes(category)) {
+    notFound()
+  }
 
-  const [briefs, setBriefs] = useState<Brief[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchBriefs = async () => {
-      try {
-        const query = `*[_type == "brief" && status == "published" && category == $category] | order(publishedAt desc) [0...50] {
-          _id,
-          "slug": slug.current,
-          title,
-          content,
-          contentEN,
-          contentES,
-          category,
-          publishedAt,
-          source,
-          status,
-          image
-        }`
-
-        const data = await sanityClient.fetch<Brief[]>(query, { category })
-        const remoteBriefs = Array.isArray(data) ? data : []
-        const localMatches = localArticles.filter(a => a.category === category)
-        const localIds = new Set(localMatches.map((article) => article._id))
-        setBriefs([
-          ...localMatches,
-          ...remoteBriefs.filter((brief) => !localIds.has(brief._id)),
-        ])
-      } catch (error) {
-        console.error('Failed to fetch briefs for category:', error)
-        setBriefs(localArticles.filter(a => a.category === category))
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (category) {
-      fetchBriefs()
-    }
-  }, [category])
-
-  const formatCategory = (cat: string) => cat.charAt(0).toUpperCase() + cat.slice(1)
+  const articles = await getPublishedArticles({ category, limit: 60 })
 
   return (
-    <CityBeatShell locale={locale as 'en' | 'es'}>
-      <div className="min-h-screen bg-black/90 text-white pt-24 pb-12">
-        <div className="container-wide">
-          <div className="mb-12">
-            <h1 className="text-4xl font-black md:text-6xl text-brand-neon capitalize">
-              {formatCategory(category)} News
-            </h1>
-            <p className="text-xl text-white/70 mt-4">
-              The latest {category} updates from CityBeat Mag.
-            </p>
-          </div>
+    <CityBeatShell locale={locale}>
+      <section className="container-wide py-16">
+        <Link
+          href={withLocale(locale, '/stories')}
+          className="text-xs font-black uppercase tracking-[0.24em] text-brand-neon hover:underline"
+        >
+          {locale === 'es' ? '← Boletines' : '← Stories'}
+        </Link>
+        <p className="mt-8 text-xs font-black uppercase tracking-[0.28em] text-brand-neon">
+          {locale === 'es' ? 'Tema' : 'Topic'}
+        </p>
+        <h1 className="mt-3 font-display text-5xl font-black tracking-tight text-white">
+          {categoryLabels[category]?.[locale] ?? category}
+        </h1>
 
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin h-12 w-12 border-4 border-brand-neon border-t-transparent rounded-full mx-auto"></div>
-            </div>
-          ) : briefs.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-white/60 text-lg">No articles found in this topic.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {briefs.map(brief => (
-                <Link
-                  key={brief._id}
-                  href={getBriefHref(locale, brief)}
-                  className="block group"
-                >
-                  <Card className="h-full overflow-hidden bg-black/40 border border-white/10 group-hover:border-brand-neon/50 transition">
-                    {brief.image ? (
-                      <div className="bg-black/20">
-                        <Image
-                          src={brief.image}
-                          alt=""
-                          width={900}
-                          height={600}
-                          className="aspect-[4/3] w-full object-cover opacity-80 group-hover:scale-105 transition duration-500"
-                        />
-                      </div>
-                    ) : null}
-                    <div className="h-full flex flex-col">
-                      <div className="flex-1 p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-semibold text-brand-neon uppercase">
-                            {brief.category}
-                          </span>
-                          <span className="text-xs text-white/50">{brief.source}</span>
-                        </div>
-                        <h3 className="text-xl font-bold text-white mb-2 line-clamp-3 group-hover:text-brand-neon transition-colors">
-                          {brief.title}
-                        </h3>
-                        <p className="text-white/60 text-sm line-clamp-3 mb-4">
-                          {brief.excerpt || getBriefContent(brief, locale)}
-                        </p>
-                      </div>
-                      <div className="p-6 pt-0">
-                        <p className="text-xs text-white/40">
-                          {new Date(brief.publishedAt).toLocaleDateString(
-                            locale === 'es' ? 'es-MX' : 'en-US'
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-      
-      {/* JSON-LD for Topic Cluster */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'CollectionPage',
-            name: `${formatCategory(category)} News - CityBeat Mag`,
-            description: `The latest ${category} updates, events, and news from CityBeat Mag.`,
-            url: `https://citybeatmag.co/${locale}/topics/${category}`,
-            hasPart: briefs.map(brief => ({
-              '@type': 'NewsArticle',
-              headline: brief.title,
-              url: `https://citybeatmag.co/${locale}/briefs/${brief.slug || brief._id}`,
-              datePublished: brief.publishedAt
-            }))
-          })
-        }}
-      />
+        {articles.length === 0 ? (
+          <p className="mt-16 text-white/55">
+            {locale === 'es' ? 'No hay historias en este tema todavía.' : 'No stories in this topic yet.'}
+          </p>
+        ) : (
+          <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {articles.map((article) => (
+              <Link
+                key={article._id}
+                href={withLocale(locale, `/stories/${article.slug}`)}
+                className="group"
+              >
+                <article className="grid gap-4">
+                  <div className="overflow-hidden rounded-md bg-white/5">
+                    <Image
+                      src={article.image ?? 'https://picsum.photos/seed/citybeat-local/1600/1000'}
+                      alt=""
+                      width={900}
+                      height={650}
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="aspect-[4/3] w-full object-cover opacity-85 transition duration-500 group-hover:scale-105 group-hover:opacity-70"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-neon">
+                      {article.category}
+                    </p>
+                    <h2 className="mt-2 text-2xl font-black leading-tight text-white transition group-hover:text-brand-neon">
+                      {article.title}
+                    </h2>
+                    <p className="mt-3 text-sm leading-6 text-white/55">{article.excerpt}</p>
+                  </div>
+                </article>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </CityBeatShell>
   )
 }

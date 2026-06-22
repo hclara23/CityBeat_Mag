@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
-import { getUser } from '@citybeat/lib/supabase/auth'
+import { getUser } from '@citybeat/lib/firebase/auth-client'
 
 interface PendingArticle {
   id: string
@@ -22,12 +22,17 @@ const primaryAdminLinks = [
   { href: '/admin/claims', label: 'Claims Queue', description: 'Review, approve, or reject business directory claims.' },
   { href: '/admin/directory', label: 'Directory Manager', description: 'Add, edit, upgrade, verify, sponsor, or delete business listings.' },
   { href: '/admin/events', label: 'Events Manager', description: 'Review, moderate, and delete scraped events.' },
+  { href: '/admin/sales', label: 'Sales Agent (Godmode)', description: 'Automated outreach to unclaimed businesses — claim + Premium upsell funnel.' },
+  { href: '/admin/banners', label: 'Ad Banner Manager (Godmode)', description: 'Create, edit, activate, and place sponsor banners across the site.' },
+  { href: '/admin/payouts', label: 'Payout Settings (Godmode)', description: 'Set the % paid out to users per service and per-user overrides.' },
+  { href: '/admin/finance', label: 'Finance & Analytics (Godmode)', description: 'All incoming and outgoing payments plus analytics.' },
+  { href: '/account/payments', label: 'My Bank & Payouts', description: 'Connect a bank account, view balance and payouts received.' },
   { href: '/contribute', label: 'Public Submit Form', description: 'View the contributor intake page readers use.' },
 ]
 
 const pageLinks = [
   { href: '/', label: 'Home' },
-  { href: '/briefs', label: 'Stories' },
+  { href: '/stories', label: 'Stories' },
   { href: '/directory', label: 'Directory' },
   { href: '/admin/directory', label: 'Dir. Manager' },
   { href: '/admin/claims', label: 'Claims Queue' },

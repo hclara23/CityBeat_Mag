@@ -19,8 +19,8 @@ export async function handleBriefAutomation(env: Env): Promise<void> {
     for (const brief of briefs) {
       const translated = await translateBrief(brief, env)
 
-      // Save to Sanity as draft
-      await saveBriefToSanity(translated, env)
+      // Save to the app (Firestore articles, pending review)
+      await saveBriefToApp(translated, env)
 
       // Send notification to editor
       await notifyEditor(translated, env)
@@ -176,89 +176,35 @@ async function translateBrief(brief: Brief, env: Env): Promise<any> {
   }
 }
 
-async function saveBriefToSanity(brief: any, env: Env): Promise<void> {
+// Post the translated brief to the web app's ingest endpoint, which writes it to
+// Firestore `articles` as `pending_review` for editors to publish.
+async function saveBriefToApp(brief: any, env: Env): Promise<void> {
   try {
-    const sanityUrl = `https://${env.SANITY_PROJECT_ID}.api.sanity.io/v2021-06-07/data/mutate/${env.SANITY_DATASET}`
-
-    const mutation = {
-      mutations: [
-        {
-          create: {
-            _type: 'brief',
-            title: brief.title,
-            content: brief.content,
-            contentEN: brief.contentEN,
-            contentES: brief.contentES,
-            category: brief.category,
-            status: 'draft',
-            source: brief.source,
-            publishedAt: new Date().toISOString(),
-          },
-        },
-      ],
-    }
-
-    const response = await fetch(sanityUrl, {
+    const url = `${env.INGEST_URL || 'https://citybeatmag.co'}/api/ingest/brief`
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${env.SANITY_WRITE_TOKEN}`,
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(mutation),
-    })
-
-    if (!response.ok) {
-      throw new Error(`Sanity API error: ${response.statusText}`)
-    }
-
-    const result: any = await response.json()
-    const sanityId = result.results?.[0]?.id
-
-    // Also save to Supabase for tracking and analytics
-    if (sanityId && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
-      await saveBriefToSupabase(
-        {
-          ...brief,
-          sanity_id: sanityId,
-        },
-        env
-      )
-    }
-
-    console.log('Brief saved to Sanity:', sanityId)
-  } catch (error) {
-    console.error('Failed to save brief to Sanity:', error)
-  }
-}
-
-async function saveBriefToSupabase(brief: any, env: Env): Promise<void> {
-  try {
-    const response = await fetch(`${env.SUPABASE_URL}/rest/v1/briefs`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',
+        'x-ingest-secret': env.INGEST_SECRET || '',
       },
       body: JSON.stringify({
-        sanity_id: brief.sanity_id,
         title: brief.title,
-        content_en: brief.contentEN,
-        content_es: brief.contentES,
+        content: brief.content,
+        contentEN: brief.contentEN,
+        contentES: brief.contentES,
         category: brief.category,
         source: brief.source,
-        published_at: new Date().toISOString(),
-        status: 'draft',
       }),
     })
 
-    if (!response.ok && response.status !== 201) {
-      console.warn(`Supabase insert warning: ${response.statusText}`)
-    } else {
-      console.log('Brief saved to Supabase')
+    if (!response.ok) {
+      throw new Error(`Ingest API error: ${response.status} ${response.statusText}`)
     }
+
+    const result: any = await response.json().catch(() => ({}))
+    console.log('Brief ingested to Firestore:', result.id)
   } catch (error) {
-    console.error('Failed to save brief to Supabase:', error)
+    console.error('Failed to ingest brief:', error)
   }
 }
 

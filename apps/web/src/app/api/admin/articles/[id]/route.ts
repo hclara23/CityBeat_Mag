@@ -1,22 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { getServerUser, createServerClient, isEditor } from '@citybeat/lib/supabase/server'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 
-function readonlyCookieStore(store: Awaited<ReturnType<typeof cookies>>) {
-  return { getAll: () => store.getAll(), setAll: () => {} }
+export const dynamic = 'force-dynamic'
+
+function toIso(v: any): string | null {
+  if (!v) return null
+  if (v?.toDate) return v.toDate().toISOString()
+  return typeof v === 'string' ? v : null
+}
+
+async function requireEditor() {
+  const user = await getServerUser()
+  const profile = user ? await getServerUserProfile(user.id) : null
+  if (!user || !(profile?.is_editor || profile?.is_developer)) return null
+  return user
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const cookieStore = readonlyCookieStore(await cookies())
-  const user = await getServerUser(cookieStore)
-  
-  if (!user || !(await isEditor(user.id, cookieStore))) {
+  if (!(await requireEditor())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { id } = await params
   const { status, rejection_reason } = await request.json()
-  const supabase = createServerClient(cookieStore)
 
   if (!['published', 'rejected', 'draft'].includes(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
@@ -24,24 +31,26 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const updateData: any = {
     status,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   }
-
   if (status === 'published') {
     updateData.published_at = new Date().toISOString()
   }
+  if (status === 'rejected' && rejection_reason) {
+    updateData.rejection_reason = rejection_reason
+  }
 
   try {
-    const { data, error } = await supabase
-      .from('articles')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    return NextResponse.json({ article: data })
+    const ref = adminDb.collection('articles').doc(id)
+    await ref.set(updateData, { merge: true })
+    const doc = await ref.get()
+    if (!doc.exists) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+    const data = doc.data() as any
+    return NextResponse.json({
+      article: { id: doc.id, ...data, created_at: toIso(data.created_at), published_at: toIso(data.published_at) },
+    })
   } catch (error) {
     console.error('Admin PATCH error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
@@ -49,35 +58,39 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 }
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const cookieStore = readonlyCookieStore(await cookies())
-  const user = await getServerUser(cookieStore)
-  
-  if (!user || !(await isEditor(user.id, cookieStore))) {
+  if (!(await requireEditor())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { id } = await params
-  const supabase = createServerClient(cookieStore)
 
   try {
-    const { data, error } = await supabase
-      .from('articles')
-      .select(`
-        *,
-        byline:authors!articles_author_id_fkey(name),
-        creator:profiles!articles_created_by_fkey(email, full_name)
-      `)
-      .eq('id', id)
-      .single()
+    const doc = await adminDb.collection('articles').doc(id).get()
+    if (!doc.exists) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+    const data = doc.data() as any
 
-    if (error) throw error
+    let bylineName: string | undefined
+    if (data.author_id) {
+      const aDoc = await adminDb.collection('authors').doc(data.author_id).get()
+      bylineName = aDoc.exists ? (aDoc.data() as any).name : undefined
+    }
+    let creator: any
+    if (data.created_by) {
+      const pDoc = await adminDb.collection('profiles').doc(data.created_by).get()
+      creator = pDoc.exists ? pDoc.data() : undefined
+    }
 
     return NextResponse.json({
       article: {
+        id: doc.id,
         ...data,
+        created_at: toIso(data.created_at),
+        published_at: toIso(data.published_at),
         author: {
-          email: data.creator?.email,
-          full_name: data.byline?.name || data.creator?.full_name || data.creator?.email,
+          email: creator?.email,
+          full_name: bylineName || creator?.full_name || creator?.email || data.author,
         },
       },
     })

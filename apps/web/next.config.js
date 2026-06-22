@@ -7,15 +7,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**.sanity.io',
-      },
-      {
-        protocol: 'https',
         hostname: '**.imgix.net',
-      },
-      {
-        protocol: 'https',
-        hostname: 'cdn.sanity.io',
       },
       {
         protocol: 'https',
@@ -32,6 +24,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'firebasestorage.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
       },
     ],
     formats: ['image/avif', 'image/webp'],

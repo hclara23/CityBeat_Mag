@@ -1,61 +1,61 @@
-FROM node:18-alpine AS base
-
-# Install dependencies only when needed
-FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+# Cloud Run image for the CityBeat web app (service: citybeat-web).
+# Used by `gcloud run deploy citybeat-web --source .` (see scripts/deploy-web.ps1).
+FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat
-WORKDIR /app
 
-# Install dependencies based on the preferred package manager
-COPY package.json package-lock.json* ./
-# Copy workspace packages package.json if any
-COPY apps/web/package.json ./apps/web/
-COPY apps/ads/package.json ./apps/ads/
-COPY packages/lib/package.json ./packages/lib/
-COPY packages/sanity/package.json ./packages/sanity/
-COPY packages/ui/package.json ./packages/ui/
-COPY packages/worker/package.json ./packages/worker/
-RUN npm ci
-
-# Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-ENV NEXT_TELEMETRY_DISABLED 1
+COPY package.json package-lock.json* ./
+COPY turbo.json ./
+COPY apps ./apps
+COPY packages ./packages
+RUN npm install
 
-# Build the project
-RUN npm run build
+# Public Firebase web config (kerstenblueprint project). These NEXT_PUBLIC_* values
+# are shipped to the browser by design, so it is safe to bake them into the image.
+# They are inlined into the client bundle at `next build` time. Override with
+# --build-arg if the project ever changes.
+ARG NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyA1O_4vViQX2yheYTibS_vw0qppTnSM8BU
+ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=kerstenblueprint.firebaseapp.com
+ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID=kerstenblueprint
+ARG NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=kerstenblueprint.firebasestorage.app
+ARG NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=854761587817
+ARG NEXT_PUBLIC_FIREBASE_APP_ID=1:854761587817:web:423272ca9e8daee48a8ef8
+ENV NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY \
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN \
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID=$NEXT_PUBLIC_FIREBASE_PROJECT_ID \
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET \
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID \
+    NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID
 
-# Production image, copy all the files and run next
+# Public build-time config consumed by module-scope clients during `next build`
+# (Supabase client init). These are placeholders just to satisfy client
+# construction at build time; real runtime values come from Cloud Run env.
+ARG NEXT_PUBLIC_SUPABASE_URL=https://dev.supabase.co
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=dev_key
+ARG NEXT_PUBLIC_APP_URL=https://citybeatmag.co
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+
+RUN npx turbo run build --filter=web
+
 FROM base AS runner
 WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=8080
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
+# Next.js standalone output (monorepo): server.js lives at apps/web/server.js
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 
 USER nextjs
-
-EXPOSE 3000
-
-ENV PORT 3000
-
-# server.js is created by next build from the standalone output
-# https://nextjs.org/docs/pages/api-reference/next-config-js/output
-CMD HOSTNAME="0.0.0.0" node apps/web/server.js
+EXPOSE 8080
+ENV HOSTNAME=0.0.0.0
+CMD ["node", "apps/web/server.js"]

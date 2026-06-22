@@ -1,11 +1,7 @@
 import { getMessages, locales } from '@/i18n'
 import { TranslationProvider } from '@/components/TranslationProvider'
 import { HreflangTags } from '@/components/HreflangTags'
-import { ReactNode, Suspense } from 'react'
-import { draftMode } from 'next/headers'
-import dynamic from 'next/dynamic'
-
-const LiveVisualEditing = dynamic(() => import('@/components/sanity/LiveVisualEditing'))
+import { ReactNode } from 'react'
 
 type Props = {
   children: ReactNode
@@ -27,11 +23,6 @@ export default async function LocaleLayout({ children, params }: Props) {
       <HreflangTags />
       <div className="citybeat-app">
         {children}
-        {draftMode().isEnabled && (
-          <Suspense>
-            <LiveVisualEditing />
-          </Suspense>
-        )}
       </div>
     </TranslationProvider>
   )

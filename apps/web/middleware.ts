@@ -17,10 +17,6 @@ const intlMiddleware = createMiddleware({
 })
 
 export default async function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith('/studio')) {
-    return NextResponse.next()
-  }
-
   // Apply i18n middleware
   const response = intlMiddleware(request)
 

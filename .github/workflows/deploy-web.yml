@@ -1,25 +1,36 @@
 name: Deploy Web App
 
+# Deploys the web app to its REAL production target: the Cloud Run service
+# `citybeat-web` in the `kerstenblueprint` GCP project (citybeatmag.co).
+# (The previous version deployed to Vercel, which does not serve the live site.)
+#
+# Requires repo secret GCP_SA_KEY: a JSON service-account key with roles
+#   roles/run.admin, roles/cloudbuild.builds.editor, roles/iam.serviceAccountUser,
+#   roles/storage.admin (for the source upload bucket).
+# Public NEXT_PUBLIC_* build values are baked by the root Dockerfile; runtime
+# secrets (STRIPE_SECRET_KEY, INGEST_SECRET, NEXT_PUBLIC_FIREBASE_*) persist on
+# the Cloud Run service across deploys.
+
 on:
   push:
     branches: [main]
     paths:
       - 'apps/web/**'
       - 'packages/**'
+      - 'Dockerfile'
       - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
 
 env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+  GCP_PROJECT: kerstenblueprint
+  GCP_REGION: us-central1
+  SERVICE: citybeat-web
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
-      checks: write
 
     steps:
       - name: Checkout code
@@ -28,7 +39,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
@@ -37,29 +48,21 @@ jobs:
       - name: Type check
         run: npm run type-check --workspace=apps/web
 
-      - name: Build
-        run: npm run build --workspace=apps/web
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Test
-        run: npm run test --workspace=apps/web || true
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
 
-      - name: Install Vercel CLI
-        run: npm i -g vercel@latest
-
-      - name: Deploy to Vercel
+      - name: Deploy to Cloud Run (source build)
         run: |
-          vercel deploy \
-            --token=${{ secrets.VERCEL_TOKEN }} \
-            --prod \
-            --yes \
-            apps/web
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_SANITY_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_SANITY_PROJECT_ID }}
-          NEXT_PUBLIC_SANITY_API_TOKEN: ${{ secrets.NEXT_PUBLIC_SANITY_API_TOKEN }}
-          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          gcloud run deploy "$SERVICE" \
+            --source . \
+            --project "$GCP_PROJECT" \
+            --region "$GCP_REGION" \
+            --quiet
 
       - name: Notify Slack on Success
         if: success()
@@ -67,14 +70,11 @@ jobs:
         with:
           payload: |
             {
-              "text": "✅ Web app deployed successfully",
+              "text": "✅ Web app deployed to Cloud Run",
               "blocks": [
                 {
                   "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "✅ *Web App Deployed*\n${{ github.actor }} deployed to production"
-                  }
+                  "text": { "type": "mrkdwn", "text": "✅ *Web App Deployed to Cloud Run*\n${{ github.actor }} deployed to production (citybeatmag.co)" }
                 }
               ]
             }
@@ -91,10 +91,7 @@ jobs:
               "blocks": [
                 {
                   "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "❌ *Web App Deployment Failed*\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                  }
+                  "text": { "type": "mrkdwn", "text": "❌ *Web App Deployment Failed*\n${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
                 }
               ]
             }

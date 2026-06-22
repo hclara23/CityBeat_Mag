@@ -65,14 +65,14 @@ export async function POST(request: NextRequest) {
     const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.webp`
     const filePath = `articles/${fileName}`
 
-    const bucket = adminStorage.bucket()
+    const bucket = adminStorage.bucket(process.env.MEDIA_BUCKET || 'kerstenblueprint-media')
     const fileRef = bucket.file(filePath)
 
+    // Bucket uses uniform access + bucket-level public read, so no per-object ACL.
     await fileRef.save(optimizedBuffer, {
       metadata: {
         contentType: 'image/webp',
       },
-      public: true,
     })
 
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`

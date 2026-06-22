@@ -1,18 +1,29 @@
 import { cookies } from 'next/headers'
 import { adminAuth, adminDb } from './admin'
 
+// Name of the session cookie set by /api/auth/login.
+// MUST be `__session` — Firebase Hosting (Fastly CDN) in front of Cloud Run strips
+// every cookie except `__session` before forwarding to the backend.
+export const FIREBASE_SESSION_COOKIE = '__session'
+
+// Read the session cookie value from any supported cookie-store shape:
+// a Next.js cookies() store (.get), a readonly { getAll } store, or undefined.
+function readSessionCookie(store: any): string | null {
+  if (store && typeof store.get === 'function') {
+    return store.get(FIREBASE_SESSION_COOKIE)?.value ?? null
+  }
+  if (store && typeof store.getAll === 'function') {
+    return store.getAll().find((c: any) => c.name === FIREBASE_SESSION_COOKIE)?.value ?? null
+  }
+  return null
+}
+
 export async function getServerUser(cookieStore?: any) {
-  // In Firebase, we can check for a session cookie if set, 
-  // or a custom token. For this migration, we'll try to read a generic auth cookie.
-  const store = cookieStore || await cookies()
-  
-  // This is a placeholder since Firebase Auth with SSR requires specific setup 
-  // (e.g. using Firebase Session Cookies). 
-  // If using Next-Auth or similar, this would change.
-  const sessionCookie = typeof store.get === 'function' ? store.get('session')?.value : null
-  
+  const store = cookieStore || (await cookies())
+  const sessionCookie = readSessionCookie(store)
+
   if (!sessionCookie) return null
-  
+
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true)
     return {

@@ -1,17 +1,13 @@
 import { Router } from 'itty-router'
 import { handleBriefAutomation } from './handlers/automation'
-import { handleStripeWebhook } from './handlers/stripe'
 import { handleTracking } from './handlers/tracking'
 
 export interface Env {
-  SANITY_PROJECT_ID: string
-  SANITY_DATASET: string
-  SANITY_WRITE_TOKEN: string
+  INGEST_URL: string
+  INGEST_SECRET: string
   STRIPE_SECRET_KEY: string
   STRIPE_WEBHOOK_SECRET: string
   DEEPL_API_KEY: string
-  SUPABASE_SERVICE_ROLE_KEY: string
-  SUPABASE_URL: string
   RESEND_API_KEY: string
   NEWS_API_KEY: string
 }
@@ -21,10 +17,8 @@ const router = Router()
 // Health check
 router.get('/health', () => new Response('OK'))
 
-// Stripe webhook
-router.post('/webhooks/stripe', async (request, env: Env) => {
-  return handleStripeWebhook(request, env)
-})
+// Stripe webhooks are handled by the web app (Firestore-backed):
+//   https://citybeatmag.co/api/stripe/webhook
 
 // Tracking
 router.post('/api/tracking', async (request, env: Env) => {
@@ -49,10 +43,14 @@ router.post('/api/test-automation', async (_request, env: Env) => {
   }
 })
 
+// Catch-all 404 (itty-router v5 returns undefined for unmatched routes).
+router.all('*', () => new Response('Not found', { status: 404 }))
+
 // Scheduled event handler
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-    return router.handle(request, env, ctx)
+    // itty-router v5 exposes `.fetch` (the old `.handle` was removed).
+    return router.fetch(request, env, ctx)
   },
 
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {

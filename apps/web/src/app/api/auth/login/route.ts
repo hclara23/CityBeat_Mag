@@ -82,7 +82,9 @@ export async function POST(request: NextRequest) {
     })
 
     // Set cookie
-    response.cookies.set('firebase-session', sessionCookie, {
+    // Cookie name MUST be `__session`: Firebase Hosting (Fastly) strips all other
+    // cookies before forwarding requests to the Cloud Run backend.
+    response.cookies.set('__session', sessionCookie, {
       maxAge: expiresIn / 1000,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

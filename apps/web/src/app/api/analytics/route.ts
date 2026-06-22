@@ -1,54 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, getServerUser } from '@citybeat/lib/supabase/server'
+import { getServerUser } from '@citybeat/lib/firebase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
 
-type AnalyticsRow = {
-  campaign_id: string
-  event_type: string
-  event_date: string
-}
-
-function getCookieStore() {
-  const cookieStore = cookies()
-
-  return {
-    getAll: () => cookieStore.getAll(),
-    setAll: () => {
-      // Route handlers do not need to write refreshed cookies for these reads.
-    },
-  }
-}
+type AnalyticsRow = { campaign_id: string; event_type: string; event_date: string }
 
 function summarize(rows: AnalyticsRow[], campaignId: string | null, startDate: string | null, endDate: string | null) {
   const dailyData = new Map<string, { date: string; impressions: number; clicks: number; ctr: number }>()
-
   rows.forEach((row) => {
-    const day = row.event_date
-    const current = dailyData.get(day) ?? { date: day, impressions: 0, clicks: 0, ctr: 0 }
-
-    if (row.event_type === 'impression') {
-      current.impressions += 1
-    }
-
-    if (row.event_type === 'click') {
-      current.clicks += 1
-    }
-
-    dailyData.set(day, current)
+    const current = dailyData.get(row.event_date) ?? { date: row.event_date, impressions: 0, clicks: 0, ctr: 0 }
+    if (row.event_type === 'impression') current.impressions += 1
+    if (row.event_type === 'click') current.clicks += 1
+    dailyData.set(row.event_date, current)
   })
-
   const daily = Array.from(dailyData.values())
-    .map((day) => ({
-      ...day,
-      ctr: day.impressions > 0 ? (day.clicks / day.impressions) * 100 : 0,
-    }))
+    .map((day) => ({ ...day, ctr: day.impressions > 0 ? (day.clicks / day.impressions) * 100 : 0 }))
     .sort((a, b) => a.date.localeCompare(b.date))
-
-  const totalImpressions = daily.reduce((sum, day) => sum + day.impressions, 0)
-  const totalClicks = daily.reduce((sum, day) => sum + day.clicks, 0)
-
+  const totalImpressions = daily.reduce((s, d) => s + d.impressions, 0)
+  const totalClicks = daily.reduce((s, d) => s + d.clicks, 0)
   return {
     campaignId: campaignId || 'all',
     totalImpressions,
@@ -60,58 +30,46 @@ function summarize(rows: AnalyticsRow[], campaignId: string | null, startDate: s
   }
 }
 
+function toDay(v: any): string {
+  if (v?.toDate) return v.toDate().toISOString().split('T')[0]
+  if (typeof v === 'string') return new Date(v).toISOString().split('T')[0]
+  return ''
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const campaignId = searchParams.get('campaignId')
   const startDate = searchParams.get('startDate')
   const endDate = searchParams.get('endDate')
 
+  const user = await getServerUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
-    const cookieStore = getCookieStore()
-    const user = await getServerUser(cookieStore)
+    const campSnap = await adminDb.collection('ad_campaigns').where('created_by', '==', user.id).get()
+    const campaignIds = campSnap.docs.map((d) => d.id)
+    const selected = campaignId ? [campaignId] : campaignIds
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const supabase = createServerClient(cookieStore)
-    const { data: campaigns, error: campaignsError } = await supabase
-      .from('ad_campaigns')
-      .select('id')
-      .eq('created_by', user.id)
-
-    if (campaignsError) throw campaignsError
-
-    const campaignIds = (campaigns ?? []).map((campaign: { id: string }) => campaign.id)
-    const selectedCampaignIds = campaignId ? [campaignId] : campaignIds
-
-    if (!selectedCampaignIds.length || selectedCampaignIds.some((id) => !campaignIds.includes(id))) {
+    if (!selected.length || selected.some((id) => !campaignIds.includes(id))) {
       return NextResponse.json(summarize([], campaignId, startDate, endDate))
     }
 
-    let query = supabase
-      .from('ad_events')
-      .select('campaign_id, event_type, occurred_at')
-      .in('campaign_id', selectedCampaignIds)
+    const evSnap = await adminDb
+      .collection('ad_events')
+      .where('campaign_id', 'in', selected.slice(0, 10))
+      .get()
+      .catch(() => ({ docs: [] as any[] }))
 
-    if (startDate) query = query.gte('occurred_at', startDate)
-    if (endDate) query = query.lte('occurred_at', `${endDate}T23:59:59.999Z`)
+    let rows = (evSnap.docs as any[]).map((d) => {
+      const r = d.data()
+      return { campaign_id: r.campaign_id, event_type: r.event_type, event_date: toDay(r.occurred_at) }
+    })
+    if (startDate) rows = rows.filter((r) => r.event_date >= startDate)
+    if (endDate) rows = rows.filter((r) => r.event_date <= endDate)
 
-    const { data, error } = await query
-    if (error) throw error
-
-    const mappedData = (data ?? []).map((row: any) => ({
-      campaign_id: row.campaign_id,
-      event_type: row.event_type,
-      event_date: row.occurred_at ? new Date(row.occurred_at).toISOString().split('T')[0] : '',
-    }))
-
-    return NextResponse.json(summarize(mappedData as AnalyticsRow[], campaignId, startDate, endDate))
+    return NextResponse.json(summarize(rows as AnalyticsRow[], campaignId, startDate, endDate))
   } catch (error) {
     console.error('Error fetching analytics:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch analytics' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 })
   }
 }

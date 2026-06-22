@@ -1,45 +1,15 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, getServerUser } from '@citybeat/lib/supabase/server'
+import { getServerUser } from '@citybeat/lib/firebase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
 
-type SubscriptionRow = {
-  id: string
-  stripe_subscription_id?: string | null
-  stripe_customer_id?: string | null
-  plan_id?: string | null
-  status?: string | null
-  price_per_month?: number | null
-  amount_total?: number | null
-  billing_cycle?: string | null
-  payment_status?: string | null
-  created_at: string
+function toIso(v: any): string {
+  if (v?.toDate) return v.toDate().toISOString()
+  return typeof v === 'string' ? v : new Date(0).toISOString()
 }
 
-type PaymentRow = {
-  id: string
-  stripe_charge_id?: string | null
-  amount?: number | null
-  amount_total?: number | null
-  status?: string | null
-  payment_status?: string | null
-  created_at: string
-  invoice_pdf?: string | null
-}
-
-function getCookieStore() {
-  const cookieStore = cookies()
-
-  return {
-    getAll: () => cookieStore.getAll(),
-    setAll: () => {
-      // Route handlers do not need to write refreshed cookies for these reads.
-    },
-  }
-}
-
-function mapSubscription(row: SubscriptionRow) {
+function mapSubscription(row: any) {
   return {
     id: row.id,
     stripe_subscription_id: row.stripe_subscription_id ?? undefined,
@@ -48,59 +18,44 @@ function mapSubscription(row: SubscriptionRow) {
     amount_total: Number(row.amount_total ?? row.price_per_month ?? 0),
     billing_cycle: row.billing_cycle ?? 'monthly',
     payment_status: row.payment_status ?? row.status ?? 'pending',
-    created_at: row.created_at,
+    created_at: toIso(row.created_at),
   }
 }
 
-function mapInvoice(row: PaymentRow) {
+function mapInvoice(row: any) {
   return {
     id: row.stripe_charge_id ?? row.id,
     amount: Number(row.amount ?? row.amount_total ?? 0),
-    date: row.created_at,
+    date: toIso(row.created_at),
     status: row.status ?? row.payment_status ?? 'unknown',
     pdfUrl: row.invoice_pdf ?? undefined,
   }
 }
 
 export async function GET() {
-  const cookieStore = getCookieStore()
-  const user = await getServerUser(cookieStore)
+  const user = await getServerUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const [subsSnap, paysSnap] = await Promise.all([
+      adminDb.collection('subscriptions').where('advertiser_id', '==', user.id).get().catch(() => ({ docs: [] as any[] })),
+      adminDb.collection('payments').where('advertiser_id', '==', user.id).get().catch(() => ({ docs: [] as any[] })),
+    ])
+
+    const subscriptions = (subsSnap.docs as any[])
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (toIso(b.created_at) > toIso(a.created_at) ? 1 : -1))
+      .map(mapSubscription)
+
+    const invoices = (paysSnap.docs as any[])
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (toIso(b.created_at) > toIso(a.created_at) ? 1 : -1))
+      .slice(0, 25)
+      .map(mapInvoice)
+
+    return NextResponse.json({ subscriptions, invoices })
+  } catch (error) {
+    console.error('billing error:', error)
+    return NextResponse.json({ error: 'Failed to load billing' }, { status: 500 })
   }
-
-  const supabase = createServerClient(cookieStore)
-
-  const { data: subscriptions, error: subscriptionsError } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('advertiser_id', user.id)
-    .order('created_at', { ascending: false })
-
-  if (subscriptionsError) {
-    return NextResponse.json(
-      { error: 'Failed to load subscriptions' },
-      { status: 500 }
-    )
-  }
-
-  const { data: payments, error: paymentsError } = await supabase
-    .from('payments')
-    .select('*')
-    .eq('advertiser_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(25)
-
-  if (paymentsError) {
-    return NextResponse.json(
-      { error: 'Failed to load billing history' },
-      { status: 500 }
-    )
-  }
-
-  return NextResponse.json({
-    subscriptions: (subscriptions ?? []).map(mapSubscription),
-    invoices: (payments ?? []).map(mapInvoice),
-  })
 }

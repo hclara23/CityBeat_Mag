@@ -5,6 +5,7 @@ import { getAdProducts, getEvents, getTopStories, withLocale, type Locale } from
 import { localArticles } from '@/lib/localArticles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { NewsletterForm } from '@/components/NewsletterForm'
+import { AdBanner } from '@/components/citybeat/AdBanner'
 type HomePageProps = {
   params: {
     locale: string
@@ -20,7 +21,7 @@ export default async function Home({ params }: HomePageProps) {
     dek: article.excerpt,
     category: article.category,
     image: article.image ?? 'https://picsum.photos/seed/citybeat-local/1600/1000',
-    href: `/briefs/${article.slug}`,
+    href: `/stories/${article.slug}`,
   }))
   const stories = importedStories.length > 0 ? importedStories : getTopStories(locale)
   const featured = stories[0]
@@ -118,7 +119,7 @@ export default async function Home({ params }: HomePageProps) {
               {localeCopy.subhead}
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link href={withLocale(locale, '/briefs')} className="rounded-md bg-brand-neon px-6 py-3 text-center text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300">
+              <Link href={withLocale(locale, featured?.href || '/')} className="rounded-md bg-brand-neon px-6 py-3 text-center text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300">
                 {localeCopy.readLatest}
               </Link>
               <Link href={withLocale(locale, '/ads')} className="rounded-md border border-white/20 px-6 py-3 text-center text-sm font-black uppercase tracking-wider text-white transition hover:bg-white/10">
@@ -128,6 +129,11 @@ export default async function Home({ params }: HomePageProps) {
           </div>
         </div>
       </section>
+
+      {/* Sponsored banner (renders only when an active banner exists) */}
+      <div className="container-wide mt-10">
+        <AdBanner placement="home_top" locale={locale} />
+      </div>
 
       <section className="border-y border-white/10 bg-brand-dark py-16">
         <div className="container-wide grid gap-8 md:grid-cols-3">
@@ -176,7 +182,7 @@ export default async function Home({ params }: HomePageProps) {
               <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-neon">{localeCopy.happeningNow}</p>
               <h2 className="mt-3 text-4xl font-black text-white md:text-5xl">{localeCopy.eventsHeading}</h2>
             </div>
-            <Link href={withLocale(locale, '/briefs?category=events')} className="text-sm font-black uppercase tracking-wider text-brand-neon hover:underline">
+            <Link href={withLocale(locale, '/#events')} className="text-sm font-black uppercase tracking-wider text-brand-neon hover:underline">
               {localeCopy.fullCalendar}
             </Link>
           </div>

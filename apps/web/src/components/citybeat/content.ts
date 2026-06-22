@@ -28,7 +28,7 @@ const topStoriesData: StoryDatum[] = [
       es: 'Artes',
     },
     image: 'https://picsum.photos/seed/citybeat-neon/1600/1000',
-    href: '/briefs',
+    href: '/',
   },
   {
     title: {
@@ -44,7 +44,7 @@ const topStoriesData: StoryDatum[] = [
       es: 'Comida',
     },
     image: 'https://picsum.photos/seed/citybeat-tacos/900/650',
-    href: '/briefs',
+    href: '/',
   },
   {
     title: {
@@ -60,7 +60,7 @@ const topStoriesData: StoryDatum[] = [
       es: 'Cultura',
     },
     image: 'https://picsum.photos/seed/citybeat-music/900/650',
-    href: '/briefs',
+    href: '/',
   },
 ]
 

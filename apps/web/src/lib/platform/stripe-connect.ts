@@ -1,18 +1,28 @@
 import Stripe from 'stripe'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 
-type SupabaseLike = {
-  from(table: string): any
-}
+// Firestore-backed Stripe Connect data layer.
+// Connected-account records live in the `stripe_connected_accounts` collection,
+// keyed by the user's profile id (Firebase uid). A summary is also mirrored onto
+// the user's `profiles/{uid}` doc for quick reads.
 
-type ConnectAccountRow = {
-  id: string
+export type ConnectAccountRecord = {
   profile_id: string
   stripe_account_id: string
-  onboarding_complete: boolean
+  account_type: string
+  country: string
+  default_currency: string
   charges_enabled: boolean
   payouts_enabled: boolean
   details_submitted: boolean
+  onboarding_complete: boolean
+  requirements_currently_due: string[]
+  requirements_past_due: string[]
+  metadata: Record<string, unknown>
+  updated_at: string
 }
+
+const COLLECTION = 'stripe_connected_accounts'
 
 export function getStripe() {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY
@@ -25,22 +35,13 @@ export function getStripe() {
   })
 }
 
-function requirementsList(requirements: Stripe.Account.Requirements | null | undefined) {
-  return {
-    currently_due: requirements?.currently_due ?? [],
-    past_due: requirements?.past_due ?? [],
-  }
-}
-
 export async function syncConnectedAccount(
-  supabase: SupabaseLike,
   profileId: string,
   account: Stripe.Account
-) {
-  const requirements = requirementsList(account.requirements)
+): Promise<ConnectAccountRecord> {
   const onboardingComplete = Boolean(account.details_submitted && account.payouts_enabled)
 
-  const payload = {
+  const record: ConnectAccountRecord = {
     profile_id: profileId,
     stripe_account_id: account.id,
     account_type: account.type || 'express',
@@ -50,57 +51,53 @@ export async function syncConnectedAccount(
     payouts_enabled: Boolean(account.payouts_enabled),
     details_submitted: Boolean(account.details_submitted),
     onboarding_complete: onboardingComplete,
-    requirements_currently_due: requirements.currently_due,
-    requirements_past_due: requirements.past_due,
-    metadata: account.metadata || {},
+    requirements_currently_due: account.requirements?.currently_due ?? [],
+    requirements_past_due: account.requirements?.past_due ?? [],
+    metadata: (account.metadata as Record<string, unknown>) || {},
     updated_at: new Date().toISOString(),
   }
 
-  const { data, error } = await supabase
-    .from('stripe_connected_accounts')
-    .upsert(payload, { onConflict: 'stripe_account_id' })
-    .select('*')
-    .single()
+  await adminDb.collection(COLLECTION).doc(profileId).set(record, { merge: true })
 
-  if (error) throw new Error(error.message)
+  await adminDb
+    .collection('profiles')
+    .doc(profileId)
+    .set(
+      {
+        stripe_connected_account_id: account.id,
+        stripe_connect_onboarding_complete: onboardingComplete,
+      },
+      { merge: true }
+    )
 
-  await supabase
-    .from('profiles')
-    .update({
-      stripe_connected_account_id: account.id,
-      stripe_connect_onboarding_complete: onboardingComplete,
-    })
-    .eq('id', profileId)
-
-  return data as ConnectAccountRow
+  return record
 }
 
 export async function getExistingConnectedAccount(
-  supabase: SupabaseLike,
   profileId: string
-) {
-  const { data, error } = await supabase
-    .from('stripe_connected_accounts')
-    .select('*')
-    .eq('profile_id', profileId)
-    .maybeSingle()
-
-  if (error) throw new Error(error.message)
-  return data as ConnectAccountRow | null
+): Promise<ConnectAccountRecord | null> {
+  const doc = await adminDb.collection(COLLECTION).doc(profileId).get()
+  return doc.exists ? (doc.data() as ConnectAccountRecord) : null
 }
 
 export async function getOrCreateConnectedAccount(params: {
-  supabase: SupabaseLike
   profileId: string
   email?: string | null
 }) {
   const stripe = getStripe()
-  const existing = await getExistingConnectedAccount(params.supabase, params.profileId)
+  const existing = await getExistingConnectedAccount(params.profileId)
 
   if (existing?.stripe_account_id) {
-    const account = await stripe.accounts.retrieve(existing.stripe_account_id)
-    const row = await syncConnectedAccount(params.supabase, params.profileId, account)
-    return { stripe, account, row }
+    try {
+      const account = await stripe.accounts.retrieve(existing.stripe_account_id)
+      const row = await syncConnectedAccount(params.profileId, account)
+      return { stripe, account, row }
+    } catch (err) {
+      // Stored account is not retrievable in the current Stripe mode
+      // (e.g. a test account after switching to the live key). Fall through
+      // and create a fresh connected account.
+      console.warn('getOrCreateConnectedAccount: stored account unusable, creating new:', (err as any)?.message)
+    }
   }
 
   const account = await stripe.accounts.create({
@@ -115,6 +112,6 @@ export async function getOrCreateConnectedAccount(params: {
     },
   })
 
-  const row = await syncConnectedAccount(params.supabase, params.profileId, account)
+  const row = await syncConnectedAccount(params.profileId, account)
   return { stripe, account, row }
 }

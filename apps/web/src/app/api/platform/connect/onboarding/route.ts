@@ -1,17 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, getServerUser } from '@citybeat/lib/supabase/server'
+import { getServerUser } from '@citybeat/lib/firebase/server'
 import { getOrCreateConnectedAccount } from '@/lib/platform/stripe-connect'
 
 export const dynamic = 'force-dynamic'
-
-function getCookieStore() {
-  const cookieStore = cookies()
-  return {
-    getAll: () => cookieStore.getAll(),
-    setAll: () => {},
-  }
-}
 
 function sameOriginUrl(value: unknown, request: NextRequest, fallbackPath: string) {
   const fallback = new URL(fallbackPath, request.nextUrl.origin)
@@ -26,16 +17,12 @@ function sameOriginUrl(value: unknown, request: NextRequest, fallbackPath: strin
 }
 
 export async function POST(request: NextRequest) {
-  const cookieStore = getCookieStore()
-  const user = await getServerUser(cookieStore)
+  const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const supabase = createServerClient(cookieStore)
 
   try {
     const body = await request.json().catch(() => ({}))
     const { stripe, account } = await getOrCreateConnectedAccount({
-      supabase,
       profileId: user.id,
       email: user.email,
     })

@@ -1,5 +1,5 @@
 import { BasicCrawler, log } from '@crawlee/basic'
-import { createClient } from '@supabase/supabase-js'
+import { adminDb } from '../firebase/admin'
 
 type OsmElementType = 'node' | 'way' | 'relation'
 
@@ -158,35 +158,40 @@ function dedupeCandidates(candidates: DirectoryCandidate[], limit: number): Dire
   return deduped
 }
 
-async function writeCandidates(candidates: DirectoryCandidate[], options: DirectoryIngestOptions) {
-  const supabaseUrl = options.supabaseUrl || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseServiceKey = options.supabaseServiceKey || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+async function writeCandidates(candidates: DirectoryCandidate[], _options: DirectoryIngestOptions) {
+  // Upsert into Firestore `directory_listings`, keyed by google_place_id so
+  // re-ingests merge rather than duplicate.
+  const now = new Date().toISOString()
+  let batch = adminDb.batch()
+  let ops = 0
 
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Supabase URL and service role key are required when running with write enabled.')
+  for (const candidate of candidates) {
+    const placeId = (candidate as any).google_place_id
+    const ref = placeId
+      ? adminDb.collection('directory_listings').doc(String(placeId))
+      : adminDb.collection('directory_listings').doc()
+    batch.set(
+      ref,
+      {
+        ...candidate,
+        tier: 'basic',
+        claim_status: 'unclaimed',
+        is_published: false,
+        rating: null,
+        user_ratings_total: null,
+        updated_at: now,
+      },
+      { merge: true }
+    )
+    ops++
+    if (ops >= 450) {
+      await batch.commit()
+      batch = adminDb.batch()
+      ops = 0
+    }
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
-
-  const rows = candidates.map((candidate) => ({
-    ...candidate,
-    tier: 'basic',
-    claim_status: 'unclaimed',
-    is_published: false,
-    rating: null,
-    user_ratings_total: null,
-  }))
-
-  const { error } = await supabase
-    .from('directory_listings')
-    .upsert(rows, { onConflict: 'google_place_id' })
-
-  if (error) throw new Error(`Supabase upsert failed: ${error.message}`)
+  if (ops > 0) await batch.commit()
 }
 
 function selectQueries(categories: string[] | undefined) {

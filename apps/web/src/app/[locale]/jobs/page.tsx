@@ -1,6 +1,6 @@
+import Link from 'next/link'
 import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { CheckoutButton } from '@/components/CheckoutButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +14,8 @@ interface Job {
   created_at: string
 }
 
-export default async function JobsPage() {
+export default async function JobsPage({ params }: { params: { locale: string } }) {
+  const locale = params?.locale || 'en'
   // Fetch active paid jobs
   let jobs: Job[] = []
   let error: any = null
@@ -46,13 +47,12 @@ export default async function JobsPage() {
               Find your next role in the city.
             </p>
           </div>
-          <CheckoutButton
-            productId="job_posting_standard"
-            type="job"
+          <Link
+            href={`/${locale}/jobs/post`}
             className="bg-brand-neon text-black font-black uppercase tracking-wider text-sm px-6 py-3 rounded hover:bg-white transition"
           >
             Post a Job ($50)
-          </CheckoutButton>
+          </Link>
         </div>
 
         {error && (

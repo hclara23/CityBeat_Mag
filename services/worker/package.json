@@ -12,11 +12,11 @@
     "@supabase/supabase-js": "^2.38.0",
     "axios": "^1.6.0",
     "itty-router": "^5.0.22",
-    "stripe": "^13.8.0",
-    "wrangler": "^3.26.0"
+    "stripe": "^13.8.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^5.2.0"
+    "typescript": "^5.2.0",
+    "wrangler": "^4.101.0"
   }
 }

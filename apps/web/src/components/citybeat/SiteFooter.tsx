@@ -21,8 +21,8 @@ export function SiteFooter({ locale = 'en' }: { locale?: string }) {
               {locale === 'es' ? 'Lectura' : 'Read'}
             </h3>
             <div className="grid gap-3 text-sm text-white/55">
-              <Link href={withLocale(locale, '/briefs')} className="hover:text-brand-neon">
-                {locale === 'es' ? 'Boletines' : 'Briefs'}
+              <Link href={withLocale(locale, '/stories')} className="hover:text-brand-neon">
+                {locale === 'es' ? 'Boletines' : 'Stories'}
               </Link>
               <Link href={withLocale(locale, '/#events')} className="hover:text-brand-neon">
                 {locale === 'es' ? 'Eventos' : 'Events'}

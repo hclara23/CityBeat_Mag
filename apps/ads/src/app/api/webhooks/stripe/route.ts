@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
+import { syncCampaignBanner } from '@/lib/banner-sync'
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY ?? ''
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? ''
@@ -62,9 +63,13 @@ export async function POST(req: NextRequest) {
   try {
     await adminDb.collection('ad_campaigns').doc(campaignId).update({
       status: 'active',
+      payment_status: 'paid',
       stripe_payment_intent_id: paymentIntentId ?? null,
       updated_at: FieldValue.serverTimestamp()
     })
+
+    // A paid banner campaign goes live automatically.
+    await syncCampaignBanner(campaignId, { active: true }).catch(() => {})
 
     return NextResponse.json({ received: true, campaign_id: campaignId, new_status: 'active' })
   } catch (error: any) {

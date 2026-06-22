@@ -5,13 +5,46 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { useLocale } from '@/components/TranslationProvider'
+import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
 
 interface Listing {
   id: string
   name: string
   category: string
   address: string | null
+  phone?: string | null
+  email?: string | null
+  location_count?: number | null
   claim_status: 'unclaimed' | 'pending_approval' | 'approved'
+}
+
+// Plan price multiplied across all locations of a multi-location brand.
+function planTotalLabel(planId: PlanId, count?: number | null): string {
+  const plan = DIRECTORY_PLANS[planId]
+  const n = Math.max(1, Number(count) || 1)
+  if (n < 2) return plan.priceLabel
+  const whole = (plan.unitAmount * n) / 100
+  const per = plan.interval === 'year' ? '/ yr' : '/ mo'
+  const str =
+    whole % 1 === 0
+      ? whole.toLocaleString('en-US')
+      : whole.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return `$${str} ${per}`
+}
+
+// Mask a listed contact so we can show the owner where the code will go without
+// exposing the full address/number to anyone browsing the claim page.
+function maskClient(value: string | null | undefined, type: 'email' | 'phone'): string | null {
+  if (!value) return null
+  const v = value.trim()
+  if (!v) return null
+  if (type === 'email') {
+    const [local, domain] = v.split('@')
+    if (!domain) return null
+    return `${local.slice(0, 1)}${'*'.repeat(Math.max(1, local.length - 1))}@${domain}`
+  }
+  const digits = v.replace(/\D/g, '')
+  return digits.length >= 4 ? `•••• ${digits.slice(-4)}` : null
 }
 
 interface UserProfile {
@@ -114,7 +147,7 @@ export default function ClaimPage() {
   }, [id, t.unclaimedStatusError])
 
   const [claimMethod, setClaimMethod] = useState<'email' | 'phone' | 'postcard'>('email')
-  const [contactInput, setContactInput] = useState('')
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('founding')
   const [claimStep, setClaimStep] = useState<'select_method' | 'enter_code' | 'verified'>('select_method')
   const [verificationCode, setVerificationCode] = useState('')
   const [verifying, setVerifying] = useState(false)
@@ -125,30 +158,27 @@ export default function ClaimPage() {
     setVerifying(true)
     setClaimErrorMsg('')
     try {
-      const contactInfo = claimMethod === 'postcard' ? '' : contactInput
-      if (claimMethod !== 'postcard' && !contactInfo) {
-        setClaimErrorMsg(locale === 'es' ? 'Por favor ingrese la información de contacto.' : 'Please enter contact details.')
-        setVerifying(false)
-        return
-      }
-
+      // The verification code is always sent to the contact ON FILE for the
+      // business (its listed email/phone/address), never to a user-supplied
+      // value — that is what proves ownership.
       const res = await fetch(`/api/directory/${id}/claim/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ method: claimMethod, contactInfo }),
+        body: JSON.stringify({ method: claimMethod }),
       })
 
       const data = await res.json()
       if (res.ok) {
         setClaimStep('enter_code')
+        const to = data.recipient ? ` ${data.recipient}` : ''
         setClaimSuccessMsg(
           claimMethod === 'postcard'
             ? (locale === 'es'
                 ? '¡Tarjeta postal solicitada! La enviaremos por correo en 5-7 días. Ingrese el código cuando la reciba.'
                 : 'Postcard requested! We will mail it in 5-7 days. Enter the code when you receive it.')
             : (locale === 'es'
-                ? `Código enviado con éxito a ${contactInfo}`
-                : `Code sent successfully to ${contactInfo}`)
+                ? `Código enviado con éxito a${to}`
+                : `Code sent successfully to${to}`)
         )
       } else {
         setClaimErrorMsg(data.error || 'Failed to start claim process')
@@ -182,8 +212,8 @@ export default function ClaimPage() {
         setClaimStep('verified')
         setClaimSuccessMsg(
           locale === 'es'
-            ? '¡Felicitaciones! Su negocio ha sido reclamado con éxito. Ahora puede editar la información básica.'
-            : 'Congratulations! Your business is successfully verified. You can now edit basic details.'
+            ? '¡Propiedad verificada! Su reclamo está pendiente de revisión por nuestro equipo y será aprobado en breve. Le notificaremos por correo.'
+            : 'Ownership verified! Your claim is now pending review by our team and will be approved shortly. We\'ll notify you by email.'
         )
         router.refresh()
       } else {
@@ -207,16 +237,20 @@ export default function ClaimPage() {
         },
         body: JSON.stringify({
           listingId: id,
+          plan: selectedPlan,
         }),
       })
 
+      const data = await response.json()
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create checkout session')
+        // Founding 100 sold out — fall back to standard monthly and let them retry.
+        if (data.founding_sold_out) {
+          setSelectedPlan('premium_monthly')
+        }
+        throw new Error(data.error || 'Failed to create checkout session')
       }
 
-      const session = (await response.json()) as { url: string }
-      window.location.href = session.url
+      window.location.href = (data as { url: string }).url
     } catch (err: any) {
       console.error(err)
       alert(err.message || 'Error redirecting to Stripe')
@@ -273,11 +307,16 @@ export default function ClaimPage() {
                   {t.subtitle}
                 </p>
 
-                {/* Checkout Info */}
+                {/* Checkout Info — reflects the selected upgrade plan */}
                 <div className="mt-8 p-6 bg-brand-ink/80 rounded-xl border border-white/10 flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-white/50 uppercase tracking-wider">{t.priceLabel}</p>
-                    <p className="text-2xl font-black text-brand-gold mt-1">{t.priceValue}</p>
+                    <p className="text-xs font-bold text-white/50 uppercase tracking-wider">{DIRECTORY_PLANS[selectedPlan].label}</p>
+                    <p className="text-2xl font-black text-brand-gold mt-1">{planTotalLabel(selectedPlan, listing?.location_count)}</p>
+                    {(listing?.location_count ?? 1) > 1 && (
+                      <p className="text-[11px] text-white/50 mt-1">
+                        {listing?.location_count} {locale === 'es' ? 'ubicaciones' : 'locations'} × {DIRECTORY_PLANS[selectedPlan].priceLabel}
+                      </p>
+                    )}
                   </div>
                   <div className="h-10 w-10 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center font-bold">
                     $
@@ -395,28 +434,28 @@ export default function ClaimPage() {
                                 </div>
 
                                 {claimMethod === 'email' && (
-                                  <input
-                                    type="email"
-                                    placeholder="owner@mybusiness.com"
-                                    value={contactInput}
-                                    onChange={(e) => setContactInput(e.target.value)}
-                                    className="w-full rounded p-2.5 border border-white/15 bg-black/40 text-xs text-white focus:border-brand-neon focus:outline-none"
-                                  />
+                                  <div className="p-3 bg-white/5 border border-white/5 rounded text-[11px] text-white/70">
+                                    {maskClient(listing?.email, 'email') ? (
+                                      <>We&apos;ll email a verification code to the address on file for this business: <strong className="text-white">{maskClient(listing?.email, 'email')}</strong>. You must have access to that inbox to verify ownership.</>
+                                    ) : (
+                                      <span className="text-brand-gold">No email is on file for this business. Please use SMS or postcard verification instead.</span>
+                                    )}
+                                  </div>
                                 )}
 
                                 {claimMethod === 'phone' && (
-                                  <input
-                                    type="tel"
-                                    placeholder="+1 (555) 000-0000"
-                                    value={contactInput}
-                                    onChange={(e) => setContactInput(e.target.value)}
-                                    className="w-full rounded p-2.5 border border-white/15 bg-black/40 text-xs text-white focus:border-brand-neon focus:outline-none"
-                                  />
+                                  <div className="p-3 bg-white/5 border border-white/5 rounded text-[11px] text-white/70">
+                                    {maskClient(listing?.phone, 'phone') ? (
+                                      <>We&apos;ll text a verification code to the number on file for this business: <strong className="text-white">{maskClient(listing?.phone, 'phone')}</strong>. You must have access to that line to verify ownership.</>
+                                    ) : (
+                                      <span className="text-brand-gold">No phone number is on file for this business. Please use postcard verification instead.</span>
+                                    )}
+                                  </div>
                                 )}
 
                                 {claimMethod === 'postcard' && (
                                   <div className="p-3 bg-white/5 border border-white/5 rounded text-[11px] text-white/70">
-                                    Postcard will be mailed to: <strong className="text-white">{listing?.address || 'Listed Business Address'}</strong>
+                                    A postcard with a verification code will be mailed to: <strong className="text-white">{listing?.address || 'Listed Business Address'}</strong>. Enter the code once it arrives (5–7 days).
                                   </div>
                                 )}
                               </div>
@@ -440,13 +479,13 @@ export default function ClaimPage() {
 
                             {claimStep === 'verified' && (
                               <div className="text-center py-4 space-y-4">
-                                <span className="text-4xl">🎉</span>
+                                <span className="text-4xl">⏳</span>
                                 <p className="text-xs text-white/75">{claimSuccessMsg}</p>
                                 <Link
                                   href={`/directory/${id}`}
                                   className="inline-block w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3"
                                 >
-                                  Manage Basic Info
+                                  Back to Listing
                                 </Link>
                               </div>
                             )}
@@ -484,43 +523,67 @@ export default function ClaimPage() {
                           )}
                         </div>
 
-                        {/* Option 2: Claim Premium */}
+                        {/* Option 2: Claim Premium / Featured */}
                         <div className="citybeat-panel rounded-xl p-5 border border-brand-gold/30 bg-gradient-to-b from-brand-charcoal to-brand-dark flex flex-col justify-between shadow-[0_0_15px_rgba(255,215,0,0.05)]">
                           <div>
-                            <h3 className="font-display text-lg font-black text-brand-gold uppercase tracking-wide mb-2 flex items-center justify-between">
-                              <span>Option 2: Premium</span>
-                              <span className="text-xs bg-brand-gold/10 text-brand-gold px-2 py-0.5 rounded font-bold">$19/mo</span>
+                            <h3 className="font-display text-lg font-black text-brand-gold uppercase tracking-wide mb-2">
+                              Option 2: Upgrade
                             </h3>
                             <p className="text-xs text-white/60 leading-relaxed mb-4">
-                              Instantly unlock premium features, cover banners, visual photos gallery, priority placement, and direct social links.
+                              Unlock premium features, cover banners, photo gallery, priority placement, and direct social links. Choose a plan:
                             </p>
 
-                            <ul className="text-[11px] text-white/80 space-y-2.5 pl-1 my-4">
-                              <li className="flex items-center gap-2">
-                                <span className="text-brand-neon font-black">✓</span>
-                                {t.premiumRank}
-                              </li>
-                              <li className="flex items-center gap-2">
-                                <span className="text-brand-neon font-black">✓</span>
-                                {t.premiumCover}
-                              </li>
-                              <li className="flex items-center gap-2">
-                                <span className="text-brand-neon font-black">✓</span>
-                                {t.premiumGallery}
-                              </li>
-                              <li className="flex items-center gap-2">
-                                <span className="text-brand-neon font-black">✓</span>
-                                {t.premiumSocial}
-                              </li>
-                            </ul>
+                            <div className="flex flex-col gap-2 my-4">
+                              {(['founding', 'premium_monthly', 'premium_annual', 'featured_monthly'] as PlanId[]).map((pid) => {
+                                const p = DIRECTORY_PLANS[pid]
+                                const active = selectedPlan === pid
+                                return (
+                                  <label
+                                    key={pid}
+                                    className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition ${
+                                      active
+                                        ? 'border-brand-gold bg-brand-gold/10'
+                                        : 'border-white/10 bg-white/5 hover:border-white/25'
+                                    }`}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name="plan"
+                                      checked={active}
+                                      onChange={() => setSelectedPlan(pid)}
+                                      className="accent-brand-gold mt-0.5"
+                                    />
+                                    <span className="flex-1">
+                                      <span className="flex items-center justify-between gap-2">
+                                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                                          {p.label}
+                                          {pid === 'founding' && (
+                                            <span className="text-[9px] bg-brand-neon/20 text-brand-neon px-1.5 py-0.5 rounded font-black uppercase tracking-wider">
+                                              Launch · 100 only
+                                            </span>
+                                          )}
+                                          {pid === 'featured_monthly' && (
+                                            <span className="text-[9px] bg-brand-gold/20 text-brand-gold px-1.5 py-0.5 rounded font-black uppercase tracking-wider">
+                                              Top spot
+                                            </span>
+                                          )}
+                                        </span>
+                                        <span className="text-xs font-black text-brand-gold whitespace-nowrap">{p.priceLabel}</span>
+                                      </span>
+                                      <span className="block text-[10px] text-white/50 mt-1 leading-snug">{p.description}</span>
+                                    </span>
+                                  </label>
+                                )
+                              })}
+                            </div>
                           </div>
 
                           <button
                             onClick={handleCheckoutRedirect}
                             disabled={redirecting}
-                            className="w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3.5 hover:bg-cyan-300 transition shadow-[0_4px_12px_rgba(0,240,255,0.25)] disabled:opacity-50 mt-6"
+                            className="w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3.5 hover:bg-cyan-300 transition shadow-[0_4px_12px_rgba(0,240,255,0.25)] disabled:opacity-50 mt-2"
                           >
-                            {redirecting ? t.redirecting : 'Verify & Go Premium'}
+                            {redirecting ? t.redirecting : `Subscribe · ${planTotalLabel(selectedPlan, listing?.location_count)}`}
                           </button>
                         </div>
                       </div>

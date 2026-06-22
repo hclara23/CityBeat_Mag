@@ -19,7 +19,7 @@ export const emailTemplates = {
       <h3>Spanish Version (Translated)</h3>
       <p>${briefData.contentES}</p>
       <hr />
-      <p>Review and publish this brief in Sanity Studio: <a href="https://citybeatmag.co/studio">citybeatmag.co/studio</a></p>
+      <p>Review and publish this brief in the admin dashboard: <a href="https://citybeatmag.co/en/admin">citybeatmag.co/en/admin</a></p>
     `,
   }),
 

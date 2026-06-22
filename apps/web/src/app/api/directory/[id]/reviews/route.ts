@@ -1,60 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, getServerUser } from '@citybeat/lib/supabase/server'
+import { getServerUser } from '@citybeat/lib/firebase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
+import { FieldValue } from 'firebase-admin/firestore'
 import { sanitizePublicReview, shouldAwardReviewPoints } from '@/lib/directory-security'
 
 export const dynamic = 'force-dynamic'
 
-function getCookieStore() {
-  const cookieStore = cookies()
-  return {
-    getAll: () => cookieStore.getAll(),
-    setAll: () => {
-      // Route handlers do not need to write refreshed cookies for these reads.
-    },
-  }
+function toIso(v: any): string | null {
+  if (!v) return null
+  if (v?.toDate) return v.toDate().toISOString()
+  return typeof v === 'string' ? v : null
 }
 
 // GET: Fetch reviews for a listing, joining reviewer profiles
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params
-  if (!id) {
-    return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
+  if (!id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
+
+  try {
+    const snap = await adminDb.collection('directory_reviews').where('listing_id', '==', id).get()
+    const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any), created_at: toIso((d.data() as any).created_at) }))
+
+    // Join reviewer profiles.
+    const userIds = [...new Set(rows.map((r: any) => r.user_id).filter(Boolean))]
+    const profileMap = new Map<string, any>()
+    await Promise.all(
+      userIds.map(async (uid: any) => {
+        const p = await adminDb.collection('profiles').doc(uid).get()
+        if (p.exists) profileMap.set(uid, p.data())
+      })
+    )
+
+    const reviews = rows
+      .map((r: any) => {
+        const p = profileMap.get(r.user_id)
+        return { ...r, profiles: p ? { full_name: p.full_name, avatar_url: p.avatar_url } : null }
+      })
+      .sort((a: any, b: any) => (String(b.created_at) > String(a.created_at) ? 1 : -1))
+      .map(sanitizePublicReview)
+
+    return NextResponse.json({ reviews })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 })
   }
-
-  const cookieStore = getCookieStore()
-  const supabase = createServerClient(cookieStore)
-
-  // Fetch reviews joined with profiles
-  const { data: reviews, error } = await supabase
-    .from('directory_reviews')
-    .select('*, profiles:user_id (full_name, avatar_url)')
-    .eq('listing_id', id)
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ reviews: (reviews || []).map(sanitizePublicReview) })
 }
 
-// POST: Leave a review on a listing, updating listing rating averages
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+// POST: Leave a review, updating listing rating aggregates + owner notifications
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const { id } = params
-  if (!id) {
-    return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
-  }
+  if (!id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
 
-  const cookieStore = getCookieStore()
-  const user = await getServerUser(cookieStore)
-
+  const user = await getServerUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized. Please log in to leave a review.' }, { status: 401 })
   }
@@ -62,143 +58,79 @@ export async function POST(
   try {
     const { rating, comment, photo_urls } = await request.json()
     const intRating = parseInt(rating, 10)
-
     if (isNaN(intRating) || intRating < 1 || intRating > 5) {
       return NextResponse.json({ error: 'Rating must be an integer between 1 and 5' }, { status: 400 })
     }
-
     const cleanPhotoUrls = Array.isArray(photo_urls) ? photo_urls.filter((u) => typeof u === 'string') : []
 
-    const supabase = createServerClient(cookieStore)
-
-    const { data: existingReview, error: existingReviewError } = await supabase
-      .from('directory_reviews')
-      .select('id')
-      .eq('listing_id', id)
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    if (existingReviewError) {
-      return NextResponse.json({ error: existingReviewError.message }, { status: 500 })
+    // One review per user per listing.
+    const existingSnap = await adminDb
+      .collection('directory_reviews')
+      .where('listing_id', '==', id)
+      .where('user_id', '==', user.id)
+      .limit(1)
+      .get()
+    if (!existingSnap.empty) {
+      return NextResponse.json({ error: 'You have already reviewed this listing.' }, { status: 409 })
     }
 
-    if (existingReview) {
-      return NextResponse.json(
-        { error: 'You have already reviewed this listing.' },
-        { status: 409 }
-      )
-    }
+    const reviewRef = await adminDb.collection('directory_reviews').add({
+      listing_id: id,
+      user_id: user.id,
+      rating: intRating,
+      comment: comment || '',
+      photo_urls: cleanPhotoUrls,
+      created_at: FieldValue.serverTimestamp(),
+    })
+    const newReview = { id: reviewRef.id, listing_id: id, user_id: user.id, rating: intRating, comment: comment || '', photo_urls: cleanPhotoUrls }
 
-    // Insert new review
-    const { data: newReview, error: insertError } = await supabase
-      .from('directory_reviews')
-      .insert({
-        listing_id: id,
-        user_id: user.id,
-        rating: intRating,
-        comment: comment || '',
-        photo_urls: cleanPhotoUrls,
-      })
-      .select('*')
-      .single()
-
-    if (insertError) {
-      if (insertError.code === '23505') {
-        return NextResponse.json(
-          { error: 'You have already reviewed this listing.' },
-          { status: 409 }
-        )
-      }
-      return NextResponse.json({ error: insertError.message }, { status: 500 })
-    }
-
-    // Award review points to regular users
-    const { data: reviewerProfile } = await supabase
-      .from('profiles')
-      .select('is_advertiser, review_points')
-      .eq('id', user.id)
-      .single()
-
+    // Award review points to non-advertisers.
+    const reviewerDoc = await adminDb.collection('profiles').doc(user.id).get()
+    const reviewerProfile = reviewerDoc.exists ? (reviewerDoc.data() as any) : null
     if (
       reviewerProfile &&
-      shouldAwardReviewPoints({
-        isAdvertiser: Boolean(reviewerProfile.is_advertiser),
-        hasExistingReview: Boolean(existingReview),
-      })
+      shouldAwardReviewPoints({ isAdvertiser: Boolean(reviewerProfile.is_advertiser), hasExistingReview: false })
     ) {
-      const updatedPoints = (reviewerProfile.review_points || 0) + 10
-      await supabase
-        .from('profiles')
-        .update({ review_points: updatedPoints })
-        .eq('id', user.id)
+      await adminDb
+        .collection('profiles')
+        .doc(user.id)
+        .set({ review_points: (reviewerProfile.review_points || 0) + 10 }, { merge: true })
     }
 
-    // Recalculate listing rating aggregates
-    const { data: allReviews, error: reviewsError } = await supabase
-      .from('directory_reviews')
-      .select('rating')
-      .eq('listing_id', id)
+    // Recalculate listing rating aggregates.
+    const allSnap = await adminDb.collection('directory_reviews').where('listing_id', '==', id).get()
+    const count = allSnap.size
+    const sum = allSnap.docs.reduce((acc, d) => acc + ((d.data() as any).rating || 0), 0)
+    const average = count > 0 ? parseFloat((sum / count).toFixed(2)) : 0
 
-    let average = 0
-    let count = 0
+    const listingRef = adminDb.collection('directory_listings').doc(id)
+    await listingRef.set({ rating: average, user_ratings_total: count, updated_at: new Date().toISOString() }, { merge: true })
 
-    if (!reviewsError && allReviews) {
-      count = allReviews.length
-      const sum = allReviews.reduce((acc, curr) => acc + curr.rating, 0)
-      average = parseFloat((sum / count).toFixed(2))
-
-      // Update listing metrics
-      await supabase
-        .from('directory_listings')
-        .update({
-          rating: average,
-          user_ratings_total: count,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-    }
-
-    // Query listing details and trigger owner notifications
-    const { data: listing } = await supabase
-      .from('directory_listings')
-      .select('name, owner_id')
-      .eq('id', id)
-      .single()
-
-    if (listing && listing.owner_id) {
-      const { data: ownerProfile } = await supabase
-        .from('profiles')
-        .select('email, phone_number, email_notifications_enabled, sms_notifications_enabled')
-        .eq('id', listing.owner_id)
-        .single()
-
-      if (ownerProfile) {
-        // Email Notification
-        if (ownerProfile.email_notifications_enabled && ownerProfile.email) {
-          const emailSubject = `New review for ${listing.name}`
-          const emailBody = `Hello,\n\nYour business "${listing.name}" has received a new ${intRating}-star review.\n\nReview comment:\n"${comment || '(No comment)'}"\n\nCheck your directory listing to reply to customers.`
-          
-          await supabase.from('sent_notifications').insert({
+    // Owner notifications.
+    const listingDoc = await listingRef.get()
+    const listing = listingDoc.exists ? (listingDoc.data() as any) : null
+    if (listing?.owner_id) {
+      const ownerDoc = await adminDb.collection('profiles').doc(listing.owner_id).get()
+      const owner = ownerDoc.exists ? (ownerDoc.data() as any) : null
+      if (owner) {
+        if (owner.email_notifications_enabled && owner.email) {
+          await adminDb.collection('sent_notifications').add({
             user_id: listing.owner_id,
             type: 'email',
-            recipient: ownerProfile.email,
-            subject: emailSubject,
-            body: emailBody,
+            recipient: owner.email,
+            subject: `New review for ${listing.name}`,
+            body: `Your business "${listing.name}" received a new ${intRating}-star review.\n\n"${comment || '(No comment)'}"`,
+            created_at: FieldValue.serverTimestamp(),
           })
-          console.log(`[ALERT EMAIL] Review notification sent to owner email ${ownerProfile.email}`)
         }
-
-        // SMS/Text Notification
-        if (ownerProfile.sms_notifications_enabled && ownerProfile.phone_number) {
-          const smsBody = `CityBeat Alert: ${listing.name} got a new ${intRating}-star review. Read comment: "${comment ? comment.substring(0, 40) + '...' : 'none'}".`
-          
-          await supabase.from('sent_notifications').insert({
+        if (owner.sms_notifications_enabled && owner.phone_number) {
+          await adminDb.collection('sent_notifications').add({
             user_id: listing.owner_id,
             type: 'sms',
-            recipient: ownerProfile.phone_number,
-            body: smsBody,
+            recipient: owner.phone_number,
+            body: `CityBeat Alert: ${listing.name} got a new ${intRating}-star review.`,
+            created_at: FieldValue.serverTimestamp(),
           })
-          console.log(`[ALERT SMS] Review notification sent to owner text ${ownerProfile.phone_number}`)
         }
       }
     }

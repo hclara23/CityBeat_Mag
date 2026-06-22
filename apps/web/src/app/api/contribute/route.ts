@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSanityWriteClient } from '@/lib/sanity'
+import { adminDb } from '@citybeat/lib/firebase/admin'
+import { FieldValue } from 'firebase-admin/firestore'
+
+export const dynamic = 'force-dynamic'
 
 // Simple in-memory rate limiter: 5 submissions per IP per hour
 const submissionCounts = new Map<string, { count: number; resetAt: number }>()
@@ -15,32 +18,6 @@ function checkRateLimit(ip: string): boolean {
   return true
 }
 
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024 // 10 MB
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim()
-    .slice(0, 96)
-}
-
-function toPortableText(text: string) {
-  return text
-    .split('\n\n')
-    .filter(Boolean)
-    .map((paragraph, i) => ({
-      _type: 'block',
-      _key: `block-${i}`,
-      style: 'normal',
-      markDefs: [],
-      children: [{ _type: 'span', _key: `span-${i}`, marks: [], text: paragraph.trim() }],
-    }))
-}
-
 function getClientIp(request: NextRequest): string {
   return (
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -50,7 +27,6 @@ function getClientIp(request: NextRequest): string {
 }
 
 export async function POST(request: NextRequest) {
-  // Rate limit: 5 submissions per IP per hour
   const ip = getClientIp(request)
   if (!checkRateLimit(ip)) {
     return NextResponse.json(
@@ -82,7 +58,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid submission' }, { status: 400 })
   }
 
-  // Validate required fields
   const fieldErrors: Record<string, string> = {}
   if (!name) fieldErrors.name = 'Your name is required.'
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fieldErrors.email = 'A valid email is required.'
@@ -94,56 +69,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Validation failed', fields: fieldErrors }, { status: 422 })
   }
 
-  const client = getSanityWriteClient()
-  let imageRef: { _type: string; asset: { _type: string; _ref: string } } | undefined
-
-  // Upload image if provided
-  if (imageFile && imageFile.size > 0) {
-    if (!ALLOWED_IMAGE_TYPES.includes(imageFile.type)) {
-      return NextResponse.json({ error: 'Invalid image type. Use JPEG, PNG, or WebP.' }, { status: 400 })
-    }
-    if (imageFile.size > MAX_IMAGE_BYTES) {
-      return NextResponse.json({ error: 'Image too large. Maximum size is 10 MB.' }, { status: 400 })
-    }
-
-    try {
-      const buffer = Buffer.from(await imageFile.arrayBuffer())
-      const asset = await client.assets.upload('image', buffer, {
-        filename: imageFile.name,
-        contentType: imageFile.type,
-      })
-      imageRef = { _type: 'image', asset: { _type: 'reference', _ref: asset._id } }
-    } catch {
-      return NextResponse.json({ error: 'Image upload failed. Please try again.' }, { status: 500 })
-    }
-  }
-
-  const now = new Date().toISOString()
-  const doc: { _type: string; [key: string]: unknown } = {
-    _type: 'article',
-    title,
-    slug: { _type: 'slug', current: slugify(title) },
-    author: name,
-    authorEmail: email,
-    isContribution: true,
-    submittedAt: now,
-    publishedAt: now,
-    excerpt,
-    body: toPortableText(bodyText),
-    category: category || undefined,
-    tags: tags
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean),
-    status: 'pending_review',
-  }
-
-  if (imageRef) doc.image = imageRef
-
   try {
-    const created = await client.create(doc)
-    return NextResponse.json({ success: true, id: created._id }, { status: 201 })
-  } catch {
+    const docRef = await adminDb.collection('submissions').add({
+      name,
+      email,
+      title,
+      body_text: bodyText,
+      excerpt: excerpt || bodyText.slice(0, 160),
+      category: category || 'news',
+      tags: tags
+        ? tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : [],
+      image_filename: imageFile && imageFile.size > 0 ? imageFile.name : null,
+      status: 'pending',
+      source_ip: ip,
+      created_at: FieldValue.serverTimestamp(),
+    })
+
+    return NextResponse.json({ ok: true, id: docRef.id }, { status: 201 })
+  } catch (error) {
+    console.error('contribute submission error:', error)
     return NextResponse.json({ error: 'Failed to submit. Please try again.' }, { status: 500 })
   }
 }

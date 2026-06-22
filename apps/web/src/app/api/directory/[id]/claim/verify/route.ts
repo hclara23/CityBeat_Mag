@@ -1,29 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, getServerUser } from '@citybeat/lib/supabase/server'
+import { getServerUser } from '@citybeat/lib/firebase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
 
-function getCookieStore() {
-  const cookieStore = cookies()
-  return {
-    getAll: () => cookieStore.getAll(),
-    setAll: () => {},
-  }
+function createdMs(v: any): number {
+  if (v?.toDate) return v.toDate().getTime()
+  if (typeof v === 'string') return Date.parse(v) || 0
+  return 0
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const { id: listingId } = params
   if (!listingId) {
     return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
   }
 
-  const cookieStore = getCookieStore()
-  const user = await getServerUser(cookieStore)
-
+  const user = await getServerUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized. Please sign in to verify your claim.' }, { status: 401 })
   }
@@ -34,61 +27,65 @@ export async function POST(
       return NextResponse.json({ error: 'Missing verification code' }, { status: 400 })
     }
 
-    const supabase = createServerClient(cookieStore)
+    // Find the latest code_sent claim for this user/listing (sorted in memory to avoid composite index).
+    const snap = await adminDb
+      .collection('directory_claims')
+      .where('listing_id', '==', listingId)
+      .where('user_id', '==', user.id)
+      .where('status', '==', 'code_sent')
+      .get()
 
-    // Find the latest code-sent claim for this user/listing. Postcard claims
-    // stay pending for manual/admin handling and cannot self-approve here.
-    const { data: claim, error: claimError } = await supabase
-      .from('directory_claims')
-      .select('*')
-      .eq('listing_id', listingId)
-      .eq('user_id', user.id)
-      .eq('status', 'code_sent')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (claimError || !claim) {
+    if (snap.empty) {
       return NextResponse.json({ error: 'No active claim request found for this listing' }, { status: 404 })
     }
 
-    if (claim.verification_code !== code.trim()) {
-      return NextResponse.json({ error: 'Invalid verification code. Please try again.' }, { status: 400 })
+    const claimDoc = snap.docs.sort(
+      (a, b) => createdMs((b.data() as any).created_at) - createdMs((a.data() as any).created_at)
+    )[0]
+    const claim = claimDoc.data() as any
+
+    const now = new Date().toISOString()
+    const MAX_ATTEMPTS = 5
+
+    if (claim.verification_code !== String(code).trim()) {
+      const attempts = (claim.attempts || 0) + 1
+      if (attempts >= MAX_ATTEMPTS) {
+        // Too many wrong guesses — invalidate the code so it must be re-requested.
+        await claimDoc.ref.set({ status: 'failed', attempts, updated_at: now }, { merge: true })
+        return NextResponse.json(
+          { error: 'Too many incorrect attempts. Please request a new code.' },
+          { status: 429 }
+        )
+      }
+      await claimDoc.ref.set({ attempts, updated_at: now }, { merge: true })
+      return NextResponse.json(
+        { error: `Invalid verification code. ${MAX_ATTEMPTS - attempts} attempt(s) remaining.` },
+        { status: 400 }
+      )
     }
 
-    // Update claim status to verified
-    const { error: updateClaimError } = await supabase
-      .from('directory_claims')
-      .update({ status: 'verified', updated_at: new Date().toISOString() })
-      .eq('id', claim.id)
-
-    if (updateClaimError) {
-      return NextResponse.json({ error: updateClaimError.message }, { status: 500 })
-    }
-
-    // Update listing to be claimed by the user and approved (free claim is approved immediately upon code verification)
-    const { error: updateListingError } = await supabase
-      .from('directory_listings')
-      .update({
+    // Code is correct — record the verified claim, but route it through admin
+    // approval rather than auto-granting ownership. The admin approves in the
+    // claims dashboard, which finalizes the tier and advertiser flag.
+    await claimDoc.ref.set({ status: 'verified', updated_at: now }, { merge: true })
+    await adminDb.collection('directory_listings').doc(listingId).set(
+      {
         owner_id: user.id,
-        claim_status: 'approved',
-        tier: 'basic', // explicitly remains basic until premium upgrade payment is completed
-        claimed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', listingId)
+        claim_status: 'pending_approval',
+        pending_tier: 'basic',
+        verification_method: claim.verification_method || 'unknown',
+        verified_at: now,
+        claimed_at: now,
+        updated_at: now,
+      },
+      { merge: true }
+    )
 
-    if (updateListingError) {
-      return NextResponse.json({ error: updateListingError.message }, { status: 500 })
-    }
-
-    // Also update the user's role profile to is_advertiser = true so they are marked as a business owner
-    await supabase
-      .from('profiles')
-      .update({ is_advertiser: true })
-      .eq('id', user.id)
-
-    return NextResponse.json({ success: true, message: 'Business ownership verified successfully!' })
+    return NextResponse.json({
+      success: true,
+      status: 'pending_approval',
+      message: 'Ownership verified! Your claim is now pending review by our team and will be approved shortly.',
+    })
   } catch (error: any) {
     console.error('Error verifying claim code:', error)
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 })

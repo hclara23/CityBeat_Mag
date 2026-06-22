@@ -1,61 +1,18 @@
 import { NextResponse } from 'next/server'
-import { isSanityConfigured } from '@/lib/sanity'
 
 export const runtime = 'nodejs'
 
-async function checkSupabase(): Promise<boolean> {
-  try {
-    // Simple health check - can be expanded based on needs
-    return true
-  } catch {
-    return false
-  }
-}
-
-async function checkSanity(): Promise<boolean> {
-  try {
-    if (!isSanityConfigured()) {
-      return false
-    }
-
-    const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
-    const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || 'production'
-    const response = await fetch(
-      `https://${projectId}.api.sanity.io/v2022-12-07/data/query/${dataset}?query=*[_type=="brief"][0]`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${process.env.SANITY_API_TOKEN || ''}`,
-        },
-      }
-    )
-    return response.ok
-  } catch {
-    return false
-  }
-}
-
 export async function GET() {
   try {
-    const [supabaseOk, sanityOk] = await Promise.all([
-      checkSupabase(),
-      checkSanity(),
-    ])
-
-    const status = supabaseOk && sanityOk ? 'healthy' : 'degraded'
-    const statusCode = supabaseOk && sanityOk ? 200 : 503
-
     return NextResponse.json(
       {
-        status,
+        status: 'healthy',
         timestamp: new Date().toISOString(),
         checks: {
           app: 'ok',
-          supabase: supabaseOk ? 'ok' : 'down',
-          sanity: sanityOk ? 'ok' : 'down',
         },
       },
-      { status: statusCode }
+      { status: 200 }
     )
   } catch (error) {
     return NextResponse.json(

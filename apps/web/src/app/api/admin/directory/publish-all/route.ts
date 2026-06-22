@@ -1,44 +1,39 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, getServerUser, getServerUserProfile } from '@citybeat/lib/supabase/server'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasAdminAccess } from '@citybeat/lib/supabase/roles'
 
 export const dynamic = 'force-dynamic'
 
-function getCookieStore() {
-  const cookieStore = cookies()
-  return {
-    getAll: () => cookieStore.getAll(),
-    setAll: () => {},
-  }
-}
-
-async function requireEditor(cookieStore: ReturnType<typeof getCookieStore>) {
-  const user = await getServerUser(cookieStore)
-  if (!user) return { error: 'Unauthorized', status: 401 }
-  const profile = await getServerUserProfile(user.id, cookieStore)
-  if (!hasAdminAccess(profile)) return { error: 'Forbidden', status: 403 }
-  return { user, profile }
-}
-
 // POST /api/admin/directory/publish-all - publish every hidden directory listing
 export async function POST() {
-  const cookieStore = getCookieStore()
-  const auth = await requireEditor(cookieStore)
-  if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
+  const user = await getServerUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const profile = await getServerUserProfile(user.id)
+  if (!hasAdminAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const supabase = createServerClient(cookieStore)
+  try {
+    const snap = await adminDb.collection('directory_listings').where('is_published', '==', false).get()
+    if (snap.empty) return NextResponse.json({ published: 0 })
 
-  const { data, error } = await supabase
-    .from('directory_listings')
-    .update({
-      is_published: true,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('is_published', false)
-    .select('id')
+    const now = new Date().toISOString()
+    let batch = adminDb.batch()
+    let count = 0
+    let inBatch = 0
+    for (const doc of snap.docs) {
+      batch.set(doc.ref, { is_published: true, updated_at: now }, { merge: true })
+      count++
+      inBatch++
+      if (inBatch === 450) {
+        await batch.commit()
+        batch = adminDb.batch()
+        inBatch = 0
+      }
+    }
+    if (inBatch > 0) await batch.commit()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  return NextResponse.json({ published: data?.length || 0 })
+    return NextResponse.json({ published: count })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Internal Server Error' }, { status: 500 })
+  }
 }

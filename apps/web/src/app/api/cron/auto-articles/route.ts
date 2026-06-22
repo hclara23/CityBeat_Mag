@@ -1,36 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { runAutoArticleAgent } from '@citybeat/lib/content/auto-articles'
+import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-export const maxDuration = 300
 
-function isAuthorized(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) return false
-
-  return request.headers.get('authorization') === `Bearer ${cronSecret}`
-}
-
-function parseLimit(value: string | null) {
-  const parsed = Number(value || process.env.AUTO_ARTICLE_DAILY_LIMIT || 3)
-  if (!Number.isFinite(parsed)) return 3
-  return Math.max(1, Math.min(Math.trunc(parsed), 5))
-}
-
-export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const { searchParams } = new URL(request.url)
-  const result = await runAutoArticleAgent({
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    ownerEmail: process.env.AUTO_ARTICLE_OWNER_EMAIL || 'citybeat@yahoo.com',
-    limit: parseLimit(searchParams.get('limit')),
-    dryRun: searchParams.get('dryRun') === '1',
-  })
-
-  return NextResponse.json(result)
+// DISABLED: the auto-article LLM generator (packages/lib/src/content/auto-article-agent.ts)
+// still targets Supabase. It overlaps the worker brief-automation pipeline (which now
+// writes to Firestore via /api/ingest/brief) and requires its own LLM API key.
+// Left as a no-op so nothing writes to Supabase. Port the agent's DB layer to Firestore
+// (same collections as the creator/articles route) to re-enable.
+export async function GET() {
+  return NextResponse.json(
+    { ok: false, disabled: true, message: 'auto-articles generator is disabled pending Firestore migration' },
+    { status: 200 }
+  )
 }

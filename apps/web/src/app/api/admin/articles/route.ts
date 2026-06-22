@@ -1,58 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { getServerUser, createServerClient, isEditor } from '@citybeat/lib/supabase/server'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 
-function readonlyCookieStore(store: Awaited<ReturnType<typeof cookies>>) {
-  return { getAll: () => store.getAll(), setAll: () => {} }
+export const dynamic = 'force-dynamic'
+
+function toIso(v: any): string | null {
+  if (!v) return null
+  if (v?.toDate) return v.toDate().toISOString()
+  return typeof v === 'string' ? v : null
 }
 
 export async function GET(request: NextRequest) {
-  const cookieStore = readonlyCookieStore(await cookies())
-  const user = await getServerUser(cookieStore)
-  
-  if (!user || !(await isEditor(user.id, cookieStore))) {
+  const user = await getServerUser()
+  const profile = user ? await getServerUserProfile(user.id) : null
+  if (!user || !(profile?.is_editor || profile?.is_developer)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
-  const supabase = createServerClient(cookieStore)
-
-  let query = supabase
-    .from('articles')
-    .select(`
-      id,
-      created_at,
-      title,
-      slug,
-      excerpt,
-      category_id,
-      status,
-      published_at,
-      image_url,
-      byline:authors!articles_author_id_fkey(name),
-      creator:profiles!articles_created_by_fkey(email, full_name)
-    `)
-    .order('created_at', { ascending: false })
-
-  if (status) {
-    query = query.eq('status', status)
-  }
 
   try {
-    const { data: articles, error } = await query
-    if (error) throw error
+    let query: any = adminDb.collection('articles')
+    if (status) query = query.where('status', '==', status)
+    const snap = await query.get()
+    const articles = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }))
 
-    // Transform for response
-    const transformedArticles = articles.map((a: any) => ({
-      ...a,
-      author_email: a.creator?.email,
-      author_name: a.byline?.name || a.creator?.full_name || a.creator?.email,
-    }))
+    // Resolve author names and creator emails.
+    const authorsSnap = await adminDb.collection('authors').get()
+    const authorMap = new Map<string, string>(
+      authorsSnap.docs.map((d) => [d.id, (d.data() as any).name])
+    )
 
-    return NextResponse.json({ articles: transformedArticles })
+    const creatorIds = [...new Set(articles.map((a: any) => a.created_by).filter(Boolean))]
+    const creatorMap = new Map<string, any>()
+    await Promise.all(
+      creatorIds.map(async (cid: any) => {
+        const p = await adminDb.collection('profiles').doc(cid).get()
+        if (p.exists) creatorMap.set(cid, p.data())
+      })
+    )
+
+    const transformed = articles
+      .map((a: any) => {
+        const creator = creatorMap.get(a.created_by)
+        return {
+          ...a,
+          created_at: toIso(a.created_at),
+          published_at: toIso(a.published_at),
+          author_email: creator?.email ?? null,
+          author_name:
+            (a.author_id && authorMap.get(a.author_id)) ||
+            creator?.full_name ||
+            creator?.email ||
+            a.author ||
+            'CityBeat',
+        }
+      })
+      .sort((x: any, y: any) => (String(y.created_at) > String(x.created_at) ? 1 : -1))
+
+    return NextResponse.json({ articles: transformed })
   } catch (error) {
-    console.error('Admin API error:', error)
+    console.error('Admin articles error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

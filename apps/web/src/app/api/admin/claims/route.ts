@@ -1,65 +1,66 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient, getServerUser, getServerUserProfile } from '@citybeat/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasAdminAccess } from '@citybeat/lib/supabase/roles'
 
 export const dynamic = 'force-dynamic'
 
-function getCookieStore() {
-  const cookieStore = cookies()
-  return {
-    getAll: () => cookieStore.getAll(),
-    setAll: () => {
-      // Route handlers do not need to write refreshed cookies for these reads.
-    },
-  }
+function toIso(v: any): string | null {
+  if (!v) return null
+  if (v?.toDate) return v.toDate().toISOString()
+  return typeof v === 'string' ? v : null
 }
 
-export async function GET(request: NextRequest) {
-  const cookieStore = getCookieStore()
-  const user = await getServerUser(cookieStore)
+export async function GET() {
+  const user = await getServerUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const profile = await getServerUserProfile(user.id)
+  if (!hasAdminAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    // Listings awaiting approval.
+    const claimsSnap = await adminDb
+      .collection('directory_listings')
+      .where('claim_status', '==', 'pending_approval')
+      .get()
+    const claims = claimsSnap.docs
+      .map((d) => ({ id: d.id, ...(d.data() as any), claimed_at: toIso((d.data() as any).claimed_at) }))
+      .sort((a: any, b: any) => (String(b.claimed_at) > String(a.claimed_at) ? 1 : -1))
+
+    // Postcard claims pending review.
+    const pcSnap = await adminDb
+      .collection('directory_claims')
+      .where('verification_method', '==', 'postcard')
+      .get()
+    const pcDocs = pcSnap.docs
+      .map((d) => ({ id: d.id, ...(d.data() as any) }))
+      .filter((c: any) => ['pending', 'code_sent'].includes(c.status))
+
+    const postcardClaims = await Promise.all(
+      pcDocs.map(async (c: any) => {
+        const [lDoc, pDoc] = await Promise.all([
+          c.listing_id ? adminDb.collection('directory_listings').doc(c.listing_id).get() : null,
+          c.user_id ? adminDb.collection('profiles').doc(c.user_id).get() : null,
+        ])
+        const l = lDoc?.exists ? (lDoc.data() as any) : null
+        const p = pDoc?.exists ? (pDoc.data() as any) : null
+        return {
+          id: c.id,
+          listing_id: c.listing_id,
+          user_id: c.user_id,
+          verification_method: c.verification_method,
+          verification_code: c.verification_code,
+          status: c.status,
+          created_at: toIso(c.created_at),
+          listing: l ? { name: l.name, address: l.address, category: l.category } : null,
+          profile: p ? { email: p.email } : null,
+        }
+      })
+    )
+    postcardClaims.sort((a, b) => (String(b.created_at) > String(a.created_at) ? 1 : -1))
+
+    return NextResponse.json({ claims, postcardClaims })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 })
   }
-
-  const profile = await getServerUserProfile(user.id, cookieStore)
-  if (!hasAdminAccess(profile)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  const supabase = createServerClient(cookieStore)
-
-  // Fetch pending approval listings
-  const { data: claims, error } = await supabase
-    .from('directory_listings')
-    .select('*')
-    .eq('claim_status', 'pending_approval')
-    .order('claimed_at', { ascending: false })
-
-  const { data: postcardClaims, error: postcardError } = await supabase
-    .from('directory_claims')
-    .select(`
-      id,
-      listing_id,
-      user_id,
-      verification_method,
-      verification_code,
-      status,
-      created_at,
-      listing:directory_listings(name, address, category),
-      profile:profiles(email)
-    `)
-    .eq('verification_method', 'postcard')
-    .in('status', ['pending', 'code_sent'])
-    .order('created_at', { ascending: false })
-
-  if (error || postcardError) {
-    return NextResponse.json({ error: error?.message || postcardError?.message }, { status: 500 })
-  }
-
-  return NextResponse.json({
-    claims: claims || [],
-    postcardClaims: postcardClaims || []
-  })
 }

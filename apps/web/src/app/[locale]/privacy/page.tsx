@@ -27,7 +27,7 @@ const copy = {
       },
       {
         heading: '4. Third-Party Services',
-        text: 'We use third-party services including Stripe for payment processing, Sanity for content management, and Supabase for data storage. These services have their own privacy policies.',
+        text: 'We use third-party services including Stripe for payment processing and Firebase for authentication and data storage. These services have their own privacy policies.',
       },
       {
         heading: '5. Contact Us',
@@ -59,7 +59,7 @@ const copy = {
       },
       {
         heading: '4. Servicios de Terceros',
-        text: 'Usamos servicios de terceros, incluyendo Stripe para el procesamiento de pagos, Sanity para la gestión de contenido y Supabase para el almacenamiento de datos. Estos servicios tienen sus propias políticas de privacidad.',
+        text: 'Usamos servicios de terceros, incluyendo Stripe para el procesamiento de pagos y Firebase para la autenticación y el almacenamiento de datos. Estos servicios tienen sus propias políticas de privacidad.',
       },
       {
         heading: '5. Contáctenos',

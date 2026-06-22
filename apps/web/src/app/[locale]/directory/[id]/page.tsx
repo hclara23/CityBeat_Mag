@@ -18,7 +18,7 @@ interface Listing {
   website: string | null
   rating: number | null
   user_ratings_total: number | null
-  tier: 'basic' | 'premium'
+  tier: 'basic' | 'premium' | 'featured'
   claim_status: 'unclaimed' | 'pending_approval' | 'approved'
   image_url: string | null
   gallery_urls: string[] | null
@@ -29,6 +29,17 @@ interface Listing {
   } | null
   hours: Record<string, string> | null
   owner_id: string | null
+  latitude?: number | null
+  longitude?: number | null
+  location_count?: number | null
+  locations?: ListingLocation[] | null
+}
+
+interface ListingLocation {
+  address: string | null
+  phone?: string | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
 interface UserProfile {
@@ -56,6 +67,9 @@ const translations = {
     phone: 'Phone',
     website: 'Website',
     address: 'Address',
+    locationsTitle: 'Locations',
+    locationsCount: 'locations',
+    directions: 'Directions',
     hoursTitle: 'Opening Hours',
     claimHeader: 'Is this your business?',
     claimSub: 'Claim this listing and subscribe to Premium for $19/mo to unlock:',
@@ -101,6 +115,9 @@ const translations = {
     phone: 'Teléfono',
     website: 'Sitio Web',
     address: 'Dirección',
+    locationsTitle: 'Ubicaciones',
+    locationsCount: 'ubicaciones',
+    directions: 'Cómo llegar',
     hoursTitle: 'Horario de Atención',
     claimHeader: '¿Es este su negocio?',
     claimSub: 'Reclame este perfil y suscríbase a Premium por $19/mes para desbloquear:',
@@ -139,6 +156,53 @@ const translations = {
     loginToReviewBtn: 'Iniciar Sesión para Reseñar',
     successReview: '¡Reseña enviada con éxito!',
   }
+}
+
+// Renders every location of a multi-location brand listing. Each location links
+// to a Google Maps search for its own address. Returns null for single-location
+// listings (the normal single-address blocks cover those).
+function LocationsPanel({
+  listing,
+  t,
+}: {
+  listing: Listing
+  t: (typeof translations)['en']
+}) {
+  const locations = (listing.locations || []).filter((l) => l && l.address)
+  if (locations.length < 2) return null
+  return (
+    <div className="citybeat-panel rounded-2xl p-6 border border-white/10">
+      <h3 className="font-display text-xl font-bold uppercase border-b border-white/5 pb-3 mb-4 flex items-center justify-between">
+        <span>{t.locationsTitle}</span>
+        <span className="text-xs font-black text-brand-neon bg-brand-neon/10 px-2.5 py-1 rounded">
+          {locations.length} {t.locationsCount}
+        </span>
+      </h3>
+      <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+        {locations.map((loc, i) => {
+          const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+            `${listing.name} ${loc.address || ''}`
+          )}`
+          return (
+            <div key={i} className="flex items-start justify-between gap-3 border-b border-white/5 pb-3 last:border-0">
+              <div className="min-w-0">
+                <p className="text-sm text-white/85 leading-snug">{loc.address}</p>
+                {loc.phone && <p className="text-xs text-white/50 mt-0.5">{loc.phone}</p>}
+              </div>
+              <a
+                href={maps}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wider text-brand-neon hover:text-cyan-300 whitespace-nowrap mt-0.5"
+              >
+                {t.directions} →
+              </a>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export default function ListingDetailPage() {
@@ -185,6 +249,8 @@ export default function ListingDetailPage() {
   const [reviewSuccess, setReviewSuccess] = useState('')
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([])
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [uploadingGallery, setUploadingGallery] = useState(false)
 
   const fetchReviews = useCallback(async () => {
     try {
@@ -251,20 +317,13 @@ export default function ListingDetailPage() {
     }
   }, [id, fetchReviews])
 
-  // Redirect basic tier listings to claim page unless user is the owner or an editor/admin
-  useEffect(() => {
-    if (listing) {
-      const isOwner = userProfile && listing.owner_id === userProfile.id && listing.claim_status === 'approved';
-      if (listing.tier !== 'premium' && !isEditor && !isOwner) {
-        router.replace(`/${locale}/directory/${listing.id}/claim`)
-      }
-    }
-  }, [listing, userProfile, isEditor, locale, router])
+  // Note: all listings (claimed or not) render a public page with reviews + a
+  // "claim this business" CTA. Premium-only content is gated inline below.
 
   const handleSaveChanges = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    const isPremiumOrEditor = (listing?.tier === 'premium' || isEditor)
+    const isPremiumOrEditor = (listing?.tier === 'premium' || listing?.tier === 'featured' || isEditor)
     try {
       const response = await fetch(`/api/directory/${id}`, {
         method: 'PATCH',
@@ -315,11 +374,11 @@ export default function ListingDetailPage() {
         const formData = new FormData()
         formData.append('file', file)
         
-        const response = await fetch('/api/creator/upload', {
+        const response = await fetch('/api/upload/image', {
           method: 'POST',
           body: formData,
         })
-        
+
         if (response.ok) {
           const data = await response.json()
           if (data.url) {
@@ -340,6 +399,50 @@ export default function ListingDetailPage() {
 
   const removeUploadedPhoto = (indexToRemove: number) => {
     setUploadedPhotos(prev => prev.filter((_, index) => index !== indexToRemove))
+  }
+
+  // Owner/editor: upload a cover image file -> sets imageUrl.
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingCover(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/upload/image', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (res.ok && data.url) setImageUrl(data.url)
+      else alert(data.error || 'Upload failed')
+    } catch {
+      alert('Upload failed')
+    } finally {
+      setUploadingCover(false)
+    }
+  }
+
+  // Owner/editor: upload one or more gallery photos -> appends to galleryInput.
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    setUploadingGallery(true)
+    try {
+      const urls: string[] = []
+      for (let i = 0; i < files.length; i++) {
+        const fd = new FormData()
+        fd.append('file', files[i])
+        const res = await fetch('/api/upload/image', { method: 'POST', body: fd })
+        const data = await res.json()
+        if (res.ok && data.url) urls.push(data.url)
+        else alert(data.error || 'Upload failed')
+      }
+      if (urls.length) {
+        setGalleryInput(prev => [prev.trim(), ...urls].filter(Boolean).join('\n'))
+      }
+    } catch {
+      alert('Upload failed')
+    } finally {
+      setUploadingGallery(false)
+    }
   }
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -428,18 +531,8 @@ export default function ListingDetailPage() {
 
   const isOwner = listing.owner_id === userProfile?.id && listing.claim_status === 'approved'
   const showEditButton = isOwner || isEditor
+  const isClaimable = listing.claim_status === 'unclaimed' && !isOwner
   const visitorPhotos = reviews.flatMap((rev) => rev.photo_urls || []).filter(Boolean)
-
-  if (listing && listing.tier !== 'premium' && !isEditor && !isOwner) {
-    return (
-      <CityBeatShell locale={locale}>
-        <div className="citybeat-app min-h-screen flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-neon"></div>
-          <p className="text-white/60 mt-4 font-medium">Redirecting to claim page...</p>
-        </div>
-      </CityBeatShell>
-    )
-  }
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.name + ' ' + (listing.address || ''))}`
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(listing.name + ' ' + (listing.address || ''))}`
@@ -603,7 +696,7 @@ export default function ListingDetailPage() {
                       <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
                         {t.descriptionLabel}
                       </label>
-                      {listing.tier !== 'premium' && !isEditor && (
+                      {(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor && (
                         <Link href={`/${locale}/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
                           🔒 Premium Feature - Click to Unlock
                         </Link>
@@ -613,9 +706,9 @@ export default function ListingDetailPage() {
                       rows={6}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      disabled={listing.tier !== 'premium' && !isEditor}
-                      placeholder={listing.tier === 'premium' || isEditor ? "Provide a detailed description of your business..." : "Upgrade to Premium to write a rich custom description."}
-                      className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                      disabled={(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor}
+                      placeholder={(listing.tier === 'premium' || listing.tier === 'featured') || isEditor ? "Provide a detailed description of your business..." : "Upgrade to Premium to write a rich custom description."}
+                      className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
                     />
                   </div>
 
@@ -624,7 +717,7 @@ export default function ListingDetailPage() {
                       <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
                         {t.imageUrlLabel}
                       </label>
-                      {listing.tier !== 'premium' && !isEditor && (
+                      {(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor && (
                         <Link href={`/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
                           🔒 Premium Feature - Click to Unlock
                         </Link>
@@ -634,10 +727,19 @@ export default function ListingDetailPage() {
                       type="text"
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
-                      disabled={listing.tier !== 'premium' && !isEditor}
-                      placeholder={listing.tier === 'premium' || isEditor ? "https://example.com/banner.jpg" : "Upgrade to Premium to upload a custom banner."}
-                      className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                      disabled={(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor}
+                      placeholder={(listing.tier === 'premium' || listing.tier === 'featured') || isEditor ? "Paste a URL, or upload below" : "Upgrade to Premium to upload a custom banner."}
+                      className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
                     />
+                    {((listing.tier === 'premium' || listing.tier === 'featured') || isEditor) && (
+                      <div className="mt-2 flex items-center gap-3">
+                        <label className={`cursor-pointer rounded-md bg-brand-neon/90 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-black hover:bg-brand-neon ${uploadingCover ? 'pointer-events-none opacity-50' : ''}`}>
+                          {uploadingCover ? 'Uploading…' : '📷 Upload cover photo'}
+                          <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
+                        </label>
+                        {imageUrl && <span className="text-[10px] text-brand-neon">cover set ✓</span>}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -645,7 +747,7 @@ export default function ListingDetailPage() {
                       <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
                         {t.galleryLabel}
                       </label>
-                      {listing.tier !== 'premium' && !isEditor && (
+                      {(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor && (
                         <Link href={`/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
                           🔒 Premium Feature - Click to Unlock
                         </Link>
@@ -655,10 +757,19 @@ export default function ListingDetailPage() {
                       rows={4}
                       value={galleryInput}
                       onChange={(e) => setGalleryInput(e.target.value)}
-                      disabled={listing.tier !== 'premium' && !isEditor}
-                      placeholder={listing.tier === 'premium' || isEditor ? "https://example.com/photo1.jpg\nhttps://example.com/photo2.jpg" : "Upgrade to Premium to build a photo gallery."}
-                      className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                      disabled={(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor}
+                      placeholder={(listing.tier === 'premium' || listing.tier === 'featured') || isEditor ? "Add photos with the button below (or paste URLs, one per line)" : "Upgrade to Premium to build a photo gallery."}
+                      className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
                     />
+                    {((listing.tier === 'premium' || listing.tier === 'featured') || isEditor) && (
+                      <div className="mt-2 flex items-center gap-3">
+                        <label className={`cursor-pointer rounded-md bg-brand-neon/90 px-3 py-1.5 text-xs font-black uppercase tracking-wider text-black hover:bg-brand-neon ${uploadingGallery ? 'pointer-events-none opacity-50' : ''}`}>
+                          {uploadingGallery ? 'Uploading…' : '🖼️ Upload gallery photos'}
+                          <input type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryUpload} disabled={uploadingGallery} />
+                        </label>
+                        {galleryInput.trim() && <span className="text-[10px] text-brand-neon">{galleryInput.split('\n').filter(Boolean).length} photo(s)</span>}
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -666,7 +777,7 @@ export default function ListingDetailPage() {
                       <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
                         Social Media Links
                       </label>
-                      {listing.tier !== 'premium' && !isEditor && (
+                      {(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor && (
                         <Link href={`/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
                           🔒 Premium Feature - Click to Unlock
                         </Link>
@@ -681,9 +792,9 @@ export default function ListingDetailPage() {
                           type="text"
                           value={facebook}
                           onChange={(e) => setFacebook(e.target.value)}
-                          disabled={listing.tier !== 'premium' && !isEditor}
-                          placeholder={listing.tier === 'premium' || isEditor ? "https://facebook.com/yourpage" : "Locked"}
-                          className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                          disabled={(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor}
+                          placeholder={(listing.tier === 'premium' || listing.tier === 'featured') || isEditor ? "https://facebook.com/yourpage" : "Locked"}
+                          className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
                         />
                       </div>
                       <div>
@@ -694,9 +805,9 @@ export default function ListingDetailPage() {
                           type="text"
                           value={instagram}
                           onChange={(e) => setInstagram(e.target.value)}
-                          disabled={listing.tier !== 'premium' && !isEditor}
-                          placeholder={listing.tier === 'premium' || isEditor ? "https://instagram.com/yourpage" : "Locked"}
-                          className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                          disabled={(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor}
+                          placeholder={(listing.tier === 'premium' || listing.tier === 'featured') || isEditor ? "https://instagram.com/yourpage" : "Locked"}
+                          className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
                         />
                       </div>
                       <div>
@@ -707,9 +818,9 @@ export default function ListingDetailPage() {
                           type="text"
                           value={twitter}
                           onChange={(e) => setTwitter(e.target.value)}
-                          disabled={listing.tier !== 'premium' && !isEditor}
-                          placeholder={listing.tier === 'premium' || isEditor ? "https://twitter.com/yourpage" : "Locked"}
-                          className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${listing.tier !== 'premium' && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
+                          disabled={(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor}
+                          placeholder={(listing.tier === 'premium' || listing.tier === 'featured') || isEditor ? "https://twitter.com/yourpage" : "Locked"}
+                          className={`w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition ${(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor ? 'opacity-40 cursor-not-allowed bg-white/5' : ''}`}
                         />
                       </div>
                     </div>
@@ -760,7 +871,7 @@ export default function ListingDetailPage() {
               </form>
             </div>
           </div>
-        ) : listing.tier === 'premium' ? (
+        ) : (listing.tier === 'premium' || listing.tier === 'featured') ? (
           /* PREMIUM VIEW DETAIL LAYOUT */
           <div>
             {/* High-res Premium Banner Cover */}
@@ -1123,6 +1234,9 @@ export default function ListingDetailPage() {
                   </div>
                 </div>
 
+                {/* All locations (multi-location brands) */}
+                <LocationsPanel listing={listing} t={t} />
+
                 {/* Hours Schedule */}
                 {listing.hours && (
                   <div className="citybeat-panel rounded-2xl p-6 border border-white/10">
@@ -1204,6 +1318,9 @@ export default function ListingDetailPage() {
 
               {/* Right Column: Claim Upgrade Call to Action */}
               <div className="space-y-6">
+                {/* All locations (multi-location brands) */}
+                <LocationsPanel listing={listing} t={t} />
+
                 {listing.claim_status === 'pending_approval' ? (
                   <div className="bg-brand-neon/10 border border-brand-neon/40 rounded-2xl p-6 text-center">
                     <span className="h-12 w-12 rounded-full bg-brand-neon text-black flex items-center justify-center text-2xl font-bold mx-auto mb-4 font-display">i</span>
@@ -1212,7 +1329,7 @@ export default function ListingDetailPage() {
                       {t.pendingClaimSub}
                     </p>
                   </div>
-                ) : (
+                ) : isClaimable ? (
                   <div className="citybeat-panel rounded-2xl p-6 border border-brand-gold/30 bg-gradient-to-br from-brand-charcoal to-brand-dark shadow-[0_0_20px_rgba(255,215,0,0.04)] text-center">
                     <h3 className="font-display text-2xl font-black uppercase text-brand-gold">
                       {t.claimHeader}
@@ -1251,7 +1368,7 @@ export default function ListingDetailPage() {
                       {t.claimBtn}
                     </Link>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

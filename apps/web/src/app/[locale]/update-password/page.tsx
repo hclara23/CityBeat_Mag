@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Input } from '@citybeat/ui'
 import { Button } from '@citybeat/ui'
 import { AuthError } from '@citybeat/ui/auth'
-import { updatePassword } from '@citybeat/lib/supabase/auth'
+import { updatePassword } from '@citybeat/lib/firebase/auth-client'
 import Link from 'next/link'
 import { useLocale } from '@/components/TranslationProvider'
 

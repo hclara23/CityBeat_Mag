@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, adType, billingCycle, description, startDate, endDate } = body
+    const { name, adType, billingCycle, description, startDate, endDate, bannerUrl, destinationUrl, placement } = body
 
     // Validate request
     if (!name || !adType || !billingCycle) {
@@ -103,6 +103,10 @@ export async function POST(request: NextRequest) {
       clicks: 0,
       start_date: startDate || null,
       end_date: endDate || null,
+      // Creative for banner campaigns → mirrored into a live display banner on payment.
+      banner_url: bannerUrl || null,
+      destination_url: destinationUrl || null,
+      placement: placement || null,
       created_at: new Date()
     }
 
