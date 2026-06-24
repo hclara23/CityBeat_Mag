@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { getAdProducts, getEvents, getTopStories, withLocale, type Locale } from '@/components/citybeat/content'
-import { localArticles } from '@/lib/localArticles'
+import { getPublishedArticles } from '@/lib/articles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { NewsletterForm } from '@/components/NewsletterForm'
 import { AdBanner } from '@/components/citybeat/AdBanner'
@@ -17,9 +17,10 @@ export const dynamic = 'force-dynamic'
 
 export default async function Home({ params }: HomePageProps) {
   const locale = (params.locale || 'en') as Locale
-  const importedStories = localArticles.slice(0, 3).map((article) => ({
-    title: article.title,
-    dek: article.excerpt,
+  const published = await getPublishedArticles({ limit: 3 })
+  const importedStories = published.map((article) => ({
+    title: locale === 'es' ? article.titleES : article.title,
+    dek: locale === 'es' ? article.excerptES : article.excerpt,
     category: article.category,
     image: article.image ?? 'https://picsum.photos/seed/citybeat-local/1600/1000',
     href: `/stories/${article.slug}`,

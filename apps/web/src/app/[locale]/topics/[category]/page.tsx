@@ -72,9 +72,11 @@ export default async function TopicPage({ params }: Props) {
                       {article.category}
                     </p>
                     <h2 className="mt-2 text-2xl font-black leading-tight text-white transition group-hover:text-brand-neon">
-                      {article.title}
+                      {locale === 'es' ? article.titleES : article.title}
                     </h2>
-                    <p className="mt-3 text-sm leading-6 text-white/55">{article.excerpt}</p>
+                    <p className="mt-3 text-sm leading-6 text-white/55">
+                      {locale === 'es' ? article.excerptES : article.excerpt}
+                    </p>
                   </div>
                 </article>
               </Link>

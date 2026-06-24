@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { translateArticleToEs } from '@/lib/translate'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,6 +49,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
     const data = doc.data() as any
+
+    // When publishing, keep the Spanish translation in sync (best-effort).
+    if (status === 'published') {
+      await translateArticleToEs(ref, { title: data.title, excerpt: data.excerpt, content: data.content })
+    }
+
     return NextResponse.json({
       article: { id: doc.id, ...data, created_at: toIso(data.created_at), published_at: toIso(data.published_at) },
     })

@@ -18,9 +18,10 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await getArticleBySlug(params.slug)
   if (!article) return { title: 'Story not found · CityBeat' }
+  const isEs = params.locale === 'es'
   const url = `${BASE}/${params.locale}/stories/${article.slug}`
-  const title = `${article.title} · CityBeat`
-  const description = article.excerpt?.slice(0, 200)
+  const title = `${isEs ? article.titleES : article.title} · CityBeat`
+  const description = (isEs ? article.excerptES : article.excerpt)?.slice(0, 200)
   return {
     title,
     description,
@@ -47,11 +48,14 @@ export default async function StoryPage({ params }: Props) {
     notFound()
   }
 
+  const isEs = locale === 'es'
+  const displayTitle = isEs ? article.titleES : article.title
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
-    headline: article.title,
-    description: article.excerpt,
+    headline: displayTitle,
+    description: isEs ? article.excerptES : article.excerpt,
     image: article.image ? [article.image] : undefined,
     datePublished: article.publishedAt,
     author: { '@type': 'Person', name: article.author },
@@ -87,7 +91,7 @@ export default async function StoryPage({ params }: Props) {
 
         <p className="mt-8 text-xs font-black uppercase tracking-[0.24em] text-brand-neon">{article.category}</p>
         <h1 className="mt-3 font-display text-4xl font-black leading-tight tracking-tight text-white md:text-5xl">
-          {article.title}
+          {displayTitle}
         </h1>
         <p className="mt-4 text-sm text-white/55">
           {article.author}

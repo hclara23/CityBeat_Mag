@@ -8,7 +8,9 @@ export type Article = {
   _id: string
   slug: string
   title: string
+  titleES: string
   excerpt: string
+  excerptES: string
   category: string // slug: news | business | events | culture
   author: string
   image: string | null
@@ -69,23 +71,29 @@ function normalizeFirestore(
   authorMap: Map<string, string>
 ): Article {
   const text = blocksToText(a.content)
+  // Spanish fields are populated by the translation pipeline; fall back to EN.
+  const textEs = a.content_es ? blocksToText(a.content_es) : text
   const rawPublished = a.published_at?.toDate ? a.published_at.toDate().toISOString() : a.published_at
   const createdAt = a.created_at?.toDate ? a.created_at.toDate().toISOString() : a.created_at
   const publishedAt =
     (typeof rawPublished === 'string' && rawPublished) ||
     (typeof createdAt === 'string' && createdAt) ||
     new Date().toISOString()
+  const title = a.title || 'Untitled'
+  const excerpt = a.excerpt || text.slice(0, 160)
   return {
     _id: id,
     slug: a.slug || id,
-    title: a.title || 'Untitled',
-    excerpt: a.excerpt || text.slice(0, 160),
+    title,
+    titleES: a.title_es || title,
+    excerpt,
+    excerptES: a.excerpt_es || excerpt,
     category: a.category_id ? catMap.get(a.category_id) || 'news' : a.category || 'news',
     author: a.author_id ? authorMap.get(a.author_id) || 'CityBeat' : a.author || 'CityBeat',
     image: a.image_url || a.cover_image_path || null,
     publishedAt,
     contentEN: text,
-    contentES: text,
+    contentES: textEs,
     status: a.status || 'published',
   }
 }
@@ -95,7 +103,9 @@ function fromLocal(a: LocalArticle): Article {
     _id: a._id,
     slug: a.slug,
     title: a.title,
+    titleES: a.title,
     excerpt: a.excerpt,
+    excerptES: a.excerpt,
     category: a.category,
     author: a.author,
     image: a.image ?? null,

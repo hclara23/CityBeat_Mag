@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { FieldValue } from 'firebase-admin/firestore'
+import { translateArticleToEs } from '@/lib/translate'
 
 function hasEditorAccess(profile: any) {
   return Boolean(profile?.is_developer || profile?.is_editor || ['developer', 'admin', 'editor'].includes(profile?.role))
@@ -210,6 +211,13 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
         }
         await batch.commit()
       }
+    }
+
+    // Keep the Spanish translation in sync whenever an article is live.
+    const finalStatus = (updateData.status as string) || existing.status
+    if (finalStatus === 'published') {
+      const u = updated as any
+      await translateArticleToEs(docRef, { title: u.title, excerpt: u.excerpt, content: u.content })
     }
 
     return NextResponse.json({ article: { ...updated, _id: updated.id } })
