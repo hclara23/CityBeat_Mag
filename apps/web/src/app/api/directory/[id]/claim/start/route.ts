@@ -33,10 +33,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   try {
     const { method } = await request.json()
-    if (!method || !['email', 'phone', 'postcard'].includes(method)) {
-      return NextResponse.json({ error: 'Invalid verification method' }, { status: 400 })
+    // Only email is wired to actually deliver a code. SMS and postcard are stubs,
+    // so reject them here (the UI also hides them) until they're implemented.
+    if (method !== 'email') {
+      return NextResponse.json(
+        { error: 'Only email verification is available right now. Phone and postcard are coming soon.' },
+        { status: 400 }
+      )
     }
 
+    const CODE_TTL_MS = 15 * 60 * 1000 // codes expire after 15 minutes
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
 
     const listingDoc = await adminDb.collection('directory_listings').doc(listingId).get()
@@ -58,6 +64,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       status: verification.status,
       email_address: verification.notificationType === 'email' ? verification.recipient : null,
       phone_number: verification.notificationType === 'sms' ? verification.recipient : null,
+      expires_at: Date.now() + CODE_TTL_MS,
       created_at: FieldValue.serverTimestamp(),
     })
 

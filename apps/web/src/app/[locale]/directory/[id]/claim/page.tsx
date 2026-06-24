@@ -411,25 +411,13 @@ export default function ClaimPage() {
                                       />
                                       <span>📧 Email Address</span>
                                     </label>
-                                    <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 cursor-pointer text-xs">
-                                      <input
-                                        type="radio"
-                                        name="claim_method"
-                                        checked={claimMethod === 'phone'}
-                                        onChange={() => { setClaimMethod('phone'); setClaimErrorMsg('') }}
-                                        className="accent-brand-neon"
-                                      />
-                                      <span>💬 SMS / Text Message</span>
+                                    <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 text-xs opacity-40 cursor-not-allowed">
+                                      <input type="radio" name="claim_method" disabled className="accent-brand-neon" />
+                                      <span>💬 SMS / Text Message <em className="text-white/40">(coming soon)</em></span>
                                     </label>
-                                    <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 cursor-pointer text-xs">
-                                      <input
-                                        type="radio"
-                                        name="claim_method"
-                                        checked={claimMethod === 'postcard'}
-                                        onChange={() => { setClaimMethod('postcard'); setClaimErrorMsg('') }}
-                                        className="accent-brand-neon"
-                                      />
-                                      <span>📮 Mail Postcard to Business</span>
+                                    <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 text-xs opacity-40 cursor-not-allowed">
+                                      <input type="radio" name="claim_method" disabled className="accent-brand-neon" />
+                                      <span>📮 Mail Postcard to Business <em className="text-white/40">(coming soon)</em></span>
                                     </label>
                                   </div>
                                 </div>

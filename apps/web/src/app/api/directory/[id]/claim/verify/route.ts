@@ -47,6 +47,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const now = new Date().toISOString()
     const MAX_ATTEMPTS = 5
 
+    // Reject expired codes (15-minute TTL set when the code was issued).
+    if (claim.expires_at && Date.now() > Number(claim.expires_at)) {
+      await claimDoc.ref.set({ status: 'expired', updated_at: now }, { merge: true })
+      return NextResponse.json(
+        { error: 'This verification code has expired. Please request a new one.' },
+        { status: 400 }
+      )
+    }
+
     if (claim.verification_code !== String(code).trim()) {
       const attempts = (claim.attempts || 0) + 1
       if (attempts >= MAX_ATTEMPTS) {

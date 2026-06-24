@@ -6,6 +6,7 @@ interface Brief {
   content: string
   source: string
   category: string
+  url?: string
 }
 
 export async function handleBriefAutomation(env: Env): Promise<void> {
@@ -15,15 +16,11 @@ export async function handleBriefAutomation(env: Env): Promise<void> {
     // Fetch briefs from sources
     const briefs = await fetchBriefs(env)
 
-    // Translate each brief
+    // Forward each brief to the web ingest endpoint, which rewrites it into an
+    // original draft (and translates to ES on publish). No translation here.
     for (const brief of briefs) {
-      const translated = await translateBrief(brief, env)
-
-      // Save to the app (Firestore articles, pending review)
-      await saveBriefToApp(translated, env)
-
-      // Send notification to editor
-      await notifyEditor(translated, env)
+      await saveBriefToApp(brief, env)
+      await notifyEditor(brief, env)
     }
 
     console.log(`Processed ${briefs.length} briefs`)
@@ -74,6 +71,7 @@ async function fetchBriefs(env: Env): Promise<Brief[]> {
                 content: article.description || article.content || '',
                 source: article.source.name,
                 category: categorizeArticle(article.title, article.description),
+                url: article.url,
               })
             }
           }
@@ -143,39 +141,6 @@ function categorizeArticle(title: string, description: string): string {
   return 'news'
 }
 
-async function translateBrief(brief: Brief, env: Env): Promise<any> {
-  try {
-    const response = await fetch('https://api-free.deepl.com/v1/translate', {
-      method: 'POST',
-      headers: {
-        'Authorization': `DeepL-Auth-Key ${env.DEEPL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: brief.content,
-        source_lang: 'EN',
-        target_lang: 'ES',
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`DeepL API error: ${response.statusText}`)
-    }
-
-    const result: any = await response.json()
-    const translatedContent = result.translations[0]?.text || ''
-
-    return {
-      ...brief,
-      contentEN: brief.content,
-      contentES: translatedContent,
-    }
-  } catch (error) {
-    console.error('Translation failed:', error)
-    return brief
-  }
-}
-
 // Post the translated brief to the web app's ingest endpoint, which writes it to
 // Firestore `articles` as `pending_review` for editors to publish.
 async function saveBriefToApp(brief: any, env: Env): Promise<void> {
@@ -190,10 +155,9 @@ async function saveBriefToApp(brief: any, env: Env): Promise<void> {
       body: JSON.stringify({
         title: brief.title,
         content: brief.content,
-        contentEN: brief.contentEN,
-        contentES: brief.contentES,
         category: brief.category,
         source: brief.source,
+        url: brief.url,
       }),
     })
 
