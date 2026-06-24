@@ -24,6 +24,14 @@ async function getCategoryId(slug?: string) {
   return newCatRef.id
 }
 
+async function clearArticleTags(articleId: string) {
+  const snap = await adminDb.collection('article_tags').where('article_id', '==', articleId).get()
+  if (snap.empty) return
+  const batch = adminDb.batch()
+  snap.docs.forEach((d) => batch.delete(d.ref))
+  await batch.commit()
+}
+
 function textToContent(text: string) {
   return text.split('\n\n').filter(Boolean).map((paragraph, i) => ({
     type: 'paragraph',
@@ -180,13 +188,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     // Handle tags if provided
     if (Array.isArray(tags)) {
       // Clear existing tags
-      const oldTagsQuery = await adminDb.collection('article_tags').where('article_id', '==', id).get()
-      if (!oldTagsQuery.empty) {
-         const deleteBatch = adminDb.batch()
-         oldTagsQuery.docs.forEach(d => deleteBatch.delete(d.ref))
-         await deleteBatch.commit()
-      }
-      
+      await clearArticleTags(id)
+
       if (tags.length > 0) {
         const batch = adminDb.batch()
         for (const name of tags) {
@@ -237,7 +240,12 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    await docRef.delete()
+    // Remove the article and its tag join rows atomically so no orphans remain.
+    const tagsSnap = await adminDb.collection('article_tags').where('article_id', '==', id).get()
+    const batch = adminDb.batch()
+    tagsSnap.docs.forEach((d) => batch.delete(d.ref))
+    batch.delete(docRef)
+    await batch.commit()
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting article:', error)
