@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, ReactNode, useContext } from 'react'
+import { usePathname } from 'next/navigation'
 
 interface TranslationContextType {
   locale: string
@@ -51,5 +52,12 @@ export function useTranslations(ns?: string) {
 
 export function useLocale() {
   const context = useContext(TranslationContext)
+  // The [locale] layout (and its provider) is preserved across client-side
+  // navigation, so context.locale can go stale after a locale switch. The URL
+  // is the source of truth — derive the active locale from the pathname and
+  // only fall back to the provider value during SSR / when there's no match.
+  const pathname = usePathname()
+  const fromPath = pathname?.split('/')[1]
+  if (fromPath === 'en' || fromPath === 'es') return fromPath
   return context?.locale || 'en'
 }
