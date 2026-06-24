@@ -1,6 +1,7 @@
 import { Router } from 'itty-router'
 import { handleBriefAutomation } from './handlers/automation'
 import { handleTracking } from './handlers/tracking'
+import { handleTranslate } from './handlers/translate'
 
 export interface Env {
   INGEST_URL: string
@@ -23,6 +24,11 @@ router.get('/health', () => new Response('OK'))
 // Tracking
 router.post('/api/tracking', async (request, env: Env) => {
   return handleTracking(request, env)
+})
+
+// Translation (DeepL) — used by the web app to translate article content to ES.
+router.post('/api/translate', async (request, env: Env) => {
+  return handleTranslate(request, env)
 })
 
 // Test automation endpoint (for manual triggering in development)
