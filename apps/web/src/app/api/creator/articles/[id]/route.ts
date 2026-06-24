@@ -61,6 +61,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
   }
 
   const { id } = await params
+  const profile = await getServerUserProfile(user.id)
 
   try {
     const docSnap = await adminDb.collection('articles').doc(id).get()
@@ -71,7 +72,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
     const article = { id: docSnap.id, ...docSnap.data() } as any
 
-    if (article.created_by !== user.id) {
+    if (article.created_by !== user.id && !hasEditorAccess(profile)) {
        return NextResponse.json({ error: 'Article not found' }, { status: 404 })
     }
 
@@ -120,10 +121,10 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   const docRef = adminDb.collection('articles').doc(id)
   const docSnap = await docRef.get()
 
-  if (!docSnap.exists || docSnap.data()?.created_by !== user.id) {
+  if (!docSnap.exists || (docSnap.data()?.created_by !== user.id && !hasEditorAccess(profile))) {
     return NextResponse.json({ error: 'Article not found' }, { status: 404 })
   }
-  
+
   const existing = docSnap.data() as any
 
   if (existing.status === 'published' && !hasEditorAccess(profile)) {
@@ -225,18 +226,17 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   }
 
   const { id } = await params
-  
+  const profile = await getServerUserProfile(user.id)
+
   const docRef = adminDb.collection('articles').doc(id)
   const docSnap = await docRef.get()
 
-  if (!docSnap.exists || docSnap.data()?.created_by !== user.id) {
+  const isOwner = docSnap.data()?.created_by === user.id
+  if (!docSnap.exists || (!isOwner && !hasEditorAccess(profile))) {
     return NextResponse.json({ error: 'Article not found' }, { status: 404 })
   }
-  if (docSnap.data()?.status === 'published') {
-    const profile = await getServerUserProfile(user.id)
-    if (!hasEditorAccess(profile)) {
-      return NextResponse.json({ error: 'Editor access is required to delete a published article' }, { status: 403 })
-    }
+  if (docSnap.data()?.status === 'published' && !hasEditorAccess(profile)) {
+    return NextResponse.json({ error: 'Editor access is required to delete a published article' }, { status: 403 })
   }
 
   try {

@@ -119,11 +119,13 @@ export async function getPublishedArticles(
     console.error('getPublishedArticles firestore error:', error)
   }
 
-  const localIds = new Set(localArticles.map((a) => a._id))
-  let result = [
-    ...localArticles.map(fromLocal),
-    ...firestoreArticles.filter((a) => !localIds.has(a._id)),
-  ].sort((a, b) => (b.publishedAt > a.publishedAt ? 1 : -1))
+  // Firestore is the source of truth (the seed has been migrated into it). The
+  // bundled seed is only a fallback for when Firestore returns nothing — e.g. the
+  // migration hasn't run yet or the fetch failed — so the site never goes empty.
+  let result = (firestoreArticles.length > 0
+    ? firestoreArticles
+    : localArticles.map(fromLocal)
+  ).sort((a, b) => (b.publishedAt > a.publishedAt ? 1 : -1))
 
   if (opts.category && opts.category !== 'all') {
     result = result.filter((a) => a.category === opts.category)
@@ -133,8 +135,7 @@ export async function getPublishedArticles(
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
-  const local = localArticles.find((a) => a.slug === slug)
-  if (local) return fromLocal(local)
+  // Firestore first (authoritative), then the bundled seed as a fallback.
   try {
     const { catMap, authorMap } = await loadLookups()
     const snap = await adminDb.collection('articles').where('slug', '==', slug).limit(1).get()
@@ -145,12 +146,13 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   } catch (error) {
     console.error('getArticleBySlug error:', error)
   }
+  const local = localArticles.find((a) => a.slug === slug)
+  if (local) return fromLocal(local)
   return null
 }
 
 export async function getArticleById(id: string): Promise<Article | null> {
-  const local = localArticles.find((a) => a._id === id)
-  if (local) return fromLocal(local)
+  // Firestore first (authoritative), then the bundled seed as a fallback.
   try {
     const { catMap, authorMap } = await loadLookups()
     const doc = await adminDb.collection('articles').doc(id).get()
@@ -158,5 +160,7 @@ export async function getArticleById(id: string): Promise<Article | null> {
   } catch (error) {
     console.error('getArticleById error:', error)
   }
+  const local = localArticles.find((a) => a._id === id)
+  if (local) return fromLocal(local)
   return null
 }

@@ -25,6 +25,10 @@ function hasCreatorAccess(profile: any) {
   return Boolean(profile?.is_developer || profile?.is_writer || profile?.is_editor || ['developer', 'admin', 'editor', 'writer'].includes(profile?.role))
 }
 
+function hasEditorAccess(profile: any) {
+  return Boolean(profile?.is_developer || profile?.is_editor || ['developer', 'admin', 'editor'].includes(profile?.role))
+}
+
 async function getCategoryId(slug?: string) {
   const categorySlug = slug || 'news'
   const snapshot = await adminDb.collection('categories').where('slug', '==', categorySlug).limit(1).get()
@@ -65,7 +69,12 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
 
-  let query = adminDb.collection('articles').where('created_by', '==', user.id)
+  // Editors/developers manage every article; writers see only their own.
+  const profile = await getServerUserProfile(user.id)
+  let query: FirebaseFirestore.Query = adminDb.collection('articles')
+  if (!hasEditorAccess(profile)) {
+    query = query.where('created_by', '==', user.id)
+  }
 
   if (status) {
     query = query.where('status', '==', status)
