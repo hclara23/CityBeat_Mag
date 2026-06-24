@@ -20,22 +20,28 @@ export type Article = {
 
 export const CATEGORY_IDS = ['news', 'business', 'events', 'culture'] as const
 
-// Firestore article `content` is a block array ({ type:'paragraph', content:[{ text }] }).
-// Flatten it to plain text with paragraph breaks for rendering.
+// Article `content` may be either a flat block array
+// ([{ type:'paragraph', content:[{ text }] }]) or a TipTap/ProseMirror document
+// object ({ type:'doc', content:[...] }) produced by the rich text editor.
+// Walk either shape and flatten to plain text with paragraph breaks.
+const INLINE_CONTAINERS = new Set(['paragraph', 'heading', 'blockquote', 'listItem', 'codeBlock'])
+
 function blocksToText(content: unknown): string {
   if (!content) return ''
   if (typeof content === 'string') return content
   if (Array.isArray(content)) {
-    return content
-      .map((block: any) => {
-        if (typeof block === 'string') return block
-        if (Array.isArray(block?.content)) return block.content.map((c: any) => c?.text ?? '').join('')
-        return block?.text ?? ''
-      })
-      .filter(Boolean)
-      .join('\n\n')
+    return content.map((n) => blocksToText(n)).filter(Boolean).join('\n\n')
   }
-  return ''
+  const node = content as any
+  if (node.type === 'text') return node.text ?? ''
+  if (node.type === 'hardBreak') return '\n'
+  if (Array.isArray(node.content)) {
+    // Inline containers keep their text on one line; block containers (doc,
+    // lists, …) separate their children with blank lines.
+    const sep = INLINE_CONTAINERS.has(node.type) ? '' : '\n\n'
+    return node.content.map((n: any) => blocksToText(n)).filter(Boolean).join(sep)
+  }
+  return node.text ?? ''
 }
 
 async function loadLookups() {
