@@ -48,6 +48,7 @@ const copy = {
     submitting: 'Submitting...',
     delete: 'Delete',
     deleteConfirm: 'Are you sure you want to delete this article?',
+    deletePublishedConfirm: 'This article is LIVE on the site. Deleting it removes it from the public site permanently. Continue?',
     category: 'Category',
     created: 'Created',
     filterAll: 'All',
@@ -68,6 +69,7 @@ const copy = {
     submitting: 'Enviando...',
     delete: 'Eliminar',
     deleteConfirm: '¿Seguro que deseas eliminar este artículo?',
+    deletePublishedConfirm: 'Este artículo está PUBLICADO en el sitio. Eliminarlo lo quitará del sitio público de forma permanente. ¿Continuar?',
     category: 'Categoría',
     created: 'Creado',
     filterAll: 'Todos',
@@ -121,8 +123,8 @@ export default function CreatorDashboard() {
     loadArticles()
   }, [loadArticles])
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(t.deleteConfirm)) return
+  const handleDelete = async (id: string, status: ArticleStatus) => {
+    if (!confirm(status === 'published' ? t.deletePublishedConfirm : t.deleteConfirm)) return
     setDeleting(id)
     try {
       await fetch(`/api/creator/articles/${id}`, { method: 'DELETE' })
@@ -286,7 +288,7 @@ export default function CreatorDashboard() {
 
                   {/* Actions */}
                   <div className="flex flex-shrink-0 gap-2 sm:flex-col">
-                    {article.status !== 'published' && (
+                    {(article.status !== 'published' || canPublish) && (
                       <Link
                         href={withLocale(locale, `/creator/edit/${article._id}`)}
                         className="rounded-md border border-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white/70 transition hover:border-brand-neon hover:text-brand-neon"
@@ -312,9 +314,9 @@ export default function CreatorDashboard() {
                         {updatingStatus === article._id ? t.publishing : t.publish}
                       </button>
                     )}
-                    {(article.status === 'draft' || article.status === 'rejected') && (
+                    {(article.status === 'draft' || article.status === 'rejected' || (article.status === 'published' && canPublish)) && (
                       <button
-                        onClick={() => handleDelete(article._id)}
+                        onClick={() => handleDelete(article._id, article.status)}
                         disabled={deleting === article._id}
                         className="rounded-md border border-red-500/30 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-red-400/70 transition hover:border-red-500 hover:text-red-400 disabled:opacity-40"
                       >

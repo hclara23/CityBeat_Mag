@@ -34,6 +34,8 @@ interface ArticleFormProps {
   initialValues?: Partial<ArticleFormValues>
   articleId?: string
   mode: 'new' | 'edit'
+  /** Current status of the article being edited; used to keep published articles live on save. */
+  currentStatus?: string
 }
 
 const copy = {
@@ -61,6 +63,9 @@ const copy = {
     tagsPlaceholder: 'el-paso, border, culture (comma-separated)',
     saveDraft: 'Save Draft',
     submit: 'Submit for Review',
+    saveChanges: 'Save Changes',
+    editPublishedTitle: 'Edit Published Article',
+    publishedHint: 'This article is live. Saving will update it on the site immediately.',
     saving: 'Saving…',
     submitting: 'Submitting…',
     uploading: 'Uploading image…',
@@ -93,6 +98,9 @@ const copy = {
     tagsPlaceholder: 'el-paso, frontera, cultura (separadas por coma)',
     saveDraft: 'Guardar Borrador',
     submit: 'Enviar para Revisión',
+    saveChanges: 'Guardar Cambios',
+    editPublishedTitle: 'Editar Artículo Publicado',
+    publishedHint: 'Este artículo está publicado. Al guardar se actualizará en el sitio de inmediato.',
     saving: 'Guardando…',
     submitting: 'Enviando…',
     uploading: 'Subiendo imagen…',
@@ -103,10 +111,11 @@ const copy = {
   },
 }
 
-export function ArticleForm({ locale, initialValues, articleId, mode }: ArticleFormProps) {
+export function ArticleForm({ locale, initialValues, articleId, mode, currentStatus }: ArticleFormProps) {
   const router = useRouter()
   const t = copy[locale]
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isPublished = mode === 'edit' && currentStatus === 'published'
 
   const [values, setValues] = useState<ArticleFormValues>({
     title: initialValues?.title ?? '',
@@ -175,13 +184,13 @@ export function ArticleForm({ locale, initialValues, articleId, mode }: ArticleF
     return Object.keys(errs).length === 0
   }
 
-  const handleSubmit = async (submitForReview: boolean) => {
+  const handleSubmit = async (intent: 'draft' | 'review' | 'publish') => {
     if (!validate()) return
 
-    setStatus(submitForReview ? 'submitting' : 'saving')
+    setStatus(intent === 'review' ? 'submitting' : 'saving')
     setFeedback('')
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       title: values.title.trim(),
       authorName: values.authorName.trim(),
       excerpt: values.excerpt.trim(),
@@ -193,8 +202,10 @@ export function ArticleForm({ locale, initialValues, articleId, mode }: ArticleF
         .map((t) => t.trim())
         .filter(Boolean),
       assetId: values.assetId || undefined,
-      submitForReview,
     }
+    // Keep a published article live on save; otherwise route through draft/review.
+    if (intent === 'publish') payload.status = 'published'
+    else payload.submitForReview = intent === 'review'
 
     try {
       let res: Response
@@ -239,9 +250,15 @@ export function ArticleForm({ locale, initialValues, articleId, mode }: ArticleF
           {t.backToDashboard}
         </Link>
 
-        <h1 className="mb-8 font-display text-4xl font-black tracking-tight">
-          {mode === 'new' ? t.newTitle : t.editTitle}
+        <h1 className="mb-2 font-display text-4xl font-black tracking-tight">
+          {mode === 'new' ? t.newTitle : isPublished ? t.editPublishedTitle : t.editTitle}
         </h1>
+        {isPublished && (
+          <p className="mb-8 rounded-lg border border-brand-neon/30 bg-brand-neon/10 px-4 py-2.5 text-sm text-brand-neon">
+            {t.publishedHint}
+          </p>
+        )}
+        {!isPublished && <div className="mb-8" />}
 
         <div className="flex flex-col gap-6">
           {/* Title */}
@@ -413,22 +430,36 @@ export function ArticleForm({ locale, initialValues, articleId, mode }: ArticleF
 
           {/* Action buttons */}
           <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-6 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={() => handleSubmit(false)}
-              disabled={busy}
-              className="rounded-md border border-white/20 px-6 py-2.5 text-sm font-bold uppercase tracking-wider text-white/70 transition hover:border-white/40 hover:text-white disabled:opacity-40"
-            >
-              {status === 'saving' ? t.saving : t.saveDraft}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSubmit(true)}
-              disabled={busy}
-              className="rounded-md bg-brand-neon px-6 py-2.5 text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-40"
-            >
-              {status === 'submitting' ? t.submitting : t.submit}
-            </button>
+            {isPublished ? (
+              /* Editing a live article: save in place, keep it published. */
+              <button
+                type="button"
+                onClick={() => handleSubmit('publish')}
+                disabled={busy}
+                className="rounded-md bg-brand-neon px-6 py-2.5 text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-40"
+              >
+                {status === 'saving' ? t.saving : t.saveChanges}
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleSubmit('draft')}
+                  disabled={busy}
+                  className="rounded-md border border-white/20 px-6 py-2.5 text-sm font-bold uppercase tracking-wider text-white/70 transition hover:border-white/40 hover:text-white disabled:opacity-40"
+                >
+                  {status === 'saving' ? t.saving : t.saveDraft}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmit('review')}
+                  disabled={busy}
+                  className="rounded-md bg-brand-neon px-6 py-2.5 text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-40"
+                >
+                  {status === 'submitting' ? t.submitting : t.submit}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

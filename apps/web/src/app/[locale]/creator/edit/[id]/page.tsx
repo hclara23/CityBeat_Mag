@@ -15,6 +15,7 @@ export default function EditArticlePage() {
   const locale = useLocale() as 'en' | 'es'
 
   const [initial, setInitial] = useState<Partial<ArticleFormValues> | null>(null)
+  const [currentStatus, setCurrentStatus] = useState<string>('draft')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -36,11 +37,7 @@ export default function EditArticlePage() {
         }
         const { article } = await res.json()
 
-        if (article.status === 'published') {
-          router.push(withLocale(locale, '/creator'))
-          return
-        }
-
+        setCurrentStatus(article.status ?? 'draft')
         setInitial({
           title: article.title ?? '',
           authorName: article.authorName ?? (user.user_metadata?.full_name ?? ''),
@@ -88,6 +85,7 @@ export default function EditArticlePage() {
         mode="edit"
         articleId={id}
         initialValues={initial}
+        currentStatus={currentStatus}
       />
     </>
   )

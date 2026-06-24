@@ -161,7 +161,11 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: 'Editor access is required to publish' }, { status: 403 })
     }
     updateData.status = status
-    updateData.published_at = status === 'published' ? FieldValue.serverTimestamp() : null
+    // Preserve the original publish date when re-saving an already-published
+    // article (an edit shouldn't reset when it first went live).
+    updateData.published_at = status === 'published'
+      ? (existing.published_at ?? FieldValue.serverTimestamp())
+      : null
   } else if (submitForReview !== undefined) {
     updateData.status = submitForReview ? 'pending_review' : 'draft'
     updateData.published_at = null
@@ -226,7 +230,10 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: 'Article not found' }, { status: 404 })
   }
   if (docSnap.data()?.status === 'published') {
-    return NextResponse.json({ error: 'Published articles cannot be deleted' }, { status: 403 })
+    const profile = await getServerUserProfile(user.id)
+    if (!hasEditorAccess(profile)) {
+      return NextResponse.json({ error: 'Editor access is required to delete a published article' }, { status: 403 })
+    }
   }
 
   try {
