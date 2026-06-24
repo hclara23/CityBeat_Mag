@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     query = query.where('status', '==', status)
   }
 
-  query = query.orderBy('created_at', 'desc')
+  // We sort in memory to avoid requiring a composite index on created_by + status + created_at
 
   try {
     const snapshot = await query.get()
@@ -92,8 +92,11 @@ export async function GET(request: NextRequest) {
         _createdAt: a.created_at?.toDate ? a.created_at.toDate().toISOString() : a.created_at,
         imageUrl: a.image_url,
         category: a.category_id,
+        _sortTime: a.created_at?.toMillis ? a.created_at.toMillis() : 0,
       }
     })
+
+    transformedArticles.sort((a, b) => b._sortTime - a._sortTime)
 
     return NextResponse.json({ articles: transformedArticles })
   } catch (error) {

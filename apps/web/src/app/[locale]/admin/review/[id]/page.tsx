@@ -22,6 +22,39 @@ interface Article {
   }
 }
 
+function renderContent(content: any) {
+  if (typeof content === 'string') return <div dangerouslySetInnerHTML={{ __html: content }} />
+  
+  if (Array.isArray(content)) {
+    return (
+      <div className="space-y-4">
+        {content.map((node: any, i: number) => {
+          if (node.type === 'paragraph') {
+            return (
+              <p key={i}>
+                {node.content?.map((child: any, j: number) => child.text).join('')}
+              </p>
+            )
+          }
+          if (node.type === 'heading') {
+            const text = node.content?.map((child: any) => child.text).join('') || ''
+            const Tag = `h${node.attrs?.level || 2}` as keyof JSX.IntrinsicElements
+            return <Tag key={i} className="font-bold text-white mt-8 mb-4">{text}</Tag>
+          }
+          return null
+        })}
+      </div>
+    )
+  }
+
+  // If it's a ProseMirror doc object with a content array
+  if (content && typeof content === 'object' && Array.isArray(content.content)) {
+    return renderContent(content.content)
+  }
+
+  return <pre className="text-xs text-white/50 overflow-x-auto">{JSON.stringify(content, null, 2)}</pre>
+}
+
 export default function ReviewArticlePage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const locale = useLocale() as 'en' | 'es'
@@ -104,8 +137,7 @@ export default function ReviewArticlePage({ params }: { params: { id: string } }
           )}
 
           <div className="text-lg leading-relaxed text-white/80">
-            {/* Simple rendering for now, could use a Tiptap viewer later */}
-            {typeof article.content === 'string' ? article.content : JSON.stringify(article.content, null, 2)}
+            {renderContent(article.content)}
           </div>
         </article>
       </main>

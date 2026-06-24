@@ -162,8 +162,8 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     }
     updateData.status = status
     updateData.published_at = status === 'published' ? FieldValue.serverTimestamp() : null
-  } else if (submitForReview) {
-    updateData.status = 'pending_review'
+  } else if (submitForReview !== undefined) {
+    updateData.status = submitForReview ? 'pending_review' : 'draft'
     updateData.published_at = null
   }
   if (assetId !== undefined) updateData.image_url = assetId

@@ -20,12 +20,7 @@ const primaryAdminLinks = [
   { href: '/creator', label: 'Creator Studio', description: 'Manage drafts, review status, and submitted work.' },
   { href: '/admin', label: 'Review Queue', description: 'Approve, reject, and publish submitted articles.' },
   { href: '/admin/claims', label: 'Claims Queue', description: 'Review, approve, or reject business directory claims.' },
-  { href: '/admin/directory', label: 'Directory Manager', description: 'Add, edit, upgrade, verify, sponsor, or delete business listings.' },
   { href: '/admin/events', label: 'Events Manager', description: 'Review, moderate, and delete scraped events.' },
-  { href: '/admin/sales', label: 'Sales Agent (Godmode)', description: 'Automated outreach to unclaimed businesses — claim + Premium upsell funnel.' },
-  { href: '/admin/banners', label: 'Ad Banner Manager (Godmode)', description: 'Create, edit, activate, and place sponsor banners across the site.' },
-  { href: '/admin/payouts', label: 'Payout Settings (Godmode)', description: 'Set the % paid out to users per service and per-user overrides.' },
-  { href: '/admin/finance', label: 'Finance & Analytics (Godmode)', description: 'All incoming and outgoing payments plus analytics.' },
   { href: '/account/payments', label: 'My Bank & Payouts', description: 'Connect a bank account, view balance and payouts received.' },
   { href: '/contribute', label: 'Public Submit Form', description: 'View the contributor intake page readers use.' },
 ]
