@@ -25,7 +25,11 @@ export async function getServerUser(cookieStore?: any) {
   if (!sessionCookie) return null
 
   try {
-    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true)
+    // checkRevoked=false: verify the cookie's signature + expiry locally instead
+    // of hitting Google on every render. With checkRevoked=true a transient
+    // network blip from Cloud Run threw here and logged users out mid-navigation.
+    // Trade-off: a revoked session stays valid until it expires (5 days).
+    const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, false)
     return {
       id: decodedClaims.uid,
       email: decodedClaims.email,
