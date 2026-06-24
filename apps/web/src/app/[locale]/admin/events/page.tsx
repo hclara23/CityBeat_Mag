@@ -1,14 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
-import { db, auth } from '@citybeat/lib/firebase/client'
-import { collection, getDocs, deleteDoc, doc, query, orderBy } from 'firebase/firestore'
-import { onAuthStateChanged } from 'firebase/auth'
+import { getUser } from '@citybeat/lib/firebase/auth-client'
 import Image from 'next/image'
 
 interface Event {
@@ -30,41 +28,48 @@ export default function AdminEventsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
 
-  useEffect(() => {
-    const loadEvents = async () => {
-      try {
-        setIsLoading(true)
-        const q = query(collection(db, 'events'), orderBy('start_date', 'asc'))
-        const snapshot = await getDocs(q)
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event))
-        setEvents(data)
-      } catch (err) {
-        console.error('Failed to load events', err)
-      } finally {
-        setIsLoading(false)
+  const loadEvents = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      const res = await fetch('/api/admin/events')
+      if (res.ok) {
+        const data = await res.json()
+        setEvents(data.events || [])
       }
+    } catch (err) {
+      console.error('Failed to load events', err)
+    } finally {
+      setIsLoading(false)
     }
+  }, [])
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
+  useEffect(() => {
+    getUser().then(({ user, error }) => {
+      if (error || !user) {
         router.push(withLocale(locale, '/login'))
         return
       }
       
-      // For now, assume any logged in user can access this page
-      // In a real app, you would check custom claims or a profiles collection
-      setIsAdmin(true)
-      loadEvents()
+      // Check for editor/admin role
+      fetch(`/api/profile?id=${user.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.profile?.is_editor && !data.profile?.can_manage_platform) {
+            router.push(withLocale(locale, '/creator'))
+          } else {
+            setIsAdmin(true)
+            loadEvents()
+          }
+        })
     })
-    
-    return () => unsubscribe()
-  }, [locale, router])
+  }, [router, locale, loadEvents])
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this event?')) return
 
     try {
-      await deleteDoc(doc(db, 'events', id))
+      const res = await fetch(`/api/admin/events?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete')
       setEvents(events.filter(e => e.id !== id))
     } catch (err) {
       console.error('Failed to delete event', err)
