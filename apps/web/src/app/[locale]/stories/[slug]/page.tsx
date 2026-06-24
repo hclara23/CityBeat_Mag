@@ -6,6 +6,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale, type Locale } from '@/components/citybeat/content'
 import { getArticleBySlug } from '@/lib/articles'
 import { jsonLdSafe } from '@/lib/jsonld'
+import { ShareButtons } from '@/components/citybeat/ShareButtons'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,6 +98,13 @@ export default async function StoryPage({ params }: Props) {
           {article.author}
           {published ? ` · ${published}` : ''}
         </p>
+
+        <ShareButtons
+          url={`${BASE}/${locale}/stories/${article.slug}`}
+          title={displayTitle}
+          locale={locale}
+          className="mt-6"
+        />
 
         {article.image && (
           <div className="mt-8 overflow-hidden rounded-md bg-white/5">

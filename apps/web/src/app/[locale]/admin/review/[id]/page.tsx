@@ -101,6 +101,12 @@ export default function ReviewArticlePage({ params }: { params: { id: string } }
             ← Back to Queue
           </Link>
           <div className="flex gap-3">
+            <Link
+              href={withLocale(locale, `/creator/edit/${id}`)}
+              className="rounded-md border border-white/20 px-6 py-2 text-xs font-bold uppercase tracking-wider text-white/70 hover:border-brand-neon hover:text-brand-neon transition"
+            >
+              Edit
+            </Link>
             <button
               onClick={() => handleAction('rejected')}
               disabled={isBusy}

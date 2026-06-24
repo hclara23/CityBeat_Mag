@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
+import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
 
@@ -274,7 +275,7 @@ export default function ClaimPage() {
       <div className="citybeat-app min-h-screen pb-24">
         {/* Navigation Breadcrumb */}
         <div className="container-wide pt-8 pb-4">
-          <Link href={`/directory/${id}`} className="text-sm font-bold uppercase tracking-wider text-brand-neon hover:text-cyan-300 transition">
+          <Link href={withLocale(locale, `/directory/${id}`)} className="text-sm font-bold uppercase tracking-wider text-brand-neon hover:text-cyan-300 transition">
             {t.backToDetails}
           </Link>
         </div>
@@ -285,7 +286,7 @@ export default function ClaimPage() {
               <div className="text-center py-6">
                 <span className="text-brand-magenta font-black text-4xl block mb-4">⚠</span>
                 <p className="text-white/80 font-bold mb-4">{error}</p>
-                <Link href={`/directory/${id}`} className="btn-primary">
+                <Link href={withLocale(locale, `/directory/${id}`)} className="btn-primary">
                   {t.backToDetails}
                 </Link>
               </div>
@@ -482,7 +483,7 @@ export default function ClaimPage() {
                                 <span className="text-4xl">⏳</span>
                                 <p className="text-xs text-white/75">{claimSuccessMsg}</p>
                                 <Link
-                                  href={`/directory/${id}`}
+                                  href={withLocale(locale, `/directory/${id}`)}
                                   className="inline-block w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3"
                                 >
                                   Back to Listing
