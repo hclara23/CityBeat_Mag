@@ -20,6 +20,7 @@ const primaryAdminLinks = [
   { href: '/creator', label: 'Creator Studio', description: 'Manage drafts, review status, and submitted work.' },
   { href: '/admin', label: 'Review Queue', description: 'Approve, reject, and publish submitted articles.' },
   { href: '/admin/claims', label: 'Claims Queue', description: 'Review, approve, or reject business directory claims.' },
+  { href: '/admin/sales/new', label: 'New Sale', description: 'Charge a client on the spot — directory plan or custom amount.' },
   { href: '/admin/events', label: 'Events Manager', description: 'Review, moderate, and delete scraped events.' },
   { href: '/account/payments', label: 'My Bank & Payouts', description: 'Connect a bank account, view balance and payouts received.' },
   { href: '/contribute', label: 'Public Submit Form', description: 'View the contributor intake page readers use.' },

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
-import { payoutToUser } from '@/lib/payouts'
+import { payoutToUser, getPayoutSettings } from '@/lib/payouts'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -34,24 +34,27 @@ async function handleCheckoutCompleted(session: any) {
   const metadata = session.metadata || {}
 
   // 1. Directory premium claim → mark listing pending admin approval.
-  if (metadata.listing_id && metadata.owner_id) {
+  //    Either a self-serve owner (owner_id) OR a rep-initiated field sale (sold_by,
+  //    where the client may not have an account yet — admin attaches the owner on
+  //    approval using the captured contact_email).
+  if (metadata.listing_id && (metadata.owner_id || metadata.sold_by)) {
     // Tier the admin will grant on approval (premium/featured). Founding members
     // get Premium at the locked launch price and are flagged for the 100 cap.
     const pendingTier = metadata.tier === 'featured' ? 'featured' : 'premium'
-    await adminDb.collection('directory_listings').doc(metadata.listing_id).set(
-      {
-        owner_id: metadata.owner_id,
-        claim_status: 'pending_approval',
-        pending_tier: pendingTier,
-        plan: metadata.plan || 'premium_monthly',
-        founding_member: metadata.founding === 'true',
-        stripe_subscription_id: session.subscription || null,
-        stripe_customer_id: session.customer || null,
-        claimed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      { merge: true }
-    )
+    const listingPatch: Record<string, any> = {
+      claim_status: 'pending_approval',
+      pending_tier: pendingTier,
+      plan: metadata.plan || 'premium_monthly',
+      founding_member: metadata.founding === 'true',
+      stripe_subscription_id: session.subscription || null,
+      stripe_customer_id: session.customer || null,
+      claimed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    if (metadata.owner_id) listingPatch.owner_id = metadata.owner_id
+    if (metadata.sold_by) listingPatch.sold_by_rep = metadata.sold_by
+    if (metadata.contact_email) listingPatch.contact_email = metadata.contact_email
+    await adminDb.collection('directory_listings').doc(metadata.listing_id).set(listingPatch, { merge: true })
     // Pay out the configured share ONLY to an explicitly attributed payee (e.g. the
     // sales rep set via metadata.payout_user_id at checkout). Never default to the
     // owner — that would refund the payer a cut of their own payment. No-ops if
@@ -64,6 +67,8 @@ async function handleCheckoutCompleted(session: any) {
       currency: session.currency || 'usd',
       sourcePaymentId: session.id,
     })
+    // Remember the rep so renewals can pay residual commission (if enabled).
+    await recordSubscriptionAttribution(session.subscription, metadata.payout_user_id, 'directory')
     return
   }
 
@@ -127,6 +132,47 @@ async function handleCheckoutCompleted(session: any) {
     currency: session.currency || 'usd',
     sourcePaymentId: session.id,
   })
+  await recordSubscriptionAttribution(
+    session.subscription,
+    metadata.payout_user_id,
+    metadata.adType === 'sponsored_post' ? 'sponsored_post' : 'ad_campaign'
+  )
+}
+
+// Persist who earns commission on a subscription so renewals can pay residuals.
+async function recordSubscriptionAttribution(subscriptionId: any, payeeUserId: any, service: string) {
+  if (!subscriptionId || !payeeUserId) return
+  await adminDb.collection('subscriptions').doc(String(subscriptionId)).set(
+    { payout_user_id: payeeUserId, payout_service: service, updated_at: new Date().toISOString() },
+    { merge: true }
+  )
+}
+
+// Residual commission: on a subscription RENEWAL (not the first invoice, which
+// checkout.session.completed already paid), pay the attributed rep again — but
+// only when godmode has commission_mode = 'residual'. Idempotent per invoice.
+async function payResidualCommissionIfDue(invoice: any) {
+  if (invoice.billing_reason !== 'subscription_cycle' || !invoice.subscription) return
+
+  const settings = await getPayoutSettings()
+  if (settings.commission_mode !== 'residual') return
+
+  const subDoc = await adminDb.collection('subscriptions').doc(String(invoice.subscription)).get()
+  const sub = subDoc.exists ? (subDoc.data() as any) : null
+  if (!sub?.payout_user_id || !sub.payout_service) return
+
+  // Don't double-pay a renewal on webhook retries.
+  const existing = await adminDb.collection('transfers').where('source_payment', '==', invoice.id).limit(1).get()
+  if (!existing.empty) return
+
+  await payoutToUser({
+    stripe,
+    payeeUserId: sub.payout_user_id,
+    service: sub.payout_service,
+    amountTotal: invoice.amount_paid ?? invoice.amount_due ?? 0,
+    currency: invoice.currency || 'usd',
+    sourcePaymentId: invoice.id,
+  })
 }
 
 async function handleChargeRefunded(charge: any) {
@@ -169,6 +215,8 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
       { status: 'active', stripe_customer_id: invoice.customer || null, updated_at: new Date().toISOString() }, { merge: true }
     )
   }
+  // Pay the rep their residual share on renewals, if godmode enabled it.
+  await payResidualCommissionIfDue(invoice)
 }
 
 async function handleInvoicePaymentFailed(invoice: any) {

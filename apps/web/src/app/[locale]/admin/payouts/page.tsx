@@ -108,6 +108,35 @@ export default function PayoutSettingsDashboard() {
         {msg && <p className="mt-4 text-sm text-brand-neon">{msg}</p>}
 
         <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
+          <h2 className="mb-1 text-lg font-bold text-white">Commission mode</h2>
+          <p className="mb-4 text-sm text-white/55">
+            How rep commission is paid on recurring subscriptions.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {([
+              ['one_time', 'One-time', 'Pay the rep once, on the first payment.'],
+              ['residual', 'Residual', 'Keep paying the rep their % on every renewal.'],
+            ] as const).map(([mode, label, desc]) => {
+              const active = (settings.commission_mode || 'one_time') === mode
+              return (
+                <button
+                  key={mode}
+                  onClick={() => save({ commission_mode: mode })}
+                  className={`flex-1 min-w-[180px] rounded-lg border px-4 py-3 text-left transition ${
+                    active ? 'border-brand-neon bg-brand-neon/10' : 'border-white/15 bg-black/20 hover:border-white/30'
+                  }`}
+                >
+                  <span className={`block text-sm font-black uppercase tracking-wide ${active ? 'text-brand-neon' : 'text-white'}`}>
+                    {label}{active ? ' ✓' : ''}
+                  </span>
+                  <span className="mt-1 block text-xs text-white/50">{desc}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-6">
           <h2 className="mb-4 text-lg font-bold text-white">Default & per-service payout %</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="text-sm text-white/70">

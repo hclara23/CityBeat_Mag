@@ -8,10 +8,15 @@ export type PayoutService = (typeof PAYOUT_SERVICES)[number]
 
 // `*_payout_percent` is the percentage of the gross payment the USER receives;
 // the platform keeps the remainder. Defaults are 0 → nothing pays out until set.
+// commission_mode: 'one_time' pays the rep once (on the first payment); 'residual'
+// keeps paying the same percent on every subscription renewal.
+export type CommissionMode = 'one_time' | 'residual'
+
 export type PayoutSettings = {
   default_payout_percent: number
   service_payout_percent: Record<string, number>
   user_overrides: Record<string, Record<string, number>>
+  commission_mode: CommissionMode
   updated_at?: string
   updated_by?: string
 }
@@ -22,6 +27,7 @@ const DEFAULTS: PayoutSettings = {
   default_payout_percent: 0,
   service_payout_percent: { directory: 0, ad_campaign: 0, sponsored_post: 0 },
   user_overrides: {},
+  commission_mode: 'one_time',
 }
 
 export async function getPayoutSettings(): Promise<PayoutSettings> {
@@ -32,6 +38,7 @@ export async function getPayoutSettings(): Promise<PayoutSettings> {
     default_payout_percent: data.default_payout_percent ?? 0,
     service_payout_percent: { ...DEFAULTS.service_payout_percent, ...(data.service_payout_percent || {}) },
     user_overrides: data.user_overrides || {},
+    commission_mode: data.commission_mode === 'residual' ? 'residual' : 'one_time',
     updated_at: data.updated_at,
     updated_by: data.updated_by,
   }

@@ -1,0 +1,108 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
+
+interface Listing {
+  id: string
+  name: string
+  tier: string
+  pending_tier: string | null
+  claim_status: string
+  plan: string | null
+}
+
+// Upgrade options offered in the dashboard, cheapest → most visible.
+const BOOST_PLANS: PlanId[] = ['premium_monthly', 'premium_annual', 'featured_monthly']
+
+const TIER_LABEL: Record<string, string> = {
+  basic: 'Basic',
+  premium: 'Premium — priority placement',
+  featured: 'Featured — top of category + homepage',
+}
+
+export function MyListingsBoost() {
+  const [listings, setListings] = useState<Listing[] | null>(null)
+  const [busy, setBusy] = useState<string>('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetch('/api/directory/mine')
+      .then((r) => (r.ok ? r.json() : { listings: [] }))
+      .then((d) => setListings(d.listings || []))
+      .catch(() => setListings([]))
+  }, [])
+
+  const boost = async (listingId: string, plan: PlanId) => {
+    setBusy(`${listingId}:${plan}`)
+    setError('')
+    try {
+      const res = await fetch('/api/directory/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId, plan }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout')
+      window.location.href = data.url
+    } catch (e: any) {
+      setError(e.message)
+      setBusy('')
+    }
+  }
+
+  if (listings === null) return null
+  if (listings.length === 0) return null
+
+  return (
+    <div className="mb-12">
+      <h2 className="text-2xl font-bold mb-2">Boost your listings</h2>
+      <p className="text-sm text-gray-500 mb-6">
+        Upgrade a listing to lift it higher in directory search and category pages. Changes take
+        effect once approved.
+      </p>
+      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+
+      <div className="grid gap-4">
+        {listings.map((listing) => {
+          const isFeatured = listing.tier === 'featured'
+          return (
+            <div key={listing.id} className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{listing.name}</h3>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {TIER_LABEL[listing.tier] || 'Basic'}
+                    {listing.pending_tier ? ` · upgrade to ${listing.pending_tier} pending approval` : ''}
+                  </p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isFeatured ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-700'}`}>
+                  {listing.tier.toUpperCase()}
+                </span>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4">
+                {BOOST_PLANS.map((planId) => {
+                  const plan = DIRECTORY_PLANS[planId]
+                  // Don't offer to "boost" to the tier they already have on a monthly plan.
+                  const sameTier = plan.tier === listing.tier
+                  const key = `${listing.id}:${planId}`
+                  return (
+                    <button
+                      key={planId}
+                      disabled={busy === key || (sameTier && listing.tier === 'featured')}
+                      onClick={() => boost(listing.id, planId)}
+                      className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-50"
+                    >
+                      {busy === key ? 'Starting…' : `${plan.label} · ${plan.priceLabel}`}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}

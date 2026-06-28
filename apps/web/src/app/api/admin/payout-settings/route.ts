@@ -32,6 +32,9 @@ export async function PATCH(request: NextRequest) {
   if (body.user_overrides && typeof body.user_overrides === 'object') {
     patch.user_overrides = body.user_overrides
   }
+  if (body.commission_mode === 'one_time' || body.commission_mode === 'residual') {
+    patch.commission_mode = body.commission_mode
+  }
 
   try {
     const settings = await savePayoutSettings(patch, auth.user.id)

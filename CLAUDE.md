@@ -257,7 +257,12 @@ The canonical webhook is the **web app** `apps/web/src/app/api/stripe/webhook/ro
 #### Monetization in / out
 
 - **In:** directory listing subscriptions (`/api/directory/claim`), ads/newsletter/sponsored/banner (ads portal `/api/checkout`), paid jobs (`/api/stripe/checkout`). All charges go to the **single platform Stripe account**.
-- **Out (payouts):** Stripe Connect **separate transfers**. Any signed-in user can onboard a bank via `/api/platform/connect/onboarding`; balance/payouts at `/api/platform/connect/balance`. Commission auto-pays a configured **percent** (`/admin/payouts` → `/api/admin/payout-settings`, executed by the webhook via `payoutToUser`) — but only to an **explicitly attributed** `payout_user_id` (set at checkout by a sales/staff caller; never defaults to the payer). Godmode can also **issue a flat one-off payout** at `/admin/payouts` → `POST /api/admin/payouts/issue`. Finance overview (read-only): `/api/admin/finance`.
+- **Out (payouts):** Stripe Connect **separate transfers**. Any signed-in user can onboard a bank via `/api/platform/connect/onboarding`; balance/payouts at `/api/platform/connect/balance`. Commission auto-pays a configured **percent** (`/admin/payouts` → `/api/admin/payout-settings`, executed by the webhook via `payoutToUser`) — but only to an **explicitly attributed** `payout_user_id` (set at checkout by a sales/staff caller; never defaults to the payer). **Commission mode** (godmode, `/admin/payouts`): `one_time` (first payment) or `residual` (every renewal). Godmode can also **issue a flat one-off payout** at `/admin/payouts` → `POST /api/admin/payouts/issue`. Finance overview (read-only): `/api/admin/finance`.
+
+#### Self-serve & field sales
+
+- **Client boost:** a listing owner sees their businesses on `/dashboard` (`/api/directory/mine`) and can upgrade tier via the existing claim checkout (`MyListingsBoost`).
+- **Sales virtual checkout / onboarding wizard:** reps (`hasSalesAccess`) use `/admin/sales/new` → `POST /api/sales/checkout` to generate a Stripe Checkout link (QR) on the spot for a directory plan or a custom amount. The sale is attributed to the rep (`payout_user_id`), and a rep-sold directory listing is created `unclaimed` with `sold_by_rep` + `contact_email` (admin attaches the owner on approval).
 
 ## Deployment
 
