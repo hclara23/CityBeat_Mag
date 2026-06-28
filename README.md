@@ -31,16 +31,10 @@ gcloud run deploy citybeat-mag-web \
   --allow-unauthenticated \
   --project kerstenblueprint \
   --set-env-vars="NEXT_PUBLIC_FIREBASE_PROJECT_ID=kerstenblueprint"
-
-# 2. Build and deploy the ads app
-# (Assuming a secondary Dockerfile or deployment config for apps/ads)
-gcloud run deploy citybeat-mag-ads \
-  --source . \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --project kerstenblueprint
 ```
+
+> Normally you don't run this by hand — push to `main` auto-deploys `citybeat-web`
+> via `.github/workflows/deploy-web.yml`.
 
 > Note: Ensure your Stripe and Firebase Admin secrets are securely stored in Google Cloud Secret Manager.
 

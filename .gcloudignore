@@ -4,9 +4,7 @@ node_modules
 .env*
 .vercel
 apps/web/.next
-apps/ads/.next
 apps/web/node_modules
-apps/ads/node_modules
 packages/*/node_modules
 packages/*/.next
 # Local tooling / virtualenvs / scratch dirs that should never enter the build context

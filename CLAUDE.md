@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**CityBeat** is a bilingual (EN/ES) local news magazine covering El Paso County, with a news brief automation pipeline, advertiser portal, and content management system. The project uses a monorepo structure with Turbo for orchestration.
+**CityBeat** is a bilingual (EN/ES) local news magazine covering El Paso County, with a news brief automation pipeline, advertising & business-directory monetization, and content management — all in one Next.js app. The project uses a monorepo structure with Turbo for orchestration.
 
 ## Architecture
 
@@ -12,8 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```text
 ├── apps/
-│   ├── web/              # Main public site (Next.js, next-intl for i18n)
-│   └── ads/              # Advertiser self-serve portal (Next.js + Stripe)
+│   └── web/              # Main public site incl. advertising, directory, admin, sales (Next.js, next-intl)
 ├── packages/
 │   ├── lib/              # Shared utilities (i18n, geo, tracking)
 │   └── ui/               # Shared UI components (shadcn/tailwind)
@@ -88,21 +87,6 @@ npm run dev              # Runs on port 3000
 
 # Single test (replace with actual test path)
 npm run test -- src/path/to/test.spec.ts
-
-# Type checking
-npm run type-check
-
-# Linting
-npm run lint
-```
-
-### Ads Portal (apps/ads)
-
-```bash
-cd apps/ads
-
-# Development
-npm run dev              # Runs on port 3001
 
 # Type checking
 npm run type-check
@@ -206,16 +190,7 @@ SANITY_EDITOR_TOKEN   # Required for embedded /studio route — set in Cloud Run
 ANALYTICS_EXCLUDED_IPS   # Optional, comma-separated IPs excluded from first-party page-view counts (signed-in staff are auto-excluded)
 ```
 
-### Ads Portal (apps/ads/.env.local)
-
-```text
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET
-NEXT_PUBLIC_APP_URL
-```
-
-See `PRE_DEPLOYMENT_CHECKLIST.md` for complete environment setup.
+See `apps/web/.env.example` for the full list of environment variables.
 
 ## Key Development Patterns
 
@@ -247,16 +222,16 @@ import { /* tracking */ } from '@citybeat/lib/tracking'
 
 ### Stripe Integration
 
-- Advertiser portal uses `@stripe/react-stripe-js` for checkout
+- Checkout uses Stripe hosted Checkout sessions (redirect to `session.url`)
 - Prices can be pre-configured via env vars or fetched dynamically from Stripe
 
 #### Webhooks (fulfillment)
 
-The canonical webhook is the **web app** `apps/web/src/app/api/stripe/webhook/route.ts` (the worker no longer processes Stripe). The ads portal has its own webhook `apps/ads/.../api/webhooks/stripe` for `ad_campaigns`. Both **require `STRIPE_WEBHOOK_SECRET`** — the web webhook now fails closed (refuses unsigned events) in production. Fulfillment: directory claims → `pending_approval` (admin promotes `pending_tier`→`tier`); jobs → published; ad campaigns → active + banner sync.
+The canonical (and only) webhook is the **web app** `apps/web/src/app/api/stripe/webhook/route.ts` (the worker no longer processes Stripe). It **requires `STRIPE_WEBHOOK_SECRET`** and fails closed (refuses unsigned events) in production. The single Stripe destination must point at `https://citybeatmag.co/api/stripe/webhook`. Fulfillment: directory claims → `pending_approval` (admin promotes `pending_tier`→`tier`); jobs → published; ad campaigns → active.
 
 #### Monetization in / out
 
-- **In:** directory listing subscriptions (`/api/directory/claim`), ads/newsletter/sponsored/banner (ads portal `/api/checkout`), paid jobs (`/api/stripe/checkout`). All charges go to the **single platform Stripe account**.
+- **In:** directory listing subscriptions (`/api/directory/claim`), ads/sponsored/banner via the web app's `/ads` flow (`/api/stripe/checkout`), paid jobs (`/api/stripe/checkout`), and rep field sales (`/api/sales/checkout`). All charges go to the **single platform Stripe account**.
 - **Out (payouts):** Stripe Connect **separate transfers**. Any signed-in user can onboard a bank via `/api/platform/connect/onboarding`; balance/payouts at `/api/platform/connect/balance`. Commission auto-pays a configured **percent** (`/admin/payouts` → `/api/admin/payout-settings`, executed by the webhook via `payoutToUser`) — but only to an **explicitly attributed** `payout_user_id` (set at checkout by a sales/staff caller; never defaults to the payer). **Commission mode** (godmode, `/admin/payouts`): `one_time` (first payment) or `residual` (every renewal). Godmode can also **issue a flat one-off payout** at `/admin/payouts` → `POST /api/admin/payouts/issue`. Finance overview (read-only): `/api/admin/finance`.
 
 #### Self-serve & field sales
@@ -268,7 +243,7 @@ The canonical webhook is the **web app** `apps/web/src/app/api/stripe/webhook/ro
 
 ### Pre-Deployment Checklist
 
-1. Verify all environment variables set (see `PRE_DEPLOYMENT_CHECKLIST.md`)
+1. Verify all environment variables set (see `apps/web/.env.example`)
 2. Run `npm run build && npm run type-check` to ensure clean build
 3. Test automation pipeline in staging
 4. Review brief content in Sanity before first production run
@@ -277,8 +252,7 @@ The canonical webhook is the **web app** `apps/web/src/app/api/stripe/webhook/ro
 
 Prod runs on **Google Cloud Run** in GCP project `kerstenblueprint` (region `us-central1`) — NOT Vercel. `citybeatmag.co` is fronted by **Firebase Hosting (Fastly CDN) → Cloud Run `citybeat-web`**. Push to `main` auto-deploys via GitHub Actions.
 
-- **Web** (`citybeat-web`): push to `main` runs `.github/workflows/deploy-web.yml` → builds & deploys to Cloud Run; live at [citybeatmag.co](https://citybeatmag.co)
-- **Ads** (`citybeat-ads`): push to `main` runs `.github/workflows/deploy-ads.yml` → Cloud Run
+- **Web** (`citybeat-web`): push to `main` runs `.github/workflows/deploy-web.yml` → builds & deploys to Cloud Run; live at [citybeatmag.co](https://citybeatmag.co). This is the single app — advertising, directory, admin, and sales all live here.
 - **Worker**: `cd services/worker && npm run deploy`
 - **Sanity Studio**: `cd sanity && npm run deploy`
 

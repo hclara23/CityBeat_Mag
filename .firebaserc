@@ -7,9 +7,6 @@
       "hosting": {
         "web": [
           "kerstenblueprint"
-        ],
-        "ads": [
-          "kerstenblueprint-ads"
         ]
       }
     }

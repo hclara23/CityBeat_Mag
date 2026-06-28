@@ -17,24 +17,6 @@
           }
         }
       ]
-    },
-    {
-      "target": "ads",
-      "public": "firebase-public",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "rewrites": [
-        {
-          "source": "**",
-          "run": {
-            "serviceId": "citybeat-ads",
-            "region": "us-central1"
-          }
-        }
-      ]
     }
   ]
 }
