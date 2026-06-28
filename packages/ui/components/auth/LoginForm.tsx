@@ -6,7 +6,7 @@ import { Input } from '../Input'
 import { AuthError } from './AuthError'
 
 interface LoginFormProps {
-  onSubmit: (email: string, password: string) => Promise<{ error?: string }>
+  onSubmit: (email: string, password: string, rememberMe: boolean) => Promise<{ error?: string }>
   onSuccess?: () => void
   isLoading?: boolean
   className?: string
@@ -16,6 +16,8 @@ export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  // Default ON: keep people signed in unless they explicitly opt out.
+  const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
 
@@ -45,7 +47,7 @@ export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = 
     if (!validateForm()) return
 
     try {
-      const result = await onSubmit(email, password)
+      const result = await onSubmit(email, password, rememberMe)
       if (result.error) {
         setError(result.error)
       } else {
@@ -100,6 +102,17 @@ export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = 
           {showPassword ? 'Hide' : 'Show'}
         </button>
       </div>
+
+      <label className="flex items-center gap-2 text-sm text-gray-600 select-none cursor-pointer">
+        <input
+          type="checkbox"
+          checked={rememberMe}
+          onChange={(e) => setRememberMe(e.target.checked)}
+          disabled={isLoading}
+          className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+        />
+        Keep me signed in
+      </label>
 
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? 'Signing in...' : 'Sign In'}

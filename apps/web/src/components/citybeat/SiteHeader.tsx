@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { withLocale } from './content'
 import { useLocale } from '@/components/TranslationProvider'
+import { getUser, signOut } from '@citybeat/lib/firebase/auth-client'
 
 function getNavItems(locale: string) {
   return [
@@ -15,10 +16,44 @@ function getNavItems(locale: string) {
   ]
 }
 
+// Where each role's "Dashboard" button lands. Most-privileged match wins.
+export function dashboardFor(profile: any): string {
+  if (!profile) return '/account'
+  if (profile.can_manage_platform || profile.is_developer) return '/developer'
+  if (profile.is_editor) return '/admin'
+  if (profile.is_sales || profile.sales_dashboard_enabled) return '/admin/sales'
+  if (profile.is_writer) return '/creator'
+  if (profile.is_advertiser) return '/dashboard'
+  return '/account'
+}
+
 export function SiteHeader() {
   const pathname = usePathname()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [profile, setProfile] = useState<any | null>(null)
   const locale = useLocale()
+
+  // Detect the signed-in user so we can surface a role-appropriate Dashboard link.
+  useEffect(() => {
+    let active = true
+    getUser().then(({ user }) => {
+      if (active) setProfile(user ?? null)
+    })
+    return () => {
+      active = false
+    }
+  }, [pathname])
+
+  const dashboardHref = profile ? dashboardFor(profile) : null
+
+  const handleSignOut = async () => {
+    setProfile(null)
+    setOpen(false)
+    await signOut()
+    router.push(withLocale(locale, '/'))
+    router.refresh()
+  }
   const otherLocale = locale === 'en' ? 'es' : 'en'
   const localizedPath = pathname.startsWith(`/${locale}`)
     ? `/${otherLocale}${pathname.slice(locale.length + 1) || ''}`
@@ -51,12 +86,32 @@ export function SiteHeader() {
           <Link href={localizedPath} className="text-xs font-bold uppercase tracking-[0.22em] text-white/60 hover:text-white">
             {otherLocale}
           </Link>
-          <Link href={withLocale(locale, '/login')} className="text-xs font-bold uppercase tracking-[0.22em] text-white/70 hover:text-white transition">
-            {locale === 'es' ? 'Iniciar Sesión' : 'Sign In'}
-          </Link>
-          <Link href={withLocale(locale, '/signup')} className="rounded-md border border-brand-neon px-4 py-2 text-sm font-black uppercase tracking-wider text-brand-neon transition hover:bg-brand-neon hover:text-black">
-            {locale === 'es' ? 'Crear Cuenta' : 'Register'}
-          </Link>
+          {dashboardHref ? (
+            <>
+              <Link
+                href={withLocale(locale, dashboardHref)}
+                className="rounded-md border border-brand-neon px-4 py-2 text-sm font-black uppercase tracking-wider text-brand-neon transition hover:bg-brand-neon hover:text-black"
+              >
+                {locale === 'es' ? 'Panel' : 'Dashboard'}
+              </Link>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="text-xs font-bold uppercase tracking-[0.22em] text-white/70 hover:text-white transition"
+              >
+                {locale === 'es' ? 'Cerrar Sesión' : 'Sign Out'}
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href={withLocale(locale, '/login')} className="text-xs font-bold uppercase tracking-[0.22em] text-white/70 hover:text-white transition">
+                {locale === 'es' ? 'Iniciar Sesión' : 'Sign In'}
+              </Link>
+              <Link href={withLocale(locale, '/signup')} className="rounded-md border border-brand-neon px-4 py-2 text-sm font-black uppercase tracking-wider text-brand-neon transition hover:bg-brand-neon hover:text-black">
+                {locale === 'es' ? 'Crear Cuenta' : 'Register'}
+              </Link>
+            </>
+          )}
           <Link href={withLocale(locale, '/ads')} className="rounded-md bg-brand-neon px-4 py-2 text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300">
             {locale === 'es' ? 'Anunciar' : 'Advertise'}
           </Link>
@@ -89,20 +144,41 @@ export function SiteHeader() {
             <Link href={localizedPath} className="text-sm font-bold uppercase tracking-[0.22em] text-brand-neon">
               {locale === 'es' ? 'Cambiar a ' : 'Switch to '}{otherLocale.toUpperCase()}
             </Link>
-            <Link
-              href={withLocale(locale, '/login')}
-              onClick={() => setOpen(false)}
-              className="font-display text-3xl font-black text-white/70 hover:text-white"
-            >
-              {locale === 'es' ? 'Iniciar Sesión' : 'Sign In'}
-            </Link>
-            <Link
-              href={withLocale(locale, '/signup')}
-              onClick={() => setOpen(false)}
-              className="font-display text-3xl font-black text-brand-neon hover:text-cyan-300"
-            >
-              {locale === 'es' ? 'Crear Cuenta' : 'Register'}
-            </Link>
+            {dashboardHref ? (
+              <>
+                <Link
+                  href={withLocale(locale, dashboardHref)}
+                  onClick={() => setOpen(false)}
+                  className="font-display text-3xl font-black text-brand-neon hover:text-cyan-300"
+                >
+                  {locale === 'es' ? 'Panel' : 'Dashboard'}
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="text-left font-display text-3xl font-black text-white/70 hover:text-white"
+                >
+                  {locale === 'es' ? 'Cerrar Sesión' : 'Sign Out'}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={withLocale(locale, '/login')}
+                  onClick={() => setOpen(false)}
+                  className="font-display text-3xl font-black text-white/70 hover:text-white"
+                >
+                  {locale === 'es' ? 'Iniciar Sesión' : 'Sign In'}
+                </Link>
+                <Link
+                  href={withLocale(locale, '/signup')}
+                  onClick={() => setOpen(false)}
+                  className="font-display text-3xl font-black text-brand-neon hover:text-cyan-300"
+                >
+                  {locale === 'es' ? 'Crear Cuenta' : 'Register'}
+                </Link>
+              </>
+            )}
           </div>
         </nav>
       )}

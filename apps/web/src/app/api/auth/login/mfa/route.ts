@@ -4,7 +4,10 @@ import { verifyTotp } from '@/lib/totp'
 
 export const dynamic = 'force-dynamic'
 
-const SESSION_MS = 60 * 60 * 24 * 5 * 1000
+// Mirrors the durations in ../route.ts: "keep me signed in" → 14-day persistent
+// cookie (Firebase's max); opt out → 12-hour browser-session cookie.
+const REMEMBER_MS = 60 * 60 * 24 * 14 * 1000
+const SESSION_ONLY_MS = 60 * 60 * 12 * 1000
 const MAX_MFA_ATTEMPTS = 5
 
 function getPrimaryPlatformRole(profile: any) {
@@ -52,8 +55,11 @@ export async function POST(request: NextRequest) {
   }
 
   // Code is valid — mint the session from the stored id token, then burn the token.
+  // Honor the "keep me signed in" choice captured at the password step.
+  const remember = pending.remember !== false
   try {
-    const sessionCookie = await adminAuth.createSessionCookie(pending.id_token, { expiresIn: SESSION_MS })
+    const expiresIn = remember ? REMEMBER_MS : SESSION_ONLY_MS
+    const sessionCookie = await adminAuth.createSessionCookie(pending.id_token, { expiresIn })
     await ref.delete().catch(() => {})
 
     const profileDoc = await adminDb.collection('profiles').doc(pending.uid).get()
@@ -75,7 +81,8 @@ export async function POST(request: NextRequest) {
       },
     })
     response.cookies.set('__session', sessionCookie, {
-      maxAge: SESSION_MS / 1000,
+      // Omit maxAge when not remembering → session cookie cleared on browser close.
+      ...(remember ? { maxAge: REMEMBER_MS / 1000 } : {}),
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',

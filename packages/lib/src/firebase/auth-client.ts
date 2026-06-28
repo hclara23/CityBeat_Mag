@@ -90,16 +90,46 @@ export async function updatePassword(newPassword: string): Promise<AuthResult> {
   }
 }
 
-// Returns { user } | { error } to match the previous Supabase API.
-export async function getUser(): Promise<{ user: any | null; error?: string }> {
-  try {
-    const res = await fetch('/api/profile', { cache: 'no-store' })
-    if (!res.ok) return { user: null, error: 'Unauthorized' }
-    const { profile } = await res.json()
-    return { user: profile ? { id: profile.id, email: profile.email, ...profile } : null }
-  } catch (e: any) {
-    return { user: null, error: e?.message || 'Auth check failed' }
+// Returns { user } | { user: null, error } to match the previous Supabase API.
+//
+// IMPORTANT: only a real 401/403 means "signed out". A network blip or a 5xx
+// (e.g. a Cloud Run cold start) is transient — we retry a few times instead of
+// reporting the user as logged out, otherwise navigating between pages bounces a
+// perfectly valid session to /login. When all retries fail transiently we set
+// `transient: true` so callers can choose NOT to sign the user out.
+export async function getUser(): Promise<{ user: any | null; error?: string; transient?: boolean }> {
+  const MAX_ATTEMPTS = 3
+  let lastError = 'Auth check failed'
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch('/api/profile', { cache: 'no-store' })
+
+      if (res.ok) {
+        const { profile } = await res.json()
+        return { user: profile ? { id: profile.id, email: profile.email, ...profile } : null }
+      }
+
+      // Definitive auth failure — the session is genuinely gone. Don't retry.
+      if (res.status === 401 || res.status === 403) {
+        return { user: null, error: 'Unauthorized' }
+      }
+
+      // 5xx / 429 / anything else: transient, fall through and retry.
+      lastError = `HTTP ${res.status}`
+    } catch (e: any) {
+      lastError = e?.message || 'Network error'
+    }
+
+    // Brief backoff before the next attempt (skip the wait after the last try).
+    if (attempt < MAX_ATTEMPTS - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)))
+    }
   }
+
+  // Couldn't reach the server cleanly. Report it as transient so guards keep the
+  // user where they are rather than treating a network hiccup as a logout.
+  return { user: null, error: lastError, transient: true }
 }
 
 // Returns { profile } | { error } to match the previous Supabase API.

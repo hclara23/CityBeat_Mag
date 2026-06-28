@@ -25,15 +25,23 @@
 
   * {
     text-shadow: none !important;
+    /* The real glow culprit: headings ask for font-black (900) but the rendered
+       font tops out lower, so the browser FAKES the extra weight by smearing the
+       glyph edges — which reads as a halo/glow. Forbid synthetic bold/italic so
+       text uses real weights only. */
+    font-synthesis: none !important;
+    -webkit-font-synthesis: none !important;
   }
 
-  /* No glow on titles — kill every halo vector (shadow/stroke/filter) on
-     headings and display text for maximum legibility. */
+  /* No glow on titles — kill every halo vector (shadow/stroke/filter/synthesis)
+     on headings and display text for maximum legibility. */
   h1, h2, h3, h4, h5, h6,
   .font-display {
     text-shadow: none !important;
     -webkit-text-stroke: 0 !important;
     filter: none !important;
+    font-synthesis: none !important;
+    -webkit-font-synthesis: none !important;
   }
 
   h1, h2, h3, h4, h5, h6 {

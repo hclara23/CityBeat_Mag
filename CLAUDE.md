@@ -202,7 +202,8 @@ NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 NEXT_PUBLIC_APP_URL
 SANITY_API_TOKEN
-SANITY_EDITOR_TOKEN   # Required for embedded /studio route — set in Vercel env vars, never commit the real value
+SANITY_EDITOR_TOKEN   # Required for embedded /studio route — set in Cloud Run env vars, never commit the real value
+ANALYTICS_EXCLUDED_IPS   # Optional, comma-separated IPs excluded from first-party page-view counts (signed-in staff are auto-excluded)
 ```
 
 ### Ads Portal (apps/ads/.env.local)
@@ -261,10 +262,14 @@ import { /* tracking */ } from '@citybeat/lib/tracking'
 
 ### Production Deployment
 
-- **Web** (`city-beat-mag`): Deployed to Vercel — push to `main` triggers auto-deploy at [citybeatmag.co](https://citybeatmag.co)
-- **Ads** (`city-beat-ads`): Deployed to Vercel — push to `main` triggers auto-deploy at [city-beat-ads.vercel.app](https://city-beat-ads.vercel.app)
+Prod runs on **Google Cloud Run** in GCP project `kerstenblueprint` (region `us-central1`) — NOT Vercel. `citybeatmag.co` is fronted by **Firebase Hosting (Fastly CDN) → Cloud Run `citybeat-web`**. Push to `main` auto-deploys via GitHub Actions.
+
+- **Web** (`citybeat-web`): push to `main` runs `.github/workflows/deploy-web.yml` → builds & deploys to Cloud Run; live at [citybeatmag.co](https://citybeatmag.co)
+- **Ads** (`citybeat-ads`): push to `main` runs `.github/workflows/deploy-ads.yml` → Cloud Run
 - **Worker**: `cd services/worker && npm run deploy`
 - **Sanity Studio**: `cd sanity && npm run deploy`
+
+> Note: the session cookie MUST stay named `__session` — Firebase Hosting strips every other cookie before forwarding to Cloud Run. Symptom of a regression: auth works on the `*.run.app` URL but 401s on `citybeatmag.co`.
 
 ## Debugging Tips
 
@@ -282,7 +287,7 @@ The studio is embedded in the web app via `next-sanity/studio` at `apps/web/src/
 
 - `apps/web/next.config.js` excludes `/studio` from the `X-Frame-Options` header — Sanity Studio uses iframes internally and requires this
 - CORS for `https://citybeatmag.co` is managed automatically via Sanity's hosted studio integration
-- `SANITY_EDITOR_TOKEN` must be set in Vercel environment variables (Production) for the studio to authenticate
+- `SANITY_EDITOR_TOKEN` must be set in the Cloud Run service env vars (Production) for the studio to authenticate
 
 ### Sanity API Issues
 

@@ -63,7 +63,7 @@ function LoginContent() {
     router.refresh()
   }
 
-  const handleSubmit = async (email: string, password: string) => {
+  const handleSubmit = async (email: string, password: string, rememberMe: boolean) => {
     setIsLoading(true)
     setUnverifiedEmail('')
     try {
@@ -73,7 +73,7 @@ function LoginContent() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           cache: 'no-store',
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, rememberMe }),
         })
       } catch {
         return { error: 'Sign-in timed out. Please try again.' }
