@@ -92,11 +92,23 @@ export async function getOrCreateConnectedAccount(params: {
       const account = await stripe.accounts.retrieve(existing.stripe_account_id)
       const row = await syncConnectedAccount(params.profileId, account)
       return { stripe, account, row }
-    } catch (err) {
-      // Stored account is not retrievable in the current Stripe mode
-      // (e.g. a test account after switching to the live key). Fall through
-      // and create a fresh connected account.
-      console.warn('getOrCreateConnectedAccount: stored account unusable, creating new:', (err as any)?.message)
+    } catch (err: any) {
+      // Only replace the stored account when Stripe says it's genuinely
+      // invalid/missing for the current key+mode (e.g. a test account after the
+      // switch to the live key). On ANY transient error (network, rate-limit,
+      // 5xx) we RE-THROW — never silently orphan a linked bank account and create
+      // a duplicate. This keeps a connected bank permanent across blips.
+      const invalid =
+        err?.type === 'StripeInvalidRequestError' ||
+        err?.type === 'StripePermissionError' ||
+        err?.code === 'resource_missing' ||
+        err?.code === 'account_invalid' ||
+        err?.statusCode === 403 ||
+        err?.statusCode === 404
+      if (!invalid) {
+        throw err
+      }
+      console.warn('getOrCreateConnectedAccount: stored account invalid for this key/mode, creating new:', err?.message)
     }
   }
 
