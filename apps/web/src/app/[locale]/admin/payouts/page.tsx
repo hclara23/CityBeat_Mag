@@ -19,6 +19,12 @@ export default function PayoutSettingsDashboard() {
   const [ovUser, setOvUser] = useState('')
   const [ovService, setOvService] = useState<string>('directory')
   const [ovPercent, setOvPercent] = useState('')
+  // Issue-a-payout-now form
+  const [payUser, setPayUser] = useState('')
+  const [payAmount, setPayAmount] = useState('')
+  const [payNote, setPayNote] = useState('')
+  const [payMsg, setPayMsg] = useState('')
+  const [payBusy, setPayBusy] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/payout-settings', { cache: 'no-store' })
@@ -66,6 +72,31 @@ export default function PayoutSettingsDashboard() {
     const user_overrides = { ...(settings.user_overrides || {}) }
     delete user_overrides[uid]
     save({ user_overrides })
+  }
+
+  const issuePayout = async () => {
+    const dollars = Number(payAmount)
+    if (!payUser.trim() || !Number.isFinite(dollars) || dollars <= 0) {
+      setPayMsg('Enter a user id and an amount greater than 0.')
+      return
+    }
+    setPayBusy(true)
+    setPayMsg('')
+    try {
+      const res = await fetch('/api/admin/payouts/issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: payUser.trim(), amount: Math.round(dollars * 100), note: payNote.trim() || undefined }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Payout failed')
+      setPayMsg(`Paid $${(data.amount / 100).toFixed(2)} — transfer ${data.transferId}`)
+      setPayUser(''); setPayAmount(''); setPayNote('')
+    } catch (e: any) {
+      setPayMsg(e.message)
+    } finally {
+      setPayBusy(false)
+    }
   }
 
   return (
@@ -119,6 +150,27 @@ export default function PayoutSettingsDashboard() {
             ))}
             {Object.keys(settings.user_overrides || {}).length === 0 && <p className="text-sm text-white/40">No overrides.</p>}
           </div>
+        </div>
+
+        <div className="mt-6 rounded-xl border border-brand-magenta/30 bg-brand-magenta/5 p-6">
+          <h2 className="mb-1 text-lg font-bold text-white">Issue a payout now</h2>
+          <p className="mb-4 text-sm text-white/55">
+            Transfer a one-off amount from the platform balance to a user&apos;s connected bank.
+            They must have finished bank onboarding (payouts enabled).
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input placeholder="payee user id / uid" value={payUser} onChange={(e) => setPayUser(e.target.value)}
+              className="flex-1 rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white" />
+            <input placeholder="amount $" type="number" min={0} step="0.01" value={payAmount} onChange={(e) => setPayAmount(e.target.value)}
+              className="w-28 rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white" />
+            <input placeholder="note (optional)" value={payNote} onChange={(e) => setPayNote(e.target.value)}
+              className="flex-1 rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white" />
+            <button onClick={issuePayout} disabled={payBusy}
+              className="rounded-md bg-brand-magenta px-4 py-2 text-sm font-black uppercase text-white disabled:opacity-50">
+              {payBusy ? 'Paying…' : 'Pay'}
+            </button>
+          </div>
+          {payMsg && <p className="mt-3 text-sm text-brand-neon">{payMsg}</p>}
         </div>
       </section>
     </CityBeatShell>

@@ -52,11 +52,13 @@ async function handleCheckoutCompleted(session: any) {
       },
       { merge: true }
     )
-    // Pay out the configured share (e.g. to a referrer/sales rep set via
-    // metadata.payout_user_id, otherwise the owner). No-ops if percent is 0.
+    // Pay out the configured share ONLY to an explicitly attributed payee (e.g. the
+    // sales rep set via metadata.payout_user_id at checkout). Never default to the
+    // owner — that would refund the payer a cut of their own payment. No-ops if
+    // there's no payee or the percent is 0.
     await payoutToUser({
       stripe,
-      payeeUserId: metadata.payout_user_id || metadata.owner_id,
+      payeeUserId: metadata.payout_user_id || null,
       service: 'directory',
       amountTotal: session.amount_total,
       currency: session.currency || 'usd',
@@ -114,10 +116,12 @@ async function handleCheckoutCompleted(session: any) {
     )
   }
 
-  // Pay out the configured share to the attributed creator/user, if any.
+  // Pay out the configured share ONLY to an explicitly attributed payee (e.g. the
+  // creator/rep set via metadata.payout_user_id). Never default to the advertiser —
+  // that would pay the buyer a cut of their own purchase.
   await payoutToUser({
     stripe,
-    payeeUserId: metadata.payout_user_id || metadata.advertiserId || null,
+    payeeUserId: metadata.payout_user_id || null,
     service: metadata.adType === 'sponsored_post' ? 'sponsored_post' : 'ad_campaign',
     amountTotal: session.amount_total,
     currency: session.currency || 'usd',
@@ -174,7 +178,19 @@ async function handleInvoicePaymentFailed(invoice: any) {
     await adminDb.collection('subscriptions').doc(invoice.subscription).set(
       { status: 'past_due', updated_at: new Date().toISOString() }, { merge: true }
     )
+    // An ads-portal banner/sponsored subscription that lapses should stop showing.
+    await setAdCampaignsBySubscription(invoice.subscription, { status: 'past_due', is_active: false })
   }
+}
+
+// Updates any ads-portal campaigns tied to a Stripe subscription (separate
+// `ad_campaigns` collection owned by the ads app). Keeps recurring ad placements
+// in sync when a subscription renews-fails or is cancelled.
+async function setAdCampaignsBySubscription(subscriptionId: string, patch: Record<string, any>) {
+  if (!subscriptionId) return
+  const snap = await adminDb.collection('ad_campaigns').where('stripe_subscription_id', '==', subscriptionId).get()
+  const now = new Date().toISOString()
+  await Promise.all(snap.docs.map((d) => d.ref.set({ ...patch, updated_at: now }, { merge: true })))
 }
 
 async function upsertSubscription(subscription: any, status?: string) {
@@ -218,6 +234,8 @@ async function handleSubscriptionDeleted(subscription: any) {
   if (listing) {
     await listing.ref.set({ tier: 'basic', updated_at: new Date().toISOString() }, { merge: true })
   }
+  // Stop any ads-portal campaigns tied to this subscription.
+  await setAdCampaignsBySubscription(subscription.id, { status: 'cancelled', is_active: false })
 }
 
 // ---- entry point ------------------------------------------------------------
@@ -226,13 +244,21 @@ export async function POST(req: NextRequest) {
   const body = await req.text()
   const signature = req.headers.get('stripe-signature') as string
 
+  // Fail CLOSED: never process an unsigned event in production. Without signature
+  // verification a forged POST could approve listings, publish jobs, or trigger
+  // payouts. The unsigned JSON.parse path is allowed only in local dev.
+  if (!webhookSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('STRIPE_WEBHOOK_SECRET is not set — refusing unsigned webhook.')
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 })
+    }
+  }
+
   let event: Stripe.Event
   try {
-    if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-    } else {
-      event = JSON.parse(body)
-    }
+    event = webhookSecret
+      ? stripe.webhooks.constructEvent(body, signature, webhookSecret)
+      : JSON.parse(body)
   } catch (err: any) {
     console.error('⚠️ Webhook signature verification failed.', err.message)
     return NextResponse.json({ error: err.message }, { status: 400 })

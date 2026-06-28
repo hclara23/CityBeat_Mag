@@ -44,13 +44,17 @@ export async function POST(req: NextRequest) {
 
   if (listingId && ownerId) {
     try {
-      await adminDb.collection('directory_listings').doc(listingId).update({
+      // set(merge) — never throws if the listing doc is somehow missing, and won't
+      // clobber fields written by the web webhook for the same event.
+      await adminDb.collection('directory_listings').doc(listingId).set({
         owner_id: ownerId,
         claim_status: 'pending_approval',
+        pending_tier: session.metadata?.tier === 'featured' ? 'featured' : 'premium',
         stripe_subscription_id: session.subscription || null,
+        stripe_customer_id: session.customer || null,
         claimed_at: FieldValue.serverTimestamp(),
         updated_at: FieldValue.serverTimestamp(),
-      })
+      }, { merge: true })
 
       return NextResponse.json({ received: true, listing_id: listingId, new_status: 'pending_approval' })
     } catch (error: any) {
@@ -65,8 +69,12 @@ export async function POST(req: NextRequest) {
   try {
     await adminDb.collection('ad_campaigns').doc(campaignId).update({
       status: 'active',
+      is_active: true,
       payment_status: 'paid',
       stripe_payment_intent_id: paymentIntentId ?? null,
+      // Recurring ad subscriptions store their sub id so the web webhook can pause
+      // the campaign if a renewal fails or it's cancelled.
+      stripe_subscription_id: session.subscription || null,
       updated_at: FieldValue.serverTimestamp()
     })
 

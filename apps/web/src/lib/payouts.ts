@@ -112,3 +112,50 @@ export async function payoutToUser(params: {
 
   return { status: 'paid', amount, transferId: transfer.id }
 }
+
+// Godmode "issue a payout now": transfers a FLAT amount (cents) to a user's
+// connected account, independent of any sale. Throws on bad input / no payable
+// account so the caller can surface a clear error. Records to the `transfers`
+// ledger so it shows in the user's bank dashboard and the finance dashboard.
+export async function manualPayout(params: {
+  stripe: Stripe
+  payeeUserId: string
+  amount: number // cents
+  currency?: string
+  issuedBy: string
+  note?: string
+}): Promise<{ status: 'paid'; amount: number; transferId: string }> {
+  const { stripe, payeeUserId, amount, currency = 'usd', issuedBy, note } = params
+  if (!payeeUserId) throw new Error('Missing payee')
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error('Amount must be greater than 0')
+
+  const acctDoc = await adminDb.collection('stripe_connected_accounts').doc(payeeUserId).get()
+  const acct = acctDoc.exists ? (acctDoc.data() as any) : null
+  if (!acct?.stripe_account_id || !acct.payouts_enabled) {
+    throw new Error('Payee has not finished connecting a payouts-enabled bank account')
+  }
+
+  const transfer = await stripe.transfers.create({
+    amount: Math.round(amount),
+    currency,
+    destination: acct.stripe_account_id,
+    metadata: { service: 'manual', payee_user_id: payeeUserId, issued_by: issuedBy },
+  })
+
+  await adminDb.collection('transfers').add({
+    payee_user_id: payeeUserId,
+    service: 'manual',
+    percent: null,
+    amount: Math.round(amount),
+    currency,
+    note: note || null,
+    issued_by: issuedBy,
+    source_payment: null,
+    stripe_transfer_id: transfer.id,
+    stripe_destination: acct.stripe_account_id,
+    status: 'paid',
+    created_at: FieldValue.serverTimestamp(),
+  })
+
+  return { status: 'paid', amount: Math.round(amount), transferId: transfer.id }
+}

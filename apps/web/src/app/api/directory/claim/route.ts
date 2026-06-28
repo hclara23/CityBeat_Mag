@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerUser } from '@citybeat/lib/firebase/server'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { hasSalesAccess } from '@citybeat/lib/supabase/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getPlan, FOUNDING_LIMIT } from '@/lib/pricing'
 import Stripe from 'stripe'
@@ -27,6 +28,16 @@ export async function POST(request: NextRequest) {
     const user = await getServerUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Sales-rep commission attribution: a staff member (sales/editor/developer)
+    // closing a deal can attribute the payout to a rep via `payout_user_id`.
+    // Ignored for self-serve advertisers so they can't redirect payouts to
+    // themselves. The webhook only pays out if a percent is configured.
+    let payoutUserId: string | undefined
+    if (typeof body.payout_user_id === 'string' && body.payout_user_id) {
+      const callerProfile = await getServerUserProfile(user.id)
+      if (hasSalesAccess(callerProfile)) payoutUserId = body.payout_user_id
     }
 
     const doc = await adminDb.collection('directory_listings').doc(listingId).get()
@@ -91,6 +102,7 @@ export async function POST(request: NextRequest) {
         tier: plan.tier,
         founding: plan.founding ? 'true' : 'false',
         location_count: String(locationCount),
+        ...(payoutUserId ? { payout_user_id: payoutUserId } : {}),
       },
     })
 
