@@ -1,5 +1,5 @@
 // Client-side auth helpers backed by Firebase + the app's server session routes.
-// Mirrors the old @citybeat/lib/supabase/auth API so pages can swap the import.
+// Mirrors the previous auth API so pages can swap the import.
 //
 // Auth is server-session based (the `__session` cookie set by /api/auth/login),
 // so reads go through /api/profile and writes through /api/auth/* routes.
@@ -41,7 +41,7 @@ export async function signUp(
 }
 
 // Profile creation is handled server-side inside /api/auth/signup; this is a no-op
-// kept for API compatibility with the old Supabase auth module.
+// kept for API compatibility with the previous auth module.
 export async function createUserProfile(_userId?: string, _data?: any): Promise<AuthResult> {
   return { success: true }
 }
@@ -90,7 +90,7 @@ export async function updatePassword(newPassword: string): Promise<AuthResult> {
   }
 }
 
-// Returns { user } | { user: null, error } to match the previous Supabase API.
+// Returns { user } | { user: null, error } to match the previous auth API.
 //
 // IMPORTANT: only a real 401/403 means "signed out". A network blip or a 5xx
 // (e.g. a Cloud Run cold start) is transient — we retry a few times instead of
@@ -132,7 +132,7 @@ export async function getUser(): Promise<{ user: any | null; error?: string; tra
   return { user: null, error: lastError, transient: true }
 }
 
-// Returns { profile } | { error } to match the previous Supabase API.
+// Returns { profile } | { error } to match the previous auth API.
 export async function getUserProfile(_userId?: string): Promise<AuthResult> {
   try {
     const res = await fetch('/api/profile', { cache: 'no-store' })
@@ -149,7 +149,7 @@ export async function getSession(): Promise<{ user: any } | null> {
   return user ? { user } : null
 }
 
-// Returns { profile, user } | { error } to match the previous Supabase API.
+// Returns { profile, user } | { error } to match the previous auth API.
 export async function updateProfile(updates: Record<string, any>): Promise<AuthResult> {
   try {
     const res = await fetch('/api/profile', {

@@ -84,7 +84,7 @@ Brief saved to Sanity: [brief_id]
    ↓ contentEN = original English from NewsAPI
    ↓ contentES = translated Spanish from DeepL
 
-4. saveBriefToSupabase()
+4. saveBriefToFirestore()
    ↓ Store briefs in analytics database
 
 5. notifyEditor()
@@ -200,7 +200,7 @@ catch (error) {
 The brief will still be:
 - ✅ Fetched from NewsAPI
 - ✅ Saved to Sanity (with only English content)
-- ✅ Saved to Supabase
+- ✅ Saved to Firestore
 - ✅ Editor notified
 - ❌ Spanish translation skipped (can be added manually)
 

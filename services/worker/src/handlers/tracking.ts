@@ -4,7 +4,7 @@ export async function handleTracking(request: Request, _env: Env): Promise<Respo
   try {
     const event = await request.json() as any
 
-    // Log event to Supabase
+    // Log event to first-party analytics
     await logEvent(event)
 
     return new Response(JSON.stringify({ success: true }), {
@@ -21,7 +21,7 @@ export async function handleTracking(request: Request, _env: Env): Promise<Respo
 }
 
 async function logEvent(event: any): Promise<void> {
-  // TODO: Log to Supabase analytics table
+  // TODO: forward to the web app first-party analytics
   console.log('Event tracked:', event.event, event.properties)
 
   // Could also send to third-party analytics services

@@ -21,17 +21,9 @@
       "import": "./tracking/index.ts",
       "types": "./tracking/index.ts"
     },
-    "./supabase/auth": {
-      "import": "./src/supabase/auth.ts",
-      "types": "./src/supabase/auth.ts"
-    },
-    "./supabase/server": {
-      "import": "./src/supabase/server.ts",
-      "types": "./src/supabase/server.ts"
-    },
-    "./supabase/roles": {
-      "import": "./src/supabase/roles.ts",
-      "types": "./src/supabase/roles.ts"
+    "./roles": {
+      "import": "./src/roles.ts",
+      "types": "./src/roles.ts"
     },
     "./firebase/client": {
       "import": "./src/firebase/client.ts",
@@ -52,10 +44,6 @@
     "./directory/ingest": {
       "import": "./src/directory/crawlee-ingest.ts",
       "types": "./src/directory/crawlee-ingest.ts"
-    },
-    "./content/auto-articles": {
-      "import": "./src/content/auto-article-agent.ts",
-      "types": "./src/content/auto-article-agent.ts"
     }
   },
   "scripts": {
@@ -67,8 +55,6 @@
     "@crawlee/basic": "^3.16.0",
     "@opentelemetry/api": "^1.9.1",
     "@sentry/nextjs": "^7.109.0",
-    "@supabase/ssr": "^0.2.0",
-    "@supabase/supabase-js": "^2.38.0",
     "crawlee": "^3.16.0",
     "dotenv": "^17.4.2",
     "firebase": "^12.14.0",

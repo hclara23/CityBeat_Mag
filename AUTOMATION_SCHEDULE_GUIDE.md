@@ -88,7 +88,7 @@ When a scheduled cron time triggers:
    ↓
 6. saveBriefToSanity() creates draft in Sanity CMS
    ↓
-7. saveBriefToSupabase() logs to analytics database
+7. saveBriefToFirestore() logs to analytics database
    ↓
 8. notifyEditor() sends email to editors@citybeatmag.co
    ↓
@@ -197,8 +197,8 @@ Once confirmed working, remove the test cron.
    - Email should have bilingual content (EN and ES)
    - Subject should indicate number of briefs ingested
 
-4. **Check Supabase**
-   - Go to Supabase dashboard
+4. **Check Firestore**
+   - Go to Firestore dashboard
    - Check `briefs` table
    - Should see new entries with automation timestamp
    - Check `translations` table for translation records
@@ -373,7 +373,7 @@ Before launching automation:
 - [ ] DeepL API key valid
 - [ ] NewsAPI key valid
 - [ ] Sanity write token valid
-- [ ] Supabase connection working
+- [ ] Firestore connection working
 - [ ] Resend API key valid
 - [ ] Editor email configured
 - [ ] Test automation runs successfully

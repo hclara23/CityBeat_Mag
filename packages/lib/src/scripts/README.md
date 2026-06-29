@@ -32,7 +32,7 @@ Safety defaults:
 
 - The script uses Crawlee with single-request concurrency and retries.
 - The default source is OpenStreetMap/Overpass, not Google Maps.
-- Writes require Supabase server credentials.
+- Writes require Firestore server credentials.
 - Imported listings are `is_published = false` so editors can review them before they appear publicly.
 - Source identifiers are stored as `google_place_id = osm:<type>:<id>` to reuse the existing unique constraint.
 - Vercel Cron calls `/api/cron/directory-ingest` daily and imports Restaurants plus Auto Dealers as unpublished review candidates.

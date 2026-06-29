@@ -23,8 +23,6 @@ SANITY_DATASET=development
 SANITY_WRITE_TOKEN=your_write_token
 DEEPL_API_KEY=your_deepl_api_key
 NEWS_API_KEY=your_newsapi_key
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 STRIPE_SECRET_KEY=your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
 RESEND_API_KEY=your_resend_api_key
@@ -48,8 +46,8 @@ RESEND_API_KEY=your_resend_api_key
 - Copy Secret Key (starts with `sk_test_` or `sk_live_`)
 - Webhook signing secret from: https://dashboard.stripe.com/webhooks
 
-**Supabase**
-- Project Settings: https://app.supabase.com/project/[project-id]/settings/api
+**Firestore**
+- Project Settings: https://app.firestore.com/project/[project-id]/settings/api
 - Service Role Key is in the API section
 - URL is displayed at the top of API section
 
@@ -178,13 +176,13 @@ Manually trigger the brief automation (development only).
 
 ### stripe.ts
 - Validates Stripe webhook signatures
-- Updates subscription status in Supabase
+- Updates subscription status in Firestore
 - Processes charge events
 - Sends payment confirmations
 
 ### tracking.ts
 - Records ad impressions and clicks
-- Stores analytics data in Supabase
+- Stores analytics data in Firestore
 - Calculates daily metrics
 
 ### emails.ts
@@ -262,7 +260,7 @@ npx wrangler tail
 ## Next Steps
 
 - [ ] Set up production Sanity project
-- [ ] Configure production Supabase database
+- [ ] Configure production Firestore database
 - [ ] Create Stripe account and configure webhooks
 - [ ] Set up Resend email domain verification
 - [ ] Deploy worker to production
@@ -274,7 +272,7 @@ npx wrangler tail
 - [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
 - [Wrangler CLI Reference](https://developers.cloudflare.com/workers/wrangler/commands/)
 - [Sanity API Documentation](https://www.sanity.io/docs/http-api)
-- [Supabase REST API](https://supabase.com/docs/guides/api)
+- [Firestore REST API](https://firestore.com/docs/guides/api)
 - [Stripe Webhooks](https://stripe.com/docs/webhooks)
 - [DeepL API](https://www.deepl.com/docs-api/)
 - [Resend Email API](https://resend.com/docs)

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
-import { hasDeveloperAccess } from '@citybeat/lib/supabase/roles'
+import { hasDeveloperAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'

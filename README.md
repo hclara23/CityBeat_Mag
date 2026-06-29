@@ -15,7 +15,7 @@ Hyper-local bilingual publication and directory platform.
 
 ### 1. Firebase (Database, Auth, & Storage)
 Initialize your Firebase project and ensure you have enabled **Firestore Database**, **Authentication**, and **Storage**.
-Generate a Service Account key from the Firebase console. Note: We have fully migrated off Supabase!
+Generate a Service Account key from the Firebase console. Firestore is the system of record for content, directory, payments, and analytics.
 
 ### 2. Google Cloud Run (Frontend & APIs)
 The application uses Docker to build a standalone Next.js image. You must deploy the resulting container to Google Cloud Run.

@@ -17,7 +17,7 @@ export default function OrdersPage({ params }: OrdersPageProps) {
         <p className="text-xs font-black uppercase tracking-[0.3em] text-brand-neon">Billing</p>
         <h1 className="mt-4 text-5xl font-black text-white">Orders</h1>
         <p className="mt-3 max-w-2xl text-white/60">
-          Advertising order history now belongs under the main CityBeat site. Payment records will appear here after Stripe and Supabase are wired into this deployment.
+          Advertising order history now belongs under the main CityBeat site. Payment records will appear here after Stripe is wired into this deployment.
         </p>
 
         <div className="mt-10 grid gap-6 md:grid-cols-3">

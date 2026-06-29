@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
-import { hasDeveloperAccess } from '@citybeat/lib/supabase/roles'
+import { hasDeveloperAccess } from '@citybeat/lib/roles'
 import { getPlatformSettings, savePlatformSettings } from '@/lib/platform-settings'
 
 export const dynamic = 'force-dynamic'

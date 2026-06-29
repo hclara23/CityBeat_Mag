@@ -26,12 +26,11 @@ export async function GET(request: NextRequest) {
     .map((category) => category.trim())
     .filter(Boolean)
 
+  // Crawls OSM/Overpass and upserts into Firestore `directory_listings`.
   const result = await runDirectoryIngest({
     write: true,
     limit,
     categories,
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   })
 
   return NextResponse.json({

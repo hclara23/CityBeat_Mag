@@ -30,4 +30,4 @@ INGEST_URL = "https://citybeatmag.co"
 # ]
 
 # Secrets are set via `wrangler secret put <NAME>` (never committed):
-#   INGEST_SECRET, STRIPE_SECRET_KEY, DEEPL_API_KEY, RESEND_API_KEY, NEWS_API_KEY, SUPABASE_SERVICE_ROLE_KEY
+#   INGEST_SECRET, STRIPE_SECRET_KEY, DEEPL_API_KEY, RESEND_API_KEY, NEWS_API_KEY

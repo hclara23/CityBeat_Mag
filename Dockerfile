@@ -30,18 +30,13 @@ ENV NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY \
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID \
     NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID
 
-# Public build-time config consumed by module-scope clients during `next build`
-# (Supabase client init). These are placeholders just to satisfy client
-# construction at build time; real runtime values come from Cloud Run env.
-ARG NEXT_PUBLIC_SUPABASE_URL=https://dev.supabase.co
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=dev_key
+# Public build-time config inlined into the client bundle during `next build`;
+# real runtime values come from Cloud Run env.
 ARG NEXT_PUBLIC_APP_URL=https://citybeatmag.co
 # Public Google Analytics 4 measurement ID — shipped to the browser by design,
 # inlined into the client bundle at build time so gtag loads on every page.
 ARG NEXT_PUBLIC_GA_MEASUREMENT_ID=G-D8V1XC2346
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
-    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
 
 RUN npx turbo run build --filter=web

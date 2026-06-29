@@ -66,10 +66,7 @@ Thumbs.db
 next-env.d.ts
 
 # ============================
-# Supabase (local dev)
 # ============================
-supabase/.temp/
-supabase/.branches/
 
 # ============================
 # PocketBase (local dev)

@@ -37,8 +37,6 @@ export interface DirectoryIngestOptions {
   limit?: number
   categories?: string[]
   overpassUrl?: string
-  supabaseUrl?: string
-  supabaseServiceKey?: string
 }
 
 export interface DirectoryIngestResult {

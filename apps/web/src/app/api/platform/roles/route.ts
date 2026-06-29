@@ -9,7 +9,7 @@ import {
   hasSalesAccess,
   normalizeRequestedRoles,
   type PlatformRole,
-} from '@citybeat/lib/supabase/roles'
+} from '@citybeat/lib/roles'
 
 export const dynamic = 'force-dynamic'
 

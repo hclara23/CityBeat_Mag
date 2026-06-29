@@ -20,8 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   └── worker/           # Cloudflare Worker (brief automation, Stripe webhooks, tracking)
 ├── sanity/               # Sanity CMS studio
 └── infra/
-    ├── config/           # sources.json, ad_slot_defs.json
-    └── sql/              # Supabase migrations
+    └── config/           # sources.json, ad_slot_defs.json
 ```
 
 ### Key Services & Integrations
@@ -29,7 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Frontend**: Next.js 14 with next-intl for i18n routing
 - **CMS**: Sanity 3.x (content + brief management)
 - **Edge/Automation**: Cloudflare Workers + Pages (scheduled brief ingestion every 5 times/day: 07:00, 10:00, 13:00, 16:00, 19:00 America/Chihuahua)
-- **Database**: Supabase Postgres (analytics, audit logs)
+- **Database**: Firebase Firestore (content, directory, payments, analytics, audit logs)
 - **Payments**: Stripe (Newsletter, Sponsored Posts, Category Banners)
 - **Email**: Resend (editor notifications, billing emails)
 - **Translation**: DeepL API (EN→ES)
@@ -44,7 +43,7 @@ The core automation (services/worker) runs on a cron schedule and performs:
 3. Translate English → Spanish via DeepL
 4. Save as draft to Sanity
 5. Send email notification to editors
-6. Log event to Supabase
+6. Log event to Firestore
 
 **Key handlers**:
 
@@ -172,7 +171,7 @@ curl -X POST http://localhost:8787/api/test-automation \
 Before deployment, verify the automation pipeline end-to-end:
 
 1. **Sanity**: New briefs visible in studio (drafts)
-2. **Supabase**: Event logs recorded
+2. **Firestore**: Event logs recorded
 3. **Email**: Editor notifications sent
 4. **Cloudflare Logs**: Execution logged without errors
 
@@ -189,8 +188,6 @@ SANITY_WRITE_TOKEN
 STRIPE_SECRET_KEY (live key)
 STRIPE_WEBHOOK_SECRET
 DEEPL_API_KEY
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
 RESEND_API_KEY
 NEWS_API_KEY
 ```
@@ -200,8 +197,8 @@ NEWS_API_KEY
 ```text
 NEXT_PUBLIC_SANITY_PROJECT_ID
 NEXT_PUBLIC_SANITY_DATASET
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
+NEXT_PUBLIC_FIREBASE_API_KEY
+NEXT_PUBLIC_FIREBASE_PROJECT_ID
 NEXT_PUBLIC_APP_URL
 SANITY_API_TOKEN
 SANITY_EDITOR_TOKEN   # Required for embedded /studio route — set in Cloud Run env vars, never commit the real value

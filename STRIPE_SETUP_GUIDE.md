@@ -336,7 +336,7 @@ export async function handleStripeWebhook(request: Request, env: Env): Promise<R
    ↓
 12. Webhook: checkout.session.completed event
    ↓
-13. Server saves to Supabase, sends confirmation email
+13. Server saves to Firestore, sends confirmation email
 ```
 
 ### API Endpoint: POST /api/checkout
@@ -418,7 +418,7 @@ Use these card numbers in test mode:
 5. **Verify Success:**
    - Should redirect to success page
    - Check Stripe Dashboard for payment
-   - Check Supabase `ad_purchases` table
+   - Check Firestore `ad_purchases` table
    - Check email to test@example.com
 
 ### Test Webhook Locally
@@ -537,7 +537,7 @@ Check these regularly:
 Before going fully live:
 1. Process a small real payment ($1-5)
 2. Verify in Stripe Dashboard
-3. Verify database entry in Supabase
+3. Verify database entry in Firestore
 4. Verify confirmation email sent
 5. Test webhook delivery in webhook endpoint logs
 
@@ -556,7 +556,7 @@ Before going fully live:
 - ✅ Dynamic price checkout implementation
 - ✅ Webhook handling for payment completion
 - ✅ Email notifications on payment
-- ✅ Supabase payment recording
+- ✅ Firestore payment recording
 - ✅ Test card support
 
 ### Future Enhancements

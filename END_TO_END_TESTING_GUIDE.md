@@ -1,6 +1,6 @@
 # End-to-End Testing Guide: Brief Automation Workflow
 
-This guide provides step-by-step procedures to test the complete brief automation pipeline: fetch → translate → save to Sanity → send email → log to Supabase.
+This guide provides step-by-step procedures to test the complete brief automation pipeline: fetch → translate → save to Sanity → send email → log to Firestore.
 
 ## Overview of Complete Workflow
 
@@ -22,12 +22,12 @@ This guide provides step-by-step procedures to test the complete brief automatio
    │       ├─ contentES: Spanish translation
    │       ├─ title, source, category
    │       └─ status: "draft"
-   ├─ 3d. Log to Supabase (analytics)
+   ├─ 3d. Log to Firestore (analytics)
    └─ 3e. Send Editor Notification Email (bilingual)
    ↓
 4. Verification in Multiple Systems
    ├─ Sanity Studio (new briefs visible)
-   ├─ Supabase (database entries logged)
+   ├─ Firestore (database entries logged)
    ├─ Email (editors@citybeatmag.co received notification)
    └─ Cloudflare Logs (execution logged)
 ```
@@ -50,9 +50,7 @@ SANITY_PROJECT_ID=your_project_id
 SANITY_DATASET=production
 SANITY_WRITE_TOKEN=your_write_token
 
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+# Firestore
 
 # Resend (Email)
 RESEND_API_KEY=your_resend_api_key
@@ -63,14 +61,14 @@ RESEND_API_KEY=your_resend_api_key
 - [ ] NewsAPI responding at https://newsapi.org/v2/everything
 - [ ] DeepL API responding at https://api-free.deepl.com/v1/translate
 - [ ] Sanity API responding at https://{projectId}.api.sanity.io
-- [ ] Supabase API responding at {supabaseUrl}/rest/v1
+- [ ] Firestore API responding at {firestoreUrl}/rest/v1
 - [ ] Resend API responding at https://api.resend.com/emails
 - [ ] Cloudflare Worker deployed and running
 
 ### Access Required
 
 - [ ] Sanity Studio login credentials
-- [ ] Supabase Dashboard access
+- [ ] Firestore Dashboard access
 - [ ] Email access to editors@citybeatmag.co or test email account
 - [ ] Cloudflare Dashboard access
 - [ ] NewsAPI account with active key
@@ -208,11 +206,11 @@ Count the number of new briefs created. This should match the number logged in t
 
 **Expected Result**: 2-10 new draft briefs in Sanity
 
-## Part 4: Verify Supabase Logging
+## Part 4: Verify Firestore Logging
 
-### Step 4a: Access Supabase Dashboard
+### Step 4a: Access Firestore Dashboard
 
-1. Go to https://supabase.com and login
+1. Go to https://firestore.com and login
 2. Select your project
 3. Click **SQL Editor** in left sidebar
 4. Execute this query:
@@ -241,7 +239,7 @@ You should see new rows in the `briefs` table with:
 
 ### Step 4c: Verify Count Matches
 
-The number of rows added to Supabase should match:
+The number of rows added to Firestore should match:
 - The count in the worker logs
 - The count of briefs in Sanity
 - The count of emails sent to editors
@@ -353,7 +351,7 @@ After completing all previous steps, verify the following:
 - [ ] Timestamp recent (within test time)
 - [ ] No error notifications in Sanity
 
-### Supabase Verification
+### Firestore Verification
 - [ ] New rows in `briefs` table
 - [ ] `sanity_id` matches Sanity brief ID
 - [ ] `content_en` matches contentEN
@@ -383,12 +381,12 @@ After completing all previous steps, verify the following:
 - [ ] No timeout errors
 
 ### Data Consistency Verification
-- [ ] Sanity title = Supabase title
-- [ ] Sanity contentEN = Supabase content_en
-- [ ] Sanity contentES = Supabase content_es
-- [ ] Sanity category = Supabase category
-- [ ] Sanity source = Supabase source
-- [ ] Sanity status = Supabase status
+- [ ] Sanity title = Firestore title
+- [ ] Sanity contentEN = Firestore content_en
+- [ ] Sanity contentES = Firestore content_es
+- [ ] Sanity category = Firestore category
+- [ ] Sanity source = Firestore source
+- [ ] Sanity status = Firestore status
 - [ ] Timestamp differences minimal (< 1 second)
 
 ## Part 8: Test Editor Publishing Workflow
@@ -500,7 +498,7 @@ If logs show "Failed to save brief to Sanity":
 
 ### Scenario 4: Email Not Received
 
-If Supabase shows entries but no emails received:
+If Firestore shows entries but no emails received:
 
 **Check**:
 1. Is Resend API key valid?
@@ -523,7 +521,7 @@ Document the performance of each automation run:
 | Articles translated | 100% | ___ |
 | Sanity saves successful | 100% | ___ |
 | Emails sent | 100% | ___ |
-| Supabase logs created | 100% | ___ |
+| Firestore logs created | 100% | ___ |
 | Worker status code | 200 | ___ |
 
 ### Performance Analysis
@@ -556,7 +554,7 @@ The end-to-end test is **SUCCESSFUL** when ALL of the following are true:
 - ✅ NewsAPI returns articles (minimum 1, typically 5-10)
 - ✅ DeepL successfully translates all articles
 - ✅ Sanity drafts created for each article
-- ✅ Supabase logging records each brief
+- ✅ Firestore logging records each brief
 - ✅ Editor emails received for each brief
 - ✅ Bilingual content (EN/ES) present
 - ✅ Categories correctly assigned
@@ -564,7 +562,7 @@ The end-to-end test is **SUCCESSFUL** when ALL of the following are true:
 
 ### Data Integrity Requirements
 - ✅ No data loss between systems
-- ✅ Sanity data matches Supabase data
+- ✅ Sanity data matches Firestore data
 - ✅ Translation quality is acceptable
 - ✅ All required fields populated
 - ✅ Timestamps consistent
@@ -634,7 +632,7 @@ After successful end-to-end testing:
 | Sanity save fails | Auth token invalid | Regenerate write token |
 | Email not received | Invalid recipient | Check email address in code |
 | Worker logs don't appear | Worker not running | Run `wrangler dev` |
-| CORS errors | Origin not allowed | Check Sanity/Supabase CORS config |
+| CORS errors | Origin not allowed | Check Sanity/Firestore CORS config |
 | 429 errors | Rate limit exceeded | Wait before retrying, upgrade plan |
 | 401/403 errors | Invalid credentials | Verify all API keys |
 
@@ -644,7 +642,7 @@ After successful end-to-end testing:
 - **NewsAPI**: https://newsapi.org/docs
 - **DeepL API**: https://www.deepl.com/docs-api
 - **Sanity**: https://www.sanity.io/docs
-- **Supabase**: https://supabase.com/docs
+- **Firestore**: https://firestore.com/docs
 - **Resend**: https://resend.com/docs
 
 ---

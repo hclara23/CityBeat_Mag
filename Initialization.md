@@ -10,7 +10,7 @@ Automation: 5 brief drops/day (editor-gated).
 - Frontend: Next.js
 - CMS: Sanity Studio (Free includes 20 seats) https://www.sanity.io/pricing
 - Edge + Automation: Cloudflare Pages + Workers (Paid min $5/mo) https://developers.cloudflare.com/workers/platform/pricing/
-- DB: Supabase Postgres https://supabase.com/pricing
+- DB: Firestore Postgres https://firestore.com/pricing
 - Payments: Stripe Checkout https://stripe.com/pricing
 - Email: Resend https://resend.com/pricing
 - Translation: DeepL API https://www.deepl.com/en/pro-api
@@ -27,7 +27,7 @@ Automation: 5 brief drops/day (editor-gated).
     worker/              # Cloudflare Worker (cron, webhooks, ad events)
   sanity/                # Sanity studio + schemas
   infra/
-    sql/                 # Supabase migrations
+    sql/                 # Firestore migrations
     config/              # sources.json, ad_slot_defs.json
 
 ## Environment variables
@@ -41,8 +41,6 @@ STRIPE_PUBLISHABLE_KEY=
 ### Worker (server-side)
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
 SANITY_PROJECT_ID=
 SANITY_DATASET=
 SANITY_WRITE_TOKEN=

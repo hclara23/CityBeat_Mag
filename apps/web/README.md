@@ -1,146 +1,41 @@
-# CityBeatMag.co (Slice 3)
+# CityBeat — Web App (`apps/web`)
+
+The main public site for [citybeatmag.co](https://citybeatmag.co): bilingual (EN/ES)
+local news, the business directory, events, deals, advertising, admin, and the
+sales tooling — all in one Next.js app.
+
+## Stack
+- **Framework**: Next.js 14 (App Router) + `next-intl` for `/en` · `/es` routing
+- **Database / Auth / Storage**: Firebase (Firestore + Auth session cookie + Storage)
+- **Payments**: Stripe (Checkout, subscriptions, Connect payouts) via the webhook at `/api/stripe/webhook`
+- **CMS**: Sanity (published content) · **Email**: Resend/SMTP · **Translation**: DeepL
+- **Styling**: Tailwind CSS
 
 ## Requirements
-- Node.js 18+
-- pnpm
-- Supabase CLI
-- PocketBase (`pocketbase.exe` included for local dev)
+- Node.js 20+
+- npm (workspaces; run from the repo root)
 
-## New Features
-- **Bilingual Content**: Full support for English and Spanish articles with dynamic routing.
-- **Article Integration**: Automatic syncing from local assets to PocketBase.
-- **Dynamic Ad Placements**: Configurable ad slots managed via Supabase.
-- **Framer Motion Animations**: Polished page transitions and scroll effects.
-
-## Architecture
-- **Frontend**: Next.js 15+ (App Router)
-- **Primary DB (Auth/Ads)**: Supabase
-- **Content DB (Articles)**: PocketBase
-- **Styling**: Tailwind CSS
-1. Install dependencies
-```powershell
-pnpm install
+## Development
+```bash
+# from the repo root
+npm install
+npm run dev          # web app on http://localhost:3000
+npm run type-check
+npm run lint
 ```
+Create `apps/web/.env.local` from `apps/web/.env.example` (Firebase, Stripe, Sanity, …).
 
-2. Create `.env.local`
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
-```
+## Routing
+- Locale-scoped public routes: `/en/...` and `/es/...` (root `/` → `/en`)
+- Key sections: `/stories`, `/directory`, `/best/[category]/[city]`, `/events`,
+  `/deals`, `/jobs`, `/ads`; admin under `/admin`, sales under `/admin/sales`.
 
-3. Link Supabase project
-```powershell
-supabase link --project-ref YOUR_PROJECT_ID
-```
-
-4. Apply migrations
-```powershell
-supabase db push
-```
-
-5. Create storage buckets
-- `articles` (public)
-- `ads` (public)
-
-6. Seed minimum data (categories + ad placement)
-```sql
-INSERT INTO categories (slug, name_en, name_es, description_en, description_es)
-VALUES
-  ('politics', 'Politics', 'Politica', 'Local political news', 'Noticias politicas locales'),
-  ('arts', 'Arts & Culture', 'Artes y Cultura', 'Arts coverage', 'Cobertura de artes'),
-  ('sports', 'Sports', 'Deportes', 'Sports news', 'Noticias de deportes');
-
-INSERT INTO ad_placements (key, name, size, page_context)
-VALUES ('article_inline', 'Article Inline', '728x90', 'article')
-ON CONFLICT (key) DO NOTHING;
-```
-
-7. Create an admin + advertiser user
-- Supabase Dashboard > Auth > Users: create accounts
-- Run in SQL editor:
-```sql
-UPDATE profiles SET role = 'admin' WHERE email = 'admin@citybeat.local';
-UPDATE profiles SET role = 'advertiser' WHERE email = 'advertiser@citybeat.local';
-```
-
-## Locale Routing
-- Public routes are locale-scoped: `/en/...` and `/es/...`
-- Root `/` redirects to `/en`
-- Category page: `/[locale]/category/[slug]`
-- Article page: `/[locale]/article/[slug]`
-- Fallback: if a translation is missing, English is used
-
-## Adding Translations
-- Admin create/edit requires both EN and ES fields
-- Rows are saved in `article_translations` for `locale='en'` and `locale='es'`
-- If a locale is missing, UI falls back to English for public pages
-
-## Stripe + Edge Functions (Test Mode)
-1. Set Edge Function secrets
-```powershell
-supabase secrets set STRIPE_SECRET_KEY=sk_test_...
-supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
-```
-
-2. Deploy functions
-```powershell
-supabase functions deploy create-checkout-session
-supabase functions deploy stripe-webhook
-supabase functions deploy ad-click
-supabase functions deploy activate-campaigns
-```
-
-3. Register webhook in Stripe Dashboard
-- Endpoint URL:
-  `https://YOUR_PROJECT.supabase.co/functions/v1/stripe-webhook`
-- Event: `checkout.session.completed`
-
-4. Create a sponsor record for the advertiser in Supabase
-```sql
-INSERT INTO sponsors (name, created_by)
-VALUES ('Test Sponsor', '<advertiser-user-uuid>');
-```
-
-## Run locally
-```powershell
-pnpm dev
-```
-
-## Build
-```powershell
-pnpm build
-```
-
-## Routes (Slice 3)
-- `/en` and `/es` Latest published articles
-- `/en/category/[slug]` and `/es/category/[slug]`
-- `/en/article/[slug]` and `/es/article/[slug]`
-- `/auth/sign-in` Supabase Auth sign-in
-- `/admin` Admin console
-- `/admin/articles` Article list
-- `/admin/articles/new` Create bilingual article
-- `/admin/articles/[id]` Edit bilingual article
-- `/portal` Advertiser overview
-- `/portal/campaigns` Campaign list
-- `/portal/campaigns/new` Create + pay campaign
-
-## Deployment Pipeline (Git → Cloud Run)
-
+## Deployment (Git → Cloud Run)
 Production runs on **Google Cloud Run** (`citybeat-web` in GCP project
 `kerstenblueprint`), fronted by Firebase Hosting → `citybeatmag.co`. NOT Vercel.
 
-1. **GitHub Repository**: push to `https://github.com/hclara23/CityBeat_Mag`.
-2. **Auto-deploy**: any push to `main` that touches `apps/web/**`, `packages/**`,
-   or `Dockerfile` runs `.github/workflows/deploy-web.yml`, which builds the
-   container and deploys it to Cloud Run.
+Push to `main` touching `apps/web/**`, `packages/**`, or `Dockerfile` runs
+`.github/workflows/deploy-web.yml`, which builds the container and deploys to
+Cloud Run. Runtime secrets persist on the Cloud Run service across deploys.
 
-### Production environment variables
-Runtime secrets persist on the Cloud Run service across deploys. See
-`apps/web/.env.example` for the full list (Firebase, Stripe, Sanity, etc.).
-
-## Development Workflow
-1. Install deps from the repo root: `npm install`
-2. Start the web app: `npm run dev` (port 3000)
-3. Push changes: `git push origin main`
+See the repo-root `CLAUDE.md` for the full architecture, env vars, and cron/automation setup.
