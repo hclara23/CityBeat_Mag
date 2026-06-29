@@ -14,6 +14,7 @@ const DIR_PLANS: PlanId[] = ['founding', 'premium_monthly', 'premium_annual', 'f
 export default function SalesWizard() {
   const router = useRouter()
   const locale = useLocale() as 'en' | 'es'
+  const isEs = locale === 'es'
   const [ready, setReady] = useState(false)
 
   const [step, setStep] = useState(1)
@@ -23,6 +24,7 @@ export default function SalesWizard() {
   const [plan, setPlan] = useState<PlanId>('premium_monthly')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
+  const [listingId, setListingId] = useState('')
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -35,6 +37,14 @@ export default function SalesWizard() {
       const allowed =
         user.is_sales || user.sales_dashboard_enabled || user.can_manage_platform || user.is_developer || user.is_editor
       if (!allowed) return router.push(withLocale(locale, '/'))
+      // Prefill from a leads deep-link (?business=&listingId=&email=). Read from
+      // the URL directly to avoid a useSearchParams Suspense de-opt.
+      try {
+        const q = new URLSearchParams(window.location.search)
+        if (q.get('business')) { setBusinessName(q.get('business') || ''); setStep(2) }
+        if (q.get('email')) setContactEmail(q.get('email') || '')
+        if (q.get('listingId')) setListingId(q.get('listingId') || '')
+      } catch { /* ignore */ }
       setReady(true)
     })
   }, [router, locale])
@@ -53,6 +63,7 @@ export default function SalesWizard() {
           businessName: businessName.trim(),
           contactEmail: contactEmail.trim(),
           plan,
+          listingId: listingId || undefined,
           amount: kind === 'custom' ? Number(amount) : undefined,
           description: description.trim() || undefined,
         }),
@@ -131,14 +142,35 @@ export default function SalesWizard() {
             </label>
 
             {kind === 'directory' ? (
-              <label className="block text-sm text-white/70">
-                Plan
-                <select className={`mt-1 ${input}`} value={plan} onChange={(e) => setPlan(e.target.value as PlanId)}>
-                  {DIR_PLANS.map((p) => (
-                    <option key={p} value={p}>{DIRECTORY_PLANS[p].label} — {DIRECTORY_PLANS[p].priceLabel}</option>
-                  ))}
-                </select>
-              </label>
+              <>
+                <label className="block text-sm text-white/70">
+                  Plan
+                  <select className={`mt-1 ${input}`} value={plan} onChange={(e) => setPlan(e.target.value as PlanId)}>
+                    {DIR_PLANS.map((p) => (
+                      <option key={p} value={p}>{DIRECTORY_PLANS[p].label} — {DIRECTORY_PLANS[p].priceLabel}</option>
+                    ))}
+                  </select>
+                </label>
+
+                {/* Live preview — show the client what they're buying */}
+                <div>
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-white/40">{isEs ? 'Vista previa' : 'Live preview'}</p>
+                  <div className={`rounded-xl border p-5 ${DIRECTORY_PLANS[plan].tier === 'featured' ? 'border-brand-gold/50 bg-brand-gold/5' : 'border-brand-neon/40 bg-brand-neon/5'}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="font-display text-lg font-black text-white">{businessName.trim() || (isEs ? 'Tu negocio' : 'Your Business')}</span>
+                      <span className={`rounded px-2 py-0.5 text-[10px] font-black uppercase ${DIRECTORY_PLANS[plan].tier === 'featured' ? 'bg-brand-gold/20 text-brand-gold' : 'bg-brand-neon/20 text-brand-neon'}`}>
+                        {DIRECTORY_PLANS[plan].tier}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-white/55">★ 5.0 · {isEs ? 'Foto, horarios, enlaces sociales' : 'Photo gallery, hours, social links'}</p>
+                    <p className="mt-2 text-xs text-white/40">
+                      {DIRECTORY_PLANS[plan].tier === 'featured'
+                        ? (isEs ? 'Aparece en la cima de su categoría + rotación en la página principal.' : 'Top of category + homepage rotation.')
+                        : (isEs ? 'Colocación prioritaria sobre las fichas básicas.' : 'Priority placement above basic listings.')}
+                    </p>
+                  </div>
+                </div>
+              </>
             ) : (
               <>
                 <label className="block text-sm text-white/70">

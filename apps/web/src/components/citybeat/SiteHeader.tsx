@@ -21,7 +21,7 @@ export function dashboardFor(profile: any): string {
   if (!profile) return '/account'
   if (profile.can_manage_platform || profile.is_developer) return '/developer'
   if (profile.is_editor) return '/admin'
-  if (profile.is_sales || profile.sales_dashboard_enabled) return '/admin/sales/new'
+  if (profile.is_sales || profile.sales_dashboard_enabled) return '/admin/sales/me'
   if (profile.is_writer) return '/creator'
   if (profile.is_advertiser) return '/dashboard'
   return '/account'
