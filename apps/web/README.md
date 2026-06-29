@@ -126,26 +126,21 @@ pnpm build
 - `/portal/campaigns` Campaign list
 - `/portal/campaigns/new` Create + pay campaign
 
-## Deployment Pipeline (Git -> Vercel)
+## Deployment Pipeline (Git → Cloud Run)
 
-The project is configured for automatic deployment via Vercel:
+Production runs on **Google Cloud Run** (`citybeat-web` in GCP project
+`kerstenblueprint`), fronted by Firebase Hosting → `citybeatmag.co`. NOT Vercel.
 
-1. **GitHub Repository**: Always push to `https://github.com/hclara23/CityBeat_Mag`.
-2. **Vercel Integration**: The repository is linked to `city-beat-mag.vercel.app`.
-3. **Automatic Builds**: Any push to the `main` branch triggers a new production build.
+1. **GitHub Repository**: push to `https://github.com/hclara23/CityBeat_Mag`.
+2. **Auto-deploy**: any push to `main` that touches `apps/web/**`, `packages/**`,
+   or `Dockerfile` runs `.github/workflows/deploy-web.yml`, which builds the
+   container and deploys it to Cloud Run.
 
-### Production Environment Variables (Required in Vercel)
-For the site to function correctly in production, set these variables in the Vercel Dashboard:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_POCKETBASE_URL` (Pointer to your hosted PocketBase instance)
+### Production environment variables
+Runtime secrets persist on the Cloud Run service across deploys. See
+`apps/web/.env.example` for the full list (Firebase, Stripe, Sanity, etc.).
 
 ## Development Workflow
-1. Start PocketBase: `.\pocketbase.exe serve`
-2. Start Next.js: `pnpm dev`
+1. Install deps from the repo root: `npm install`
+2. Start the web app: `npm run dev` (port 3000)
 3. Push changes: `git push origin main`
-
-## Notes
-- Ad clicks are tracked via the `ad-click` Edge Function only.
-- Public ad rendering uses active campaigns in `ad_campaigns`.
-- No Stripe live mode or ads analytics beyond clicks in Slice 3.

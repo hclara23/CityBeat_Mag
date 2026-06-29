@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { fetchMockEvents } from '@/lib/events-scraper'
@@ -6,7 +6,11 @@ import { fetchMockEvents } from '@/lib/events-scraper'
 export const dynamic = 'force-dynamic'
 
 // Syncs events into the Firestore `events` collection (read by the homepage).
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const secret = process.env.CRON_SECRET
+  if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   try {
     const events = await fetchMockEvents()
 

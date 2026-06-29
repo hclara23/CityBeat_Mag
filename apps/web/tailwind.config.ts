@@ -23,8 +23,10 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['"Space Grotesk"', 'Aptos', 'system-ui', 'sans-serif'],
-        display: ['"Space Grotesk"', 'Impact', 'Arial Narrow', 'sans-serif'],
+        // var(--font-space-grotesk) is the real font loaded by next/font in the
+        // root layout; the names after it are graceful fallbacks while it swaps.
+        sans: ['var(--font-space-grotesk)', '"Space Grotesk"', 'system-ui', 'sans-serif'],
+        display: ['var(--font-space-grotesk)', '"Space Grotesk"', 'system-ui', 'sans-serif'],
       },
     },
   },
