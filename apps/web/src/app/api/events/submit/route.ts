@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
+import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
+
+const FEATURE_PRICE_CENTS = Number(process.env.EVENT_FEATURE_PRICE_CENTS) || 2500
 
 // Public "submit an event" endpoint. Creates a PENDING event for admin review.
 // Community-driven events are the owned local-events database (no external API).
@@ -34,6 +37,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Please provide a valid date/time.' }, { status: 400 })
   }
 
+  const wantsFeature = body.feature === true
+
   try {
     const ref = await adminDb.collection('events').add({
       title_en,
@@ -45,11 +50,39 @@ export async function POST(request: NextRequest) {
       ticket_url: ticket_url || null,
       image_url: image_url || null,
       status: 'pending',
+      featured: false,
       source: 'community',
       submitter_email: submitter_email || null,
       created_at: FieldValue.serverTimestamp(),
     })
-    return NextResponse.json({ ok: true, id: ref.id })
+
+    // Paid "feature this event": send to Stripe; the webhook flips featured +
+    // approved on payment. Free submissions just go to the moderation queue.
+    if (wantsFeature && process.env.STRIPE_SECRET_KEY) {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-08-16' })
+      const origin = request.headers.get('origin') || new URL(request.url).origin
+      const session = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        payment_method_types: ['card'],
+        customer_email: submitter_email || undefined,
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: 'usd',
+              unit_amount: FEATURE_PRICE_CENTS,
+              product_data: { name: `Featured event: ${title_en}` },
+            },
+          },
+        ],
+        success_url: `${origin}/en/events?status=featured`,
+        cancel_url: `${origin}/en/events/submit?status=cancel`,
+        metadata: { type: 'event_feature', event_id: ref.id },
+      })
+      return NextResponse.json({ ok: true, id: ref.id, url: session.url, featurePrice: FEATURE_PRICE_CENTS })
+    }
+
+    return NextResponse.json({ ok: true, id: ref.id, featurePrice: FEATURE_PRICE_CENTS })
   } catch (error: any) {
     return NextResponse.json({ error: 'Could not submit event' }, { status: 500 })
   }

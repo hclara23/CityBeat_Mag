@@ -10,6 +10,7 @@ export type PublicEvent = {
   start_date: string
   ticket_url?: string | null
   image_url?: string | null
+  featured?: boolean
 }
 
 // Visible to the public = approved, or legacy events with no status set.
@@ -29,6 +30,8 @@ export async function getUpcomingEvents(limit = 60): Promise<PublicEvent[]> {
         const t = Date.parse(e.start_date)
         return Number.isNaN(t) || t >= cutoff
       })
+      // Featured (paid) events first, then by start date (already asc from query).
+      .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
       .slice(0, limit)
   } catch {
     return []

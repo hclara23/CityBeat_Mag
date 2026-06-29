@@ -34,6 +34,15 @@ async function setPaymentStatusByField(field: string, value: string, status: str
 async function handleCheckoutCompleted(session: any) {
   const metadata = session.metadata || {}
 
+  // 0. Paid "feature this event" → publish + feature the event.
+  if (metadata.type === 'event_feature' && metadata.event_id) {
+    await adminDb.collection('events').doc(metadata.event_id).set(
+      { featured: true, status: 'approved', featured_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+      { merge: true }
+    )
+    return
+  }
+
   // 1. Directory premium claim → mark listing pending admin approval.
   //    Either a self-serve owner (owner_id) OR a rep-initiated field sale (sold_by,
   //    where the client may not have an account yet — admin attaches the owner on

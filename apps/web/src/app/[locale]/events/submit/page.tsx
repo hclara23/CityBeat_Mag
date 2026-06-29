@@ -12,6 +12,7 @@ export default function SubmitEvent() {
   const [form, setForm] = useState({
     title: '', start_date: '', venue: '', description: '', ticket_url: '', image_url: '', submitter_email: '',
   })
+  const [feature, setFeature] = useState(false)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
@@ -31,10 +32,15 @@ export default function SubmitEvent() {
       const res = await fetch('/api/events/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, feature }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not submit')
+      // Paid feature → go to Stripe; free submission → confirmation.
+      if (data.url) {
+        window.location.href = data.url
+        return
+      }
       setDone(true)
     } catch (err: any) {
       setError(err.message)
@@ -101,12 +107,26 @@ export default function SubmitEvent() {
               {isEs ? 'Tu email (opcional)' : 'Your email (optional)'}
               <input type="email" className={input} value={form.submitter_email} onChange={set('submitter_email')} />
             </label>
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-brand-gold/30 bg-brand-gold/5 p-4">
+              <input type="checkbox" checked={feature} onChange={(e) => setFeature(e.target.checked)} className="mt-1 h-4 w-4 accent-yellow-500" />
+              <span className="text-sm text-white/80">
+                <span className="font-bold text-brand-gold">{isEs ? 'Destacar este evento ($25)' : 'Feature this event ($25)'}</span>
+                <span className="mt-0.5 block text-xs text-white/50">
+                  {isEs ? 'Aparece en la parte superior con insignia destacada. Se publica al instante tras el pago.' : 'Top placement with a Featured badge. Published instantly on payment.'}
+                </span>
+              </span>
+            </label>
+
             <button
               type="submit"
               disabled={busy}
               className="w-full rounded-md bg-brand-neon px-5 py-3 text-sm font-black uppercase tracking-wider text-black hover:bg-cyan-300 disabled:opacity-50"
             >
-              {busy ? (isEs ? 'Enviando…' : 'Submitting…') : isEs ? 'Enviar para revisión' : 'Submit for review'}
+              {busy
+                ? (isEs ? 'Enviando…' : 'Submitting…')
+                : feature
+                  ? (isEs ? 'Pagar y destacar' : 'Pay & feature')
+                  : isEs ? 'Enviar para revisión' : 'Submit for review'}
             </button>
           </form>
         )}

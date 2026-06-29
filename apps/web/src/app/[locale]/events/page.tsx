@@ -77,7 +77,14 @@ export default async function EventsIndex({ params }: { params: { locale: string
                     </div>
                   )}
                   <div className="p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-neon">{fmt(e.start_date, params.locale)}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-neon">{fmt(e.start_date, params.locale)}</p>
+                      {e.featured && (
+                        <span className="rounded bg-brand-gold/20 px-1.5 py-0.5 text-[10px] font-black uppercase text-brand-gold">
+                          {isEs ? 'Destacado' : 'Featured'}
+                        </span>
+                      )}
+                    </div>
                     <h2 className="mt-1 font-display text-lg font-bold text-white group-hover:text-brand-neon">
                       {isEs ? e.title_es || e.title_en : e.title_en}
                     </h2>
