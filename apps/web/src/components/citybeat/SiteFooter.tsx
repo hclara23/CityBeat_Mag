@@ -30,6 +30,9 @@ export function SiteFooter({ locale = 'en' }: { locale?: string }) {
               <Link href={withLocale(locale, '/#directory')} className="hover:text-brand-neon">
                 {locale === 'es' ? 'Directorio' : 'Directory'}
               </Link>
+              <Link href={withLocale(locale, '/best')} className="hover:text-brand-neon">
+                {locale === 'es' ? 'Guías locales' : 'Local Guides'}
+              </Link>
             </div>
           </div>
           <div>

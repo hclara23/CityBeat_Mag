@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { localArticles } from '@/lib/localArticles'
+import { getNonEmptyCombos } from '@/lib/local-seo'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600
@@ -17,10 +18,18 @@ function entry(path: string, lastModified?: Date): MetadataRoute.Sitemap[number]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
-    '', '/stories', '/directory', '/jobs', '/ads', '/contribute', '/privacy', '/terms',
+    '', '/stories', '/directory', '/best', '/jobs', '/ads', '/contribute', '/privacy', '/terms',
     '/topics/news', '/topics/business', '/topics/events', '/topics/culture',
   ]
   const urls: MetadataRoute.Sitemap = staticPaths.map((p) => entry(p))
+
+  // Programmatic local-SEO pages: every (category × city) combo that has listings.
+  try {
+    const combos = await getNonEmptyCombos()
+    combos.forEach(({ category, city }) => urls.push(entry(`/best/${category.slug}/${city.slug}`)))
+  } catch {
+    /* ignore — still emit the rest */
+  }
 
   // Published stories (Firestore articles + bundled seed content).
   const slugs = new Set<string>(localArticles.map((a) => a.slug))
