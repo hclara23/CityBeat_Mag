@@ -25,11 +25,24 @@ export default function PayoutSettingsDashboard() {
   const [payNote, setPayNote] = useState('')
   const [payMsg, setPayMsg] = useState('')
   const [payBusy, setPayBusy] = useState(false)
+  // Platform settings (instant claim approval)
+  const [autoApprove, setAutoApprove] = useState<boolean | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/payout-settings', { cache: 'no-store' })
     if (res.ok) setSettings((await res.json()).settings)
+    const ps = await fetch('/api/admin/platform-settings', { cache: 'no-store' })
+    if (ps.ok) setAutoApprove(Boolean((await ps.json()).settings?.auto_approve_claims))
   }, [])
+
+  const toggleAutoApprove = async (next: boolean) => {
+    setAutoApprove(next)
+    await fetch('/api/admin/platform-settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ auto_approve_claims: next }),
+    }).catch(() => setAutoApprove(!next))
+  }
 
   useEffect(() => {
     getUser().then(({ user }) => {
@@ -108,6 +121,28 @@ export default function PayoutSettingsDashboard() {
         {msg && <p className="mt-4 text-sm text-brand-neon">{msg}</p>}
 
         <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-white">Instant claim approval</h2>
+              <p className="mt-1 text-sm text-white/55">
+                When ON, a self-serve owner who pays is approved instantly (skips manual review).
+                Rep field sales always stay pending. Default OFF.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={Boolean(autoApprove)}
+              onClick={() => toggleAutoApprove(!autoApprove)}
+              disabled={autoApprove === null}
+              className={`relative h-7 w-12 shrink-0 rounded-full transition ${autoApprove ? 'bg-brand-neon' : 'bg-white/15'}`}
+            >
+              <span className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-all ${autoApprove ? 'left-6' : 'left-1'}`} />
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-6">
           <h2 className="mb-1 text-lg font-bold text-white">Commission mode</h2>
           <p className="mb-4 text-sm text-white/55">
             How rep commission is paid on recurring subscriptions.

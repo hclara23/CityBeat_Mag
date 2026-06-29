@@ -135,6 +135,75 @@ export async function sendTestEmail(to: string, locale: 'en' | 'es' = 'en') {
   return sendEmail(to, `[Test] ${content.subject}`, html)
 }
 
+// ─── Upsell: pitch Featured to owners already on Premium ─────────────────────
+function upsellPitch(listing: Listing, locale: 'en' | 'es') {
+  const name = listing.name || (locale === 'es' ? 'tu negocio' : 'your business')
+  if (locale === 'es') {
+    return {
+      subject: `Destaca ${name} en la cima de CityBeat`,
+      intro: `Hola, ${name} ya tiene una ficha Premium en CityBeat — ¡gracias!`,
+      pitch: `Mejora a Destacado ($49/mes) para aparecer en la parte superior de tu categoría, con insignia destacada y rotación en la página principal ante miles de lectores locales.`,
+    }
+  }
+  return {
+    subject: `Put ${name} at the top of CityBeat`,
+    intro: `Hi — ${name} already has a Premium listing on CityBeat. Thank you!`,
+    pitch: `Upgrade to Featured ($49/mo) for top-of-category placement, a Featured badge, and homepage rotation in front of thousands of local readers.`,
+  }
+}
+
+function renderUpsellHtml(listing: Listing, content: ReturnType<typeof upsellPitch>, outreachId: string, locale: 'en' | 'es') {
+  const cta = locale === 'es' ? 'Mejorar a Destacado' : 'Upgrade to Featured'
+  const url = `${APP_URL}/api/track/click?o=${outreachId}&to=${encodeURIComponent(`/${locale}/directory/${listing.id}/claim?plan=featured_monthly`)}`
+  return `<div style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;color:#111">
+  <h2 style="font-weight:900">CityBeat</h2>
+  <p>${content.intro}</p>
+  <p>${content.pitch}</p>
+  <p style="margin:28px 0"><a href="${url}" style="background:#eab308;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${cta}</a></p>
+  <hr style="border:none;border-top:1px solid #eee;margin:24px 0" />
+  <p style="font-size:11px;color:#999;line-height:1.5">${ADDRESS}<br/><a href="${unsubUrl(outreachId)}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p>
+  <img src="${openPixel(outreachId)}" width="1" height="1" alt="" style="display:none" />
+</div>`
+}
+
+// Emails owners of approved Premium listings to upsell Featured. One-and-done per
+// listing (tracked in `upsell_outreach`); dryRun renders without sending.
+export async function runUpsellOutreach(opts: { limit?: number; dryRun?: boolean; locale?: 'en' | 'es' } = {}) {
+  const limit = Math.max(1, Math.min(opts.limit ?? 25, 100))
+  const locale = opts.locale ?? 'en'
+  const results = { contacted: 0, skipped_no_email: 0, skipped_already: 0, sent: 0, dryRun: Boolean(opts.dryRun) }
+
+  const snap = await adminDb
+    .collection('directory_listings')
+    .where('claim_status', '==', 'approved')
+    .where('tier', '==', 'premium')
+    .limit(limit * 4)
+    .get()
+
+  for (const lDoc of snap.docs) {
+    if (results.contacted >= limit) break
+    const l = { id: lDoc.id, ...(lDoc.data() as any) } as Listing & { contact_email?: string }
+    const email = (l as any).contact_email || l.email
+    if (!email) { results.skipped_no_email++; continue }
+    const already = await adminDb.collection('upsell_outreach').where('listing_id', '==', l.id).limit(1).get()
+    if (!already.empty) { results.skipped_already++; continue }
+
+    const ref = adminDb.collection('upsell_outreach').doc()
+    const content = upsellPitch(l, locale)
+    const html = renderUpsellHtml(l, content, ref.id, locale)
+    let sent = false
+    if (!opts.dryRun) { const r = await sendEmail(email, content.subject, html); sent = r.sent }
+    await ref.set({
+      listing_id: l.id, business_name: l.name || null, email, locale,
+      status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed',
+      opens: 0, clicks: 0, created_at: FieldValue.serverTimestamp(), last_sent_at: FieldValue.serverTimestamp(),
+    })
+    results.contacted++
+    if (sent) results.sent++
+  }
+  return results
+}
+
 // Run one outreach batch: new unclaimed businesses with an email, who have not
 // been contacted, plus due follow-ups. dryRun renders+logs without sending.
 export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean; locale?: 'en' | 'es' } = {}) {

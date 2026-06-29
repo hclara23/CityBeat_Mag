@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { payoutToUser, getPayoutSettings } from '@/lib/payouts'
+import { getPlatformSettings } from '@/lib/platform-settings'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -54,7 +55,22 @@ async function handleCheckoutCompleted(session: any) {
     if (metadata.owner_id) listingPatch.owner_id = metadata.owner_id
     if (metadata.sold_by) listingPatch.sold_by_rep = metadata.sold_by
     if (metadata.contact_email) listingPatch.contact_email = metadata.contact_email
+
+    // Instant approval (godmode opt-in): a self-serve owner who paid gets approved
+    // immediately, skipping manual review. Rep field sales (sold_by, no account)
+    // always stay pending so an admin can attach the real owner.
+    const settings = await getPlatformSettings()
+    if (settings.auto_approve_claims && metadata.owner_id && !metadata.sold_by) {
+      listingPatch.claim_status = 'approved'
+      listingPatch.tier = pendingTier
+      listingPatch.pending_tier = null
+      listingPatch.is_advertiser = true
+    }
+
     await adminDb.collection('directory_listings').doc(metadata.listing_id).set(listingPatch, { merge: true })
+
+    // Funnel close: mark any outreach for this listing as converted.
+    await markOutreachConverted(metadata.listing_id)
     // Pay out the configured share ONLY to an explicitly attributed payee (e.g. the
     // sales rep set via metadata.payout_user_id at checkout). Never default to the
     // owner — that would refund the payer a cut of their own payment. No-ops if
@@ -137,6 +153,18 @@ async function handleCheckoutCompleted(session: any) {
     metadata.payout_user_id,
     metadata.adType === 'sponsored_post' ? 'sponsored_post' : 'ad_campaign'
   )
+}
+
+// Funnel close: mark outbound outreach for a listing as converted when it pays.
+async function markOutreachConverted(listingId: string) {
+  if (!listingId) return
+  try {
+    const snap = await adminDb.collection('sales_outreach').where('listing_id', '==', listingId).get()
+    const now = new Date().toISOString()
+    await Promise.all(snap.docs.map((d) => d.ref.set({ status: 'converted', converted_at: now }, { merge: true })))
+  } catch {
+    /* non-fatal */
+  }
 }
 
 // Persist who earns commission on a subscription so renewals can pay residuals.
