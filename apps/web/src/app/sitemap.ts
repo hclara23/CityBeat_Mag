@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { localArticles } from '@/lib/localArticles'
 import { getNonEmptyCombos } from '@/lib/local-seo'
+import { getUpcomingEvents } from '@/lib/events'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600
@@ -18,10 +19,18 @@ function entry(path: string, lastModified?: Date): MetadataRoute.Sitemap[number]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
-    '', '/stories', '/directory', '/best', '/jobs', '/ads', '/contribute', '/privacy', '/terms',
+    '', '/stories', '/directory', '/best', '/events', '/jobs', '/ads', '/contribute', '/privacy', '/terms',
     '/topics/news', '/topics/business', '/topics/events', '/topics/culture',
   ]
   const urls: MetadataRoute.Sitemap = staticPaths.map((p) => entry(p))
+
+  // Upcoming events (Event-structured detail pages).
+  try {
+    const events = await getUpcomingEvents(200)
+    events.forEach((e) => urls.push(entry(`/events/${e.id}`)))
+  } catch {
+    /* ignore */
+  }
 
   // Programmatic local-SEO pages: every (category × city) combo that has listings.
   try {

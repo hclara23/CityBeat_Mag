@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { getAdProducts, getEvents, getTopStories, withLocale, type Locale } from '@/components/citybeat/content'
 import { getPublishedArticles } from '@/lib/articles'
+import { getUpcomingEvents } from '@/lib/events'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { NewsletterForm } from '@/components/NewsletterForm'
 import { AdBanner } from '@/components/citybeat/AdBanner'
@@ -30,14 +31,8 @@ export default async function Home({ params }: HomePageProps) {
   const secondaryStories = stories.slice(1)
   const adProducts = getAdProducts(locale)
 
-  // Fetch dynamic events from Firestore
-  let dbEvents: any[] = []
-  try {
-    const eventsSnapshot = await adminDb.collection('events').orderBy('start_date', 'asc').limit(3).get()
-    dbEvents = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-  } catch (err) {
-    console.error('Error fetching events from Firestore:', err)
-  }
+  // Upcoming, publicly-visible events (excludes pending submissions + past events).
+  const dbEvents = (await getUpcomingEvents(3)) as any[]
   
   const staticEvents = getEvents(locale)
   const events = dbEvents && dbEvents.length > 0 

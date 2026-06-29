@@ -77,6 +77,22 @@ export default function AdminEventsPage() {
     }
   }
 
+  const handleModerate = async (id: string, action: 'approve' | 'reject') => {
+    try {
+      const res = await fetch('/api/admin/events', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      setEvents(events.map((e) => (e.id === id ? { ...e, status: data.status } : e)))
+    } catch (err) {
+      console.error('Moderation failed', err)
+      alert('Error updating event')
+    }
+  }
+
   if (!isAdmin) return null
 
   return (
@@ -117,7 +133,22 @@ export default function AdminEventsPage() {
                   </div>
                 )}
                 <div className="flex-grow">
-                  <h3 className="text-xl font-bold mb-1">{locale === 'en' ? event.title_en : event.title_es}</h3>
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <h3 className="text-xl font-bold">{locale === 'en' ? event.title_en : event.title_es}</h3>
+                    {(() => {
+                      const s = (event as any).status || 'approved'
+                      const styles: Record<string, string> = {
+                        pending: 'bg-amber-400/15 text-amber-300',
+                        approved: 'bg-emerald-400/15 text-emerald-300',
+                        rejected: 'bg-red-400/15 text-red-300',
+                      }
+                      return (
+                        <span className={`rounded px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${styles[s] || styles.approved}`}>
+                          {s}{(event as any).source === 'community' ? ' · community' : ''}
+                        </span>
+                      )
+                    })()}
+                  </div>
                   <p className="text-sm text-brand-gold uppercase tracking-wider mb-2 font-bold">
                     {new Date(event.start_date).toLocaleString(locale === 'en' ? 'en-US' : 'es-MX')}
                   </p>
@@ -136,6 +167,22 @@ export default function AdminEventsPage() {
                       >
                         View Link
                       </a>
+                    )}
+                    {(event as any).status !== 'approved' && (
+                      <button
+                        onClick={() => handleModerate(event.id, 'approve')}
+                        className="bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-white px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition border border-emerald-500/30"
+                      >
+                        Approve
+                      </button>
+                    )}
+                    {(event as any).status !== 'rejected' && (
+                      <button
+                        onClick={() => handleModerate(event.id, 'reject')}
+                        className="bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-black px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition border border-amber-500/30"
+                      >
+                        Reject
+                      </button>
                     )}
                     <button
                       onClick={() => handleDelete(event.id)}

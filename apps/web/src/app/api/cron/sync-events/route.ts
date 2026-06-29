@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
     }
     for (const event of events as any[]) {
       const ref = adminDb.collection('events').doc()
-      batch.set(ref, { ...event, created_at: FieldValue.serverTimestamp() })
+      // Synced events are pre-approved (community submissions default to pending).
+      batch.set(ref, { ...event, status: 'approved', source: 'sync', created_at: FieldValue.serverTimestamp() })
       ops++
       await commitIfNeeded()
     }
