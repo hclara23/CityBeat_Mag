@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerUser } from '@citybeat/lib/firebase/server'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { hasAdminAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 
@@ -79,7 +80,11 @@ export async function DELETE(request: NextRequest) {
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
   const doc = await adminDb.collection('deals').doc(id).get()
   if (!doc.exists) return NextResponse.json({ ok: true })
-  if ((doc.data() as any).owner_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  // The owner can delete their own deal; admins can moderate any deal.
+  if ((doc.data() as any).owner_id !== user.id) {
+    const profile = await getServerUserProfile(user.id)
+    if (!hasAdminAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   await doc.ref.delete()
   return NextResponse.json({ ok: true })
 }
