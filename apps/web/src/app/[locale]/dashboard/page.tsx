@@ -6,6 +6,7 @@ import { useLocale } from '@/components/TranslationProvider'
 import { Navigation, Button } from '@citybeat/ui'
 import { AuthError } from '@citybeat/ui/auth'
 import { MyListingsBoost } from '@/components/citybeat/MyListingsBoost'
+import { MyDeals } from '@/components/citybeat/MyDeals'
 
 interface Campaign {
   id: string
@@ -107,6 +108,7 @@ export default function DashboardPage() {
         {error && <AuthError message={error} />}
 
         <MyListingsBoost />
+        <MyDeals />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {/* Stats Cards */}

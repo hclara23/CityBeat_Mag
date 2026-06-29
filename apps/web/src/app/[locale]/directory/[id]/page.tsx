@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
+import { QuoteForm } from '@/components/citybeat/QuoteForm'
 import { useLocale } from '@/components/TranslationProvider'
 import BookmarkButton from '@/components/BookmarkButton'
 import { jsonLdSafe } from '@/lib/jsonld'
@@ -999,6 +1000,13 @@ export default function ListingDetailPage() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Lead capture — request a quote / contact the business */}
+                {listing?.id && (
+                  <div className="mb-8">
+                    <QuoteForm listingId={listing.id} locale={locale as 'en' | 'es'} />
                   </div>
                 )}
 
