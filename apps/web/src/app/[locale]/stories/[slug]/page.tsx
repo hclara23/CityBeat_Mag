@@ -21,8 +21,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!article) return { title: 'Story not found · CityBeat' }
   const isEs = params.locale === 'es'
   const url = `${BASE}/${params.locale}/stories/${article.slug}`
-  const title = `${isEs ? article.titleES : article.title} · CityBeat`
+  const headline = isEs ? article.titleES : article.title
+  const title = `${headline} · CityBeat`
   const description = (isEs ? article.excerptES : article.excerpt)?.slice(0, 200)
+  // Prefer the article image; else a branded generated card with the headline.
+  const ogImage = article.image || `/api/og?title=${encodeURIComponent(headline)}&eyebrow=${encodeURIComponent(article.category || 'Story')}`
   return {
     title,
     description,
@@ -35,9 +38,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url,
       type: 'article',
-      images: article.image ? [{ url: article.image }] : undefined,
+      images: [{ url: ogImage }],
     },
-    twitter: { card: 'summary_large_image', title, description },
+    twitter: { card: 'summary_large_image', title, description, images: [ogImage] },
   }
 }
 

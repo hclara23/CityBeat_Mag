@@ -30,6 +30,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     ? `Guía local de ${cat.plural.toLowerCase()} en ${city.name}: reseñas, horarios y contacto en CityBeat, el directorio bilingüe de la frontera.`
     : `Your local guide to ${cat.plural.toLowerCase()} in ${city.name} — reviews, hours, and contact info on CityBeat, the borderland's bilingual directory.`
   const url = `${BASE}/${params.locale}/best/${cat.slug}/${city.slug}`
+  const ogTitle = isEs ? `Mejores ${cat.plural} en ${city.name}` : `Best ${cat.plural} in ${city.name}`
+  const ogImage = `/api/og?title=${encodeURIComponent(ogTitle)}&eyebrow=${encodeURIComponent(city.name)}`
   return {
     title,
     description,
@@ -40,7 +42,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
         es: `${BASE}/es/best/${cat.slug}/${city.slug}`,
       },
     },
-    openGraph: { title, description, url, type: 'website' },
+    openGraph: { title, description, url, type: 'website', images: [{ url: ogImage }] },
+    twitter: { card: 'summary_large_image', title, description, images: [ogImage] },
   }
 }
 

@@ -12,9 +12,21 @@ const spaceGrotesk = Space_Grotesk({
   display: 'swap',
 })
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'CityBeat - Local Magazine',
   description: 'Bilingual local magazine for El Paso County, Horizon, Socorro, Clint, and Las Cruces',
+  openGraph: {
+    siteName: 'CityBeat',
+    type: 'website',
+    images: ['/api/og'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['/api/og'],
+  },
 }
 
 export const viewport: Viewport = {

@@ -17,20 +17,17 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const e = await getEventById(params.id)
   if (!e) return { title: 'Event not found · CityBeat' }
   const isEs = params.locale === 'es'
-  const title = `${isEs ? e.title_es || e.title_en : e.title_en} · CityBeat`
+  const headline = isEs ? e.title_es || e.title_en : e.title_en
+  const title = `${headline} · CityBeat`
   const description = (isEs ? e.meta_es || e.meta_en : e.meta_en || '')?.slice(0, 160)
   const url = `${BASE}/${params.locale}/events/${e.id}`
+  const ogImage = e.image_url || `/api/og?title=${encodeURIComponent(headline)}&eyebrow=${encodeURIComponent(isEs ? 'Evento' : 'Event')}`
   return {
     title,
     description,
     alternates: { canonical: url },
-    openGraph: {
-      title,
-      description,
-      url,
-      type: 'website',
-      images: e.image_url ? [{ url: e.image_url }] : undefined,
-    },
+    openGraph: { title, description, url, type: 'website', images: [{ url: ogImage }] },
+    twitter: { card: 'summary_large_image', title, description, images: [ogImage] },
   }
 }
 
