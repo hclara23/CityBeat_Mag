@@ -65,6 +65,7 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 | `citybeat-enrich-contacts` | 03:00 | `/api/cron/enrich-contacts` | find emails/phones for listings |
 | `citybeat-sync-events` | 04:00 | `/api/cron/sync-events` | refresh the events collection |
 | `citybeat-sales-agent` | 09:00 | `/api/cron/sales-agent?limit=20` | Claude-written bilingual outbound drip |
+| `citybeat-newsletter-digest` | Fri 08:00 (**PAUSED**) | `/api/cron/newsletter-digest` | weekly story digest to subscribers — paused until reviewed; dry-run with `?dryRun=1` |
 
 Manage with `gcloud scheduler jobs list/run/pause --location us-central1`. To add a
 new cron: create the route with the `CRON_SECRET` check, then add a scheduler job.
