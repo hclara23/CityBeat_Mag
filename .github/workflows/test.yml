@@ -37,7 +37,7 @@ jobs:
         run: npm run lint || true
 
       - name: Run tests
-        run: npm run test || true
+        run: npm run test
 
       - name: Build all apps
         run: npm run build

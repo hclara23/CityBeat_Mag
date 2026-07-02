@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
+import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -23,8 +24,23 @@ Rules:
 - If asked something unrelated to CityBeat, gently steer back. Keep replies under ~120 words.`
 
 export async function POST(req: NextRequest) {
+  // This endpoint calls a paid LLM API + writes Firestore on every request, so it
+  // must be throttled to prevent cost/DoS abuse from anonymous callers.
+  const ip = getClientIp(req)
+  const rl = await checkRateLimit(`chat:ip:${ip}`, { max: 30, windowMs: 60 * 60 * 1000 })
+  if (!rl.ok) {
+    return NextResponse.json(
+      { reply: 'You are sending messages too quickly — please wait a moment and try again.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec ?? 300) } }
+    )
+  }
+
   const body = await req.json().catch(() => ({}))
-  const messages = Array.isArray(body.messages) ? body.messages.slice(-12) : []
+  // Cap count AND per-message length so a caller can't inflate token cost.
+  const messages = (Array.isArray(body.messages) ? body.messages.slice(-12) : []).map((m: any) => ({
+    role: m?.role,
+    content: typeof m?.content === 'string' ? m.content.slice(0, 2000) : m?.content,
+  }))
   const sessionId = typeof body.sessionId === 'string' ? body.sessionId : null
 
   const userMsgs = messages.filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')

@@ -349,6 +349,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 400 })
   }
 
+  // Idempotency: Stripe delivers at-least-once. Skip an event we've already fully
+  // processed so retries don't re-run handlers (duplicate ad_purchases, etc.).
+  // Per-operation guards (payout idempotency key) cover the partial-failure race.
+  const eventRef = adminDb.collection('stripe_events').doc(event.id)
+  try {
+    const seen = await eventRef.get()
+    if (seen.exists) return NextResponse.json({ received: true, deduped: true })
+  } catch {
+    /* if the check fails, fall through and process (guards below still apply) */
+  }
+
   try {
     const obj: any = event.data.object
     switch (event.type) {
@@ -378,8 +389,14 @@ export async function POST(req: NextRequest) {
     }
   } catch (e: any) {
     console.error(`Failed to process ${event.type}:`, e)
+    // Don't mark processed — let Stripe retry.
     return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
   }
+
+  // Mark processed only after success, so a partial failure can still be retried.
+  await eventRef
+    .set({ type: event.type, processed_at: new Date().toISOString() })
+    .catch(() => {})
 
   return NextResponse.json({ received: true })
 }

@@ -1,11 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const rl = await checkRateLimit(`newsletter-sub:ip:${getClientIp(req)}`, { max: 15, windowMs: 60 * 60 * 1000 })
+    if (!rl.ok) return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
+
     const { email, locale } = await req.json()
 
-    if (!email || !email.includes('@')) {
+    if (!email || typeof email !== 'string' || !email.includes('@') || email.length > 200) {
       return NextResponse.json({ error: 'Valid email is required' }, { status: 400 })
     }
 

@@ -23,8 +23,11 @@ interface Article {
 }
 
 function renderContent(content: any) {
-  if (typeof content === 'string') return <div dangerouslySetInnerHTML={{ __html: content }} />
-  
+  // Render string content as plain text (whitespace preserved), NEVER as raw HTML.
+  // This content can originate from /contribute submissions and the brief pipeline;
+  // dangerouslySetInnerHTML here was a stored-XSS sink executing in an admin session.
+  if (typeof content === 'string') return <div className="whitespace-pre-wrap">{content}</div>
+
   if (Array.isArray(content)) {
     return (
       <div className="space-y-4">

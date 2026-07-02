@@ -13,10 +13,12 @@
     "build": "turbo run build",
     "start": "turbo run start",
     "lint": "turbo run lint",
-    "type-check": "turbo run type-check"
+    "type-check": "turbo run type-check",
+    "test": "tsx --test packages/lib/src/roles.test.ts apps/web/src/lib/directory-security.test.ts"
   },
   "devDependencies": {
     "cypress": "^15.17.0",
+    "tsx": "^4.22.4",
     "turbo": "^1.10.16"
   },
   "packageManager": "npm@9.0.0"

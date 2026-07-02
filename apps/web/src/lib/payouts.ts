@@ -97,12 +97,32 @@ export async function payoutToUser(params: {
   const amount = Math.round((amountTotal * percent) / 100)
   if (amount <= 0) return { status: 'skipped:zero_amount' }
 
-  const transfer = await stripe.transfers.create({
-    amount,
-    currency,
-    destination: acct.stripe_account_id,
-    metadata: { service, payee_user_id: payeeUserId, source_payment: sourcePaymentId || '' },
-  })
+  // Idempotency: Stripe delivers webhooks at-least-once. Without this, a retried
+  // event would create a SECOND transfer (double-paying the rep). Guard two ways:
+  // (a) a Firestore ledger check, and (b) a Stripe idempotency key so even a race
+  // can't create a duplicate transfer.
+  if (sourcePaymentId) {
+    const existing = await adminDb
+      .collection('transfers')
+      .where('source_payment', '==', sourcePaymentId)
+      .where('service', '==', service)
+      .where('payee_user_id', '==', payeeUserId)
+      .where('status', '==', 'paid')
+      .limit(1)
+      .get()
+      .catch(() => ({ empty: true } as any))
+    if (!existing.empty) return { status: 'skipped:already_paid' }
+  }
+
+  const transfer = await stripe.transfers.create(
+    {
+      amount,
+      currency,
+      destination: acct.stripe_account_id,
+      metadata: { service, payee_user_id: payeeUserId, source_payment: sourcePaymentId || '' },
+    },
+    sourcePaymentId ? { idempotencyKey: `payout:${service}:${payeeUserId}:${sourcePaymentId}` } : undefined
+  )
 
   await adminDb.collection('transfers').add({
     payee_user_id: payeeUserId,

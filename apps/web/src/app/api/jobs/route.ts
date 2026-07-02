@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
+import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,6 +9,10 @@ export const dynamic = 'force-dynamic'
 // productId = the returned job id + type 'job'; the Stripe webhook publishes it
 // (is_paid, expires_at) on successful payment.
 export async function POST(request: NextRequest) {
+  // Throttle anonymous draft creation to prevent Firestore write spam.
+  const rl = await checkRateLimit(`job-create:ip:${getClientIp(request)}`, { max: 10, windowMs: 60 * 60 * 1000 })
+  if (!rl.ok) return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
+
   let body: any
   try {
     body = await request.json()

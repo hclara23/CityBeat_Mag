@@ -20,10 +20,9 @@ export async function GET() {
   if (!hasSalesAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
-    const [dealsSnap, transfersSnap, profilesSnap] = await Promise.all([
+    const [dealsSnap, transfersSnap] = await Promise.all([
       adminDb.collection('directory_listings').where('sold_by_rep', '==', user.id).get().catch(() => ({ docs: [] as any[] })),
       adminDb.collection('transfers').get().catch(() => ({ docs: [] as any[] })),
-      adminDb.collection('profiles').get().catch(() => ({ docs: [] as any[] })),
     ])
 
     // My closed directory deals.
@@ -47,22 +46,24 @@ export async function GET() {
       .filter((t) => t.payee_user_id === user.id && t.status === 'paid')
     const earned = myTransfers.reduce((s, t) => s + (t.amount || 0), 0)
 
-    // Leaderboard: total paid commission by rep.
-    const nameById = new Map<string, string>()
-    ;(profilesSnap.docs as any[]).forEach((d) => {
-      const p = d.data()
-      nameById.set(d.id, p.full_name || p.email || d.id.slice(0, 6))
-    })
+    // Leaderboard: total paid commission by rep. Aggregate transfers, then fetch
+    // ONLY the top-10 reps' profiles for names (instead of scanning all profiles).
     const byRep = new Map<string, number>()
     ;(transfersSnap.docs as any[]).forEach((d) => {
       const t = d.data()
       if (t.status !== 'paid' || !t.payee_user_id) return
       byRep.set(t.payee_user_id, (byRep.get(t.payee_user_id) || 0) + (t.amount || 0))
     })
-    const leaderboard = [...byRep.entries()]
-      .map(([uid, amount]) => ({ name: nameById.get(uid) || uid.slice(0, 6), amount, me: uid === user.id }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 10)
+    const top = [...byRep.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)
+    const nameById = new Map<string, string>()
+    await Promise.all(
+      top.map(async ([uid]) => {
+        const doc = await adminDb.collection('profiles').doc(uid).get().catch(() => null)
+        const p = doc && doc.exists ? (doc.data() as any) : null
+        nameById.set(uid, p?.full_name || p?.email || uid.slice(0, 6))
+      })
+    )
+    const leaderboard = top.map(([uid, amount]) => ({ name: nameById.get(uid) || uid.slice(0, 6), amount, me: uid === user.id }))
 
     return NextResponse.json({
       summary: {
