@@ -62,13 +62,18 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 |---|---|---|---|
 | `citybeat-directory-ingest` | 02:00 | `/api/cron/directory-ingest` | crawl/seed local businesses (sales inventory) |
 | `citybeat-enrich-contacts` | 03:00 | `/api/cron/enrich-contacts` | find emails/phones for listings |
-| `citybeat-sync-events` | 04:00 | `/api/cron/sync-events` | refresh the events collection |
-| `citybeat-sales-agent` | 09:00 | `/api/cron/sales-agent?limit=20` | Claude-written bilingual outbound drip |
-| `citybeat-newsletter-digest` | Fri 08:00 (**PAUSED**) | `/api/cron/newsletter-digest` | weekly story digest to subscribers — paused until reviewed; dry-run with `?dryRun=1` |
+| `citybeat-sync-events` | 04:00 | `/api/cron/sync-events` | real Ticketmaster events (needs `TICKETMASTER_API_KEY`; clean no-op without it); never touches community/featured events |
+| `citybeat-sales-agent` | 09:00 | `/api/cron/sales-agent?limit=20` | Claude-written bilingual outbound drip (A/B-tested first-touch subjects) |
+| `citybeat-newsletter-digest` | Fri 08:00 | `/api/cron/newsletter-digest` | weekly story digest to subscribers; "Sponsored by" slot from `ad_banners` placement=`newsletter`; dry-run with `?dryRun=1` |
+| `citybeat-owner-reports` | monthly 1st 09:00 | `/api/cron/owner-reports` | ROI report (views/leads/reviews) emailed to every claimed-listing owner; basic tier gets Premium upsell |
+| `citybeat-upsell` | Tue 10:00 | `/api/cron/upsell?limit=20` | Premium→Featured upsell emails (one per listing) |
 
 Manage with `gcloud scheduler jobs list/run/pause --location us-central1`. To add a
 new cron: create the route with the `CRON_SECRET` check, then add a scheduler job.
 (`/api/cron/auto-articles` exists but is a no-op pending a Firestore port.)
+
+Every cron and the Stripe webhook report failures via `lib/alerts.ts` →
+`system_alerts` collection + email to `ALERT_EMAIL` (deduped 3 per 6h per source).
 
 ## Common Development Commands
 
