@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { getEventById } from '@/lib/events'
+import { jsonLdSafe } from '@/lib/jsonld'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 900
@@ -45,7 +46,7 @@ export default async function EventDetail({ params }: { params: Params }) {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
       })
 
-  const jsonLd = JSON.stringify({
+  const jsonLd = jsonLdSafe({
     '@context': 'https://schema.org',
     '@type': 'Event',
     name: title,
@@ -57,7 +58,7 @@ export default async function EventDetail({ params }: { params: Params }) {
     ...(desc ? { description: desc } : {}),
     ...(e.ticket_url ? { offers: { '@type': 'Offer', url: e.ticket_url } } : {}),
     organizer: { '@type': 'Organization', name: 'CityBeat', url: BASE },
-  }).replace(/</g, '\\u003c')
+  })
 
   return (
     <CityBeatShell locale={params.locale}>
