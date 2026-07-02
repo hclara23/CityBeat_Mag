@@ -1,48 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
-import { fetchMockEvents } from '@/lib/events-scraper'
+import { fetchTicketmasterEvents } from '@/lib/events-scraper'
+import { reportFailure } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+export const maxDuration = 300
 
-// Syncs events into the Firestore `events` collection (read by the homepage).
+// Syncs real Ticketmaster events into Firestore `events`. Idempotent upserts
+// keyed on the Ticketmaster event id — community submissions and paid featured
+// events are NEVER touched (the old implementation cleared the whole collection
+// each run, wiping them). Legacy mock docs (source 'sync') are purged.
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {
-    const events = await fetchMockEvents()
+    let purgedMock = 0
+    let purgedPast = 0
+    let upserted = 0
 
-    // Clear existing events, then insert the fresh batch.
-    const existing = await adminDb.collection('events').get()
-    let batch = adminDb.batch()
-    let ops = 0
-    const commitIfNeeded = async () => {
-      if (ops >= 450) {
-        await batch.commit()
-        batch = adminDb.batch()
-        ops = 0
+    // 1) Self-heal: remove legacy mock events (fake ticket URLs, picsum images).
+    const legacy = await adminDb.collection('events').where('source', '==', 'sync').get()
+    for (const doc of legacy.docs) {
+      await doc.ref.delete()
+      purgedMock++
+    }
+
+    // 2) Drop synced events whose date has passed (keeps the page fresh; admins
+    //    manage community events' lifecycle themselves).
+    const yesterday = new Date(Date.now() - 86400000).toISOString()
+    const stale = await adminDb.collection('events').where('source', '==', 'ticketmaster').get()
+    for (const doc of stale.docs) {
+      const d = (doc.data() as any).start_date
+      if (typeof d === 'string' && d < yesterday) {
+        await doc.ref.delete()
+        purgedPast++
       }
     }
 
-    for (const doc of existing.docs) {
-      batch.delete(doc.ref)
-      ops++
-      await commitIfNeeded()
+    // 3) Upsert fresh events. Without a TICKETMASTER_API_KEY this is a clean
+    //    no-op (config state, not a failure — no alert spam).
+    if (!process.env.TICKETMASTER_API_KEY) {
+      return NextResponse.json({
+        ok: true,
+        skipped: 'no_ticketmaster_key',
+        purged_mock: purgedMock,
+        hint: 'Get a free key at developer.ticketmaster.com and set TICKETMASTER_API_KEY on the Cloud Run service.',
+      })
     }
-    for (const event of events as any[]) {
-      const ref = adminDb.collection('events').doc()
-      // Synced events are pre-approved (community submissions default to pending).
-      batch.set(ref, { ...event, status: 'approved', source: 'sync', created_at: FieldValue.serverTimestamp() })
-      ops++
-      await commitIfNeeded()
-    }
-    if (ops > 0) await batch.commit()
 
-    return NextResponse.json({ success: true, message: `Synced ${events.length} events.` })
+    const events = await fetchTicketmasterEvents()
+    for (const event of events) {
+      const { external_id, ...fields } = event
+      // merge:true preserves admin-set fields (e.g. `featured` on a paid event).
+      await adminDb.collection('events').doc(`tm-${external_id}`).set(
+        {
+          ...fields,
+          external_id,
+          status: 'approved',
+          source: 'ticketmaster',
+          updated_at: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      )
+      upserted++
+    }
+
+    return NextResponse.json({ ok: true, upserted, purged_mock: purgedMock, purged_past: purgedPast })
   } catch (error: any) {
     console.error('Cron sync-events error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    await reportFailure('cron:sync-events', error)
+    return NextResponse.json({ error: 'Event sync failed' }, { status: 500 })
   }
 }
