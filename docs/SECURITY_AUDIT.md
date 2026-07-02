@@ -185,8 +185,9 @@ not correctness or security.
 
 ## Operator toggles (current state)
 
-- `newsletter-digest` Cloud Scheduler job — **PAUSED** (dry-run with `?dryRun=1`).
-- `social` Cloud Scheduler job — **PAUSED** (scaffold only).
+- `newsletter-digest` Cloud Scheduler job — **ENABLED** (resumed 2026-07-02 after
+  dry-run review; self-skips when there are no recent stories or subscribers).
+- `social` Cloud Scheduler job — **PAUSED** (needs FB/IG/X API credentials).
 - `auto_approve_claims` platform setting — **ON** (enabled 2026-07-02, after the
   wave-8 verified-claim gate deployed). Paid **and ownership-verified** claims
   approve instantly; unverified and rep-sold claims still queue for admin review.
