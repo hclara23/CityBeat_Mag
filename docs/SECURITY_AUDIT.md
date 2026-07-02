@@ -72,6 +72,22 @@ Baseline commit at start of wave 1: `523bce9`. Latest recorded: `0ce2265`.
 - `/api/track/click` — open-redirect safe: `to` must be a `/`-relative path (and
   not `//`), and the redirect is always prefixed with `APP_URL` (origin fixed).
 
+## Wave 5 — Cloudflare Worker (`services/worker`)
+
+| # | Severity | Area | Finding | Fix |
+|---|---|---|---|---|
+| 10 | Medium | Worker abuse | `/api/test-automation` was **unauthenticated** — a public caller could trigger the full brief pipeline (NewsAPI + DeepL quota burn, Sanity draft spam, editor email spam) at will. | Gate behind the shared `x-ingest-secret` header (same guard `/api/translate` already uses). CLAUDE.md curl example updated. |
+| 11 | Trivial | Repo hygiene | `services/worker/tmpclaude-a83d-cwd` — a stray 36-byte artifact committed by accident. | Removed from git. |
+
+**Reviewed, no change needed:**
+
+- Worker has **no live Stripe handler** — routes are `/health`, `/api/tracking`,
+  `/api/translate`, `/api/test-automation`, catch-all 404. Stripe is web-app-only.
+  The `STRIPE_*` fields in the `Env` type are vestigial and unused.
+- `/api/translate` authenticates with `x-ingest-secret`.
+- `/api/tracking` handler is a no-op stub (`console.log` only, no writes) — nothing
+  abusable; real analytics is the web app's `/api/track/pageview`.
+
 ## Known limitations (accepted for launch, not bugs)
 
 - **`sales_outreach` follow-up query is unbounded** (`lib/sales-agent.ts`, the

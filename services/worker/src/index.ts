@@ -31,8 +31,16 @@ router.post('/api/translate', async (request, env: Env) => {
   return handleTranslate(request, env)
 })
 
-// Test automation endpoint (for manual triggering in development)
-router.post('/api/test-automation', async (_request, env: Env) => {
+// Manual brief-automation trigger. Gated behind the shared x-ingest-secret so a
+// public caller can't burn NewsAPI/DeepL quota or spam editors by triggering the
+// full pipeline (same secret the web app already uses to talk to the worker).
+router.post('/api/test-automation', async (request, env: Env) => {
+  if (request.headers.get('x-ingest-secret') !== env.INGEST_SECRET) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
   try {
     console.log('Manual automation test triggered')
     await handleBriefAutomation(env)

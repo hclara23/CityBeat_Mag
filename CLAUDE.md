@@ -160,9 +160,10 @@ npm run type-check
 cd services/worker
 npm run dev
 
-# Terminal 2: Trigger test endpoint
+# Terminal 2: Trigger test endpoint (requires the shared worker secret)
 curl -X POST http://localhost:8787/api/test-automation \
   -H "Content-Type: application/json" \
+  -H "x-ingest-secret: $INGEST_SECRET" \
   -d '{}'
 ```
 
