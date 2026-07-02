@@ -88,6 +88,35 @@ Baseline commit at start of wave 1: `523bce9`. Latest recorded: `0ce2265`.
 - `/api/tracking` handler is a no-op stub (`console.log` only, no writes) — nothing
   abusable; real analytics is the web app's `/api/track/pageview`.
 
+## Wave 6 — money-OUT (payouts) — **no findings**
+
+The highest-risk surface (direct fund movement). Audited, all sound:
+
+- `/api/admin/payouts/issue` and `/api/admin/payout-settings` require
+  **developer** (godmode) access, enforced before any money moves.
+- `manualPayout` and `payoutToUser` both resolve the transfer **destination from
+  the payee's own `stripe_connected_accounts/{userId}` record** — never from the
+  request — and require `payouts_enabled`. Funds can only reach a user who
+  onboarded their own bank; no request-controlled destination.
+- Automated commission (`payoutToUser`) is idempotent per source payment (wave 1);
+  manual godmode payouts are intentionally distinct per issue (no idempotency by
+  design).
+- `/api/platform/connect/*` let any authenticated user manage **their own** bank
+  onboarding/balance only (by design).
+
+## Status
+
+Six waves. Finding counts per wave: **6 → 1 → 1 → 1 → 2 → 0**. The core
+revenue surfaces — money-in (checkout/claim), money-out (payouts), webhook
+fulfillment, cron auth, and the outbound sales engine — are hardened and, on the
+final pass, produced no new issues. The app is in a defensible state to run as an
+unattended, revenue-generating service. Remaining items below are scale/quality,
+not correctness or security.
+
+> **Deploy note:** web-app fixes auto-deploy on push to `main` (Cloud Run). The
+> wave-5 **worker** change ships separately — run `cd services/worker && npm run
+> deploy` to make the `/api/test-automation` auth gate live.
+
 ## Known limitations (accepted for launch, not bugs)
 
 - **`sales_outreach` follow-up query is unbounded** (`lib/sales-agent.ts`, the
