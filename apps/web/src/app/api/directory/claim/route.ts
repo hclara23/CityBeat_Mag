@@ -46,8 +46,19 @@ export async function POST(request: NextRequest) {
     }
     const listing = { id: doc.id, ...(doc.data() as any) }
 
-    if (listing.claim_status === 'approved' && listing.owner_id !== user.id) {
-      return NextResponse.json({ error: 'Listing is already claimed and approved' }, { status: 400 })
+    // Block claiming a listing another account already owns or is mid-claim on.
+    // Without the `pending_approval` case, a second payer could check out for the
+    // same listing while the first is awaiting approval; the webhook would then
+    // clobber `owner_id`, charging the first payer for a listing they lose.
+    if (
+      (listing.claim_status === 'approved' || listing.claim_status === 'pending_approval') &&
+      listing.owner_id &&
+      listing.owner_id !== user.id
+    ) {
+      return NextResponse.json(
+        { error: 'This listing is already being claimed by another account.' },
+        { status: 409 }
+      )
     }
 
     // Founding 100: enforce the launch-promo cap server-side.

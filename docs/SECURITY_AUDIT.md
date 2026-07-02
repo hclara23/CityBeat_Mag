@@ -53,6 +53,25 @@ Baseline commit at start of wave 1: `523bce9`. Latest recorded: `0ce2265`.
 - Payout attribution never defaults to the payer — commission only pays an
   explicitly-attributed `payout_user_id`. Residual commission is dedup'd per invoice.
 
+## Wave 4 — money-in routes (checkout & claim)
+
+| # | Severity | Area | Finding | Fix |
+|---|---|---|---|---|
+| 9 | Medium | Directory claim | `/api/directory/claim` only blocked a re-claim when the listing was already `approved`. A second payer could check out for a listing that was `pending_approval` under another account; the webhook would clobber `owner_id`, charging the first payer for a listing they lose (refund/chargeback risk). | Block when `claim_status ∈ {approved, pending_approval}` and a *different* `owner_id` already exists → `409`. |
+
+**Reviewed, no change needed:**
+
+- `/api/sales/checkout` — sales-access gated; pricing server-set via `getPlan()`;
+  custom amount validated (`> 0`, finite); `payout_user_id` attributes to the
+  authenticated rep, never the payer; success/cancel URLs built server-side from
+  the request origin.
+- `/api/directory/claim` — server-set pricing; **payout self-attribution guard**
+  (`payout_user_id` honored only if the caller `hasSalesAccess`, so a self-serve
+  advertiser can't redirect a commission to themselves); Founding-100 cap enforced
+  server-side via `.count()`.
+- `/api/track/click` — open-redirect safe: `to` must be a `/`-relative path (and
+  not `//`), and the redirect is always prefixed with `APP_URL` (origin fixed).
+
 ## Known limitations (accepted for launch, not bugs)
 
 - **`sales_outreach` follow-up query is unbounded** (`lib/sales-agent.ts`, the
