@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { hasEditorAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
@@ -13,7 +14,8 @@ function toIso(v: any): string | null {
 export async function GET(request: NextRequest) {
   const user = await getServerUser()
   const profile = user ? await getServerUserProfile(user.id) : null
-  if (!user || !(profile?.is_editor || profile?.is_developer)) {
+  // Shared helper (vs raw flags) so editors granted via profile_roles also pass.
+  if (!user || !hasEditorAccess(profile)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

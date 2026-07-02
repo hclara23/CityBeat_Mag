@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminAuth, adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
-import { getClientIp } from '@/lib/auth-security'
+import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,6 +48,12 @@ export async function POST(request: NextRequest) {
     if (await isStaffRequest(request)) {
       return NextResponse.json({ ok: true, skipped: 'staff' })
     }
+
+    // Flood guard: this is an unauthenticated Firestore write per call. 300/hr is
+    // far beyond any human browsing rate but caps write-cost abuse and keeps
+    // bot floods from polluting the traffic numbers. Fails open like the rest.
+    const rl = await checkRateLimit(`pageview:ip:${ip}`, { max: 300, windowMs: 60 * 60 * 1000 })
+    if (!rl.ok) return NextResponse.json({ ok: true, skipped: 'rate' })
 
     const now = new Date()
     await adminDb.collection('analytics_events').add({

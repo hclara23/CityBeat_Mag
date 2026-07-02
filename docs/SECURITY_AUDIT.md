@@ -104,9 +104,44 @@ The highest-risk surface (direct fund movement). Audited, all sound:
 - `/api/platform/connect/*` let any authenticated user manage **their own** bank
   onboarding/balance only (by design).
 
+## Wave 7 — remaining public/write surface sweep
+
+| # | Severity | Area | Finding | Fix |
+|---|---|---|---|---|
+| 12 | Low | Analytics | `/api/track/pageview` did an unauthenticated Firestore write per call — bot floods = unbounded write cost + polluted traffic numbers. | Per-IP flood guard, 300/hr (far beyond human browsing; fails open). |
+| 13 | Low | MFA | `/api/auth/login/mfa` attempt counter was read-then-write; parallel requests could race past `MAX_MFA_ATTEMPTS`. (Still infeasible to brute-force TOTP — 5 attempts per pending token, then a rate-limited password login is required.) | Atomic `FieldValue.increment(1)`. |
+| 14 | Trivial | Consistency | `/api/admin/articles` checked raw `is_editor`/`is_developer` flags instead of the shared `hasEditorAccess` — an editor granted via `profile_roles` would be denied (fail-secure, but inconsistent). | Use `hasEditorAccess`. |
+
+**Reviewed, no change needed:**
+
+- `/api/upload/image` — auth required; MIME allowlist (no SVG); 10 MB cap;
+  **re-encoded through sharp to WebP** (destroys embedded payloads); per-user
+  rate limit; random storage path under the caller's uid.
+- `/api/profile` PATCH — strict field allowlist; role flags cannot be
+  mass-assigned.
+- `/api/platform/roles` PATCH — admin-gated; `canManageRole` enforced per role
+  (editors can't grant developer/admin); non-developers can't modify developer
+  accounts; unknown roles stripped.
+- `/api/directory/[id]/claim/verify` — 15-min code TTL, 5-attempt cap, then the
+  code is invalidated; success still routes through admin approval.
+- `/api/ingest/brief` — fails closed on missing `INGEST_SECRET`.
+- `/api/deals` POST — listing ownership verified before posting a deal.
+- `/api/directory/[id]` PATCH — owner-only (approved claim) or admin.
+- All 17 `/api/admin/*` routes verified gated (editor/admin/developer as
+  appropriate).
+
+## Worker deploy (follow-through)
+
+`services/worker` deployed to Cloudflare and smoke-tested: `/api/test-automation`
+without the secret → **401**; `/health` → **200**. Deploy also surfaced that
+`wrangler.toml` used the `[[triggers.crons]]` array-of-tables form, which the
+Cloudflare schedules API rejects (error 10026) — **every prior deploy's cron
+update had been silently failing**. Fixed to the flat `crons = [...]` array; all
+5 brief-automation schedules are now registered.
+
 ## Status
 
-Six waves. Finding counts per wave: **6 → 1 → 1 → 1 → 2 → 0**. The core
+Seven waves. Finding counts per wave: **6 → 1 → 1 → 1 → 2 → 0 → 3 (all low)**. The core
 revenue surfaces — money-in (checkout/claim), money-out (payouts), webhook
 fulfillment, cron auth, and the outbound sales engine — are hardened and, on the
 final pass, produced no new issues. The app is in a defensible state to run as an
@@ -114,8 +149,8 @@ unattended, revenue-generating service. Remaining items below are scale/quality,
 not correctness or security.
 
 > **Deploy note:** web-app fixes auto-deploy on push to `main` (Cloud Run). The
-> wave-5 **worker** change ships separately — run `cd services/worker && npm run
-> deploy` to make the `/api/test-automation` auth gate live.
+> worker was deployed manually (`cd services/worker && npm run deploy`) and its
+> auth gate verified live (401 without secret).
 
 ## Known limitations (accepted for launch, not bugs)
 

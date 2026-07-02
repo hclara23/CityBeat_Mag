@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminAuth, adminDb } from '@citybeat/lib/firebase/admin'
+import { FieldValue } from 'firebase-admin/firestore'
 import { verifyTotp } from '@/lib/totp'
 
 export const dynamic = 'force-dynamic'
@@ -50,7 +51,9 @@ export async function POST(request: NextRequest) {
   const secret = mfaDoc.exists ? (mfaDoc.data() as any).secret : null
 
   if (!secret || !verifyTotp(secret, code)) {
-    await ref.set({ attempts: (pending.attempts || 0) + 1 }, { merge: true })
+    // Atomic increment — a read-then-write here would let parallel requests race
+    // past MAX_MFA_ATTEMPTS (each seeing the same stale count).
+    await ref.set({ attempts: FieldValue.increment(1) }, { merge: true })
     return NextResponse.json({ error: 'Invalid verification code.' }, { status: 401 })
   }
 
