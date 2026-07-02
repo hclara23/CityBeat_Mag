@@ -31,13 +31,29 @@ function openPixel(outreachId: string) {
   return `${APP_URL}/api/track/open?o=${outreachId}`
 }
 
+// A/B test on the step-0 (first-touch) subject line — the highest-volume email.
+// Deterministic per listing so webhook/cron retries reuse the same variant. The
+// chosen variant is recorded on the outreach doc; opens/clicks are already
+// tracked per doc, so variant performance is a simple Firestore aggregation.
+export const SUBJECT_VARIANTS = 3
+export function subjectVariant(listingId: string): number {
+  let h = 0
+  for (let i = 0; i < listingId.length; i++) h = (h * 31 + listingId.charCodeAt(i)) | 0
+  return Math.abs(h) % SUBJECT_VARIANTS
+}
+
 // Template pitch (bilingual). Used as-is, or as the brief for Claude enhancement.
-function templatePitch(listing: Listing, step: number, locale: 'en' | 'es') {
+function templatePitch(listing: Listing, step: number, locale: 'en' | 'es', variant = 0) {
   const name = listing.name || (locale === 'es' ? 'tu negocio' : 'your business')
   const cat = listing.category ? ` (${listing.category})` : ''
   if (locale === 'es') {
-    const subjects = [
+    const firstTouch = [
       `${name} ya aparece en CityBeat — reclámalo gratis`,
+      `¿Este es tu negocio? ${name} está en CityBeat`,
+      `${name}: los clientes te buscan en CityBeat`,
+    ]
+    const subjects = [
+      firstTouch[variant] || firstTouch[0],
       `¿Sigues interesado en ${name} en CityBeat?`,
       `Última oportunidad: destaca ${name} en CityBeat`,
     ]
@@ -47,8 +63,13 @@ function templatePitch(listing: Listing, step: number, locale: 'en' | 'es') {
       pitch: `Reclámalo gratis y mejora a Premium por $19/mes para añadir fotos, horarios, enlaces a redes y aparecer destacado ante miles de lectores locales.`,
     }
   }
-  const subjects = [
+  const firstTouch = [
     `${name} is listed on CityBeat — claim it free`,
+    `Is this your business? ${name} is on CityBeat`,
+    `${name}: customers are finding you on CityBeat`,
+  ]
+  const subjects = [
+    firstTouch[variant] || firstTouch[0],
     `Still want to grow ${name} with CityBeat?`,
     `Last call: feature ${name} on CityBeat`,
   ]
@@ -271,7 +292,8 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
       continue
     }
     const ref = adminDb.collection('sales_outreach').doc()
-    const base = templatePitch(l, 0, locale)
+    const variant = subjectVariant(l.id)
+    const base = templatePitch(l, 0, locale, variant)
     const content = await enhanceWithClaude(l, base, locale)
     const html = renderHtml(l, content, ref.id, locale)
     let sent = false
@@ -286,6 +308,7 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
       email: l.email,
       locale,
       step: 0,
+      subject_variant: variant,
       status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed',
       opens: 0,
       clicks: 0,
