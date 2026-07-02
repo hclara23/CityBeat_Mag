@@ -123,8 +123,11 @@ async function handleCheckoutCompleted(session: any) {
   }
 
   // 3. Generic advertiser purchase → record ad_purchases + payments.
+  //    Key the row on the Stripe session id (idempotent upsert) so a webhook
+  //    retry after a partial failure can't create a duplicate ledger row and
+  //    double-count revenue in finance reports.
   const advertiserEmail = session.customer_email || session.customer_details?.email || null
-  await adminDb.collection('ad_purchases').add({
+  await adminDb.collection('ad_purchases').doc(session.id).set({
     session_id: session.id,
     campaign_id: metadata.campaignId || null,
     advertiser_id: metadata.advertiserId || null,
@@ -139,7 +142,7 @@ async function handleCheckoutCompleted(session: any) {
     stripe_subscription_id: session.subscription || null,
     stripe_payment_intent_id: session.payment_intent || null,
     created_at: FieldValue.serverTimestamp(),
-  })
+  }, { merge: true })
   if (metadata.campaignId) {
     await adminDb.collection('campaigns').doc(metadata.campaignId).set(
       { status: 'active', updated_at: new Date().toISOString() }, { merge: true }
