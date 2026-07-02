@@ -62,7 +62,7 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 |---|---|---|---|
 | `citybeat-directory-ingest` | 02:00 | `/api/cron/directory-ingest` | crawl/seed local businesses (sales inventory) |
 | `citybeat-enrich-contacts` | 03:00 | `/api/cron/enrich-contacts` | find emails/phones for listings |
-| `citybeat-sync-events` | 04:00 | `/api/cron/sync-events` | real Ticketmaster events (needs `TICKETMASTER_API_KEY`; clean no-op without it); never touches community/featured events |
+| `citybeat-sync-events` | 04:00 | `/api/cron/sync-events` | real Ticketmaster events (`TICKETMASTER_API_KEY` set on Cloud Run 2026-07-02); never touches community/featured events |
 | `citybeat-sales-agent` | 09:00 | `/api/cron/sales-agent?limit=20` | Claude-written bilingual outbound drip (A/B-tested first-touch subjects) |
 | `citybeat-newsletter-digest` | Fri 08:00 | `/api/cron/newsletter-digest` | weekly story digest to subscribers; "Sponsored by" slot from `ad_banners` placement=`newsletter`; dry-run with `?dryRun=1` |
 | `citybeat-owner-reports` | monthly 1st 09:00 | `/api/cron/owner-reports` | ROI report (views/leads/reviews) emailed to every claimed-listing owner; basic tier gets Premium upsell |
