@@ -50,7 +50,7 @@ flowchart TD
 | Code guessing | 6-digit code, 15-minute TTL, **5 attempts** then the code is invalidated and must be re-requested. |
 | Code spam | `claim/start` rate-limited: **3/hr per user+listing, 10/hr per user** — a caller can't flood a business's inbox with codes. |
 | Paid ≠ owner | The Stripe webhook checks `directory_claims` for a **verified** claim by the payer for that exact listing and stamps `ownership_verified` on the listing. |
-| Auto-approve | `auto_approve_claims` (godmode toggle) only auto-approves claims that are **both paid and verified**. Unverified paid claims always wait for a human. |
+| Auto-approve | `auto_approve_claims` (godmode toggle, **ON since 2026-07-02**) only auto-approves claims that are **both paid and verified**. Unverified paid claims always wait for a human. |
 | Double claim | `/api/directory/claim` returns 409 if the listing is `approved` **or** `pending_approval` under a different `owner_id` — a second payer can't clobber the first. |
 | Admin review | The claims queue shows a per-claim badge — **✓ Email verified**, **⚠ Not verified**, or **Rep sale — attach owner** — plus the claimer's account email next to the business's on-record email so a reviewer can eyeball the match. Approving an unverified claim requires acknowledging an explicit warning. |
 | Rep sales | Field sales (`sold_by_rep`) never auto-approve; an admin attaches the real owner using the captured `contact_email`. |

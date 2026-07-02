@@ -183,8 +183,10 @@ not correctness or security.
   debt, not a correctness/security issue; refactor deferred (high risk, low
   launch value).
 
-## Operator toggles intentionally left OFF
+## Operator toggles (current state)
 
 - `newsletter-digest` Cloud Scheduler job — **PAUSED** (dry-run with `?dryRun=1`).
 - `social` Cloud Scheduler job — **PAUSED** (scaffold only).
-- `auto_approve_claims` platform setting — **OFF** (admins approve claims manually).
+- `auto_approve_claims` platform setting — **ON** (enabled 2026-07-02, after the
+  wave-8 verified-claim gate deployed). Paid **and ownership-verified** claims
+  approve instantly; unverified and rep-sold claims still queue for admin review.
