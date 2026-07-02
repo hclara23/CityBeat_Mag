@@ -17,6 +17,11 @@ interface PendingClaim {
   phone: string | null
   claimed_at: string | null
   owner_id: string | null
+  ownership_verified: boolean
+  verification_method: string | null
+  owner_email: string | null
+  listed_email: string | null
+  sold_by_rep: string | null
 }
 
 interface PostcardClaim {
@@ -84,7 +89,14 @@ export default function AdminClaimsDashboard() {
   }, [router, locale, loadData])
 
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
-    if (!window.confirm(`Are you sure you want to ${action} this claim?`)) return
+    const claim = claims.find((c) => c.id === id)
+    // Unverified approvals hand a real business's listing to the payer — make the
+    // reviewer explicitly acknowledge that ownership was never proven.
+    const warning =
+      action === 'approve' && claim && !claim.ownership_verified && !claim.sold_by_rep
+        ? `⚠ OWNERSHIP NOT VERIFIED\n\nThis claimer paid but never verified control of the business's on-record email. Approving hands them the listing.\n\nConfirm you've verified ownership another way (called the business, matched the email domain, etc.) before approving.`
+        : `Are you sure you want to ${action} this claim?`
+    if (!window.confirm(warning)) return
     setProcessingId(id)
     try {
       const response = await fetch(`/api/admin/claims/${id}`, {
@@ -199,6 +211,7 @@ export default function AdminClaimsDashboard() {
                         <tr className="border-b border-white/10 text-xs font-bold uppercase text-brand-neon tracking-wider">
                           <th className="py-4 px-4">Business</th>
                           <th className="py-4 px-4">Category</th>
+                          <th className="py-4 px-4">Verification</th>
                           <th className="py-4 px-4">Claimed At</th>
                           <th className="py-4 px-4">Contact info</th>
                           <th className="py-4 px-4 text-right">Actions</th>
@@ -219,6 +232,31 @@ export default function AdminClaimsDashboard() {
                               <span className="text-[10px] font-black uppercase tracking-wider text-brand-neon bg-brand-neon/10 px-2.5 py-0.5 rounded">
                                 {claim.category}
                               </span>
+                            </td>
+                            <td className="py-4 px-4">
+                              {claim.sold_by_rep ? (
+                                <span className="inline-flex px-2.5 py-1 rounded bg-brand-gold/10 border border-brand-gold/30 text-brand-gold text-[10px] font-black uppercase tracking-wider">
+                                  Rep sale — attach owner
+                                </span>
+                              ) : claim.ownership_verified ? (
+                                <span className="inline-flex px-2.5 py-1 rounded bg-green-500/10 border border-green-500/30 text-green-400 text-[10px] font-black uppercase tracking-wider">
+                                  ✓ {claim.verification_method === 'email' || !claim.verification_method ? 'Email verified' : claim.verification_method}
+                                </span>
+                              ) : (
+                                <span className="inline-flex px-2.5 py-1 rounded bg-red-500/10 border border-red-500/40 text-red-400 text-[10px] font-black uppercase tracking-wider">
+                                  ⚠ Not verified
+                                </span>
+                              )}
+                              {claim.owner_email && (
+                                <span className="block text-[11px] text-white/50 mt-1.5 truncate max-w-[180px]" title={claim.owner_email}>
+                                  Claimer: {claim.owner_email}
+                                </span>
+                              )}
+                              {claim.listed_email && (
+                                <span className="block text-[11px] text-white/40 truncate max-w-[180px]" title={claim.listed_email}>
+                                  On record: {claim.listed_email}
+                                </span>
+                              )}
                             </td>
                             <td className="py-4 px-4 text-xs text-white/60">
                               {claim.claimed_at ? new Date(claim.claimed_at).toLocaleString() : 'N/A'}

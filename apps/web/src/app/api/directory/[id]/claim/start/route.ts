@@ -3,6 +3,7 @@ import { getServerUser } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { resolveClaimVerification } from '@/lib/directory-security'
+import { checkRateLimit } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
@@ -29,6 +30,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const user = await getServerUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized. Please sign in to claim a business.' }, { status: 401 })
+  }
+
+  // Throttle code sends — each request emails the business's on-record address,
+  // so an unthrottled caller could harass a business's inbox with codes.
+  const [perListing, perUser] = await Promise.all([
+    checkRateLimit(`claimstart:${user.id}:${listingId}`, { max: 3, windowMs: 60 * 60 * 1000 }),
+    checkRateLimit(`claimstart:${user.id}`, { max: 10, windowMs: 60 * 60 * 1000 }),
+  ])
+  if (!perListing.ok || !perUser.ok) {
+    return NextResponse.json(
+      { error: 'Too many verification requests. Please try again later.' },
+      { status: 429 }
+    )
   }
 
   try {

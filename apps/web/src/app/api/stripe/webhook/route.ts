@@ -65,11 +65,31 @@ async function handleCheckoutCompleted(session: any) {
     if (metadata.sold_by) listingPatch.sold_by_rep = metadata.sold_by
     if (metadata.contact_email) listingPatch.contact_email = metadata.contact_email
 
+    // Ownership check: did this payer pass the email-code claim verification for
+    // THIS listing? Payment alone must never prove ownership — otherwise anyone
+    // could pay $19 to take over a real business's listing. The flag is stamped on
+    // the listing so the admin queue can show verified vs unverified claims.
+    let ownershipVerified = false
+    if (metadata.owner_id) {
+      const vSnap = await adminDb
+        .collection('directory_claims')
+        .where('listing_id', '==', metadata.listing_id)
+        .where('user_id', '==', metadata.owner_id)
+        .where('status', '==', 'verified')
+        .limit(1)
+        .get()
+        .catch(() => ({ empty: true }) as any)
+      ownershipVerified = !vSnap.empty
+    }
+    listingPatch.ownership_verified = ownershipVerified
+
     // Instant approval (godmode opt-in): a self-serve owner who paid gets approved
-    // immediately, skipping manual review. Rep field sales (sold_by, no account)
-    // always stay pending so an admin can attach the real owner.
+    // immediately, skipping manual review — but ONLY if they also verified
+    // ownership. Unverified paid claims always stay pending for admin review.
+    // Rep field sales (sold_by, no account) always stay pending so an admin can
+    // attach the real owner.
     const settings = await getPlatformSettings()
-    if (settings.auto_approve_claims && metadata.owner_id && !metadata.sold_by) {
+    if (settings.auto_approve_claims && metadata.owner_id && !metadata.sold_by && ownershipVerified) {
       listingPatch.claim_status = 'approved'
       listingPatch.tier = pendingTier
       listingPatch.pending_tier = null

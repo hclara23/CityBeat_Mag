@@ -130,6 +130,19 @@ The highest-risk surface (direct fund movement). Audited, all sound:
 - All 17 `/api/admin/*` routes verified gated (editor/admin/developer as
   appropriate).
 
+## Wave 8 — claim-ownership anti-fraud (see docs/CLAIM_VERIFICATION.md)
+
+| # | Severity | Area | Finding | Fix |
+|---|---|---|---|---|
+| 15 | **High** | Claim fraud | The **paid** claim path never checked ownership verification. With `auto_approve_claims` ON, an unverified stranger paying $19 would get **instant ownership of a real business's listing** (identity hijack: contact info, deals, leads). | Webhook now queries `directory_claims` for a verified claim by the payer for that listing, stamps `ownership_verified` on the listing, and **auto-approve requires verified** — unverified paid claims always stay pending. |
+| 16 | Medium | Admin blindness | The claims review queue showed no verification evidence — admins couldn't distinguish a verified owner from a paying stranger. | Queue now shows a per-claim badge (✓ Email verified / ⚠ Not verified / Rep sale), the claimer's account email beside the business's on-record email, and an explicit warning dialog before approving an unverified claim. |
+| 17 | Medium | Code spam | `claim/start` was unthrottled — each call emails a fresh code to the business's on-record inbox (harassment + send cost). | Rate-limited: 3/hr per user+listing, 10/hr per user. |
+
+**Already sound (verified):** the free-claim flow sends the code **only to the
+listing's on-record email** (claimer never chooses the recipient), 15-min TTL,
+5-attempt cap with code invalidation, and success still routes through admin
+approval.
+
 ## Worker deploy (follow-through)
 
 `services/worker` deployed to Cloudflare and smoke-tested: `/api/test-automation`

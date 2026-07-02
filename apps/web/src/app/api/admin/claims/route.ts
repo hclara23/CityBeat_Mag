@@ -18,14 +18,37 @@ export async function GET() {
   if (!hasAdminAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
-    // Listings awaiting approval.
+    // Listings awaiting approval, each with ownership-verification evidence so
+    // the reviewer can tell "verified control of the business's on-record email"
+    // apart from "stranger who just paid" before granting ownership.
     const claimsSnap = await adminDb
       .collection('directory_listings')
       .where('claim_status', '==', 'pending_approval')
       .get()
-    const claims = claimsSnap.docs
-      .map((d) => ({ id: d.id, ...(d.data() as any), claimed_at: toIso((d.data() as any).claimed_at) }))
-      .sort((a: any, b: any) => (String(b.claimed_at) > String(a.claimed_at) ? 1 : -1))
+    const claims = await Promise.all(
+      claimsSnap.docs.map(async (d) => {
+        const x = d.data() as any
+        let ownerEmail: string | null = null
+        if (x.owner_id) {
+          const p = await adminDb.collection('profiles').doc(x.owner_id).get().catch(() => null)
+          ownerEmail = p?.exists ? ((p.data() as any).email ?? null) : null
+        }
+        return {
+          id: d.id,
+          ...x,
+          claimed_at: toIso(x.claimed_at),
+          verified_at: toIso(x.verified_at),
+          // Verified = passed the email-code flow (verify route sets verified_at;
+          // the Stripe webhook sets ownership_verified for paid claims).
+          ownership_verified: Boolean(x.ownership_verified || x.verified_at),
+          verification_method: x.verification_method || null,
+          owner_email: ownerEmail,
+          listed_email: x.email || null,
+          sold_by_rep: x.sold_by_rep || null,
+        }
+      })
+    )
+    claims.sort((a: any, b: any) => (String(b.claimed_at) > String(a.claimed_at) ? 1 : -1))
 
     // Postcard claims pending review.
     const pcSnap = await adminDb
