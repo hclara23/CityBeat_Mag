@@ -3,20 +3,11 @@ main = "src/index.ts"
 compatibility_date = "2025-07-18"
 
 # Brief-automation cron schedule (America/Chihuahua offsets handled in code).
-[[triggers.crons]]
-cron = "0 7 * * *"
-
-[[triggers.crons]]
-cron = "0 10 * * *"
-
-[[triggers.crons]]
-cron = "0 13 * * *"
-
-[[triggers.crons]]
-cron = "0 16 * * *"
-
-[[triggers.crons]]
-cron = "0 19 * * *"
+# NOTE: `crons` must be a flat array of strings — the [[triggers.crons]]
+# array-of-tables form serializes as {"cron":{"cron":...}} and the Cloudflare
+# schedules API rejects it with error 10026 ("Could not parse request body").
+[triggers]
+crons = ["0 7 * * *", "0 10 * * *", "0 13 * * *", "0 16 * * *", "0 19 * * *"]
 
 [vars]
 INGEST_URL = "https://citybeatmag.co"
