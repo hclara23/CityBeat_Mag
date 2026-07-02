@@ -3,6 +3,7 @@ import { getServerUser } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { verifyTotp } from '@/lib/totp'
+import { checkRateLimit } from '@/lib/auth-security'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +13,13 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Attempt cap: without it, a hijacked session could brute-force the 6-digit
+  // code (the TOTP requirement is the whole point of this endpoint).
+  const rl = await checkRateLimit(`2fadisable:${user.id}`, { max: 10, windowMs: 60 * 60 * 1000 })
+  if (!rl.ok) {
+    return NextResponse.json({ error: 'Too many attempts. Please try again later.' }, { status: 429 })
+  }
 
   const body = await request.json().catch(() => ({}))
   const code = typeof body.code === 'string' ? body.code : ''

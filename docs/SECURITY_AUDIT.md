@@ -143,6 +143,12 @@ listing's on-record email** (claimer never chooses the recipient), 15-min TTL,
 5-attempt cap with code invalidation, and success still routes through admin
 approval.
 
+## Wave 8b — 2FA disable attempt cap
+
+| # | Severity | Area | Finding | Fix |
+|---|---|---|---|---|
+| 18 | Low | 2FA | `/api/auth/2fa/disable` correctly requires a current TOTP code, but allowed **unlimited attempts** — a hijacked session could brute-force the 6-digit code over hours. | Per-user attempt cap: 10/hr. |
+
 ## Worker deploy (follow-through)
 
 `services/worker` deployed to Cloudflare and smoke-tested: `/api/test-automation`
