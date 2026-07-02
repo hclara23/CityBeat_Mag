@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runUpsellOutreach } from '@/lib/sales-agent'
+import { reportFailure } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -13,10 +14,15 @@ function authorized(request: NextRequest) {
 export async function GET(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { searchParams } = new URL(request.url)
-  const result = await runUpsellOutreach({
-    limit: Number(searchParams.get('limit')) || 20,
-    dryRun: searchParams.get('dryRun') === '1',
-    locale: (searchParams.get('locale') as 'en' | 'es') || 'en',
-  })
-  return NextResponse.json(result)
+  try {
+    const result = await runUpsellOutreach({
+      limit: Number(searchParams.get('limit')) || 20,
+      dryRun: searchParams.get('dryRun') === '1',
+      locale: (searchParams.get('locale') as 'en' | 'es') || 'en',
+    })
+    return NextResponse.json(result)
+  } catch (error) {
+    await reportFailure('cron:upsell', error)
+    return NextResponse.json({ error: 'Upsell run failed' }, { status: 500 })
+  }
 }

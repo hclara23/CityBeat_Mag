@@ -4,6 +4,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { payoutToUser, getPayoutSettings } from '@/lib/payouts'
 import { getPlatformSettings } from '@/lib/platform-settings'
+import { reportFailure } from '@/lib/alerts'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -412,6 +413,8 @@ export async function POST(req: NextRequest) {
     }
   } catch (e: any) {
     console.error(`Failed to process ${event.type}:`, e)
+    // A failing webhook means paid customers aren't being fulfilled — alert.
+    await reportFailure('stripe-webhook', e, { event_type: event.type, event_id: event.id })
     // Don't mark processed — let Stripe retry.
     return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
   }

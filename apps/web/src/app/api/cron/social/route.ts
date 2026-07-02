@@ -3,6 +3,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getPublishedArticles } from '@/lib/articles'
 import { postArticleToSocial, socialConfigured } from '@/lib/social'
+import { reportFailure } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -32,22 +33,27 @@ export async function GET(request: NextRequest) {
     .sort((a: any, b: any) => (Date.parse(b.publishedAt) || 0) - (Date.parse(a.publishedAt) || 0))
     .slice(0, max)
 
-  let posted = 0
-  const results: any[] = []
-  for (const a of recent) {
-    const already = await adminDb.collection('social_posts').where('slug', '==', a.slug).limit(1).get()
-    if (!already.empty) continue
-    const r = await postArticleToSocial(a)
-    const didPost = r.some((x) => x.status === 'posted')
-    await adminDb.collection('social_posts').add({
-      slug: a.slug,
-      title: a.title,
-      results: r,
-      created_at: FieldValue.serverTimestamp(),
-    })
-    if (didPost) posted++
-    results.push({ slug: a.slug, networks: r })
-  }
+  try {
+    let posted = 0
+    const results: any[] = []
+    for (const a of recent) {
+      const already = await adminDb.collection('social_posts').where('slug', '==', a.slug).limit(1).get()
+      if (!already.empty) continue
+      const r = await postArticleToSocial(a)
+      const didPost = r.some((x) => x.status === 'posted')
+      await adminDb.collection('social_posts').add({
+        slug: a.slug,
+        title: a.title,
+        results: r,
+        created_at: FieldValue.serverTimestamp(),
+      })
+      if (didPost) posted++
+      results.push({ slug: a.slug, networks: r })
+    }
 
-  return NextResponse.json({ ok: true, configured: true, considered: recent.length, posted, results })
+    return NextResponse.json({ ok: true, configured: true, considered: recent.length, posted, results })
+  } catch (error) {
+    await reportFailure('cron:social', error)
+    return NextResponse.json({ error: 'Social run failed' }, { status: 500 })
+  }
 }

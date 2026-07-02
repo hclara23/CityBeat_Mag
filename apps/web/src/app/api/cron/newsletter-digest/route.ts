@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getPublishedArticles } from '@/lib/articles'
 import { sendEmail } from '@/lib/email'
+import { reportFailure } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -15,7 +16,40 @@ function authorized(request: NextRequest) {
   return Boolean(secret) && request.headers.get('authorization') === `Bearer ${secret}`
 }
 
-function digestHtml(articles: any[], email: string, locale: 'en' | 'es') {
+type Sponsor = { sponsor_name?: string; title?: string; link_url?: string; image_url?: string } | null
+
+// A single sellable "Sponsored by" unit: the first active ad_banners doc with
+// placement 'newsletter'. Absent → the digest renders without it.
+async function getNewsletterSponsor(): Promise<Sponsor> {
+  try {
+    const snap = await adminDb
+      .collection('ad_banners')
+      .where('placement', '==', 'newsletter')
+      .where('is_active', '==', true)
+      .limit(1)
+      .get()
+    return snap.empty ? null : (snap.docs[0].data() as any)
+  } catch {
+    return null
+  }
+}
+
+function sponsorHtml(sponsor: Sponsor, locale: 'en' | 'es') {
+  if (!sponsor) return ''
+  const label = locale === 'es' ? 'Patrocinado por' : 'Sponsored by'
+  const name = sponsor.sponsor_name || sponsor.title || ''
+  if (!name) return ''
+  const img = sponsor.image_url
+    ? `<img src="${sponsor.image_url}" alt="${name}" width="560" style="width:100%;max-width:560px;border-radius:8px;display:block;margin:6px 0" />`
+    : ''
+  const inner = `${img}<span style="font-weight:800;color:#0a0a0a">${name}</span>`
+  return `<tr><td style="padding:0 0 26px;border-top:1px solid #eee;padding-top:16px">
+    <p style="color:#999;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px">${label}</p>
+    ${sponsor.link_url ? `<a href="${sponsor.link_url}" style="text-decoration:none">${inner}</a>` : inner}
+  </td></tr>`
+}
+
+function digestHtml(articles: any[], email: string, locale: 'en' | 'es', sponsor: Sponsor = null) {
   const isEs = locale === 'es'
   const unsub = `${APP_URL}/api/newsletter/unsubscribe?email=${encodeURIComponent(email)}`
   const items = articles
@@ -38,7 +72,7 @@ function digestHtml(articles: any[], email: string, locale: 'en' | 'es') {
   return `<div style="font-family:system-ui,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto;color:#111">
     <h1 style="font-weight:900;font-size:28px;margin:0 0 4px">city<span style="color:#0891b2;font-style:italic">BEat</span></h1>
     <p style="color:#666;font-size:13px;margin:0 0 24px">${isEs ? 'Lo último de El Paso, Las Cruces y Ciudad Juárez' : 'The latest from El Paso, Las Cruces & Ciudad Juárez'}</p>
-    <table style="width:100%;border-collapse:collapse">${items}</table>
+    <table style="width:100%;border-collapse:collapse">${items}${sponsorHtml(sponsor, locale)}</table>
     <hr style="border:none;border-top:1px solid #eee;margin:8px 0 16px" />
     <p style="font-size:11px;color:#999;line-height:1.5">
       ${isEs ? 'Recibes esto porque te suscribiste a CityBeat.' : 'You receive this because you subscribed to CityBeat.'}<br/>
@@ -80,20 +114,37 @@ export async function GET(request: NextRequest) {
     ? `CityBeat: ${recent[0].title}`
     : 'CityBeat — this week in the borderland'
 
+  const sponsor = await getNewsletterSponsor()
+
   let sent = 0
   let failed = 0
   if (!dryRun) {
     for (const s of subs) {
       const locale: 'en' | 'es' = s.locale === 'es' ? 'es' : 'en'
       try {
-        const r = await sendEmail(s.email, subject, digestHtml(recent, s.email, locale), FROM)
+        const r = await sendEmail(s.email, subject, digestHtml(recent, s.email, locale, sponsor), FROM)
         if (r.sent) sent++
         else failed++
       } catch {
         failed++
       }
     }
+    // If delivery is mostly failing (provider outage, bad key), tell a human.
+    if (failed > 0 && failed >= sent) {
+      await reportFailure('cron:newsletter-digest', new Error(`digest delivery failing: ${failed} failed vs ${sent} sent`), {
+        recipients: subs.length,
+      })
+    }
   }
 
-  return NextResponse.json({ ok: true, dryRun, stories: recent.length, recipients: subs.length, sent, failed })
+  return NextResponse.json({
+    ok: true,
+    dryRun,
+    stories: recent.length,
+    recipients: subs.length,
+    sent,
+    failed,
+    sponsored: Boolean(sponsor),
+    ...(dryRun ? { preview_subject: subject, preview_html: digestHtml(recent, 'preview@citybeatmag.co', 'en', sponsor) } : {}),
+  })
 }
