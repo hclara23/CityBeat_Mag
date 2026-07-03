@@ -45,7 +45,9 @@ export interface DirectoryIngestResult {
 }
 
 const DEFAULT_OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
-const EL_PASO_COUNTY_BBOX = '31.25,-106.70,32.10,-105.85'
+// El Paso County + Doña Ana County (Las Cruces, Anthony, Sunland Park corridor).
+// Overpass bbox order: south,west,north,east.
+const EL_PASO_COUNTY_BBOX = '31.25,-107.05,32.45,-105.85'
 const CITYBEAT_USER_AGENT = 'CityBeatMagDirectoryIngest/1.0 (+https://citybeatmag.co)'
 
 export const CATEGORY_QUERIES = [
@@ -59,6 +61,10 @@ export const CATEGORY_QUERIES = [
   { category: 'Entertainment', selector: '["amenity"~"^(cinema|theatre|arts_centre)$"]' },
   { category: 'Arts & Culture', selector: '["tourism"~"^(museum|gallery|attraction)$"]' },
   { category: 'Fitness', selector: '["leisure"~"^(fitness_centre|sports_centre)$"]' },
+  // High lead-value verticals: businesses that live on inbound local customers.
+  { category: 'Beauty', selector: '["shop"~"^(hairdresser|beauty|massage|tattoo)$"]' },
+  { category: 'Auto Repair', selector: '["shop"~"^(car_repair|car_parts|tyres)$"]' },
+  { category: 'Home Services', selector: '["craft"]' },
 ]
 
 function buildOverpassQuery(selector: string): string {
@@ -156,32 +162,29 @@ function dedupeCandidates(candidates: DirectoryCandidate[], limit: number): Dire
   return deduped
 }
 
-async function writeCandidates(candidates: DirectoryCandidate[], _options: DirectoryIngestOptions) {
-  // Upsert into Firestore `directory_listings`, keyed by google_place_id so
-  // re-ingests merge rather than duplicate.
+async function writeCandidates(candidates: DirectoryCandidate[], _options: DirectoryIngestOptions): Promise<number> {
+  // Insert-only, keyed by google_place_id. A merge-upsert here would nightly
+  // reset `tier`/`claim_status`/`is_published` on businesses that have since
+  // CLAIMED AND PAID — silently downgrading paying customers. Existing docs are
+  // skipped entirely; contact enrichment has its own cron.
+  const keyed = candidates.filter((c) => (c as any).google_place_id)
+  const unkeyed = candidates.filter((c) => !(c as any).google_place_id)
+
+  const existing = new Set<string>()
+  for (let i = 0; i < keyed.length; i += 300) {
+    const refs = keyed
+      .slice(i, i + 300)
+      .map((c) => adminDb.collection('directory_listings').doc(String((c as any).google_place_id)))
+    const snaps = await adminDb.getAll(...refs)
+    for (const snap of snaps) if (snap.exists) existing.add(snap.id)
+  }
+
   const now = new Date().toISOString()
   let batch = adminDb.batch()
   let ops = 0
+  let inserted = 0
 
-  for (const candidate of candidates) {
-    const placeId = (candidate as any).google_place_id
-    const ref = placeId
-      ? adminDb.collection('directory_listings').doc(String(placeId))
-      : adminDb.collection('directory_listings').doc()
-    batch.set(
-      ref,
-      {
-        ...candidate,
-        tier: 'basic',
-        claim_status: 'unclaimed',
-        is_published: false,
-        rating: null,
-        user_ratings_total: null,
-        updated_at: now,
-      },
-      { merge: true }
-    )
-    ops++
+  const commitIfNeeded = async () => {
     if (ops >= 450) {
       await batch.commit()
       batch = adminDb.batch()
@@ -189,7 +192,45 @@ async function writeCandidates(candidates: DirectoryCandidate[], _options: Direc
     }
   }
 
+  for (const candidate of keyed) {
+    const placeId = String((candidate as any).google_place_id)
+    if (existing.has(placeId)) continue
+    batch.set(adminDb.collection('directory_listings').doc(placeId), {
+      ...candidate,
+      tier: 'basic',
+      claim_status: 'unclaimed',
+      is_published: false,
+      rating: null,
+      user_ratings_total: null,
+      created_at: now,
+      updated_at: now,
+    })
+    ops++
+    inserted++
+    await commitIfNeeded()
+  }
+
+  // Candidates without a stable id can't be existence-checked cheaply; they were
+  // already deduped in-batch, and normalizeCandidate always sets an OSM-derived
+  // id in practice, so this path is rare.
+  for (const candidate of unkeyed) {
+    batch.set(adminDb.collection('directory_listings').doc(), {
+      ...candidate,
+      tier: 'basic',
+      claim_status: 'unclaimed',
+      is_published: false,
+      rating: null,
+      user_ratings_total: null,
+      created_at: now,
+      updated_at: now,
+    })
+    ops++
+    inserted++
+    await commitIfNeeded()
+  }
+
   if (ops > 0) await batch.commit()
+  return inserted
 }
 
 function selectQueries(categories: string[] | undefined) {
@@ -250,12 +291,13 @@ export async function runDirectoryIngest(options: DirectoryIngestOptions = {}): 
 
   const deduped = dedupeCandidates(candidates, limit)
 
+  let inserted = 0
   if (options.write) {
-    await writeCandidates(deduped, options)
+    inserted = await writeCandidates(deduped, options)
   }
 
   return {
     candidates: deduped,
-    inserted: options.write ? deduped.length : 0,
+    inserted,
   }
 }
