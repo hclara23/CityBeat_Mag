@@ -8,6 +8,7 @@ import { AuthError } from '@citybeat/ui/auth'
 import { MyListingsBoost } from '@/components/citybeat/MyListingsBoost'
 import { MyDeals } from '@/components/citybeat/MyDeals'
 import { LeadsPanel } from '@/components/citybeat/LeadsPanel'
+import { AIAssistantPanel } from '@/components/citybeat/AIAssistantPanel'
 
 interface Campaign {
   id: string
@@ -108,6 +109,7 @@ export default function DashboardPage() {
 
         {error && <AuthError message={error} />}
 
+        <AIAssistantPanel />
         <LeadsPanel />
         <MyListingsBoost />
         <MyDeals />

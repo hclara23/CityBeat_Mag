@@ -1065,6 +1065,16 @@ export default function ListingDetailPage() {
                                       {rev.comment}
                                     </p>
                                   )}
+                                  {rev.owner_response && (
+                                    <div className="mt-3 rounded-lg border border-brand-neon/20 bg-brand-neon/5 p-3">
+                                      <p className="text-[10px] font-black uppercase tracking-wider text-brand-neon">
+                                        {locale === 'es' ? 'Respuesta del negocio' : 'Response from the business'}
+                                      </p>
+                                      <p className="text-white/70 text-sm mt-1 leading-relaxed whitespace-pre-line">
+                                        {rev.owner_response}
+                                      </p>
+                                    </div>
+                                  )}
                                   {rev.photo_urls && rev.photo_urls.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mt-3.5">
                                       {rev.photo_urls.map((photoUrl: string, idx: number) => (
