@@ -41,17 +41,37 @@ async function placesDetails(query: string): Promise<{ website?: string; phone?:
   }
 }
 
-async function scrapeEmail(website: string): Promise<string | null> {
+async function fetchPageEmail(url: string): Promise<string | null> {
   try {
-    const res = await fetch(website, { signal: AbortSignal.timeout(8000), headers: { 'User-Agent': 'CityBeatBot/1.0' } })
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'User-Agent': 'CityBeatBot/1.0' } })
     if (!res.ok) return null
     const html = (await res.text()).slice(0, 200000)
+    // mailto: links first — least likely to be a false positive.
+    const mailto = html.match(/mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
+    if (mailto && !SKIP_EMAIL.test(mailto[1])) return mailto[1]
     const matches = html.match(EMAIL_RE) || []
-    const email = matches.find((m) => !SKIP_EMAIL.test(m))
-    return email || null
+    return matches.find((m) => !SKIP_EMAIL.test(m)) || null
   } catch {
     return null
   }
+}
+
+// Small businesses rarely put an email on the homepage — it lives on the
+// contact page. Try the homepage, then the common contact/about paths.
+async function scrapeEmail(website: string): Promise<string | null> {
+  const home = await fetchPageEmail(website)
+  if (home) return home
+  let origin: string
+  try {
+    origin = new URL(website).origin
+  } catch {
+    return null
+  }
+  for (const path of ['/contact', '/contact-us', '/about']) {
+    const found = await fetchPageEmail(`${origin}${path}`)
+    if (found) return found
+  }
+  return null
 }
 
 const RETRY_AFTER_MS = 30 * 86400000 // don't re-grind a failed doc for 30 days
