@@ -1065,6 +1065,20 @@ export default function ListingDetailPage() {
                                       {rev.comment}
                                     </p>
                                   )}
+                                  <button
+                                    onClick={() => {
+                                      const reason = window.prompt(locale === 'es' ? '¿Por qué reportas esta reseña?' : 'Why are you reporting this review?')
+                                      if (reason === null) return
+                                      fetch('/api/reviews/report', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ reviewId: rev.id, reason }),
+                                      }).then(() => alert(locale === 'es' ? 'Reseña reportada. Gracias.' : 'Review reported. Thank you.'))
+                                    }}
+                                    className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-white/25 hover:text-white/60"
+                                  >
+                                    {locale === 'es' ? 'Reportar' : 'Report'}
+                                  </button>
                                   {rev.owner_response && (
                                     <div className="mt-3 rounded-lg border border-brand-neon/20 bg-brand-neon/5 p-3">
                                       <p className="text-[10px] font-black uppercase tracking-wider text-brand-neon">

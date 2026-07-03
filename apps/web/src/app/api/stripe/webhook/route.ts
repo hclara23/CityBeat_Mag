@@ -369,6 +369,12 @@ async function handleSubscriptionUpdated(subscription: any) {
 
 async function handleSubscriptionDeleted(subscription: any) {
   await upsertSubscription(subscription, 'canceled')
+  // Win-back: mark when this churned customer becomes eligible for a single
+  // "come back" email (sent by the daily recovery drip).
+  await adminDb.collection('subscriptions').doc(subscription.id).set(
+    { winback_due_at: new Date(Date.now() + 30 * 86400000).toISOString() },
+    { merge: true }
+  )
   await setPaymentStatusByField('stripe_subscription_id', subscription.id, 'cancelled')
   // Downgrade any directory listing tied to this subscription.
   const listing = await findOne('directory_listings', 'stripe_subscription_id', subscription.id)

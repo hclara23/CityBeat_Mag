@@ -330,6 +330,41 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     if (sent) results.sent++
   }
 
+  // Segment 3: win-back — churned subscriptions whose 30-day cool-off passed.
+  const churned = await adminDb
+    .collection('subscriptions')
+    .where('status', '==', 'canceled')
+    .get()
+    .catch(() => ({ docs: [] as any[] }))
+  for (const doc of churned.docs as any[]) {
+    const s = doc.data()
+    if (!s.winback_due_at || Date.parse(s.winback_due_at) > now) continue
+    const key = `winback:${doc.id}`
+    if (await alreadySent(key)) continue
+    // Find the listing this subscription powered; skip if they already re-upped.
+    const lSnap = await adminDb.collection('directory_listings').where('stripe_subscription_id', '==', doc.id).limit(1).get().catch(() => ({ docs: [] as any[], empty: true }) as any)
+    if (lSnap.empty) continue
+    const lDoc = lSnap.docs[0]
+    const l = lDoc.data() as any
+    if (['premium', 'featured'].includes(l.tier)) continue
+    const { email, locale } = l.owner_id ? await profileEmail(l.owner_id) : { email: null as string | null, locale: 'en' as const }
+    const to = email || l.contact_email
+    if (!to || (await isSuppressed(to))) continue
+
+    const name = l.name || (locale === 'es' ? 'tu negocio' : 'your business')
+    const subject = locale === 'es' ? `Te extrañamos — ${name} en CityBeat` : `We miss you — ${name} on CityBeat`
+    const html = `<div style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;color:#111">
+  <h2 style="font-weight:900">CityBeat</h2>
+  <p>${locale === 'es' ? `<strong>${name}</strong> sigue en CityBeat, pero sin los beneficios Premium: los leads llegan y no puedes verlos.` : `<strong>${name}</strong> is still on CityBeat — but without Premium, customer leads arrive and you can't see them.`}</p>
+  <p>${locale === 'es' ? 'Reactiva Premium ($19/mes) y recupera tus leads, fotos y posicionamiento hoy mismo.' : 'Reactivate Premium ($19/mo) and get your leads, photos, and placement back today.'}</p>
+  <p style="margin:24px 0"><a href="${APP_URL}/${locale}/dashboard" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Reactivar' : 'Reactivate'}</a></p>
+  <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(key, 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
+    let sent = false
+    if (!opts.dryRun) sent = (await sendEmail(to, subject, html)).sent
+    await record(key, { type: 'winback', listing_id: lDoc.id, subscription_id: doc.id, email: to, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })
+    if (sent) results.sent++
+  }
+
   return results
 }
 

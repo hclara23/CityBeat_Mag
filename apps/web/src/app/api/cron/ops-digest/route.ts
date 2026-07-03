@@ -70,6 +70,14 @@ export async function GET(request: NextRequest) {
     const weekAlerts = (alerts.docs as any[]).map((d) => d.data()).filter((x) => inWindow(x.created_at))
     const alertSources = [...new Set(weekAlerts.map((a) => a.source))].slice(0, 5)
 
+    // What people asked the concierge this week — warm leads + product signal.
+    const chatSnap = await adminDb.collection('chat_sessions').get().catch(() => ({ docs: [] as any[] }))
+    const questions = (chatSnap.docs as any[])
+      .map((d) => d.data())
+      .filter((c) => inWindow(c.created_at) && c.last_user_message)
+      .slice(-8)
+      .map((c) => String(c.last_user_message).slice(0, 120))
+
     const row = (label: string, value: string | number, hint = '') =>
       `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;color:#555">${label}${hint ? `<br/><span style="font-size:11px;color:#aaa">${hint}</span>` : ''}</td>
        <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:20px;font-weight:800">${value}</td></tr>`
@@ -90,6 +98,8 @@ export async function GET(request: NextRequest) {
     ${row('Newsletter subscribers (total)', totalSubs)}
     ${row('Automation failures', weekAlerts.length, alertSources.length ? `sources: ${alertSources.join(', ')}` : 'all healthy')}
   </table>
+  ${questions.length ? `<p style="margin:18px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#999">What people asked the concierge</p>
+  <ul style="font-size:13px;color:#555;margin:0;padding-left:18px">${questions.map((q) => `<li>${q.replace(/</g, '&lt;')}</li>`).join('')}</ul>` : ''}
   <p style="margin:20px 0"><a href="${APP_URL}/en/admin" style="background:#22d3ee;color:#000;font-weight:800;padding:10px 20px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px;font-size:12px">Open admin</a></p>
 </div>`
 
