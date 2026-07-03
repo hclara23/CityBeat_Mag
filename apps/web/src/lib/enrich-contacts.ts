@@ -54,20 +54,37 @@ async function scrapeEmail(website: string): Promise<string | null> {
   }
 }
 
+const RETRY_AFTER_MS = 30 * 86400000 // don't re-grind a failed doc for 30 days
+
 export async function runContactEnrichment(opts: { limit?: number } = {}) {
   const limit = Math.max(1, Math.min(opts.limit ?? 25, 100))
   const stats = { scanned: 0, places_filled: 0, emails_found: 0, updated: 0 }
 
-  const snap = await adminDb
-    .collection('directory_listings')
-    .where('claim_status', '==', 'unclaimed')
-    .limit(limit * 3)
-    .get()
+  // Page through unclaimed listings collecting ones we haven't attempted
+  // recently. Without the attempted-marker skip, every run re-scanned the same
+  // first page of unenrichable docs and the backlog never advanced.
+  const candidates: FirebaseFirestore.QueryDocumentSnapshot[] = []
+  let cursor: FirebaseFirestore.QueryDocumentSnapshot | null = null
+  for (let page = 0; page < 8 && candidates.length < limit * 3; page++) {
+    let q = adminDb.collection('directory_listings').where('claim_status', '==', 'unclaimed').limit(500)
+    if (cursor) q = q.startAfter(cursor)
+    const snap = await q.get()
+    if (snap.empty) break
+    cursor = snap.docs[snap.docs.length - 1]
+    for (const d of snap.docs) {
+      const l = d.data() as any
+      if (l.email) continue // already contactable
+      const attempted = typeof l.enrich_attempted_at === 'string' ? Date.parse(l.enrich_attempted_at) : 0
+      if (attempted && Date.now() - attempted < RETRY_AFTER_MS) continue
+      candidates.push(d)
+      if (candidates.length >= limit * 3) break
+    }
+    if (snap.size < 500) break
+  }
 
-  for (const doc of snap.docs) {
+  for (const doc of candidates) {
     if (stats.updated >= limit) break
     const l = doc.data() as any
-    if (l.email) continue // already contactable by email
     stats.scanned++
 
     const updates: Record<string, any> = {}
@@ -94,11 +111,14 @@ export async function runContactEnrichment(opts: { limit?: number } = {}) {
       }
     }
 
-    if (Object.keys(updates).length) {
+    // Always stamp the attempt — success or not — so the next run moves on to
+    // fresh docs instead of retrying this one for another 30 days.
+    updates.enrich_attempted_at = new Date().toISOString()
+    if (updates.email || updates.website || updates.phone) {
       updates.enriched_at = new Date().toISOString()
-      await doc.ref.set(updates, { merge: true })
       stats.updated++
     }
+    await doc.ref.set(updates, { merge: true })
   }
 
   return stats
