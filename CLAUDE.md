@@ -68,6 +68,7 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 | `citybeat-owner-reports` | monthly 1st 09:00 | `/api/cron/owner-reports` | ROI report (views/leads/reviews) emailed to every claimed-listing owner; basic tier gets Premium upsell |
 | `citybeat-upsell` | Tue 10:00 | `/api/cron/upsell?limit=20` | Premium→Featured upsell emails (one per listing) |
 | `citybeat-ops-digest` | Mon 08:00 | `/api/cron/ops-digest` | weekly operator heartbeat to `ALERT_EMAIL`: revenue, funnel, inventory, leads, failures |
+| `citybeat-account-manager` | Wed 09:30 | `/api/cron/account-manager` | AI marketing drafts (deal, captions, review replies) per paying listing → owner approves on /dashboard; needs `ANTHROPIC_API_KEY` |
 
 Manage with `gcloud scheduler jobs list/run/pause --location us-central1`. To add a
 new cron: create the route with the `CRON_SECRET` check, then add a scheduler job.
