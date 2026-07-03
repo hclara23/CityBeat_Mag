@@ -105,6 +105,9 @@ export default function AdminDashboard() {
         <div className="mb-10">
           <h1 className="font-display text-4xl font-black tracking-tight tracking-tight uppercase">Admin Control</h1>
           <p className="mt-1 text-white/50 text-sm">Review submissions and monitor performance</p>
+          <a href={withLocale(locale, '/guide')} className="mt-1 inline-block text-xs font-bold text-brand-neon underline">
+            📖 User Guide
+          </a>
         </div>
 
         <section className="mb-10">

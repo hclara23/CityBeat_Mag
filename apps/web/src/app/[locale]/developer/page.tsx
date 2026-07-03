@@ -51,6 +51,9 @@ export default function DeveloperDashboard() {
           <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-magenta">Godmode</p>
           <h1 className="font-display text-4xl font-black tracking-tight tracking-tight uppercase">Developer Control</h1>
           <p className="mt-1 text-white/50 text-sm">Advanced platform settings and automations.</p>
+          <a href={withLocale(locale, '/guide')} className="mt-1 inline-block text-xs font-bold text-brand-neon underline">
+            📖 User Guide
+          </a>
         </div>
 
         <section className="mb-10">

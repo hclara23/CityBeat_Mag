@@ -93,6 +93,9 @@ export default function DashboardPage() {
             <h1 className="text-4xl font-bold">
               Welcome, {profile?.full_name || 'User'}
             </h1>
+            <a href={`/${locale}/guide`} className="mt-1 inline-block text-xs font-bold text-cyan-600 underline">
+              📖 User Guide
+            </a>
             <p className="text-gray-600 mt-2">
               {profile?.is_advertiser ? 'Advertiser Dashboard' : 'Dashboard'}
             </p>

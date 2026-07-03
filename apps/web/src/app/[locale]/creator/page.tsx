@@ -175,6 +175,9 @@ export default function CreatorDashboard() {
           <div>
             <h1 className="font-display text-4xl font-black tracking-tight">{t.title}</h1>
             <p className="mt-1 text-sm text-white/50">{t.subtitle}</p>
+            <a href={withLocale(locale, '/guide')} className="mt-1 inline-block text-xs font-bold text-brand-neon underline">
+              📖 User Guide
+            </a>
           </div>
           <Link
             href={withLocale(locale, '/creator/new')}

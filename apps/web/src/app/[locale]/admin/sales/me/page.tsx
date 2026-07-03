@@ -48,6 +48,9 @@ export default function RepDashboard() {
           <div>
             <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-magenta">{isEs ? 'Ventas' : 'Sales'}</p>
             <h1 className="mt-2 font-display text-4xl font-black tracking-tight text-white">{isEs ? 'Mi panel' : 'My pipeline'}</h1>
+            <a href={withLocale(locale, '/guide')} className="mt-1 inline-block text-xs font-bold text-brand-neon underline">
+              📖 {isEs ? 'Guía de usuario' : 'User Guide'}
+            </a>
           </div>
           <a
             href={withLocale(locale, '/admin/sales/new')}
