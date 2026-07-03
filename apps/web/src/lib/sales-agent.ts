@@ -1,6 +1,7 @@
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { sendEmail as sendEmailViaProvider } from './email'
+import { isSuppressed } from './suppression'
 
 // Automated outbound sales agent: contacts unclaimed directory businesses and
 // pitches the free claim + $19/mo Premium upgrade, with a one-click deep link
@@ -116,8 +117,10 @@ async function enhanceWithClaude(listing: Listing, base: ReturnType<typeof templ
 
 const ADDRESS = process.env.SALES_PHYSICAL_ADDRESS || 'CityBeat Media Group, El Paso, TX, USA'
 
-function unsubUrl(outreachId: string) {
-  return `${APP_URL}/api/track/unsub?o=${outreachId}`
+// kind: o = sales_outreach, u = upsell_outreach, r = recovery_outreach — the
+// unsub route looks the id up in the matching collection and suppresses globally.
+function unsubUrl(outreachId: string, kind: 'o' | 'u' | 'r' = 'o') {
+  return `${APP_URL}/api/track/unsub?${kind}=${encodeURIComponent(outreachId)}`
 }
 
 function renderHtml(listing: Listing, content: ReturnType<typeof templatePitch>, outreachId: string, locale: 'en' | 'es') {
@@ -182,7 +185,7 @@ function renderUpsellHtml(listing: Listing, content: ReturnType<typeof upsellPit
   <p>${content.pitch}</p>
   <p style="margin:28px 0"><a href="${url}" style="background:#eab308;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${cta}</a></p>
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0" />
-  <p style="font-size:11px;color:#999;line-height:1.5">${ADDRESS}<br/><a href="${unsubUrl(outreachId)}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p>
+  <p style="font-size:11px;color:#999;line-height:1.5">${ADDRESS}<br/><a href="${unsubUrl(outreachId, 'u')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p>
   <img src="${openPixel(outreachId)}" width="1" height="1" alt="" style="display:none" />
 </div>`
 }
@@ -206,6 +209,7 @@ export async function runUpsellOutreach(opts: { limit?: number; dryRun?: boolean
     const l = { id: lDoc.id, ...(lDoc.data() as any) } as Listing & { contact_email?: string }
     const email = (l as any).contact_email || l.email
     if (!email) { results.skipped_no_email++; continue }
+    if (await isSuppressed(email)) { results.skipped_already++; continue }
     const already = await adminDb.collection('upsell_outreach').where('listing_id', '==', l.id).limit(1).get()
     if (!already.empty) { results.skipped_already++; continue }
 
@@ -271,6 +275,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     if (!l || l.claim_status !== 'unclaimed') continue
     const { email, locale } = await profileEmail(c.user_id)
     if (!email) continue
+    if (await isSuppressed(email)) continue
 
     const name = l.name || (locale === 'es' ? 'tu negocio' : 'your business')
     const subject = locale === 'es' ? `Termina de reclamar ${name} en CityBeat` : `Finish claiming ${name} on CityBeat`
@@ -280,7 +285,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
   <p>${locale === 'es' ? `Empezaste a reclamar <strong>${name}</strong> pero el código expiró.` : `You started claiming <strong>${name}</strong> but the code expired.`}</p>
   <p>${locale === 'es' ? 'Toma un minuto — pide un código nuevo y termina la verificación.' : 'It takes a minute — request a fresh code and finish verifying.'}</p>
   <p style="margin:24px 0"><a href="${url}" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Terminar mi reclamo' : 'Finish my claim'}</a></p>
-  <p style="font-size:11px;color:#999">${ADDRESS}</p></div>`
+  <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(key, 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false
     if (!opts.dryRun) sent = (await sendEmail(email, subject, html)).sent
     await record(key, { type: 'incomplete_claim', listing_id: c.listing_id, user_id: c.user_id, email, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })
@@ -307,6 +312,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     const { email, locale } = await profileEmail(l.owner_id)
     const to = email || l.contact_email
     if (!to) continue
+    if (await isSuppressed(to)) continue
 
     const name = l.name || (locale === 'es' ? 'tu negocio' : 'your business')
     const subject = locale === 'es' ? `${name} está en vivo — desbloquea tus leads` : `${name} is live — unlock your leads`
@@ -316,7 +322,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
   <p>${locale === 'es' ? `<strong>${name}</strong> ya está verificado y visible en CityBeat. ¡Bien hecho!` : `<strong>${name}</strong> is verified and live on CityBeat. Nice work!`}</p>
   <p>${locale === 'es' ? 'Con <strong>Premium ($19/mes)</strong> recibes cada lead de clientes al instante, añades fotos y horarios, y apareces más arriba en tu categoría.' : 'With <strong>Premium ($19/mo)</strong> you get every customer lead instantly, add photos and hours, and rank higher in your category.'}</p>
   <p style="margin:24px 0"><a href="${url}" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Mejorar mi ficha' : 'Upgrade my listing'}</a></p>
-  <p style="font-size:11px;color:#999">${ADDRESS}</p></div>`
+  <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(key, 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false
     if (!opts.dryRun) sent = (await sendEmail(to, subject, html)).sent
     await record(key, { type: 'basic_upsell', listing_id: doc.id, owner_id: l.owner_id, email: to, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })
@@ -357,6 +363,7 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
       await doc.ref.set({ status: 'converted', converted_at: FieldValue.serverTimestamp() }, { merge: true })
       continue
     }
+    if (await isSuppressed(o.email)) continue
     const listing: Listing = { id: o.listing_id, name: o.business_name, category: o.category, email: o.email }
     const base = templatePitch(listing, step, locale)
     const content = await enhanceWithClaude(listing, base, locale)
@@ -386,6 +393,10 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
     const l = { id: lDoc.id, ...(lDoc.data() as any) } as Listing
     if (!l.email) {
       results.skipped_no_email++
+      continue
+    }
+    if (await isSuppressed(l.email)) {
+      results.skipped_already++
       continue
     }
     const already = await adminDb.collection('sales_outreach').where('listing_id', '==', l.id).limit(1).get()
