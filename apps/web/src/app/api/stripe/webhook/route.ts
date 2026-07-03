@@ -4,7 +4,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { payoutToUser, getPayoutSettings } from '@/lib/payouts'
 import { getPlatformSettings } from '@/lib/platform-settings'
-import { reportFailure } from '@/lib/alerts'
+import { reportFailure, reportSuccess } from '@/lib/alerts'
 import { sendEmail } from '@/lib/email'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
@@ -457,6 +457,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
   }
 
+  await reportSuccess('stripe-webhook')
   // Mark processed only after success, so a partial failure can still be retried.
   await eventRef
     .set({ type: event.type, processed_at: new Date().toISOString() })

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { sendEmail } from '@/lib/email'
-import { reportFailure } from '@/lib/alerts'
+import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -106,6 +106,7 @@ export async function GET(request: NextRequest) {
     let sent = false
     if (!dryRun) sent = (await sendEmail(ALERT_EMAIL, `CityBeat weekly: $${(revenueCents / 100).toFixed(0)} revenue, ${weekLeads} leads, ${claimsStarted} claims`, html)).sent
 
+    await reportSuccess('cron:ops-digest')
     return NextResponse.json({
       ok: true,
       dryRun,

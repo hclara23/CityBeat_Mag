@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { fetchTicketmasterEvents } from '@/lib/events-scraper'
-import { reportFailure } from '@/lib/alerts'
+import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
       upserted++
     }
 
+    await reportSuccess('cron:sync-events')
     return NextResponse.json({ ok: true, upserted, purged_mock: purgedMock, purged_past: purgedPast })
   } catch (error: any) {
     console.error('Cron sync-events error:', error)

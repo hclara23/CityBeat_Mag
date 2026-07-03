@@ -3,7 +3,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getPublishedArticles } from '@/lib/articles'
 import { postArticleToSocial, socialConfigured } from '@/lib/social'
-import { reportFailure } from '@/lib/alerts'
+import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
       results.push({ slug: a.slug, networks: r })
     }
 
+    await reportSuccess('cron:social')
     return NextResponse.json({ ok: true, configured: true, considered: recent.length, posted, results })
   } catch (error) {
     await reportFailure('cron:social', error)

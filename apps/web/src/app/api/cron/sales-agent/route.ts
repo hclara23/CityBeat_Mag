@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runSalesOutreach, runRecoveryOutreach } from '@/lib/sales-agent'
-import { reportFailure } from '@/lib/alerts'
+import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     // Mid-funnel recovery rides the same daily run: abandoned verifications and
     // claimed-but-basic owners each get one nudge, tracked in recovery_outreach.
     const recovery = await runRecoveryOutreach({ limit: 20, dryRun })
+    await reportSuccess('cron:sales-agent')
     return NextResponse.json({ ...result, recovery })
   } catch (error) {
     await reportFailure('cron:sales-agent', error)

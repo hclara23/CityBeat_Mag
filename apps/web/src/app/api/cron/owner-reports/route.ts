@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { sendEmail } from '@/lib/email'
-import { reportFailure } from '@/lib/alerts'
+import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -160,6 +160,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    await reportSuccess('cron:owner-reports')
     return NextResponse.json({ ok: true, dryRun, owners: byOwner.size, sent, skipped_no_email: skippedNoEmail })
   } catch (error) {
     await reportFailure('cron:owner-reports', error)

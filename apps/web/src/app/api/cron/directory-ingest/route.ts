@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runDirectoryIngest } from '@citybeat/lib/directory/ingest'
-import { reportFailure } from '@/lib/alerts'
+import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
       categories,
     })
 
+    await reportSuccess('cron:directory-ingest')
     return NextResponse.json({
       ok: true,
       categories,

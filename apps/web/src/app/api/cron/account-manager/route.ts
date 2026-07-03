@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runAccountManager } from '@/lib/account-manager'
-import { reportFailure } from '@/lib/alerts'
+import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       limit: Number(searchParams.get('limit')) || 20,
       dryRun: searchParams.get('dryRun') === '1',
     })
+    await reportSuccess('cron:account-manager')
     return NextResponse.json(result)
   } catch (error) {
     await reportFailure('cron:account-manager', error)

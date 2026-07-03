@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runContactEnrichment } from '@/lib/enrich-contacts'
-import { reportFailure } from '@/lib/alerts'
+import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -13,7 +13,9 @@ export async function GET(request: NextRequest) {
   }
   const limit = Number(new URL(request.url).searchParams.get('limit')) || 25
   try {
-    return NextResponse.json(await runContactEnrichment({ limit }))
+    const result = await runContactEnrichment({ limit })
+    await reportSuccess('cron:enrich-contacts')
+    return NextResponse.json(result)
   } catch (error) {
     await reportFailure('cron:enrich-contacts', error, { limit })
     return NextResponse.json({ error: 'Enrichment failed' }, { status: 500 })

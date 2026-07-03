@@ -10,9 +10,40 @@ import { checkRateLimit } from './auth-security'
 
 const ALERT_EMAIL = process.env.ALERT_EMAIL || 'morningstarelp@gmail.com'
 
+// Clears a source's failing state and emails a one-line "recovered" note —
+// so a red alert in the inbox is known-resolved without asking anyone.
+// No-ops unless the source was actually marked failing (one cheap read/run).
+export async function reportSuccess(source: string) {
+  try {
+    const ref = adminDb.collection('system_health').doc(source)
+    const doc = await ref.get()
+    if (!doc.exists || (doc.data() as any).status !== 'failing') return
+    await ref.set({ status: 'ok', recovered_at: FieldValue.serverTimestamp() }, { merge: true })
+    await sendEmail(
+      ALERT_EMAIL,
+      `✅ [CityBeat] ${source} recovered`,
+      `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111">
+  <p><strong>${source}</strong> is healthy again as of ${new Date().toISOString()} — the earlier failure alert is resolved.</p>
+</div>`
+    )
+  } catch {
+    /* never crash the caller */
+  }
+}
+
 export async function reportFailure(source: string, error: unknown, context?: Record<string, unknown>) {
   const message = error instanceof Error ? error.message : String(error)
   const stack = error instanceof Error ? (error.stack || '').slice(0, 2000) : null
+
+  // Mark the source failing so the next success can announce recovery.
+  try {
+    await adminDb.collection('system_health').doc(source).set(
+      { status: 'failing', last_failure_at: FieldValue.serverTimestamp(), message: message.slice(0, 300) },
+      { merge: true }
+    )
+  } catch {
+    /* best effort */
+  }
 
   // Always record the alert, even when the email is deduped away.
   try {

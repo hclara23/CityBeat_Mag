@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getPublishedArticles } from '@/lib/articles'
 import { sendEmail } from '@/lib/email'
-import { reportFailure } from '@/lib/alerts'
+import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -137,6 +137,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Don't declare recovery on a run whose delivery mostly failed (the
+  // reportFailure above would be instantly contradicted).
+  if (!(failed > 0 && failed >= sent)) await reportSuccess('cron:newsletter-digest')
   return NextResponse.json({
     ok: true,
     dryRun,

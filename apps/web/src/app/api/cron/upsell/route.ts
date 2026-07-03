@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runUpsellOutreach } from '@/lib/sales-agent'
-import { reportFailure } from '@/lib/alerts'
+import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       dryRun: searchParams.get('dryRun') === '1',
       locale: (searchParams.get('locale') as 'en' | 'es') || 'en',
     })
+    await reportSuccess('cron:upsell')
     return NextResponse.json(result)
   } catch (error) {
     await reportFailure('cron:upsell', error)
