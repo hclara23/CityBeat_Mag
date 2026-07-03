@@ -1,4 +1,3 @@
-import { BasicCrawler, log } from '@crawlee/basic'
 import { adminDb } from '../firebase/admin'
 
 type OsmElementType = 'node' | 'way' | 'relation'
@@ -247,47 +246,41 @@ export async function runDirectoryIngest(options: DirectoryIngestOptions = {}): 
     throw new Error(`No matching category found for "${(options.categories || []).join(', ')}".`)
   }
 
+  // Plain sequential fetch with retry. This used to run through Crawlee's
+  // BasicCrawler, but its storage engine can't initialize inside the bundled
+  // Next.js serverless runtime (openStorage → "reading 'bind'"), and a crawler
+  // framework is overkill for fetching a handful of Overpass URLs anyway.
   const candidates: DirectoryCandidate[] = []
-  const crawler = new BasicCrawler({
-    maxConcurrency: 1,
-    maxRequestRetries: 2,
-    requestHandlerTimeoutSecs: 90,
-    maxRequestsPerCrawl: selectedQueries.length,
-    async requestHandler({ request }) {
-      const category = String(request.userData.category || 'Business')
-      log.info(`Fetching OpenStreetMap businesses for ${category}`)
+  for (const query of selectedQueries) {
+    const url = toOverpassUrl(options.overpassUrl || DEFAULT_OVERPASS_URL, buildOverpassQuery(query.selector))
+    let lastError: unknown = null
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      try {
+        console.log(`Fetching OpenStreetMap businesses for ${query.category} (attempt ${attempt + 1})`)
+        const response = await fetch(url, {
+          headers: { Accept: 'application/json', 'User-Agent': CITYBEAT_USER_AGENT },
+          signal: AbortSignal.timeout(90_000),
+        })
+        if (!response.ok) throw new Error(`Overpass returned ${response.status} for ${query.category}`)
 
-      const response = await fetch(request.url, {
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': CITYBEAT_USER_AGENT,
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`Overpass returned ${response.status} for ${category}`)
+        const payload = (await response.json()) as OverpassResponse
+        const normalized = (payload.elements || [])
+          .map((element) => normalizeCandidate(element, query.category))
+          .filter((candidate): candidate is DirectoryCandidate => Boolean(candidate))
+        candidates.push(...normalized)
+        console.log(`Found ${normalized.length} ${query.category} candidates`)
+        lastError = null
+        break
+      } catch (error) {
+        lastError = error
+        // Overpass rate-limits aggressive callers — brief pause before retrying.
+        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)))
       }
-
-      const payload = (await response.json()) as OverpassResponse
-      const normalized = (payload.elements || [])
-        .map((element) => normalizeCandidate(element, category))
-        .filter((candidate): candidate is DirectoryCandidate => Boolean(candidate))
-
-      candidates.push(...normalized)
-      log.info(`Found ${normalized.length} ${category} candidates`)
-    },
-    failedRequestHandler({ request, error }) {
-      const message = error instanceof Error ? error.message : String(error)
-      log.error(`Failed to fetch ${String(request.userData.category || request.url)}: ${message}`)
-    },
-  })
-
-  await crawler.run(
-    selectedQueries.map((query) => ({
-      url: toOverpassUrl(options.overpassUrl || DEFAULT_OVERPASS_URL, buildOverpassQuery(query.selector)),
-      userData: { category: query.category },
-    }))
-  )
+    }
+    if (lastError) {
+      console.error(`Failed to fetch ${query.category}: ${lastError instanceof Error ? lastError.message : String(lastError)}`)
+    }
+  }
 
   const deduped = dedupeCandidates(candidates, limit)
 

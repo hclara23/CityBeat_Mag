@@ -52,10 +52,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@crawlee/basic": "^3.16.0",
     "@opentelemetry/api": "^1.9.1",
     "@sentry/nextjs": "^7.109.0",
-    "crawlee": "^3.16.0",
     "dotenv": "^17.4.2",
     "firebase": "^12.14.0",
     "firebase-admin": "^14.0.0",
