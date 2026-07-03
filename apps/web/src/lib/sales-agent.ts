@@ -225,6 +225,108 @@ export async function runUpsellOutreach(opts: { limit?: number; dryRun?: boolean
   return results
 }
 
+// ─── Recovery drip: claims that stalled mid-funnel ───────────────────────────
+//
+// Segment 1 — started a claim, never verified (code_sent/expired/failed >2d):
+//   nudge the claimer's account email with a fresh-code deep link.
+// Segment 2 — claimed free, still basic >3d after approval:
+//   pitch Premium (leads + photos + placement) to the owner.
+// One-and-done per target, tracked in `recovery_outreach`.
+export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boolean } = {}) {
+  const limit = Math.max(1, Math.min(opts.limit ?? 20, 100))
+  const results = { incomplete_claims: 0, basic_upsells: 0, sent: 0, dryRun: Boolean(opts.dryRun) }
+  const now = Date.now()
+
+  const profileEmail = async (userId: string): Promise<{ email: string | null; locale: 'en' | 'es' }> => {
+    const doc = await adminDb.collection('profiles').doc(userId).get().catch(() => null)
+    const p = doc?.exists ? (doc.data() as any) : null
+    return { email: p?.email || null, locale: p?.locale === 'es' ? 'es' : 'en' }
+  }
+
+  const alreadySent = async (key: string) => {
+    const doc = await adminDb.collection('recovery_outreach').doc(key).get().catch(() => null)
+    return Boolean(doc?.exists)
+  }
+
+  const record = (key: string, fields: Record<string, unknown>) =>
+    adminDb.collection('recovery_outreach').doc(key).set({ ...fields, created_at: FieldValue.serverTimestamp() })
+
+  // Segment 1: abandoned verifications.
+  const stalled = await adminDb
+    .collection('directory_claims')
+    .where('status', 'in', ['code_sent', 'expired', 'failed'])
+    .get()
+    .catch(() => ({ docs: [] as any[] }))
+  for (const doc of stalled.docs as any[]) {
+    if (results.incomplete_claims >= limit) break
+    const c = doc.data()
+    const ageMs = now - (c.created_at?.toDate ? c.created_at.toDate().getTime() : 0)
+    if (ageMs < 2 * 86400000) continue
+    if (!c.listing_id || !c.user_id) continue
+    const key = `claim:${c.listing_id}:${c.user_id}`
+    if (await alreadySent(key)) continue
+    // Only nudge if the listing is still up for grabs.
+    const lDoc = await adminDb.collection('directory_listings').doc(c.listing_id).get().catch(() => null)
+    const l = lDoc?.exists ? (lDoc.data() as any) : null
+    if (!l || l.claim_status !== 'unclaimed') continue
+    const { email, locale } = await profileEmail(c.user_id)
+    if (!email) continue
+
+    const name = l.name || (locale === 'es' ? 'tu negocio' : 'your business')
+    const subject = locale === 'es' ? `Termina de reclamar ${name} en CityBeat` : `Finish claiming ${name} on CityBeat`
+    const url = `${APP_URL}/${locale}/directory/${c.listing_id}/claim`
+    const html = `<div style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;color:#111">
+  <h2 style="font-weight:900">CityBeat</h2>
+  <p>${locale === 'es' ? `Empezaste a reclamar <strong>${name}</strong> pero el código expiró.` : `You started claiming <strong>${name}</strong> but the code expired.`}</p>
+  <p>${locale === 'es' ? 'Toma un minuto — pide un código nuevo y termina la verificación.' : 'It takes a minute — request a fresh code and finish verifying.'}</p>
+  <p style="margin:24px 0"><a href="${url}" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Terminar mi reclamo' : 'Finish my claim'}</a></p>
+  <p style="font-size:11px;color:#999">${ADDRESS}</p></div>`
+    let sent = false
+    if (!opts.dryRun) sent = (await sendEmail(email, subject, html)).sent
+    await record(key, { type: 'incomplete_claim', listing_id: c.listing_id, user_id: c.user_id, email, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })
+    results.incomplete_claims++
+    if (sent) results.sent++
+  }
+
+  // Segment 2: claimed free, never upgraded.
+  const basics = await adminDb
+    .collection('directory_listings')
+    .where('claim_status', '==', 'approved')
+    .where('tier', '==', 'basic')
+    .limit(limit * 4)
+    .get()
+    .catch(() => ({ docs: [] as any[] }))
+  for (const doc of basics.docs as any[]) {
+    if (results.basic_upsells >= limit) break
+    const l = doc.data()
+    if (!l.owner_id) continue
+    const claimedMs = typeof l.claimed_at === 'string' ? Date.parse(l.claimed_at) || 0 : 0
+    if (!claimedMs || now - claimedMs < 3 * 86400000) continue
+    const key = `upgrade:${doc.id}`
+    if (await alreadySent(key)) continue
+    const { email, locale } = await profileEmail(l.owner_id)
+    const to = email || l.contact_email
+    if (!to) continue
+
+    const name = l.name || (locale === 'es' ? 'tu negocio' : 'your business')
+    const subject = locale === 'es' ? `${name} está en vivo — desbloquea tus leads` : `${name} is live — unlock your leads`
+    const url = `${APP_URL}/${locale}/dashboard`
+    const html = `<div style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;color:#111">
+  <h2 style="font-weight:900">CityBeat</h2>
+  <p>${locale === 'es' ? `<strong>${name}</strong> ya está verificado y visible en CityBeat. ¡Bien hecho!` : `<strong>${name}</strong> is verified and live on CityBeat. Nice work!`}</p>
+  <p>${locale === 'es' ? 'Con <strong>Premium ($19/mes)</strong> recibes cada lead de clientes al instante, añades fotos y horarios, y apareces más arriba en tu categoría.' : 'With <strong>Premium ($19/mo)</strong> you get every customer lead instantly, add photos and hours, and rank higher in your category.'}</p>
+  <p style="margin:24px 0"><a href="${url}" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Mejorar mi ficha' : 'Upgrade my listing'}</a></p>
+  <p style="font-size:11px;color:#999">${ADDRESS}</p></div>`
+    let sent = false
+    if (!opts.dryRun) sent = (await sendEmail(to, subject, html)).sent
+    await record(key, { type: 'basic_upsell', listing_id: doc.id, owner_id: l.owner_id, email: to, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })
+    results.basic_upsells++
+    if (sent) results.sent++
+  }
+
+  return results
+}
+
 // Run one outreach batch: new unclaimed businesses with an email, who have not
 // been contacted, plus due follow-ups. dryRun renders+logs without sending.
 export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean; locale?: 'en' | 'es' } = {}) {
