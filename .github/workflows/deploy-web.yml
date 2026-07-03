@@ -64,6 +64,20 @@ jobs:
             --region "$GCP_REGION" \
             --quiet
 
+      # Fail the workflow (and page Slack) if the LIVE site is broken after
+      # deploy — build success alone doesn't prove the app serves traffic.
+      - name: Post-deploy smoke test
+        run: |
+          sleep 15
+          for path in "/en" "/en/directory" "/api/health"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://citybeatmag.co$path")
+            echo "GET $path -> $code"
+            if [ "$code" != "200" ]; then
+              echo "Smoke test FAILED on $path (got $code)"
+              exit 1
+            fi
+          done
+
       - name: Notify Slack on Success
         if: success()
         continue-on-error: true
