@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { payoutToUser, getPayoutSettings } from '@/lib/payouts'
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { reportFailure } from '@/lib/alerts'
+import { sendEmail } from '@/lib/email'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -280,6 +281,36 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
   await payResidualCommissionIfDue(invoice)
 }
 
+// Dunning: a failed renewal silently churns unless the customer hears about it.
+// One email per invoice (dedup in `dunning_emails`), pointing at Stripe's hosted
+// invoice page where they can pay / update the card without logging in anywhere.
+async function sendDunningEmail(invoice: any) {
+  const to = invoice.customer_email
+  const url = invoice.hosted_invoice_url
+  if (!to || !url || !invoice.id) return
+  const ref = adminDb.collection('dunning_emails').doc(String(invoice.id))
+  const seen = await ref.get().catch(() => null)
+  if (seen?.exists) return
+
+  const amount = ((invoice.amount_due ?? 0) / 100).toFixed(2)
+  const html = `<div style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;color:#111">
+  <h2 style="font-weight:900">CityBeat</h2>
+  <p>Your CityBeat payment of <strong>$${amount}</strong> didn't go through — usually an expired or declined card.</p>
+  <p>Your listing benefits pause until the payment succeeds. It takes a minute to fix:</p>
+  <p style="margin:24px 0"><a href="${url}" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">Pay invoice / update card</a></p>
+  <p style="color:#666;font-size:13px">¿Prefieres español? Tu pago de $${amount} no se procesó — usa el botón de arriba para actualizar tu tarjeta.</p>
+  <p style="font-size:11px;color:#999">Sent via citybeatmag.co · Stripe retries automatically for a few days.</p></div>`
+
+  const result = await sendEmail(to, `Action needed: your CityBeat payment of $${amount} failed`, html).catch(() => ({ sent: false }))
+  await ref.set({
+    invoice_id: invoice.id,
+    customer_email: to,
+    amount_due: invoice.amount_due ?? 0,
+    sent: Boolean((result as any).sent),
+    created_at: new Date().toISOString(),
+  }).catch(() => {})
+}
+
 async function handleInvoicePaymentFailed(invoice: any) {
   await recordPayment({ ...invoice, status: 'payment_failed' })
   await setPaymentStatusByField('stripe_customer_id', invoice.customer || '', 'past_due')
@@ -290,6 +321,7 @@ async function handleInvoicePaymentFailed(invoice: any) {
     // An ads-portal banner/sponsored subscription that lapses should stop showing.
     await setAdCampaignsBySubscription(invoice.subscription, { status: 'past_due', is_active: false })
   }
+  await sendDunningEmail(invoice)
 }
 
 // Updates any ads-portal campaigns tied to a Stripe subscription (separate
