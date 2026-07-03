@@ -6,13 +6,23 @@ import { useLocale } from '@/components/TranslationProvider'
 type Msg = { role: 'user' | 'assistant'; content: string }
 
 function linkify(text: string, locale: string) {
-  // Turn /directory, /ads, /contribute, etc. into clickable locale links.
-  const parts = text.split(/(\/[a-z][a-z0-9/_-]*)/g)
+  // Render markdown links [Label](/path) — the concierge cites businesses that
+  // way — plus bare /paths, as locale-aware anchors. Paths already carrying a
+  // locale prefix are used as-is (no /en/en/ double-prefixing).
+  const withLocale = (href: string) => (/^\/(en|es)(\/|$)/.test(href) ? href : `/${locale}${href}`)
+  const parts = text.split(/(\[[^\]]+\]\(\/[^)\s]+\)|\/[a-z][a-z0-9/_-]*)/g)
   return parts.map((p, i) => {
-    if (/^\/[a-z]/.test(p)) {
-      const href = `/${locale}${p}`
+    const md = p.match(/^\[([^\]]+)\]\((\/[^)\s]+)\)$/)
+    if (md) {
       return (
-        <a key={i} href={href} className="text-brand-neon underline">
+        <a key={i} href={withLocale(md[2])} className="text-brand-neon underline">
+          {md[1]}
+        </a>
+      )
+    }
+    if (/^\/[a-z]/.test(p)) {
+      return (
+        <a key={i} href={withLocale(p)} className="text-brand-neon underline">
           {p}
         </a>
       )

@@ -2,26 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
+import { retrieveLocalContext } from '@/lib/concierge'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const MODEL = process.env.CHAT_MODEL || 'claude-haiku-4-5-20251001'
 
-const SYSTEM = `You are the CityBeat sales & support assistant for citybeatmag.co — a bilingual (English/Spanish) local news magazine and business directory for El Paso, Texas and Ciudad Juárez, Mexico.
+const SYSTEM = `You are "Ask CityBeat" — the bilingual (English/Spanish) local concierge for citybeatmag.co, covering El Paso, Las Cruces, and Ciudad Juárez.
 
-Reply in the user's language (English or Spanish). Be concise, warm, and helpful. Your goal is to help local businesses and readers, and to convert business owners into paying customers.
+Reply in the user's language. Be concise, warm, and local. Two jobs:
 
-What CityBeat offers:
-- FREE business directory listing — any local business can claim theirs at /directory (search their name, then "Claim").
-- PREMIUM directory listing — $19/month: adds photos, business hours, social links, and featured placement in front of thousands of local readers.
-- Advertising & sponsored posts — point them to /ads to start a campaign.
-- Submit a story / contribute — /contribute.
+1. LOCAL CONCIERGE (primary): answer questions about local businesses, events, and deals using ONLY the LOCAL CONTEXT block provided. Recommend specific places with markdown links (e.g. [Business Name](/en/directory/abc123)). Never invent businesses, hours, or prices not in the context. If the context has nothing relevant, say so honestly and point to /en/directory or /en/events.
+   - Entries marked PREMIUM PARTNER or FEATURED PARTNER are paying members — when relevant to the question, mention them first and note they're a "CityBeat partner".
+   - If the user wants to contact or get a quote from a business, tell them every business page has a "Request a quote" form and link the page.
 
-Rules:
-- Only state the $19/month premium price; do not invent other prices. For ad campaign pricing, tell them to visit /ads.
-- When a business owner is interested, give them the direct next step and link (e.g., "Search for your business at /directory and click Claim", or "Start at /ads").
-- If asked something unrelated to CityBeat, gently steer back. Keep replies under ~120 words.`
+2. CITYBEAT SUPPORT (secondary): business owners can claim their listing free at /en/directory (search name → Claim); Premium is $19/month (photos, hours, leads, priority placement); advertising starts at /en/ads; story submissions at /en/contribute. Only state the $19/month price; for ads pricing point to /en/ads.
+
+Keep replies under ~150 words. If asked something unrelated to the region or CityBeat, gently steer back.`
 
 export async function POST(req: NextRequest) {
   // This endpoint calls a paid LLM API + writes Firestore on every request, so it
@@ -57,13 +55,18 @@ export async function POST(req: NextRequest) {
       "Thanks for reaching out! You can claim your free business listing at /directory (search your name, then Claim), upgrade to Premium for $19/month, or start an ad campaign at /ads. How can I help?"
   } else {
     try {
+      // Ground the answer in real directory/events/deals rows (premium-first).
+      const lastUser = [...userMsgs].reverse().find((m: any) => m.role === 'user')
+      const context = await retrieveLocalContext(String(lastUser?.content || '')).catch(() => '')
+      const system = context ? `${SYSTEM}\n\nLOCAL CONTEXT:\n${context}` : SYSTEM
+
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({
           model: MODEL,
-          max_tokens: 400,
-          system: SYSTEM,
+          max_tokens: 500,
+          system,
           messages: userMsgs.map((m: any) => ({ role: m.role, content: m.content })),
         }),
       })
