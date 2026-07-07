@@ -6,7 +6,35 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 // the key (still attempts website-email scrape for listings that already have a website).
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
-const SKIP_EMAIL = /(\.png|\.jpg|\.jpeg|\.gif|\.webp|@sentry|@example|@2x|wixpress|\.wix)/i
+
+// Reject anything that isn't a real, deliverable business inbox. Sending to
+// these wastes outreach and — worse — hurts sender reputation (bounces/spam
+// traps), which is why cold outreach was landing nowhere.
+const SKIP_EMAIL = new RegExp(
+  [
+    // asset filenames caught by the regex
+    '\\.(png|jpe?g|gif|webp|svg|css|js)$',
+    // placeholder / template / example addresses
+    '@(example|domain|email|yourdomain|yoursite|company|sentry|test)\\.',
+    '^(user|name|email|your|someone|firstname|lastname|john\\.?doe)@',
+    // builder / platform / agency inboxes (not the business itself)
+    '(wixpress|\\.wix|squarespace|godaddy|wordpress|shopify|typemade|weebly|sentry\\.io|\\.png)',
+    // abuse/security role addresses — never a sales contact
+    '^(abuse|postmaster|noreply|no-reply|donotreply|mailer-daemon|spam|security)@',
+    // image dimension false positives like foo@2x
+    '@2x',
+  ].join('|'),
+  'i'
+)
+
+// Role inboxes we'll accept only if nothing better exists (info@, contact@ are
+// fine for a small business; we prefer them over generic personal accounts).
+function scoreEmail(email: string): number {
+  const local = email.split('@')[0].toLowerCase()
+  if (/^(info|contact|hello|hi|office|reservations|booking|sales|frontdesk)$/.test(local)) return 2
+  if (/(gmail|yahoo|hotmail|outlook|aol|icloud)\.com$/i.test(email)) return 1 // personal, still usable
+  return 3 // a named business-domain address — best
+}
 
 // Stored google_place_id values are OSM ids (osm:node:..), not Google place ids,
 // so we resolve a real place id from the business name + address first.
@@ -41,16 +69,36 @@ async function placesDetails(query: string): Promise<{ website?: string; phone?:
   }
 }
 
+function bestEmail(candidates: string[], siteHost?: string): string | null {
+  const clean = candidates
+    .map((e) => e.trim().toLowerCase())
+    .filter((e) => e.includes('@') && !SKIP_EMAIL.test(e))
+  if (clean.length === 0) return null
+  // Prefer an address on the business's own domain, then by role score.
+  const host = (siteHost || '').replace(/^www\./, '')
+  const ranked = [...new Set(clean)].sort((a, b) => {
+    const aOwn = host && a.endsWith('@' + host) ? 10 : 0
+    const bOwn = host && b.endsWith('@' + host) ? 10 : 0
+    return bOwn + scoreEmail(b) - (aOwn + scoreEmail(a))
+  })
+  return ranked[0] || null
+}
+
 async function fetchPageEmail(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'User-Agent': 'CityBeatBot/1.0' } })
     if (!res.ok) return null
     const html = (await res.text()).slice(0, 200000)
-    // mailto: links first — least likely to be a false positive.
-    const mailto = html.match(/mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
-    if (mailto && !SKIP_EMAIL.test(mailto[1])) return mailto[1]
-    const matches = html.match(EMAIL_RE) || []
-    return matches.find((m) => !SKIP_EMAIL.test(m)) || null
+    let host: string | undefined
+    try {
+      host = new URL(url).host.replace(/^www\./, '')
+    } catch {
+      /* ignore */
+    }
+    const mailtos = [...html.matchAll(/mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g)].map((m) => m[1])
+    const inline = html.match(EMAIL_RE) || []
+    // mailto links are the strongest signal; fall back to inline text.
+    return bestEmail(mailtos, host) || bestEmail(inline, host)
   } catch {
     return null
   }

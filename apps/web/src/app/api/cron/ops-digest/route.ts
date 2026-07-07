@@ -63,7 +63,8 @@ export async function GET(request: NextRequest) {
     const l = (listings.docs as any[]).map((d) => d.data())
     const newListings = l.filter((x) => inWindow(x.created_at)).length
     const pendingApproval = l.filter((x) => x.claim_status === 'pending_approval').length
-    const paying = l.filter((x) => ['premium', 'featured'].includes(x.tier)).length
+    // Real paying listings only — exclude house/showcase accounts (no revenue).
+    const paying = l.filter((x) => ['premium', 'featured'].includes(x.tier) && !x.is_house_account).length
 
     const weekLeads = (quotes.docs as any[]).map((d) => d.data()).filter((x) => inWindow(x.created_at)).length
     const totalSubs = (subs.docs as any[]).map((d) => d.data()).filter((s) => s.status !== 'unsubscribed').length
