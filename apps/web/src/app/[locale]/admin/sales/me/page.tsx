@@ -6,6 +6,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
+import { EngagementBoard } from '@/components/citybeat/EngagementBoard'
 
 function money(cents: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'usd' }).format((cents || 0) / 100)
@@ -75,6 +76,11 @@ export default function RepDashboard() {
             <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40">{isEs ? 'Prospectos' : 'Open leads'}</p>
             <p className="mt-2 text-3xl font-black text-white">{leads.length}</p>
           </div>
+        </div>
+
+        {/* Warm leads — who engaged with outreach (call the clickers first) */}
+        <div className="mt-8">
+          <EngagementBoard />
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
