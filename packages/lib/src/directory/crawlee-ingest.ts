@@ -95,12 +95,46 @@ function toOverpassUrl(baseUrl: string, query: string): string {
   return url.toString()
 }
 
+// Map raw OSM office subtypes to our specific business categories.
+const OFFICE_CATEGORY: Record<string, string> = {
+  estate_agent: 'Real Estate',
+  lawyer: 'Attorneys',
+  notary: 'Title & Notary',
+  insurance: 'Insurance',
+  financial: 'Financial',
+  financial_advisor: 'Financial',
+  accountant: 'Financial',
+  tax_advisor: 'Financial',
+  advertising_agency: 'Marketing',
+  marketing: 'Marketing',
+  graphic_design: 'Marketing',
+  it: 'Web Development',
+  web_design: 'Web Development',
+  software: 'Web Development',
+}
+const SHOP_CATEGORY: Record<string, string> = {
+  car: 'Auto Dealer',
+  truck: 'Auto Dealer',
+  motorcycle: 'Auto Dealer',
+  estate_agent: 'Real Estate',
+  hairdresser: 'Beauty',
+  beauty: 'Beauty',
+  massage: 'Beauty',
+  tattoo: 'Beauty',
+  car_repair: 'Auto Repair',
+  car_parts: 'Auto Repair',
+  tyres: 'Auto Repair',
+}
+
 function getCategory(tags: Record<string, string> | undefined, fallback: string): string {
   if (!tags) return fallback
   if (tags.amenity === 'restaurant' || tags.amenity === 'fast_food') return 'Restaurant'
   if (tags.amenity === 'cafe') return 'Cafe'
   if (tags.amenity === 'bar' || tags.amenity === 'pub' || tags.amenity === 'nightclub') return 'Bar'
-  if (tags.shop === 'car' || tags.shop === 'truck' || tags.shop === 'motorcycle') return 'Auto Dealer'
+  // Specific office/shop subtypes win over the generic buckets below.
+  if (tags.office && OFFICE_CATEGORY[tags.office]) return OFFICE_CATEGORY[tags.office]
+  if (tags.shop && SHOP_CATEGORY[tags.shop]) return SHOP_CATEGORY[tags.shop]
+  if (tags.craft) return 'Home Services'
   if (tags.shop) return 'Retail'
   if (tags.office) return 'Professional Services'
   if (tags.healthcare || ['clinic', 'dentist', 'doctors', 'pharmacy', 'hospital'].includes(tags.amenity || '')) return 'Health'
