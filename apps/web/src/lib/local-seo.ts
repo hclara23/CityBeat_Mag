@@ -8,12 +8,32 @@ export type LocalCategory = { slug: string; value: string; label: string; plural
 export type LocalCity = { slug: string; name: string; aliases: string[] }
 
 // `value` matches the directory_listings.category field; `slug` is the URL.
+// Each entry generates a /best/{slug}/{city} page for every city with listings.
+// `value` MUST equal the directory_listings.category field. `plural` is the H1
+// and title — phrased to match how people actually search ("real estate agents
+// near me", "best dentists in el paso").
 export const LOCAL_CATEGORIES: LocalCategory[] = [
+  // High commercial-intent B2B / professional services (best-paying verticals).
+  { slug: 'real-estate-agents', value: 'Real Estate', label: 'Real Estate Agent', plural: 'Real Estate Agents' },
+  { slug: 'attorneys', value: 'Attorneys', label: 'Attorney', plural: 'Attorneys' },
+  { slug: 'insurance-agents', value: 'Insurance', label: 'Insurance Agent', plural: 'Insurance Agents' },
+  { slug: 'financial-advisors', value: 'Financial', label: 'Financial Advisor', plural: 'Financial Advisors' },
+  { slug: 'title-companies', value: 'Title & Notary', label: 'Title & Notary Service', plural: 'Title & Notary Services' },
+  { slug: 'marketing-agencies', value: 'Marketing', label: 'Marketing Agency', plural: 'Marketing Agencies' },
+  { slug: 'web-designers', value: 'Web Development', label: 'Web Designer', plural: 'Web Design & Development' },
+  // High-intent consumer services.
+  { slug: 'dentists-doctors', value: 'Health', label: 'Doctor & Clinic', plural: 'Doctors, Dentists & Clinics' },
+  { slug: 'gyms', value: 'Fitness', label: 'Gym', plural: 'Gyms & Fitness' },
+  { slug: 'salons-spas', value: 'Beauty', label: 'Salon & Spa', plural: 'Salons & Spas' },
+  { slug: 'auto-repair', value: 'Auto Repair', label: 'Auto Repair Shop', plural: 'Auto Repair Shops' },
+  { slug: 'home-services', value: 'Home Services', label: 'Home Service', plural: 'Home Services & Contractors' },
+  { slug: 'auto-dealers', value: 'Auto Dealer', label: 'Auto Dealer', plural: 'Auto Dealers' },
+  // Food & nightlife (high search volume).
   { slug: 'restaurants', value: 'Restaurant', label: 'Restaurant', plural: 'Restaurants' },
   { slug: 'cafes', value: 'Cafe', label: 'Cafe', plural: 'Cafes' },
   { slug: 'coffee-shops', value: 'Coffee Shop', label: 'Coffee Shop', plural: 'Coffee Shops' },
+  { slug: 'bakeries', value: 'Bakery', label: 'Bakery', plural: 'Bakeries' },
   { slug: 'bars', value: 'Bar', label: 'Bar', plural: 'Bars' },
-  { slug: 'auto-dealers', value: 'Auto Dealer', label: 'Auto Dealer', plural: 'Auto Dealers' },
 ]
 
 // Coverage cities; `aliases` are matched (case-insensitive) against a listing's address.
@@ -78,7 +98,8 @@ export async function getLocalListings(cat: LocalCategory, city: LocalCity): Pro
 }
 
 // All (category × city) combos that actually have ≥1 listing — for the sitemap and
-// the /best hub. One query per category (5), bucketed by city in memory.
+// the /best hub. One query per category, bucketed by city in memory. Empty combos
+// are omitted so we never publish a thin/zero-result page.
 export async function getNonEmptyCombos(): Promise<Array<{ category: LocalCategory; city: LocalCity; count: number }>> {
   const out: Array<{ category: LocalCategory; city: LocalCity; count: number }> = []
   for (const cat of LOCAL_CATEGORIES) {
