@@ -6,20 +6,18 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 300
 
-// The full sales-inventory sweep. 'Retail' and 'Professional Services' are
-// deliberately excluded — their OSM selectors (bare shop=* / office=*) are too
-// noisy and would flood the queue with low-fit targets.
+// High-value B2B / professional-services sweep. These verticals routinely pay
+// for lead-gen and directory/marketing placement, so they convert far better
+// than consumer businesses. The earlier consumer categories (Restaurant, Cafe,
+// etc.) still exist in CATEGORY_QUERIES and can be re-targeted per-request via
+// ?categories=, but are no longer the nightly focus. Existing inventory is
+// untouched (ingest is insert-only).
 const DEFAULT_CATEGORIES = [
-  'Restaurant',
-  'Auto Dealer',
-  'Cafe',
-  'Bar',
-  'Health',
-  'Fitness',
-  'Beauty',
-  'Auto Repair',
-  'Home Services',
-  'Entertainment',
+  'Real Estate',
+  'Attorneys',
+  'Title & Notary',
+  'Insurance',
+  'Financial',
   'Marketing',
   'Web Development',
 ]

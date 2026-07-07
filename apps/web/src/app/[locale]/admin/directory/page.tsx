@@ -49,8 +49,11 @@ const BLANK_FORM = {
 }
 
 const CATEGORIES = [
-  'Restaurant', 'Cafe', 'Coffee Shop', 'Bar', 'Bakery', 'Food Truck',
+  // High-value B2B first (the crawl focus).
+  'Real Estate', 'Attorneys', 'Title & Notary', 'Insurance', 'Financial',
   'Marketing', 'Web Development',
+  // Consumer / other verticals.
+  'Restaurant', 'Cafe', 'Coffee Shop', 'Bar', 'Bakery', 'Food Truck',
   'Beauty', 'Auto Repair', 'Auto Dealer', 'Health', 'Fitness', 'Home Services',
   'Retail', 'Professional Services', 'Entertainment', 'Arts & Culture', 'Other',
 ]

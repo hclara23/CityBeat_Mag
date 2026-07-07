@@ -67,6 +67,14 @@ export const CATEGORY_QUERIES = [
   // Agencies — high-value B2B: they buy marketing/directory placement themselves.
   { category: 'Marketing', selector: '["office"~"^(advertising_agency|marketing|graphic_design)$"]' },
   { category: 'Web Development', selector: '["office"~"^(it|web_design|software)$"]' },
+  // Professional services — the highest-value targets: real estate, legal, and
+  // financial pros routinely pay for leads and directory/marketing placement.
+  { category: 'Real Estate', selector: '["office"="estate_agent"]' },
+  { category: 'Real Estate', selector: '["shop"="estate_agent"]' },
+  { category: 'Attorneys', selector: '["office"="lawyer"]' },
+  { category: 'Title & Notary', selector: '["office"="notary"]' },
+  { category: 'Insurance', selector: '["office"="insurance"]' },
+  { category: 'Financial', selector: '["office"~"^(financial|accountant|tax_advisor|financial_advisor)$"]' },
 ]
 
 function buildOverpassQuery(selector: string): string {
