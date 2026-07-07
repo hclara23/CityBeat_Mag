@@ -9,6 +9,7 @@ import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
 
 const developerLinks = [
+  { href: '/admin', label: 'Admin Control', description: 'Review queues: claims, briefs, events, leads, directory, and site performance.' },
   { href: '/admin/sales', label: 'Sales Agent', description: 'Automated outreach to unclaimed businesses — claim + Premium upsell funnel.' },
   { href: '/admin/banners', label: 'Ad Banner Manager', description: 'Create, edit, activate, and place sponsor banners across the site.' },
   { href: '/admin/payouts', label: 'Payout Settings', description: 'Set the % paid out to users per service and per-user overrides.' },

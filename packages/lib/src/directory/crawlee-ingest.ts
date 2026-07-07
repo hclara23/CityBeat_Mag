@@ -64,6 +64,9 @@ export const CATEGORY_QUERIES = [
   { category: 'Beauty', selector: '["shop"~"^(hairdresser|beauty|massage|tattoo)$"]' },
   { category: 'Auto Repair', selector: '["shop"~"^(car_repair|car_parts|tyres)$"]' },
   { category: 'Home Services', selector: '["craft"]' },
+  // Agencies — high-value B2B: they buy marketing/directory placement themselves.
+  { category: 'Marketing', selector: '["office"~"^(advertising_agency|marketing|graphic_design)$"]' },
+  { category: 'Web Development', selector: '["office"~"^(it|web_design|software)$"]' },
 ]
 
 function buildOverpassQuery(selector: string): string {

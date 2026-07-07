@@ -48,7 +48,12 @@ const BLANK_FORM = {
   image_url: '',
 }
 
-const CATEGORIES = ['Restaurant', 'Cafe', 'Coffee Shop', 'Bar', 'Bakery', 'Food Truck', 'Other']
+const CATEGORIES = [
+  'Restaurant', 'Cafe', 'Coffee Shop', 'Bar', 'Bakery', 'Food Truck',
+  'Marketing', 'Web Development',
+  'Beauty', 'Auto Repair', 'Auto Dealer', 'Health', 'Fitness', 'Home Services',
+  'Retail', 'Professional Services', 'Entertainment', 'Arts & Culture', 'Other',
+]
 const TIERS = ['basic', 'premium']
 const CLAIM_STATUSES = ['unclaimed', 'pending_approval', 'approved']
 

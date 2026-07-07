@@ -20,6 +20,8 @@ const DEFAULT_CATEGORIES = [
   'Auto Repair',
   'Home Services',
   'Entertainment',
+  'Marketing',
+  'Web Development',
 ]
 
 function isAuthorized(request: NextRequest) {
