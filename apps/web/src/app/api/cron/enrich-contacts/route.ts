@@ -11,9 +11,12 @@ export async function GET(request: NextRequest) {
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  const limit = Number(new URL(request.url).searchParams.get('limit')) || 25
+  const { searchParams } = new URL(request.url)
+  const limit = Number(searchParams.get('limit')) || 25
+  // ?categories=Real Estate,Attorneys targets a specific vertical.
+  const categories = (searchParams.get('categories') || '').split(',').map((c) => c.trim()).filter(Boolean)
   try {
-    const result = await runContactEnrichment({ limit })
+    const result = await runContactEnrichment({ limit, categories: categories.length ? categories : undefined })
     await reportSuccess('cron:enrich-contacts')
     return NextResponse.json(result)
   } catch (error) {

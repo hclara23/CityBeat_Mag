@@ -124,16 +124,20 @@ async function scrapeEmail(website: string): Promise<string | null> {
 
 const RETRY_AFTER_MS = 30 * 86400000 // don't re-grind a failed doc for 30 days
 
-export async function runContactEnrichment(opts: { limit?: number } = {}) {
+export async function runContactEnrichment(opts: { limit?: number; categories?: string[] } = {}) {
   const limit = Math.max(1, Math.min(opts.limit ?? 25, 100))
+  const catFilter = opts.categories && opts.categories.length ? new Set(opts.categories) : null
   const stats = { scanned: 0, places_filled: 0, emails_found: 0, updated: 0 }
 
   // Page through unclaimed listings collecting ones we haven't attempted
   // recently. Without the attempted-marker skip, every run re-scanned the same
-  // first page of unenrichable docs and the backlog never advanced.
+  // first page of unenrichable docs and the backlog never advanced. An optional
+  // category filter lets a run target a specific vertical (e.g. new B2B inventory
+  // buried behind thousands of older listings) instead of grinding in order.
   const candidates: FirebaseFirestore.QueryDocumentSnapshot[] = []
   let cursor: FirebaseFirestore.QueryDocumentSnapshot | null = null
-  for (let page = 0; page < 8 && candidates.length < limit * 3; page++) {
+  const maxPages = catFilter ? 30 : 8 // scan deeper when hunting a specific vertical
+  for (let page = 0; page < maxPages && candidates.length < limit * 3; page++) {
     let q = adminDb.collection('directory_listings').where('claim_status', '==', 'unclaimed').limit(500)
     if (cursor) q = q.startAfter(cursor)
     const snap = await q.get()
@@ -141,6 +145,7 @@ export async function runContactEnrichment(opts: { limit?: number } = {}) {
     cursor = snap.docs[snap.docs.length - 1]
     for (const d of snap.docs) {
       const l = d.data() as any
+      if (catFilter && !catFilter.has(l.category)) continue
       if (l.email) continue // already contactable
       const attempted = typeof l.enrich_attempted_at === 'string' ? Date.parse(l.enrich_attempted_at) : 0
       if (attempted && Date.now() - attempted < RETRY_AFTER_MS) continue
