@@ -71,6 +71,13 @@ export default async function middleware(request: NextRequest) {
 
   response.headers.set('Link', fullLinkHeader)
 
+  // Never allow a redirect to be cached. A cached 3xx that loses its Location
+  // header (as the root locale redirect did) becomes an unfollowable "redirect
+  // error" for Googlebot and blocks indexing. Redirects must recompute fresh.
+  if (response.status >= 300 && response.status < 400) {
+    response.headers.set('Cache-Control', 'no-store, must-revalidate')
+  }
+
   return response
 }
 
