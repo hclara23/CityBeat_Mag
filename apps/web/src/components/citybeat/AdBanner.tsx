@@ -71,9 +71,11 @@ export function AdBanner({
             <p className="text-[10px] font-black uppercase tracking-widest text-brand-neon">{banner.sponsor_name}</p>
           )}
           {banner.title && (
-            <h3 className="font-display text-lg sm:text-xl font-black uppercase text-white leading-tight mt-1">
+            /* A promotional banner headline, not a document section — kept as a
+               styled <p> so it doesn't break the page's heading outline (h1→h3). */
+            <p className="font-display text-lg sm:text-xl font-black uppercase text-white leading-tight mt-1">
               {banner.title}
-            </h3>
+            </p>
           )}
           {banner.description && (
             <p className="text-xs text-white/70 mt-1.5 leading-relaxed line-clamp-3">{banner.description}</p>

@@ -22,11 +22,13 @@ export default function SecurityPage() {
     setLoading(true)
     try {
       const res = await fetch('/api/profile', { cache: 'no-store' })
-      if (res.status === 401) {
+      const data = await res.json().catch(() => ({}))
+      // Unauthenticated → profile is null (endpoint returns 200 to avoid a
+      // console error on public pages); redirect to login.
+      if (!data.profile) {
         window.location.href = `/${locale}/login?redirectTo=/account/security`
         return
       }
-      const data = await res.json().catch(() => ({}))
       setMfaEnabled(Boolean(data.profile?.mfa_enabled))
     } finally {
       setLoading(false)

@@ -46,7 +46,10 @@ export async function GET() {
   const user = await getServerUser(cookieStore)
 
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // 200 with a null profile (not 401): this "who am I" check runs on public
+    // pages, and a 401 logs a browser console error that fails the Lighthouse
+    // best-practices audit. Callers treat a null profile as unauthenticated.
+    return NextResponse.json({ profile: null })
   }
 
   const profile = await getServerUserProfile(user.id, cookieStore)

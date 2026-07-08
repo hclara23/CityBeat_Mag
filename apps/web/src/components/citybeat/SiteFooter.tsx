@@ -71,7 +71,7 @@ export function SiteFooter({ locale = 'en' }: { locale?: string }) {
             </div>
           </div>
         </div>
-        <div className="mt-12 border-t border-white/10 pt-6 text-xs uppercase tracking-[0.22em] text-white/35">
+        <div className="mt-12 border-t border-white/10 pt-6 text-xs uppercase tracking-[0.22em] text-white/70">
           {locale === 'es'
             ? `Copyright ${new Date().getFullYear()} CityBeat Media Group. Todos los derechos reservados.`
             : `Copyright ${new Date().getFullYear()} CityBeat Media Group`}

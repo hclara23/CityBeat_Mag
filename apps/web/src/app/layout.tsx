@@ -40,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html suppressHydrationWarning className={spaceGrotesk.variable}>
+    <html lang="en" suppressHydrationWarning className={spaceGrotesk.variable}>
       <body className="antialiased">
         {children}
       </body>

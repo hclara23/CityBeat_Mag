@@ -213,7 +213,7 @@ export default async function Home({ params }: HomePageProps) {
               <Link key={key} href={withLocale(locale, `/ads/${key}`)} className="citybeat-panel group rounded-md p-6 transition hover:-translate-y-1 hover:border-brand-neon/40">
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-neon">{product.shortTitle}</p>
                 <p className="mt-5 text-4xl font-black text-white">{product.price}</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.22em] text-white/40">{product.cadence}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.22em] text-white/65">{product.cadence}</p>
                 <p className="mt-5 text-sm leading-6 text-white/58">{product.dek}</p>
               </Link>
             ))}
