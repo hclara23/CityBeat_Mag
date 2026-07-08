@@ -53,10 +53,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
   slugs.forEach((s) => urls.push(entry(`/stories/${s}`)))
 
-  // Directory listings (the long-tail local-SEO engine).
+  // Directory listings (the long-tail local-SEO engine) — PUBLISHED only. Never
+  // emit unpublished candidates or merged-duplicate siblings: they'd be dead/
+  // soft-404 URLs that waste Google's crawl budget.
   try {
-    const snap = await adminDb.collection('directory_listings').get()
-    snap.forEach((d) => urls.push(entry(`/directory/${d.id}`)))
+    const snap = await adminDb.collection('directory_listings').where('is_published', '==', true).get()
+    snap.forEach((d) => {
+      if ((d.data() as any).merged_into) return
+      urls.push(entry(`/directory/${d.id}`))
+    })
   } catch {
     /* ignore */
   }
