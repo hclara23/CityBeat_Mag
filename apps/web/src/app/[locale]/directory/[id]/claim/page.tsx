@@ -148,7 +148,7 @@ export default function ClaimPage() {
   }, [id, t.unclaimedStatusError])
 
   const [claimMethod, setClaimMethod] = useState<'email' | 'phone' | 'postcard'>('email')
-  const [selectedPlan, setSelectedPlan] = useState<PlanId>('founding')
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('founding_annual')
   const [claimStep, setClaimStep] = useState<'select_method' | 'enter_code' | 'verified'>('select_method')
   const [verificationCode, setVerificationCode] = useState('')
   const [verifying, setVerifying] = useState(false)
@@ -244,9 +244,9 @@ export default function ClaimPage() {
 
       const data = await response.json()
       if (!response.ok) {
-        // Founding 100 sold out — fall back to standard monthly and let them retry.
+        // Founding 100 sold out — fall back to standard annual (best value) and retry.
         if (data.founding_sold_out) {
-          setSelectedPlan('premium_monthly')
+          setSelectedPlan('premium_annual')
         }
         throw new Error(data.error || 'Failed to create checkout session')
       }
@@ -523,16 +523,19 @@ export default function ClaimPage() {
                             </p>
 
                             <div className="flex flex-col gap-2 my-4">
-                              {(['founding', 'premium_monthly', 'premium_annual', 'featured_monthly'] as PlanId[]).map((pid) => {
+                              {(['founding_annual', 'founding', 'premium_annual', 'premium_monthly', 'featured_monthly'] as PlanId[]).map((pid) => {
                                 const p = DIRECTORY_PLANS[pid]
                                 const active = selectedPlan === pid
+                                const isBestValue = pid === 'founding_annual'
                                 return (
                                   <label
                                     key={pid}
                                     className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition ${
                                       active
                                         ? 'border-brand-gold bg-brand-gold/10'
-                                        : 'border-white/10 bg-white/5 hover:border-white/25'
+                                        : isBestValue
+                                          ? 'border-brand-gold/40 bg-brand-gold/5 hover:border-brand-gold/60'
+                                          : 'border-white/10 bg-white/5 hover:border-white/25'
                                     }`}
                                   >
                                     <input
@@ -546,19 +549,22 @@ export default function ClaimPage() {
                                       <span className="flex items-center justify-between gap-2">
                                         <span className="text-xs font-bold text-white flex items-center gap-1.5">
                                           {p.label}
-                                          {pid === 'founding' && (
-                                            <span className="text-[9px] bg-brand-neon/20 text-brand-neon px-1.5 py-0.5 rounded font-black uppercase tracking-wider">
-                                              Launch · 100 only
-                                            </span>
-                                          )}
-                                          {pid === 'featured_monthly' && (
-                                            <span className="text-[9px] bg-brand-gold/20 text-brand-gold px-1.5 py-0.5 rounded font-black uppercase tracking-wider">
-                                              Top spot
+                                          {p.badge && (
+                                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider ${isBestValue ? 'bg-brand-gold/25 text-brand-gold' : 'bg-brand-neon/20 text-brand-neon'}`}>
+                                              {p.badge}
                                             </span>
                                           )}
                                         </span>
-                                        <span className="text-xs font-black text-brand-gold whitespace-nowrap">{p.priceLabel}</span>
+                                        <span className="text-right whitespace-nowrap">
+                                          <span className="block text-xs font-black text-brand-gold">{p.priceLabel}</span>
+                                          {p.effectiveMonthly && (
+                                            <span className="block text-[9px] text-white/40">{p.effectiveMonthly}</span>
+                                          )}
+                                        </span>
                                       </span>
+                                      {p.savingsLabel && (
+                                        <span className="block text-[10px] font-bold text-green-400 mt-1">✓ {p.savingsLabel}</span>
+                                      )}
                                       <span className="block text-[10px] text-white/50 mt-1 leading-snug">{p.description}</span>
                                     </span>
                                   </label>

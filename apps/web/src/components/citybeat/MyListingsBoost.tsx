@@ -12,8 +12,8 @@ interface Listing {
   plan: string | null
 }
 
-// Upgrade options offered in the dashboard, cheapest → most visible.
-const BOOST_PLANS: PlanId[] = ['premium_monthly', 'premium_annual', 'featured_monthly']
+// Upgrade options offered in the dashboard — annual (best value) first.
+const BOOST_PLANS: PlanId[] = ['premium_annual', 'premium_monthly', 'featured_monthly']
 
 const TIER_LABEL: Record<string, string> = {
   basic: 'Basic',
@@ -87,14 +87,16 @@ export function MyListingsBoost() {
                   // Don't offer to "boost" to the tier they already have on a monthly plan.
                   const sameTier = plan.tier === listing.tier
                   const key = `${listing.id}:${planId}`
+                  const isAnnual = plan.interval === 'year'
                   return (
                     <button
                       key={planId}
                       disabled={busy === key || (sameTier && listing.tier === 'featured')}
                       onClick={() => boost(listing.id, planId)}
-                      className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-50"
+                      className={`rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50 ${isAnnual ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-red-600 hover:bg-red-700'}`}
                     >
                       {busy === key ? 'Starting…' : `${plan.label} · ${plan.priceLabel}`}
+                      {isAnnual && plan.savingsLabel ? ' — 2 mo free' : ''}
                     </button>
                   )
                 })}
