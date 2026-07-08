@@ -243,7 +243,11 @@ async function writeCandidates(candidates: DirectoryCandidate[], _options: Direc
       ...candidate,
       tier: 'basic',
       claim_status: 'unclaimed',
-      is_published: false,
+      // Published on insert: OSM business listings are factual public data, and
+      // an invisible directory can't rank, generate leads, or be claimed. Admins
+      // can unpublish anything problematic from the Directory Manager; the
+      // consolidation script re-hides merged duplicates.
+      is_published: true,
       rating: null,
       user_ratings_total: null,
       created_at: now,
@@ -262,7 +266,11 @@ async function writeCandidates(candidates: DirectoryCandidate[], _options: Direc
       ...candidate,
       tier: 'basic',
       claim_status: 'unclaimed',
-      is_published: false,
+      // Published on insert: OSM business listings are factual public data, and
+      // an invisible directory can't rank, generate leads, or be claimed. Admins
+      // can unpublish anything problematic from the Directory Manager; the
+      // consolidation script re-hides merged duplicates.
+      is_published: true,
       rating: null,
       user_ratings_total: null,
       created_at: now,
