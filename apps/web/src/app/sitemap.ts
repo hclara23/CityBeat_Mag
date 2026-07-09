@@ -19,7 +19,7 @@ function entry(path: string, lastModified?: Date): MetadataRoute.Sitemap[number]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
-    '', '/stories', '/directory', '/best', '/events', '/deals', '/jobs', '/ads', '/contribute', '/privacy', '/terms',
+    '', '/stories', '/directory', '/best', '/events', '/this-weekend', '/deals', '/jobs', '/ads', '/contribute', '/privacy', '/terms',
     '/topics/news', '/topics/business', '/topics/events', '/topics/culture',
   ]
   const urls: MetadataRoute.Sitemap = staticPaths.map((p) => entry(p))

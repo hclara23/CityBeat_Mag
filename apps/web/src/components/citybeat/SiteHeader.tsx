@@ -9,6 +9,7 @@ import { getUser, signOut } from '@citybeat/lib/firebase/auth-client'
 
 function getNavItems(locale: string) {
   return [
+    { label: locale === 'es' ? 'Este finde' : 'This Weekend', href: '/this-weekend' },
     { label: locale === 'es' ? 'Boletines' : 'Stories', href: '/stories' },
     { label: locale === 'es' ? 'Eventos' : 'Events', href: '/events' },
     { label: locale === 'es' ? 'Directorio' : 'Directory', href: '/directory' },

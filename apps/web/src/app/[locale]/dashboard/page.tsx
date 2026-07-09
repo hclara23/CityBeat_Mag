@@ -9,6 +9,7 @@ import { MyListingsBoost } from '@/components/citybeat/MyListingsBoost'
 import { MyDeals } from '@/components/citybeat/MyDeals'
 import { LeadsPanel } from '@/components/citybeat/LeadsPanel'
 import { AIAssistantPanel } from '@/components/citybeat/AIAssistantPanel'
+import { FeaturedBadge } from '@/components/citybeat/FeaturedBadge'
 
 interface Campaign {
   id: string
@@ -115,6 +116,7 @@ export default function DashboardPage() {
         <AIAssistantPanel />
         <LeadsPanel />
         <MyListingsBoost />
+        <FeaturedBadge />
         <MyDeals />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
