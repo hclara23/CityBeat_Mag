@@ -6,6 +6,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { getEventById } from '@/lib/events'
 import { jsonLdSafe } from '@/lib/jsonld'
+import { affiliateTicketUrl } from '@/lib/affiliate'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 900
@@ -56,9 +57,12 @@ export default async function EventDetail({ params }: { params: Params }) {
     ...(e.venue ? { location: { '@type': 'Place', name: e.venue, address: e.venue } } : {}),
     ...(e.image_url ? { image: [e.image_url] } : {}),
     ...(desc ? { description: desc } : {}),
-    ...(e.ticket_url ? { offers: { '@type': 'Offer', url: e.ticket_url } } : {}),
+    ...(e.ticket_url ? { offers: { '@type': 'Offer', url: affiliateTicketUrl(e.ticket_url) } } : {}),
     organizer: { '@type': 'Organization', name: 'CityBeat', url: BASE },
   })
+
+  // Affiliate-tagged buy link (commission on ticket sales); passthrough until configured.
+  const ticketHref = affiliateTicketUrl(e.ticket_url)
 
   return (
     <CityBeatShell locale={params.locale}>
@@ -83,11 +87,11 @@ export default async function EventDetail({ params }: { params: Params }) {
 
         {desc && <p className="mt-8 whitespace-pre-line text-lg leading-8 text-white/80">{desc}</p>}
 
-        {e.ticket_url && (
+        {ticketHref && (
           <a
-            href={e.ticket_url}
+            href={ticketHref}
             target="_blank"
-            rel="noreferrer"
+            rel="noreferrer sponsored"
             className="mt-8 inline-block rounded-md bg-brand-neon px-6 py-3 text-sm font-black uppercase tracking-wider text-black hover:bg-cyan-300"
           >
             {isEs ? 'Boletos / Más info' : 'Tickets / More info'}

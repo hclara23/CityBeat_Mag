@@ -8,6 +8,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { NewsletterForm } from '@/components/NewsletterForm'
 import { AdBanner } from '@/components/citybeat/AdBanner'
 import { jsonLdSafe } from '@/lib/jsonld'
+import { affiliateTicketUrl } from '@/lib/affiliate'
 type HomePageProps = {
   params: {
     locale: string
@@ -40,7 +41,7 @@ export default async function Home({ params }: HomePageProps) {
         title: locale === 'en' ? e.title_en : e.title_es,
         meta: locale === 'en' ? e.meta_en : e.meta_es,
         image: e.image_url,
-        ticket_url: e.ticket_url ? `${e.ticket_url}${e.ticket_url.includes('?') ? '&' : '?'}aff=citybeatmag` : null
+        ticket_url: affiliateTicketUrl(e.ticket_url)
       }))
     : staticEvents.map(e => ({
         title: e.title,
