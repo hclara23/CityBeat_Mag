@@ -6,6 +6,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
+import { EngagementBoard } from '@/components/citybeat/EngagementBoard'
 
 export default function SalesAgentDashboard() {
   const router = useRouter()
@@ -90,6 +91,11 @@ export default function SalesAgentDashboard() {
           <p className="mt-3 text-xs text-white/40">
             Live sending requires RESEND_API_KEY + a verified citybeatmag.co sender. Personalization uses Claude when ANTHROPIC_API_KEY is set. Schedule daily via the /api/cron/sales-agent endpoint.
           </p>
+        </div>
+
+        {/* Businesses that opened / clicked outreach — hottest first. */}
+        <div className="mt-8">
+          <EngagementBoard />
         </div>
 
         <div className="mt-8">

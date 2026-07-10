@@ -7,6 +7,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
+import { EngagementBoard } from '@/components/citybeat/EngagementBoard'
 
 export default function AdminLeads() {
   const router = useRouter()
@@ -45,6 +46,11 @@ export default function AdminLeads() {
       <section className="container-wide max-w-4xl py-14">
         <Link href={withLocale(locale, '/admin')} className="text-sm text-brand-neon hover:underline">← Back to Dashboard</Link>
         <h1 className="mt-3 font-display text-4xl font-black tracking-tight text-white">Leads & deals</h1>
+
+        {/* Warm leads — businesses that opened/clicked outreach emails. */}
+        <div className="mt-8">
+          <EngagementBoard />
+        </div>
 
         {/* Captured leads */}
         <h2 className="mt-10 mb-3 text-lg font-bold text-white">Quote requests <span className="text-white/40">({leads.length})</span></h2>
