@@ -79,7 +79,16 @@ export async function GET(request: NextRequest) {
       }
 
       if (dryRun) {
-        created.push({ title: written.title, category: written.category, source: item.source, preview: written.body_en })
+        const previewImg = await findArticleImage(written.image_query || written.title).catch(() => null)
+        created.push({
+          title: written.title,
+          category: written.category,
+          source: item.source,
+          words: written.body_en.trim().split(/\s+/).length,
+          image: previewImg?.url || null,
+          image_credit: previewImg?.credit || null,
+          preview: written.body_en,
+        })
         continue
       }
 
