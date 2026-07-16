@@ -4,12 +4,17 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
 
-function sameOriginReturnUrl(value: unknown, request: NextRequest) {
-  const fallback = new URL('/billing', request.nextUrl.origin)
+// Use the PUBLIC origin — behind Firebase Hosting request.nextUrl.origin resolves
+// to the internal Cloud Run address (https://0.0.0.0:8080), which breaks the
+// Stripe portal return_url.
+const APP_ORIGIN = new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co').origin
+
+function sameOriginReturnUrl(value: unknown) {
+  const fallback = new URL('/billing', APP_ORIGIN)
   if (typeof value !== 'string' || !value.trim()) return fallback.toString()
   try {
-    const parsed = new URL(value, request.nextUrl.origin)
-    return parsed.origin === request.nextUrl.origin ? parsed.toString() : fallback.toString()
+    const parsed = new URL(value, APP_ORIGIN)
+    return parsed.origin === APP_ORIGIN ? parsed.toString() : fallback.toString()
   } catch {
     return fallback.toString()
   }
@@ -72,7 +77,7 @@ export async function POST(request: NextRequest) {
     },
     body: new URLSearchParams({
       customer: resolvedCustomerId,
-      return_url: sameOriginReturnUrl(returnUrl, request),
+      return_url: sameOriginReturnUrl(returnUrl),
     }).toString(),
   })
 
