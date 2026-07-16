@@ -16,6 +16,8 @@ interface Article {
   excerpt: string
   status: string
   image_url: string
+  image_credit?: string | null
+  image_illustrative?: boolean
   author: {
     email: string
     full_name: string
@@ -140,9 +142,18 @@ export default function ReviewArticlePage({ params }: { params: { id: string } }
           </header>
 
           {article.image_url && (
-            <div className="relative my-10 aspect-video overflow-hidden rounded-xl border border-white/10">
-              <Image src={article.image_url} alt="" fill className="object-cover" sizes="(min-width: 1024px) 896px, 100vw" />
-            </div>
+            <figure className="my-10">
+              <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10">
+                {/* CC images come from arbitrary hosts — serve as-is. */}
+                <Image src={article.image_url} alt="" fill className="object-cover" sizes="(min-width: 1024px) 896px, 100vw" unoptimized={article.image_illustrative} />
+              </div>
+              {article.image_credit && (
+                <figcaption className="mt-2 text-xs text-white/40">
+                  {article.image_illustrative && <span className="text-white/50">Illustrative image. </span>}
+                  {article.image_credit}
+                </figcaption>
+              )}
+            </figure>
           )}
 
           <div className="text-lg leading-relaxed text-white/80">
