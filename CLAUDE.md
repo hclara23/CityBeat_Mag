@@ -69,10 +69,11 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 | `citybeat-upsell` | Tue 10:00 | `/api/cron/upsell?limit=20` | Premium→Featured upsell emails (one per listing) |
 | `citybeat-ops-digest` | Mon 08:00 | `/api/cron/ops-digest` | weekly operator heartbeat to `ALERT_EMAIL`: revenue, funnel, inventory, leads, failures |
 | `citybeat-account-manager` | Wed 09:30 | `/api/cron/account-manager` | AI marketing drafts (deal, captions, review replies) per paying listing → owner approves on /dashboard; needs `ANTHROPIC_API_KEY` |
+| `citybeat-social` | 11:00 | `/api/cron/social?limit=5` | auto-posts recent stories + a weekly "This Weekend in El Paso" roundup (Thu, or `?weekend=1`) to Facebook Page (`FB_PAGE_ID`/`FB_PAGE_ACCESS_TOKEN`) + Threads (`THREADS_USER_ID`/`THREADS_ACCESS_TOKEN`, dormant); IG/X stubbed. Weekly dedup only marks done on a real post |
+| `citybeat-auto-articles` | 06:30/11:30/15:30/19:30 | `/api/cron/auto-articles?limit=2` | autonomous newsroom: pulls local outlet RSS (KVIA, El Paso Matters, KTSM, Herald-Post), Claude re-reports each as an original AP-style bilingual brief (`lib/newsroom.ts` `AI_WRITING_RULES`), credits source. Saves EN+ES to `articles` as `pending_review` (→ /admin review queue); `settings.newsroom_auto_publish` or `?publish=1` to auto-publish; `?dryRun=1` to preview. Deduped via `processed_news`. Needs `ANTHROPIC_API_KEY` |
 
 Manage with `gcloud scheduler jobs list/run/pause --location us-central1`. To add a
 new cron: create the route with the `CRON_SECRET` check, then add a scheduler job.
-(`/api/cron/auto-articles` exists but is a no-op pending a Firestore port.)
 
 Every cron and the Stripe webhook report failures via `lib/alerts.ts` →
 `system_alerts` collection + email to `ALERT_EMAIL` (deduped 3 per 6h per source).
@@ -260,7 +261,7 @@ The canonical (and only) webhook is the **web app** `apps/web/src/app/api/stripe
 #### Self-serve & field sales
 
 - **Client boost:** a listing owner sees their businesses on `/dashboard` (`/api/directory/mine`) and can upgrade tier via the existing claim checkout (`MyListingsBoost`).
-- **Sales virtual checkout / onboarding wizard:** reps (`hasSalesAccess`) use `/admin/sales/new` → `POST /api/sales/checkout` to generate a Stripe Checkout link (QR) on the spot for a directory plan or a custom amount. The sale is attributed to the rep (`payout_user_id`), and a rep-sold directory listing is created `unclaimed` with `sold_by_rep` + `contact_email` (admin attaches the owner on approval).
+- **Sales virtual checkout / onboarding wizard:** reps (`hasSalesAccess`) use `/admin/sales/new` → `POST /api/sales/checkout` to generate a Stripe Checkout link (QR) on the spot for a directory plan or a custom amount. The sale is attributed to the rep (`payout_user_id`), and a rep-sold directory listing is created `unclaimed` with `sold_by_rep` + `contact_email` (admin attaches the owner on approval). A first-visit quick-start guide walks reps through the single screen, and `POST /api/sales/send-link` emails the payment link to the client (Resend) — and texts it when Twilio is configured (`lib/sms.ts`, dormant until `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/`TWILIO_FROM`). Stripe emails the paid receipt automatically.
 
 ## Deployment
 
