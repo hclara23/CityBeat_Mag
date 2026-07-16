@@ -22,6 +22,20 @@ async function getListing(id: string): Promise<any | null> {
   }
 }
 
+// Deep-convert Firestore data (Timestamps → ISO) to plain JSON so it can cross
+// the server→client boundary as a prop (Next.js rejects class instances).
+function toPlain(v: any): any {
+  if (v == null) return v
+  if (typeof v?.toDate === 'function') return v.toDate().toISOString()
+  if (Array.isArray(v)) return v.map(toPlain)
+  if (typeof v === 'object') {
+    const o: any = {}
+    for (const k of Object.keys(v)) o[k] = toPlain(v[k])
+    return o
+  }
+  return v
+}
+
 function cityFromAddress(address?: string | null): string | null {
   if (!address) return null
   // ".., El Paso, TX 79902" → "El Paso"
@@ -129,7 +143,7 @@ export default async function DirectoryDetailPage({ params }: { params: Params }
       {listing && listing.is_published !== false && !listing.merged_into && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(buildSchema(listing, locale)) }} />
       )}
-      <DirectoryDetailClient />
+      <DirectoryDetailClient initialListing={listing ? toPlain(listing) : null} />
     </>
   )
 }

@@ -9,6 +9,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { useLocale } from '@/components/TranslationProvider'
 
 import { AdBanner } from '@/components/citybeat/AdBanner'
+import { categoryLabel } from '@/lib/categories'
 
 const DirectoryMap = dynamic(() => import('@/components/DirectoryMap'), { ssr: false })
 
@@ -38,7 +39,12 @@ function LocationBadge({ count }: { count?: number | null }) {
   )
 }
 
-const CATEGORIES = ['All', 'Restaurant', 'Cafe', 'Coffee Shop', 'Bar']
+// Value stays English (matches listing.category); label is localized on render.
+const CATEGORIES = [
+  'All', 'Restaurant', 'Cafe', 'Coffee Shop', 'Bar', 'Retail', 'Beauty', 'Health',
+  'Fitness', 'Auto Repair', 'Home Services', 'Real Estate', 'Attorneys', 'Insurance',
+  'Financial', 'Marketing',
+]
 
 const translations = {
   en: {
@@ -191,7 +197,7 @@ export default function DirectoryPage() {
                         : 'border border-white/20 text-white hover:bg-white/10'
                     }`}
                   >
-                    {cat === 'All' ? (locale === 'es' ? 'Todos' : 'All') : cat}
+                    {cat === 'All' ? (locale === 'es' ? 'Todos' : 'All') : categoryLabel(cat, locale)}
                   </button>
                 )
               })}
@@ -257,7 +263,7 @@ export default function DirectoryPage() {
                           <div className="p-6 flex flex-col flex-grow">
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] font-black uppercase tracking-wider text-brand-gold bg-brand-gold/10 px-2 py-0.5 rounded">
-                                {listing.category}
+                                {categoryLabel(listing.category, locale)}
                               </span>
                             </div>
 

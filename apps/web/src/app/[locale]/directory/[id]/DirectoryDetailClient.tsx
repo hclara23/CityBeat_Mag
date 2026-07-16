@@ -8,6 +8,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { QuoteForm } from '@/components/citybeat/QuoteForm'
 import { useLocale } from '@/components/TranslationProvider'
 import BookmarkButton from '@/components/BookmarkButton'
+import { DIRECTORY_CATEGORIES, categoryLabel } from '@/lib/categories'
 
 interface Listing {
   id: string
@@ -207,7 +208,7 @@ function LocationsPanel({
   )
 }
 
-export default function ListingDetailPage() {
+export default function ListingDetailPage({ initialListing = null }: { initialListing?: Listing | null }) {
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -216,9 +217,11 @@ export default function ListingDetailPage() {
 
   const id = params.id as string
 
-  const [listing, setListing] = useState<Listing | null>(null)
+  // Seed from the server-rendered listing so the content is in the initial HTML
+  // (SEO + no loading flash); the effect below still refreshes for freshness.
+  const [listing, setListing] = useState<Listing | null>(initialListing)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialListing)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -238,6 +241,7 @@ export default function ListingDetailPage() {
 
   // Banners from searchParams
   const statusParam = searchParams.get('status')
+  const editParam = searchParams.get('edit') === '1'
 
   const isEditor = userProfile?.is_editor ?? false
 
@@ -318,6 +322,14 @@ export default function ListingDetailPage() {
       fetchReviews()
     }
   }, [id, fetchReviews])
+
+  // Deep-link ?edit=1 (from the dashboard "Manage" link) opens edit mode once we
+  // know the viewer is the approved owner or an editor.
+  useEffect(() => {
+    if (!editParam || !listing || !userProfile) return
+    const owner = listing.owner_id === userProfile.id && listing.claim_status === 'approved'
+    if (owner || userProfile.is_editor) setEditMode(true)
+  }, [editParam, listing, userProfile])
 
   // Note: all listings (claimed or not) render a public page with reviews + a
   // "claim this business" CTA. Premium-only content is gated inline below.
@@ -624,10 +636,13 @@ export default function ListingDetailPage() {
                       required
                       className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition"
                     >
-                      <option value="Restaurant">Restaurant</option>
-                      <option value="Cafe">Cafe</option>
-                      <option value="Coffee Shop">Coffee Shop</option>
-                      <option value="Bar">Bar</option>
+                      {/* Preserve an existing non-standard category value as an option. */}
+                      {category && !DIRECTORY_CATEGORIES.includes(category as any) && (
+                        <option value={category}>{category}</option>
+                      )}
+                      {DIRECTORY_CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{categoryLabel(c, locale)}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -893,7 +908,7 @@ export default function ListingDetailPage() {
               <div className="lg:col-span-2 space-y-8">
                 <div className="citybeat-panel rounded-2xl p-8 border border-white/10">
                   <span className="text-xs font-black uppercase tracking-wider text-brand-neon bg-brand-neon/10 px-2.5 py-1 rounded">
-                    {listing.category}
+                    {categoryLabel(listing.category, locale)}
                   </span>
                   <h2 className="font-display text-2xl font-black uppercase text-white tracking-wide mt-4 mb-4">
                     {locale === 'es' ? 'Acerca del Negocio' : 'About The Business'}
@@ -1277,7 +1292,7 @@ export default function ListingDetailPage() {
               <div className="lg:col-span-2 space-y-6">
                 <div className="citybeat-panel rounded-2xl p-8 border border-white/10">
                   <span className="text-xs font-black uppercase tracking-wider text-brand-neon bg-brand-neon/10 px-2.5 py-1 rounded">
-                    {listing.category}
+                    {categoryLabel(listing.category, locale)}
                   </span>
                   
                   <h1 className="font-display text-4xl font-black text-white mt-4 uppercase leading-none">

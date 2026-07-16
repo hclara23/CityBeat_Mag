@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
+import { useLocale } from '@/components/TranslationProvider'
 
 interface Listing {
   id: string
@@ -22,6 +23,8 @@ const TIER_LABEL: Record<string, string> = {
 }
 
 export function MyListingsBoost() {
+  const locale = useLocale()
+  const isEs = locale === 'es'
   const [listings, setListings] = useState<Listing[] | null>(null)
   const [busy, setBusy] = useState<string>('')
   const [error, setError] = useState('')
@@ -56,10 +59,11 @@ export function MyListingsBoost() {
 
   return (
     <div className="mb-12">
-      <h2 className="text-2xl font-bold mb-2">Boost your listings</h2>
+      <h2 className="text-2xl font-bold mb-2">{isEs ? 'Mis fichas del directorio' : 'My directory listings'}</h2>
       <p className="text-sm text-gray-500 mb-6">
-        Upgrade a listing to lift it higher in directory search and category pages. Changes take
-        effect once approved.
+        {isEs
+          ? 'Administra el contenido de tu ficha (foto, descripción, horario) o súbela de nivel para aparecer más arriba. Los cambios se aplican al aprobarse.'
+          : 'Manage your listing content (photo, description, hours) or boost it to rank higher in directory search. Changes take effect once approved.'}
       </p>
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
@@ -80,6 +84,14 @@ export function MyListingsBoost() {
                   {listing.tier.toUpperCase()}
                 </span>
               </div>
+
+              {/* Direct entry to the listing's inline CMS (opens edit mode). */}
+              <a
+                href={`/${locale}/directory/${listing.id}?edit=1`}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
+              >
+                {isEs ? '✎ Editar mi ficha' : '✎ Manage my listing'}
+              </a>
 
               <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4">
                 {BOOST_PLANS.map((planId) => {
