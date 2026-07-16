@@ -24,13 +24,14 @@ interface Article {
   imageUrl?: string
 }
 
-const STATUS_CONFIG: Record<ArticleStatus, { label: string; color: string }> = {
-  draft:          { label: 'Draft',       color: 'bg-white/10 text-white/60' },
-  pending_review: { label: 'In Review',   color: 'bg-amber-500/20 text-amber-300' },
-  approved:       { label: 'Approved',    color: 'bg-green-500/20 text-green-300' },
-  rejected:       { label: 'Needs Edits', color: 'bg-red-500/20 text-red-300' },
-  published:      { label: 'Published',   color: 'bg-brand-neon/20 text-brand-neon' },
+const STATUS_CONFIG: Record<ArticleStatus, { label: string; labelEs: string; color: string }> = {
+  draft:          { label: 'Draft',       labelEs: 'Borrador',        color: 'bg-white/10 text-white/60' },
+  pending_review: { label: 'In Review',   labelEs: 'En Revisión',     color: 'bg-amber-500/20 text-amber-300' },
+  approved:       { label: 'Approved',    labelEs: 'Aprobado',        color: 'bg-green-500/20 text-green-300' },
+  rejected:       { label: 'Needs Edits', labelEs: 'Necesita Edición', color: 'bg-red-500/20 text-red-300' },
+  published:      { label: 'Published',   labelEs: 'Publicado',       color: 'bg-brand-neon/20 text-brand-neon' },
 }
+const statusText = (s: ArticleStatus, locale: string) => (locale === 'es' ? STATUS_CONFIG[s].labelEs : STATUS_CONFIG[s].label)
 
 const copy = {
   en: {
@@ -176,7 +177,7 @@ export default function CreatorDashboard() {
             <h1 className="font-display text-4xl font-black tracking-tight">{t.title}</h1>
             <p className="mt-1 text-sm text-white/50">{t.subtitle}</p>
             <a href={withLocale(locale, '/guide')} className="mt-1 inline-block text-xs font-bold text-brand-neon underline">
-              📖 User Guide
+              📖 {locale === 'es' ? 'Guía del usuario' : 'User Guide'}
             </a>
           </div>
           <Link
@@ -222,7 +223,7 @@ export default function CreatorDashboard() {
                   : 'bg-white/10 text-white/60 hover:bg-white/15'
               }`}
             >
-              {s === 'all' ? t.filterAll : STATUS_CONFIG[s].label}
+              {s === 'all' ? t.filterAll : statusText(s, locale)}
               <span className="ml-1.5 opacity-60">{s === 'all' ? counts.all : counts[s]}</span>
             </button>
           ))}
@@ -270,7 +271,7 @@ export default function CreatorDashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${statusCfg.color}`}>
-                        {statusCfg.label}
+                        {statusText(article.status, locale)}
                       </span>
                       {article.category && (
                         <span className="text-xs uppercase tracking-wider text-white/30">
@@ -285,7 +286,7 @@ export default function CreatorDashboard() {
                       <p className="mt-1 line-clamp-2 text-sm text-white/50">{article.excerpt}</p>
                     )}
                     <p className="mt-2 text-xs text-white/30">
-                      {t.created} {new Date(article._createdAt).toLocaleDateString()}
+                      {t.created} {new Date(article._createdAt).toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US')}
                     </p>
                   </div>
 
