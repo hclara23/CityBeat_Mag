@@ -1,10 +1,11 @@
-// Autonomous newsroom. Pulls El Paso / borderland headlines from Google News RSS
-// (no API key, no quota), then has Claude re-report each as an ORIGINAL, AP-style
-// news brief that credits the original outlet — never copying source text. The
-// writing rules below are the heart of it: they force wire-service craft and ban
-// the tells that mark copy as machine-written.
+// Autonomous newsroom. Pulls fresh stories from local El Paso / borderland outlet
+// RSS feeds (KVIA, El Paso Matters, KTSM, Herald-Post — no key, no quota), which
+// carry real article text and direct links, then has Claude re-report each as an
+// ORIGINAL, AP-style brief that credits the original outlet — never copying its
+// text. The writing rules below are the heart of it: they force wire-service craft
+// and ban the tells that mark copy as machine-written.
 //
-// Needs ANTHROPIC_API_KEY. Source is free/keyless.
+// Needs ANTHROPIC_API_KEY. Sources are free/keyless.
 
 const MODEL = process.env.NEWSROOM_MODEL || process.env.CHAT_MODEL || 'claude-haiku-4-5-20251001'
 
@@ -73,46 +74,55 @@ function pick(chunk: string, tag: string): string {
   return m ? m[1].trim() : ''
 }
 
-// Parse a Google News RSS feed into normalized items (newest first).
-function parseRss(xml: string): NewsItem[] {
+// Parse an RSS feed into normalized items. Prefers the full body (WordPress
+// content:encoded) over the short description when present.
+function parseRss(xml: string, sourceName: string): NewsItem[] {
   const chunks = xml.split(/<item>/i).slice(1).map((c) => c.split(/<\/item>/i)[0])
   const out: NewsItem[] = []
   for (const chunk of chunks) {
-    const source = decodeEntities(pick(chunk, 'source'))
-    let title = decodeEntities(pick(chunk, 'title'))
-    // Google appends " - Source"; drop it since we track the source separately.
-    if (source && title.endsWith(` - ${source}`)) title = title.slice(0, -(source.length + 3)).trim()
-    const link = decodeEntities(pick(chunk, 'link'))
+    const title = decodeEntities(pick(chunk, 'title')).trim()
+    const link = (decodeEntities(pick(chunk, 'link')) || decodeEntities(pick(chunk, 'guid'))).trim()
     const pubDate = pick(chunk, 'pubDate')
-    const summary = stripTags(decodeEntities(pick(chunk, 'description')))
+    const raw = pick(chunk, 'content:encoded') || pick(chunk, 'description')
+    const summary = stripTags(decodeEntities(raw)).slice(0, 1800)
     const t = Date.parse(pubDate)
     const ageMs = Number.isNaN(t) ? 0 : Date.now() - t
-    if (title && link) out.push({ title, link, source: source || 'the source', summary, pubDate, ageMs })
+    if (title && link) out.push({ title, link, source: sourceName, summary, pubDate, ageMs })
   }
   return out
 }
 
-// Fetch fresh borderland headlines. Queries a few local terms and merges, newest
-// first, de-duplicated by normalized title.
+// Local outlet feeds carry real article text + direct links (unlike Google News
+// aggregation, which only exposes headlines).
+const LOCAL_FEEDS: { name: string; url: string }[] = [
+  { name: 'KVIA', url: 'https://kvia.com/feed/' },
+  { name: 'El Paso Matters', url: 'https://elpasomatters.org/feed/' },
+  { name: 'KTSM', url: 'https://www.ktsm.com/feed/' },
+  { name: 'El Paso Herald-Post', url: 'https://elpasoheraldpost.com/feed/' },
+]
+
+// Some outlets also carry national wire copy; keep only clearly-local items.
+const LOCAL_RE = /\b(el paso|ju[aá]rez|juarez|las cruces|do[ñn]a ana|dona ana|borderland|utep|fort bliss|ysleta|socorro|canutillo|horizon city|sunland park|san elizario|anthony|chihuahua)\b/i
+
+// Fetch fresh local stories across the outlet feeds, newest first, deduped.
 export async function fetchElPasoHeadlines(maxAgeHours = 72): Promise<NewsItem[]> {
-  const queries = ['"El Paso"', '"Ciudad Juárez" OR "Juarez"', '"Las Cruces" OR "Doña Ana County"']
   const seen = new Set<string>()
   const merged: NewsItem[] = []
-  for (const q of queries) {
-    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q + ' when:3d')}&hl=en-US&gl=US&ceid=US:en`
+  for (const feed of LOCAL_FEEDS) {
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 CityBeatNewsroom/1.0' } })
+      const res = await fetch(feed.url, { headers: { 'User-Agent': 'Mozilla/5.0 CityBeatNewsroom/1.0' } })
       if (!res.ok) continue
       const xml = await res.text()
-      for (const item of parseRss(xml)) {
-        const key = item.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 80)
-        if (seen.has(key)) continue
+      for (const item of parseRss(xml, feed.name)) {
         if (item.ageMs > maxAgeHours * 3600_000) continue
+        const key = item.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 80)
+        if (!key || seen.has(key)) continue
+        if (!LOCAL_RE.test(`${item.title} ${item.summary}`)) continue
         seen.add(key)
         merged.push(item)
       }
     } catch {
-      /* skip a failing query */
+      /* skip a failing feed */
     }
   }
   return merged.sort((a, b) => a.ageMs - b.ageMs)
