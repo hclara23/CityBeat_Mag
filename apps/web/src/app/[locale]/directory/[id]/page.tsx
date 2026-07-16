@@ -44,8 +44,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const url = `${BASE}/${locale}/directory/${listing.id}`
 
   const title = `${name} — ${cat} in ${city} | CityBeat`
+  // Prefer real Spanish copy on the ES page (El Paso is ~90% Spanish-speaking).
+  const rawDesc = locale === 'es' ? listing.description_es || listing.description : listing.description
   const description =
-    (typeof listing.description === 'string' && listing.description.trim().slice(0, 155)) ||
+    (typeof rawDesc === 'string' && rawDesc.trim().slice(0, 155)) ||
     (locale === 'es'
       ? `${name} es un negocio de ${cat.toLowerCase()} en ${city}. Ve horarios, fotos, reseñas y contacto en CityBeat.`
       : `${name} is a ${cat.toLowerCase()} in ${city}. See hours, photos, reviews, and contact info on CityBeat.`)
@@ -81,6 +83,7 @@ function buildSchema(listing: any, locale: string) {
   const url = `${BASE}/${locale}/directory/${listing.id}`
   const social = listing.social_links || {}
   const sameAs = [social.facebook, social.instagram, social.twitter, listing.website].filter(Boolean)
+  const schemaDesc = locale === 'es' ? listing.description_es || listing.description : listing.description
 
   // hours: { Monday: "9:00 AM - 5:00 PM", ... } → schema openingHours strings.
   let openingHours: string[] | undefined
@@ -100,7 +103,7 @@ function buildSchema(listing: any, locale: string) {
     '@id': url,
     name: listing.name,
     url,
-    ...(listing.description ? { description: String(listing.description).slice(0, 500) } : {}),
+    ...(schemaDesc ? { description: String(schemaDesc).slice(0, 500) } : {}),
     ...(listing.image_url ? { image: [listing.image_url, ...(Array.isArray(listing.gallery_urls) ? listing.gallery_urls.slice(0, 5) : [])] } : {}),
     ...(listing.phone ? { telephone: listing.phone } : {}),
     ...(listing.address

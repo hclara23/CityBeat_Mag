@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { translateTexts } from '@/lib/translate'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 function toIso(v: any): string | null {
   if (!v) return null
@@ -61,6 +63,18 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       if (f in body) allowedUpdates[f] = body[f]
     }
   }
+  // Keep the Spanish description in sync so ES visitors (the majority of El Paso)
+  // read real Spanish, not English. Best-effort — never blocks the save.
+  if ('description' in allowedUpdates) {
+    const desc = String(allowedUpdates.description || '').trim()
+    if (desc) {
+      const tr = await translateTexts([desc]).catch(() => null)
+      if (tr && tr[0]) allowedUpdates.description_es = tr[0]
+    } else {
+      allowedUpdates.description_es = ''
+    }
+  }
+
   allowedUpdates.updated_at = new Date().toISOString()
 
   try {

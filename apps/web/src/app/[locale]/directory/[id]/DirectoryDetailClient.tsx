@@ -13,6 +13,7 @@ interface Listing {
   id: string
   name: string
   description: string | null
+  description_es: string | null
   category: string
   address: string | null
   phone: string | null
@@ -895,12 +896,13 @@ export default function ListingDetailPage() {
                     {listing.category}
                   </span>
                   <h2 className="font-display text-2xl font-black uppercase text-white tracking-wide mt-4 mb-4">
-                    About The Business
+                    {locale === 'es' ? 'Acerca del Negocio' : 'About The Business'}
                   </h2>
                   <p className="text-white/70 text-lg leading-relaxed whitespace-pre-line">
-                    {listing.description || (locale === 'es' 
-                      ? 'Este socio verificado ofrece los mejores platos y servicios locales. Ven a disfrutar de una atmósfera de primer nivel con una rica historia y un personal acogedor.'
-                      : 'This verified partner provides El Paso with premium culinary, beverage, or coffee options. Come experience a high-end local favorite with a welcoming atmosphere and rich history.')}
+                    {(locale === 'es' ? listing.description_es || listing.description : listing.description) ||
+                      (locale === 'es'
+                        ? `${listing.name} es un negocio de ${(listing.category || 'servicios').toLowerCase()} en El Paso.`
+                        : `${listing.name} is a ${(listing.category || 'local').toLowerCase()} business in El Paso.`)}
                   </p>
 
                   {/* Social media links */}
@@ -935,7 +937,7 @@ export default function ListingDetailPage() {
                 {listing.gallery_urls && listing.gallery_urls.length > 0 && (
                   <div className="citybeat-panel rounded-2xl p-8 border border-white/10">
                     <h2 className="font-display text-2xl font-black uppercase text-white tracking-wide mb-6">
-                      Photo Gallery
+                      {locale === 'es' ? 'Galería de Fotos' : 'Photo Gallery'}
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {listing.gallery_urls.map((url, i) => (
@@ -957,7 +959,7 @@ export default function ListingDetailPage() {
                 {visitorPhotos.length > 0 && (
                   <div className="citybeat-panel rounded-2xl p-8 border border-white/10">
                     <h2 className="font-display text-2xl font-black uppercase text-white tracking-wide mb-6 flex items-center gap-2">
-                      <span>Visitor Photos</span>
+                      <span>{locale === 'es' ? 'Fotos de Visitantes' : 'Visitor Photos'}</span>
                       <span className="text-xs bg-brand-neon/15 text-brand-neon px-2.5 py-0.5 rounded-full font-bold">
                         {visitorPhotos.length}
                       </span>
