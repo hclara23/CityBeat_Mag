@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/TranslationProvider'
 import { Navigation, Button, Input } from '@citybeat/ui'
+import { LocaleToggle } from '@/components/citybeat/LocaleToggle'
 import { getUser, getUserProfile, updateProfile, signOut } from '@citybeat/lib/firebase/auth-client'
 import { AuthError } from '@citybeat/ui/auth'
 
@@ -192,7 +193,7 @@ export default function AccountPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation />
+        <Navigation rightSlot={<LocaleToggle />} />
         <div className="max-w-3xl mx-auto px-4 py-12">
           <p className="text-gray-500">Loading...</p>
         </div>
@@ -202,7 +203,7 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navigation />
+      <Navigation rightSlot={<LocaleToggle />} />
 
       <div className="max-w-3xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">Account Settings</h1>

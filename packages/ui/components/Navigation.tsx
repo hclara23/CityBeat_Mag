@@ -10,12 +10,15 @@ interface NavigationProps {
   brand?: string
   items?: NavItem[]
   onBrandClick?: () => void
+  // Optional content pinned to the right of the nav (e.g. a language toggle).
+  rightSlot?: React.ReactNode
 }
 
 export function Navigation({
   brand = 'CityBeat',
   items = [],
-  onBrandClick
+  onBrandClick,
+  rightSlot
 }: NavigationProps) {
   const navItems = items.length > 0 ? items : [
     { label: 'Home', href: '/en' },
@@ -38,20 +41,23 @@ export function Navigation({
             </>
           ) : brand}
         </button>
-        <div className="hidden gap-6 md:flex">
-          {navItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className={`text-xs font-bold uppercase tracking-[0.22em] transition-colors ${
-                item.active
-                  ? 'text-brand-neon'
-                  : 'text-white/65 hover:text-brand-neon'
-              }`}
-            >
-              {item.label}
-            </a>
-          ))}
+        <div className="flex items-center gap-4">
+          <div className="hidden gap-6 md:flex">
+            {navItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className={`text-xs font-bold uppercase tracking-[0.22em] transition-colors ${
+                  item.active
+                    ? 'text-brand-neon'
+                    : 'text-white/65 hover:text-brand-neon'
+                }`}
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+          {rightSlot}
         </div>
       </div>
     </nav>

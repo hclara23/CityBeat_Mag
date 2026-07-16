@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/TranslationProvider'
 import { Navigation, Button } from '@citybeat/ui'
+import { LocaleToggle } from '@/components/citybeat/LocaleToggle'
 import { AuthError } from '@citybeat/ui/auth'
 
 interface Subscription {
@@ -95,7 +96,7 @@ export default function BillingPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation />
+        <Navigation rightSlot={<LocaleToggle />} />
         <div className="max-w-3xl mx-auto px-4 py-12">
           <p className="text-gray-500">Loading...</p>
         </div>
@@ -105,7 +106,7 @@ export default function BillingPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navigation />
+      <Navigation rightSlot={<LocaleToggle />} />
 
       <div className="max-w-3xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">Billing & Subscriptions</h1>

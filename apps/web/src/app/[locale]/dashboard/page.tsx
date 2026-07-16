@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/TranslationProvider'
 import { Navigation, Button } from '@citybeat/ui'
+import { LocaleToggle } from '@/components/citybeat/LocaleToggle'
 import { AuthError } from '@citybeat/ui/auth'
 import { MyListingsBoost } from '@/components/citybeat/MyListingsBoost'
 import { MyDeals } from '@/components/citybeat/MyDeals'
@@ -77,7 +78,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Navigation />
+        <Navigation rightSlot={<LocaleToggle />} />
         <div className="max-w-7xl mx-auto px-4 py-12">
           <p className="text-gray-500">{isEs ? 'Cargando…' : 'Loading…'}</p>
         </div>
@@ -87,7 +88,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navigation />
+      <Navigation rightSlot={<LocaleToggle />} />
 
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="flex justify-between items-start mb-8">

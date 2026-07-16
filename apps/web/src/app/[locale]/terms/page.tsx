@@ -2,6 +2,7 @@
 
 import { useLocale } from '@/components/TranslationProvider'
 import { Navigation } from '@citybeat/ui'
+import { LocaleToggle } from '@/components/citybeat/LocaleToggle'
 
 const copy = {
   en: {
@@ -102,7 +103,7 @@ export default function TermsPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Navigation />
+      <Navigation rightSlot={<LocaleToggle />} />
 
       <div className="max-w-3xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">{localeCopy.title}</h1>
