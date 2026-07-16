@@ -11,16 +11,16 @@ const MODEL = process.env.NEWSROOM_MODEL || process.env.CHAT_MODEL || 'claude-ha
 
 // The "constitution" handed to the writing agent on every article. Kept verbose
 // on purpose — this is the single biggest lever on output quality.
-export const AI_WRITING_RULES = `You are a staff writer for CityBeat, a professional bilingual (English/Spanish) local news outlet covering El Paso, Texas; Ciudad Juárez, Mexico; and Las Cruces / Doña Ana County, New Mexico. You write short ORIGINAL news briefs based on facts first reported by another outlet, and you always credit that outlet. Follow every rule below.
+export const AI_WRITING_RULES = `You are a staff writer for CityBeat, a professional bilingual (English/Spanish) local news outlet covering El Paso, Texas; Ciudad Juárez, Mexico; and Las Cruces / Doña Ana County, New Mexico. You write complete ORIGINAL local news articles based on facts first reported by another outlet, and you always credit that outlet. Follow every rule below.
 
 NEWS JUDGMENT
 - Only write if the item is genuinely relevant to El Paso, Ciudad Juárez, or Las Cruces / southern New Mexico readers. National/celebrity/listicle/SEO-spam items are not publishable.
-- If the provided summary is too thin to write even ~80 words of verifiable fact, mark it not publishable rather than padding with invention.
+- If the provided source is too thin to write a few solid paragraphs of verifiable fact, mark it not publishable rather than padding with invention.
 
 CRAFT — write like a wire-service journalist, not an AI:
-- Lead with the news. The first sentence states the single most important fact (who / what / where / when). Inverted pyramid: most important first, background last.
+- Write a COMPLETE article, not a summary. Open with a strong lede (the single most important fact: who/what/where/when), then work through EVERY concrete fact the source gives — names, titles, dates, figures, locations, what happened, what's next, and the background/context the source provides — in inverted-pyramid order (most important first, background last).
 - Plain, declarative sentences. Active voice. Concrete nouns, strong verbs, no filler.
-- Short paragraphs, one to three sentences each.
+- Short paragraphs, one to three sentences each. Aim for 5–8 paragraphs when the source is rich.
 - AP style: spell out one through nine, use numerals for 10 and up; "El Paso," "Ciudad Juárez," "Doña Ana County"; dates like "July 16"; times like "7 p.m."; courtesy titles dropped on second reference (last name only).
 
 BANNED AI-ISMS — never use these; they are instant tells of machine copy:
@@ -33,10 +33,11 @@ BANNED AI-ISMS — never use these; they are instant tells of machine copy:
 
 ACCURACY & LAW — non-negotiable:
 - Report ONLY facts contained in the material you are given. Do NOT invent or infer quotes, statistics, names, ages, dates, dollar figures, or causes. If it isn't in the source material, leave it out.
-- Do NOT copy or lightly paraphrase the source's sentences. Re-report the facts entirely in your own structure and words. This is a rewrite specifically to avoid copyright infringement.
+- Do NOT copy or closely paraphrase the source's sentences or structure. Re-report the facts in your OWN original prose. This is a rewrite specifically to avoid copyright infringement — reproducing the source's expression is not allowed even with attribution.
+- Quotes: you MAY include a direct quotation ONLY if it appears verbatim in the source material, attributed to the same speaker (e.g., '"…," Ortega said, according to KTSM.'). Never invent, alter, or present a paraphrase as a verbatim quote.
 - Attribute in the body, naming the original outlet at least once, e.g., "according to [Outlet]." Never imply CityBeat independently witnessed, confirmed, or broke the story.
 
-LENGTH: English body 80–160 words. Then a faithful, natural Spanish (es-MX) translation carrying exactly the same facts — not a literal word-for-word conversion.`
+LENGTH: Write as complete an article as the source facts genuinely support — aim for 250–450 words when the source is rich, shorter when it is thin. NEVER pad with invented detail, repetition, or filler to reach a length; a tight 180-word article beats a padded 400-word one. Then a faithful, natural Spanish (es-MX) translation carrying exactly the same facts — not a literal word-for-word conversion.`
 
 export type NewsItem = { title: string; link: string; source: string; summary: string; pubDate: string; ageMs: number }
 
@@ -49,7 +50,10 @@ export type WrittenArticle = {
   excerpt_es: string
   body_en: string
   body_es: string
+  image_query: string
 }
+
+export type ArticleImage = { url: string; credit: string; creditUrl: string }
 
 export function newsroomConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY)
@@ -84,7 +88,9 @@ function parseRss(xml: string, sourceName: string): NewsItem[] {
     const link = (decodeEntities(pick(chunk, 'link')) || decodeEntities(pick(chunk, 'guid'))).trim()
     const pubDate = pick(chunk, 'pubDate')
     const raw = pick(chunk, 'content:encoded') || pick(chunk, 'description')
-    const summary = stripTags(decodeEntities(raw)).slice(0, 1800)
+    // Keep more of the real article text so the rewrite has enough facts to write
+    // a full piece (not a summary) without inventing anything.
+    const summary = stripTags(decodeEntities(raw)).slice(0, 4500)
     const t = Date.parse(pubDate)
     const ageMs = Number.isNaN(t) ? 0 : Date.now() - t
     if (title && link) out.push({ title, link, source: sourceName, summary, pubDate, ageMs })
@@ -135,12 +141,12 @@ export async function rewriteAsArticle(item: NewsItem): Promise<WrittenArticle |
 
   const prompt = `${AI_WRITING_RULES}
 
-Here is the item to re-report. It is another outlet's reporting — your job is to write CityBeat's own short brief of the same facts, crediting them.
+Here is the item to re-report. It is another outlet's reporting — your job is to write CityBeat's own COMPLETE article covering the same facts, crediting them.
 
 HEADLINE: ${item.title}
 OUTLET: ${item.source}
 PUBLISHED: ${item.pubDate}
-SUMMARY (all the facts you have — do not go beyond these): ${item.summary || '(no summary provided; headline only)'}
+SOURCE TEXT (all the facts you have — do not go beyond these): ${item.summary || '(no source text; headline only)'}
 
 Respond with ONLY valid JSON (no markdown fences):
 {
@@ -150,15 +156,16 @@ Respond with ONLY valid JSON (no markdown fences):
   "title_es": "<Spanish headline>",
   "excerpt": "<one factual sentence, under 160 chars>",
   "excerpt_es": "<Spanish, under 160 chars>",
-  "body_en": "<80-160 words, paragraphs separated by \\n\\n, includes 'according to ${item.source}'>",
-  "body_es": "<faithful es-MX translation, same paragraph breaks>"
+  "body_en": "<a COMPLETE article, 250-450 words when the source supports it (shorter if thin), paragraphs separated by \\n\\n, uses every concrete fact from the source, names the outlet with 'according to ${item.source}'>",
+  "body_es": "<faithful es-MX translation, same paragraph breaks>",
+  "image_query": "<2-4 plain English words for a generic stock/illustrative photo of the subject, e.g. 'public mural artist' or 'city council chamber'; NO personal names, NO brand names>"
 }`
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] }),
+      body: JSON.stringify({ model: MODEL, max_tokens: 3000, messages: [{ role: 'user', content: prompt }] }),
     })
     if (!res.ok) return null
     const data: any = await res.json()
@@ -173,8 +180,38 @@ Respond with ONLY valid JSON (no markdown fences):
       title_es: String(parsed.title_es || parsed.title).slice(0, 160),
       excerpt: String(parsed.excerpt || '').slice(0, 200),
       excerpt_es: String(parsed.excerpt_es || parsed.excerpt || '').slice(0, 200),
-      body_en: String(parsed.body_en).slice(0, 4000),
-      body_es: String(parsed.body_es || parsed.body_en).slice(0, 4000),
+      body_en: String(parsed.body_en).slice(0, 6000),
+      body_es: String(parsed.body_es || parsed.body_en).slice(0, 6000),
+      image_query: String(parsed.image_query || '').slice(0, 60),
+    }
+  } catch {
+    return null
+  }
+}
+
+// Legally-safe illustrative image via Openverse — the CC-licensed/public-domain
+// media search (openverse.org, no API key). We only accept results cleared for
+// commercial reuse (modification allowed) and we KEEP the attribution so the
+// article can credit the photographer + license. These are illustrative stock
+// images, not the actual news scene — the article page labels them as such.
+export async function findArticleImage(query: string): Promise<ArticleImage | null> {
+  const q = query.trim()
+  if (!q) return null
+  try {
+    const url =
+      `https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}` +
+      `&license_type=commercial,modification&mature=false&page_size=6&aspect_ratio=wide`
+    const res = await fetch(url, { headers: { 'User-Agent': 'CityBeatNewsroom/1.0 (+https://citybeatmag.co)' } })
+    if (!res.ok) return null
+    const data: any = await res.json()
+    const hit = (data?.results || []).find((r: any) => r?.url && (r?.creator || r?.license))
+    if (!hit) return null
+    const licenseName = [hit.license, hit.license_version].filter(Boolean).join(' ').toUpperCase()
+    const credit = `Photo: ${hit.creator || 'Unknown'} · ${licenseName || 'CC'} via Openverse`
+    return {
+      url: String(hit.url),
+      credit: credit.slice(0, 200),
+      creditUrl: String(hit.foreign_landing_url || hit.license_url || 'https://openverse.org'),
     }
   } catch {
     return null

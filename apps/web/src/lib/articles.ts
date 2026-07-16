@@ -21,6 +21,10 @@ export type Article = {
   // Attribution for briefs re-reported from another outlet (autonomous newsroom).
   sourceName: string | null
   sourceUrl: string | null
+  // Image attribution (CC-licensed illustrative photo via Openverse).
+  imageCredit: string | null
+  imageCreditUrl: string | null
+  imageIllustrative: boolean
 }
 
 export const CATEGORY_IDS = ['news', 'business', 'events', 'culture'] as const
@@ -100,6 +104,9 @@ function normalizeFirestore(
     status: a.status || 'published',
     sourceName: a.source_name || null,
     sourceUrl: a.source_url || null,
+    imageCredit: a.image_credit || null,
+    imageCreditUrl: a.image_credit_url || null,
+    imageIllustrative: Boolean(a.image_illustrative),
   }
 }
 
@@ -120,6 +127,9 @@ function fromLocal(a: LocalArticle): Article {
     status: 'published',
     sourceName: null,
     sourceUrl: null,
+    imageCredit: null,
+    imageCreditUrl: null,
+    imageIllustrative: false,
   }
 }
 

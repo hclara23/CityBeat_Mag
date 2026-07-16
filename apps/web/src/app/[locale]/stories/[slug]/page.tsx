@@ -110,16 +110,35 @@ export default async function StoryPage({ params }: Props) {
         />
 
         {article.image && (
-          <div className="mt-8 overflow-hidden rounded-md bg-white/5">
-            <Image
-              src={article.image}
-              alt=""
-              width={1200}
-              height={800}
-              sizes="(max-width: 768px) 100vw, 768px"
-              className="aspect-[3/2] w-full object-cover"
-            />
-          </div>
+          <figure className="mt-8">
+            <div className="overflow-hidden rounded-md bg-white/5">
+              <Image
+                src={article.image}
+                alt=""
+                width={1200}
+                height={800}
+                sizes="(max-width: 768px) 100vw, 768px"
+                className="aspect-[3/2] w-full object-cover"
+                // CC images come from arbitrary hosts; serve as-is (skips the
+                // next/image host allowlist + optimizer SSRF surface).
+                unoptimized={article.imageIllustrative}
+              />
+            </div>
+            {article.imageCredit && (
+              <figcaption className="mt-2 text-xs text-white/40">
+                {article.imageIllustrative && (
+                  <span className="text-white/50">{isEs ? 'Imagen ilustrativa. ' : 'Illustrative image. '}</span>
+                )}
+                {article.imageCreditUrl ? (
+                  <a href={article.imageCreditUrl} target="_blank" rel="noreferrer nofollow" className="underline hover:text-white/70">
+                    {article.imageCredit}
+                  </a>
+                ) : (
+                  article.imageCredit
+                )}
+              </figcaption>
+            )}
+          </figure>
         )}
 
         <div className="mt-10 space-y-5 text-lg leading-8 text-white/80">

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
-import { fetchElPasoHeadlines, rewriteAsArticle, newsroomConfigured, type NewsItem } from '@/lib/newsroom'
+import { fetchElPasoHeadlines, rewriteAsArticle, findArticleImage, newsroomConfigured, type NewsItem } from '@/lib/newsroom'
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
 
@@ -83,6 +83,10 @@ export async function GET(request: NextRequest) {
         continue
       }
 
+      // Legally-safe illustrative image (CC-licensed via Openverse) with the
+      // attribution we must display. Never blocks publishing if none is found.
+      const img = await findArticleImage(written.image_query || written.title).catch(() => null)
+
       const slug = slugify(written.title)
       const ref = await adminDb.collection('articles').add({
         slug,
@@ -98,7 +102,10 @@ export async function GET(request: NextRequest) {
         source_name: item.source,
         source_url: item.link,
         automated: true,
-        image_url: null,
+        image_url: img?.url || null,
+        image_credit: img?.credit || null,
+        image_credit_url: img?.creditUrl || null,
+        image_illustrative: img ? true : false,
         created_at: FieldValue.serverTimestamp(),
         published_at: publish ? FieldValue.serverTimestamp() : null,
       })
