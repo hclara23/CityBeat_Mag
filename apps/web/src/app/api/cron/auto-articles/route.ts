@@ -31,9 +31,10 @@ function slugify(s: string) {
 
 // Autonomous newsroom cron. Pulls fresh El Paso / borderland headlines, has Claude
 // re-report each as an original AP-style brief (see lib/newsroom.ts rules), and
-// saves them to the `articles` collection. Default status is DRAFT for human
-// review; flip settings.newsroom_auto_publish (or pass ?publish=1) to publish
-// straight away. Deduped via the `processed_news` collection so nothing repeats.
+// saves them to the `articles` collection. Default status is PENDING_REVIEW, so
+// they surface in the /admin review queue for a one-click publish; flip
+// settings.newsroom_auto_publish (or pass ?publish=1) to publish straight away.
+// Deduped via the `processed_news` collection so nothing repeats.
 //
 // Params: ?limit=2 (articles to publish), ?publish=1 (force publish),
 //         ?dryRun=1 (write nothing, return previews).
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
         content_es: written.body_es,
         category: written.category,
         author: 'CityBeat Newsroom',
-        status: publish ? 'published' : 'draft',
+        status: publish ? 'published' : 'pending_review',
         source_name: item.source,
         source_url: item.link,
         automated: true,
@@ -103,10 +104,10 @@ export async function GET(request: NextRequest) {
       })
       await adminDb.collection('processed_news').doc(id).set({
         title: item.title, link: item.link, source: item.source,
-        publishable: true, article_id: ref.id, slug, status: publish ? 'published' : 'draft',
+        publishable: true, article_id: ref.id, slug, status: publish ? 'published' : 'pending_review',
         at: FieldValue.serverTimestamp(),
       })
-      created.push({ id: ref.id, slug, title: written.title, category: written.category, status: publish ? 'published' : 'draft' })
+      created.push({ id: ref.id, slug, title: written.title, category: written.category, status: publish ? 'published' : 'pending_review' })
     }
 
     await reportSuccess('cron:auto-articles')
