@@ -46,6 +46,22 @@ export async function postArticleToSocial(article: { slug: string; title: string
   return Promise.all([postToFacebook(message, link), postToInstagram(), postToX()])
 }
 
+// Weekly "This Weekend in El Paso" roundup post — the single highest-value
+// recurring social post for a local brand (targets the #1 recurring local
+// search + interest). Links to the /this-weekend traffic page.
+export async function postThisWeekendToSocial(events: Array<{ title_en: string; venue?: string | null }>, label: string): Promise<SocialResult[]> {
+  const link = `${APP_URL}/en/this-weekend`
+  const top = events
+    .slice(0, 5)
+    .map((e) => `• ${e.title_en}${e.venue ? ` — ${e.venue}` : ''}`)
+    .join('\n')
+  const message =
+    `📍 Things to do in El Paso this weekend (${label}):\n\n` +
+    (top || 'A fresh lineup of local events') +
+    `\n\nFull guide 👉 ${link}\n#ElPaso #ThingsToDo #CiudadJuarez #LasCruces`
+  return Promise.all([postToFacebook(message, link), postToInstagram(), postToX()])
+}
+
 // True only when at least one network is actually configured.
 export function socialConfigured(): boolean {
   return Boolean((process.env.FB_PAGE_ID && process.env.FB_PAGE_ACCESS_TOKEN) || (process.env.IG_USER_ID && process.env.IG_ACCESS_TOKEN) || process.env.X_BEARER_TOKEN)

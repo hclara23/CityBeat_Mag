@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getPublishedArticles } from '@/lib/articles'
-import { postArticleToSocial, socialConfigured } from '@/lib/social'
+import { postArticleToSocial, postThisWeekendToSocial, socialConfigured } from '@/lib/social'
+import { getThisWeekendEvents } from '@/lib/events'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
@@ -51,8 +52,31 @@ export async function GET(request: NextRequest) {
       results.push({ slug: a.slug, networks: r })
     }
 
+    // Weekly "This Weekend in El Paso" roundup — once per week (Thursdays, or
+    // ?weekend=1 to force), deduped by ISO-week key so a daily cron can't repost.
+    let weekend: any = null
+    const dow = new Date().getUTCDay() // 0 Sun .. 4 Thu
+    const forceWeekend = searchParams.get('weekend') === '1'
+    if (dow === 4 || forceWeekend) {
+      const now = new Date()
+      const weekKey = `weekend-${now.getUTCFullYear()}-w${Math.ceil((((now.getTime() - Date.UTC(now.getUTCFullYear(), 0, 1)) / 86400000) + 1) / 7)}`
+      const seen = await adminDb.collection('social_posts').where('slug', '==', weekKey).limit(1).get()
+      if (seen.empty) {
+        const { events, label } = await getThisWeekendEvents()
+        if (events.length > 0) {
+          const r = await postThisWeekendToSocial(events as any, label)
+          await adminDb.collection('social_posts').add({ slug: weekKey, title: `This Weekend (${label})`, results: r, created_at: FieldValue.serverTimestamp() })
+          weekend = { posted: r.some((x) => x.status === 'posted'), events: events.length, networks: r }
+        } else {
+          weekend = { skipped: 'no_weekend_events' }
+        }
+      } else {
+        weekend = { skipped: 'already_posted_this_week' }
+      }
+    }
+
     await reportSuccess('cron:social')
-    return NextResponse.json({ ok: true, configured: true, considered: recent.length, posted, results })
+    return NextResponse.json({ ok: true, configured: true, considered: recent.length, posted, weekend, results })
   } catch (error) {
     await reportFailure('cron:social', error)
     return NextResponse.json({ error: 'Social run failed' }, { status: 500 })

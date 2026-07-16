@@ -5,6 +5,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { getThisWeekendEvents } from '@/lib/events'
 import { jsonLdSafe } from '@/lib/jsonld'
+import { LeadMagnet } from '@/components/citybeat/LeadMagnet'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600
@@ -131,6 +132,11 @@ export default async function ThisWeekendPage({ params }: { params: { locale: st
             ))}
           </div>
         )}
+
+        {/* Capture the visitor into the email list before they leave. */}
+        <div className="mt-12">
+          <LeadMagnet source="weekend_guide" />
+        </div>
 
         <div className="mt-12 flex flex-wrap gap-3 border-t border-white/10 pt-8">
           <Link href={withLocale(params.locale, '/events')} className="rounded-md border border-white/15 px-5 py-2.5 text-sm font-black uppercase tracking-wider text-white/80 hover:bg-white/5">

@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     const rl = await checkRateLimit(`newsletter-sub:ip:${getClientIp(req)}`, { max: 15, windowMs: 60 * 60 * 1000 })
     if (!rl.ok) return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
 
-    const { email, locale } = await req.json()
+    const { email, locale, source } = await req.json()
 
     if (!email || typeof email !== 'string' || !email.includes('@') || email.length > 200) {
       return NextResponse.json({ error: 'Valid email is required' }, { status: 400 })
@@ -19,10 +19,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Already subscribed' }, { status: 200 })
     }
 
-    // Add to Firestore
+    // Add to Firestore. `source` tags where the signup came from (e.g.
+    // weekend_guide lead magnet) for attribution.
     await adminDb.collection('newsletter_subscribers').add({
       email,
       locale: locale || 'en',
+      source: typeof source === 'string' ? source.slice(0, 40) : 'newsletter',
       created_at: new Date().toISOString()
     })
 

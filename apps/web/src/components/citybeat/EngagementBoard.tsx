@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 
@@ -18,10 +18,14 @@ interface Row {
 
 // Warm-leads board for reps: businesses that opened or clicked outreach, hottest
 // first. A click means genuine interest — call them today.
+type Followup = { loading?: boolean; email_subject?: string; email_body?: string; call_script?: string }
+
 export function EngagementBoard() {
   const locale = useLocale() as 'en' | 'es'
   const [rows, setRows] = useState<Row[] | null>(null)
   const [summary, setSummary] = useState<{ engaged: number; hot: number; warm: number } | null>(null)
+  const [followups, setFollowups] = useState<Record<string, Followup>>({})
+  const [copied, setCopied] = useState('')
 
   useEffect(() => {
     fetch('/api/admin/outreach-engagement')
@@ -32,6 +36,30 @@ export function EngagementBoard() {
       })
       .catch(() => setRows([]))
   }, [])
+
+  const getFollowup = async (r: Row) => {
+    if (followups[r.id] && !followups[r.id].loading) {
+      // Toggle closed if already open.
+      setFollowups((f) => { const n = { ...f }; delete n[r.id]; return n })
+      return
+    }
+    setFollowups((f) => ({ ...f, [r.id]: { loading: true } }))
+    try {
+      const res = await fetch('/api/admin/lead-followup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business: r.business, listingId: r.listing_id, clicked: r.clicks > 0 }),
+      })
+      const d = await res.json()
+      setFollowups((f) => ({ ...f, [r.id]: { ...d, loading: false } }))
+    } catch {
+      setFollowups((f) => { const n = { ...f }; delete n[r.id]; return n })
+    }
+  }
+
+  const copy = (key: string, text: string) => {
+    navigator.clipboard?.writeText(text).then(() => { setCopied(key); setTimeout(() => setCopied(''), 2000) })
+  }
 
   if (rows === null) return null
 
@@ -65,11 +93,13 @@ export function EngagementBoard() {
                 <th className="py-2 px-3 text-center">{locale === 'es' ? 'Abrió' : 'Opens'}</th>
                 <th className="py-2 px-3 text-center">{locale === 'es' ? 'Clics' : 'Clicks'}</th>
                 <th className="py-2 px-3">{locale === 'es' ? 'Última actividad' : 'Last activity'}</th>
+                <th className="py-2 pl-3 text-right">{locale === 'es' ? 'Seguimiento' : 'Follow up'}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-b border-white/5 hover:bg-white/5">
+                <Fragment key={r.id}>
+                <tr className="border-b border-white/5 hover:bg-white/5">
                   <td className="py-2.5 pr-3">
                     {r.listing_id ? (
                       <a href={withLocale(locale, `/directory/${r.listing_id}`)} target="_blank" className="font-bold text-white underline hover:text-brand-neon">
@@ -90,9 +120,51 @@ export function EngagementBoard() {
                   <td className="py-2.5 px-3 text-center font-bold">{r.opens}</td>
                   <td className="py-2.5 px-3 text-center font-bold">{r.clicks}</td>
                   <td className="py-2.5 px-3 text-white/60">{r.last_activity ? new Date(r.last_activity).toLocaleString() : '—'}</td>
+                  <td className="py-2.5 pl-3 text-right">
+                    <button
+                      onClick={() => getFollowup(r)}
+                      className="rounded border border-brand-neon/40 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-brand-neon hover:bg-brand-neon/10"
+                    >
+                      {followups[r.id]?.loading ? '…' : followups[r.id] ? (locale === 'es' ? 'Cerrar' : 'Close') : locale === 'es' ? 'Redactar' : 'Draft'}
+                    </button>
+                  </td>
                 </tr>
+                {followups[r.id] && !followups[r.id].loading && (
+                  <tr className="bg-black/30">
+                    <td colSpan={6} className="px-4 py-4">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                          <div className="mb-1 flex items-center justify-between">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-brand-neon">{locale === 'es' ? 'Correo de seguimiento' : 'Follow-up email'}</p>
+                            <button onClick={() => copy(`${r.id}-e`, `${followups[r.id].email_subject}\n\n${followups[r.id].email_body}`)} className="text-[10px] font-bold uppercase tracking-wider text-white/50 hover:text-white">
+                              {copied === `${r.id}-e` ? '✓' : locale === 'es' ? 'Copiar' : 'Copy'}
+                            </button>
+                          </div>
+                          <p className="text-xs font-bold text-white">{followups[r.id].email_subject}</p>
+                          <p className="mt-1 whitespace-pre-line text-xs text-white/70">{followups[r.id].email_body}</p>
+                          {r.email && (
+                            <a href={`mailto:${r.email}?subject=${encodeURIComponent(followups[r.id].email_subject || '')}&body=${encodeURIComponent(followups[r.id].email_body || '')}`}
+                              className="mt-2 inline-block rounded bg-brand-neon px-3 py-1 text-[10px] font-black uppercase tracking-wider text-black hover:bg-cyan-300">
+                              {locale === 'es' ? 'Abrir en correo' : 'Open in email'}
+                            </a>
+                          )}
+                        </div>
+                        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                          <div className="mb-1 flex items-center justify-between">
+                            <p className="text-[10px] font-black uppercase tracking-wider text-brand-gold">{locale === 'es' ? 'Guion de llamada' : 'Call script'}</p>
+                            <button onClick={() => copy(`${r.id}-c`, followups[r.id].call_script || '')} className="text-[10px] font-bold uppercase tracking-wider text-white/50 hover:text-white">
+                              {copied === `${r.id}-c` ? '✓' : locale === 'es' ? 'Copiar' : 'Copy'}
+                            </button>
+                          </div>
+                          <p className="text-sm italic text-white/80">&ldquo;{followups[r.id].call_script}&rdquo;</p>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
-            </tbody>
+              </tbody>
           </table>
         </div>
       )}
