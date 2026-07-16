@@ -93,6 +93,35 @@ export function MyEarnings() {
           </table>
         </div>
       )}
+
+      {/* Transparency: what your share is, and what the platform's cut actually pays for. */}
+      <details className="mt-4 rounded-lg border border-white/10 bg-black/20 p-4 text-sm text-white/60">
+        <summary className="cursor-pointer font-bold text-white/80">
+          {isEs ? 'Cómo funcionan tus ganancias' : 'How your earnings work'}
+        </summary>
+        <div className="mt-3 space-y-2 leading-relaxed">
+          <p>
+            {isEs
+              ? 'Ganas tu parte de Editor en cada venta: 65% de un anuncio/patrocinado y 45% de una ficha de directorio que cierres tú; 20% / 25% de una venta que traiga un vendedor; y 40% de una venta de directorio automática o directa.'
+              : 'You earn your Editor share on every sale: 65% of an ad/sponsored sale and 45% of a directory listing you close yourself; 20% / 25% of a sale a rep brings in; and 40% of a directory sale that comes in automatically or on its own.'}
+          </p>
+          <p>
+            {isEs ? 'El resto no es ganancia extra de la plataforma:' : "The rest isn't the platform pocketing profit:"}
+          </p>
+          <ul className="ml-4 list-disc space-y-1 text-white/55">
+            <li>
+              <strong className="text-white/80">{isEs ? 'La parte de la App' : 'The App share'}</strong>{' '}
+              {isEs
+                ? 'cubre el costo de operar la plataforma: alojamiento, comisiones de Stripe, correo, y las herramientas de automatización.'
+                : 'covers the cost of running the platform — hosting, Stripe fees, email, and the automation tools.'}
+            </li>
+            <li>
+              <strong className="text-white/80">{isEs ? 'La parte del Desarrollador' : 'The Developer share'}</strong>{' '}
+              {isEs ? 'es la parte del dueño que construye y mantiene el sitio.' : "is the owner's cut for building and running the site."}
+            </li>
+          </ul>
+        </div>
+      </details>
     </section>
   )
 }
