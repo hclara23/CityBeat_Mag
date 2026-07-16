@@ -71,6 +71,7 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 | `citybeat-account-manager` | Wed 09:30 | `/api/cron/account-manager` | AI marketing drafts (deal, captions, review replies) per paying listing → owner approves on /dashboard; needs `ANTHROPIC_API_KEY` |
 | `citybeat-social` | 11:00 | `/api/cron/social?limit=5` | auto-posts recent stories + a weekly "This Weekend in El Paso" roundup (Thu, or `?weekend=1`) to Facebook Page (`FB_PAGE_ID`/`FB_PAGE_ACCESS_TOKEN`) + Threads (`THREADS_USER_ID`/`THREADS_ACCESS_TOKEN`, dormant); IG/X stubbed. Weekly dedup only marks done on a real post |
 | `citybeat-auto-articles` | 06:30/11:30/15:30/19:30 | `/api/cron/auto-articles?limit=2` | autonomous newsroom: pulls local outlet RSS (KVIA, El Paso Matters, KTSM, Herald-Post), Claude re-reports each as an original AP-style bilingual brief (`lib/newsroom.ts` `AI_WRITING_RULES`), credits source. Saves EN+ES to `articles` as `pending_review` (→ /admin review queue); `settings.newsroom_auto_publish` or `?publish=1` to auto-publish; `?dryRun=1` to preview. Deduped via `processed_news`. Needs `ANTHROPIC_API_KEY` |
+| `citybeat-translate-listings` | 05:00 | `/api/cron/translate-listings?limit=40` | backfills `description_es` for directory listings that have an English description but no Spanish one; self-skips when none remain. (New/edited listings are translated on save in `/api/directory/[id]`.) |
 
 Manage with `gcloud scheduler jobs list/run/pause --location us-central1`. To add a
 new cron: create the route with the `CRON_SECRET` check, then add a scheduler job.
@@ -225,6 +226,8 @@ Both Next.js apps use next-intl for language routing:
 - Routes: `/en/*`, `/es/*`
 - Message files: `src/messages/{en,es}.json`
 - Locale context passed through `[locale]` dynamic segment
+- **Always-visible EN|ES toggle** in `SiteHeader` (mobile + desktop) — El Paso is ~90% Spanish-speaking, so it's never buried in a menu.
+- **Content is bilingual**, not just chrome: articles carry `title_es`/`content_es` (newsroom + creator publish), events/deals have `_es` fields, and directory listings carry `description_es` (translated on save + backfilled by `citybeat-translate-listings`). Translation via `lib/translate.ts` `translateTexts` — DeepL through the worker, **falling back to Claude** (`ANTHROPIC_API_KEY`) when the worker is down, so `_es` reliably populates.
 
 See `packages/lib/i18n/index.ts` for shared utilities.
 
