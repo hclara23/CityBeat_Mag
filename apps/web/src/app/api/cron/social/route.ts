@@ -61,12 +61,17 @@ export async function GET(request: NextRequest) {
       const now = new Date()
       const weekKey = `weekend-${now.getUTCFullYear()}-w${Math.ceil((((now.getTime() - Date.UTC(now.getUTCFullYear(), 0, 1)) / 86400000) + 1) / 7)}`
       const seen = await adminDb.collection('social_posts').where('slug', '==', weekKey).limit(1).get()
-      if (seen.empty) {
+      if (seen.empty || forceWeekend) {
         const { events, label } = await getThisWeekendEvents()
         if (events.length > 0) {
           const r = await postThisWeekendToSocial(events as any, label)
-          await adminDb.collection('social_posts').add({ slug: weekKey, title: `This Weekend (${label})`, results: r, created_at: FieldValue.serverTimestamp() })
-          weekend = { posted: r.some((x) => x.status === 'posted'), events: events.length, networks: r }
+          const didPost = r.some((x) => x.status === 'posted')
+          // Only mark the week done once something actually posted — a bad token
+          // shouldn't silently burn the weekly slot, and a forced retry can work.
+          if (didPost) {
+            await adminDb.collection('social_posts').add({ slug: weekKey, title: `This Weekend (${label})`, results: r, created_at: FieldValue.serverTimestamp() })
+          }
+          weekend = { posted: didPost, events: events.length, networks: r }
         } else {
           weekend = { skipped: 'no_weekend_events' }
         }
