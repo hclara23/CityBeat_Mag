@@ -16,6 +16,7 @@ interface Job {
 
 export default async function JobsPage({ params }: { params: { locale: string } }) {
   const locale = params?.locale || 'en'
+  const isEs = locale === 'es'
   // Fetch active paid jobs
   let jobs: Job[] = []
   let error: any = null
@@ -41,30 +42,30 @@ export default async function JobsPage({ params }: { params: { locale: string } 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
           <div>
             <h1 className="text-4xl font-display font-black uppercase tracking-widest mb-2">
-              Job Board
+              {isEs ? 'Bolsa de Trabajo' : 'Job Board'}
             </h1>
             <p className="text-white/60 text-lg">
-              Find your next role in the city.
+              {isEs ? 'Encuentra tu próximo empleo en la ciudad.' : 'Find your next role in the city.'}
             </p>
           </div>
           <Link
             href={`/${locale}/jobs/post`}
             className="bg-brand-neon text-black font-black uppercase tracking-wider text-sm px-6 py-3 rounded hover:bg-white transition"
           >
-            Post a Job ($50)
+            {isEs ? 'Publicar Empleo ($50)' : 'Post a Job ($50)'}
           </Link>
         </div>
 
         {error && (
           <div className="text-red-500 mb-8 p-4 border border-red-500/20 rounded bg-red-500/10">
-            Error loading jobs: {error.message}
+            {isEs ? 'Error al cargar empleos:' : 'Error loading jobs:'} {error.message}
           </div>
         )}
 
         {!jobs || jobs.length === 0 ? (
           <div className="text-white/50 border border-white/10 rounded-xl p-12 text-center bg-white/5">
-            <p className="text-xl font-bold mb-2">No active jobs right now.</p>
-            <p>Check back later or post a job to reach our community.</p>
+            <p className="text-xl font-bold mb-2">{isEs ? 'No hay empleos activos por ahora.' : 'No active jobs right now.'}</p>
+            <p>{isEs ? 'Vuelve más tarde o publica un empleo para llegar a nuestra comunidad.' : 'Check back later or post a job to reach our community.'}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -86,7 +87,7 @@ export default async function JobsPage({ params }: { params: { locale: string } 
                     rel="noreferrer"
                     className="bg-brand-gold text-black px-8 py-3 rounded font-black uppercase tracking-widest hover:bg-yellow-400 transition inline-block text-center whitespace-nowrap"
                   >
-                    Apply Now
+                    {isEs ? 'Postularse' : 'Apply Now'}
                   </a>
                 </div>
               </div>
