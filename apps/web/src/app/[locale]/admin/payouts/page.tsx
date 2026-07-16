@@ -19,6 +19,7 @@ export default function PayoutSettingsDashboard() {
   const [ovUser, setOvUser] = useState('')
   const [ovService, setOvService] = useState<string>('directory')
   const [ovPercent, setOvPercent] = useState('')
+  const [editorId, setEditorId] = useState('')
   // Issue-a-payout-now form
   const [payUser, setPayUser] = useState('')
   const [payAmount, setPayAmount] = useState('')
@@ -51,6 +52,10 @@ export default function PayoutSettingsDashboard() {
       load().finally(() => setReady(true))
     })
   }, [router, locale, load])
+
+  useEffect(() => {
+    if (settings?.editor_user_id) setEditorId(settings.editor_user_id)
+  }, [settings])
 
   const save = async (next: any) => {
     setSaving(true)
@@ -119,6 +124,71 @@ export default function PayoutSettingsDashboard() {
         <h1 className="mt-2 font-display text-4xl font-black tracking-tight text-white">Payout Settings</h1>
         <p className="mt-2 text-white/55">Set the percentage of each payment paid out to users. Platform keeps the remainder.</p>
         {msg && <p className="mt-4 text-sm text-brand-neon">{msg}</p>}
+
+        {/* Active multi-party commission split (App + Developer = platform balance). */}
+        <div className="mt-8 rounded-xl border border-brand-magenta/30 bg-brand-magenta/[0.05] p-6">
+          <h2 className="text-lg font-bold text-white">Commission split (active)</h2>
+          <p className="mt-1 text-sm text-white/55">
+            Only the <strong className="text-white">Editor</strong> and the <strong className="text-white">Sales rep</strong> receive
+            bank transfers. <strong className="text-white">App + Developer</strong> stay in the platform balance. Channel is detected
+            from who sold it.
+          </p>
+          <div className="mt-4 overflow-x-auto rounded-lg border border-white/10">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] font-black uppercase tracking-wider text-white/40">
+                  <th className="px-3 py-2">Sold by</th>
+                  <th className="px-3 py-2">Product</th>
+                  <th className="px-3 py-2 text-center">Editor</th>
+                  <th className="px-3 py-2 text-center">Sales rep</th>
+                  <th className="px-3 py-2 text-center">Platform</th>
+                </tr>
+              </thead>
+              <tbody className="text-white/80">
+                {[
+                  ['Editor', 'Ads / sponsored', '65%', '—', '35%'],
+                  ['Editor', 'Directory', '45%', '—', '55%'],
+                  ['Sales rep', 'Ads / sponsored', '20%', '50%', '30%'],
+                  ['Sales rep', 'Directory', '25%', '40%', '35%'],
+                  ['Autonomous / organic', 'Directory', '40%', '—', '60%'],
+                  ['Autonomous / organic', 'Ads / sponsored', '—', '—', '100%'],
+                ].map((r, i) => (
+                  <tr key={i} className="border-b border-white/5 last:border-0">
+                    <td className="px-3 py-2">{r[0]}</td>
+                    <td className="px-3 py-2 text-white/60">{r[1]}</td>
+                    <td className="px-3 py-2 text-center font-bold text-brand-neon">{r[2]}</td>
+                    <td className="px-3 py-2 text-center font-bold text-brand-gold">{r[3]}</td>
+                    <td className="px-3 py-2 text-center text-white/50">{r[4]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-[11px] text-white/35">
+            Jobs, featured events, and custom field sales use the Ads / sponsored split. These rates live in{' '}
+            <code className="text-white/50">lib/payouts.ts</code> (SPLIT_RATES) — tell the dev to change them.
+          </p>
+
+          <div className="mt-5 border-t border-white/10 pt-4">
+            <label className="block text-xs font-black uppercase tracking-wider text-white/50">Editor account (uid)</label>
+            <p className="mb-2 text-[11px] text-white/40">The user who receives the Editor share on every sale.</p>
+            <div className="flex flex-wrap gap-2">
+              <input
+                value={editorId}
+                onChange={(e) => setEditorId(e.target.value)}
+                placeholder="uid"
+                className="min-w-[260px] flex-1 rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white"
+              />
+              <button
+                onClick={() => save({ editor_user_id: editorId.trim() })}
+                disabled={saving || !editorId.trim()}
+                className="rounded-md bg-brand-magenta px-4 py-2 text-sm font-black uppercase tracking-wider text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? '…' : 'Save editor'}
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">
           <div className="flex items-center justify-between gap-4">

@@ -35,6 +35,9 @@ export async function PATCH(request: NextRequest) {
   if (body.commission_mode === 'one_time' || body.commission_mode === 'residual') {
     patch.commission_mode = body.commission_mode
   }
+  if (typeof body.editor_user_id === 'string' && body.editor_user_id.trim()) {
+    patch.editor_user_id = body.editor_user_id.trim()
+  }
 
   try {
     const settings = await savePayoutSettings(patch, auth.user.id)

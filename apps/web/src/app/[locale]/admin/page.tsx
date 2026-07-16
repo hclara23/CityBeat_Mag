@@ -7,6 +7,7 @@ import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
+import { MyEarnings } from '@/components/citybeat/MyEarnings'
 
 interface PendingArticle {
   id: string
@@ -139,6 +140,9 @@ export default function AdminDashboard() {
             ))}
           </div>
         </section>
+
+        {/* Editor's commission payout table */}
+        <MyEarnings />
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Main Column: Review Queue */}

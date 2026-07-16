@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
-import { payoutToUser, getPayoutSettings } from '@/lib/payouts'
+import { payoutSplit, getPayoutSettings } from '@/lib/payouts'
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
 import { sendEmail } from '@/lib/email'
@@ -102,19 +102,18 @@ async function handleCheckoutCompleted(session: any) {
 
     // Funnel close: mark any outreach for this listing as converted.
     await markOutreachConverted(metadata.listing_id)
-    // Pay out the configured share ONLY to an explicitly attributed payee (e.g. the
-    // sales rep set via metadata.payout_user_id at checkout). Never default to the
-    // owner — that would refund the payer a cut of their own payment. No-ops if
-    // there's no payee or the percent is 0.
-    await payoutToUser({
+    // Multi-party split: Editor + Sales rep get transfers per the split table; the
+    // platform (App + Developer) keeps the remainder. The seller is the attributed
+    // rep, or none (autonomous/organic self-serve → Editor's autonomous share).
+    await payoutSplit({
       stripe,
-      payeeUserId: metadata.payout_user_id || null,
+      sellerUserId: metadata.payout_user_id || null,
       service: 'directory',
       amountTotal: session.amount_total,
       currency: session.currency || 'usd',
       sourcePaymentId: session.id,
     })
-    // Remember the rep so renewals can pay residual commission (if enabled).
+    // Remember the seller + service so renewals re-apply the split (residual mode).
     await recordSubscriptionAttribution(session.subscription, metadata.payout_user_id, 'directory')
     return
   }
@@ -171,12 +170,12 @@ async function handleCheckoutCompleted(session: any) {
     )
   }
 
-  // Pay out the configured share ONLY to an explicitly attributed payee (e.g. the
-  // creator/rep set via metadata.payout_user_id). Never default to the advertiser —
-  // that would pay the buyer a cut of their own purchase.
-  await payoutToUser({
+  // Multi-party split for ad/sponsored (and any non-directory) sale: Editor + rep
+  // get transfers per the ads split; platform keeps the rest. Seller = attributed
+  // rep, or none (organic buyer → Editor's autonomous share, which is 0 for ads).
+  await payoutSplit({
     stripe,
-    payeeUserId: metadata.payout_user_id || null,
+    sellerUserId: metadata.payout_user_id || null,
     service: metadata.adType === 'sponsored_post' ? 'sponsored_post' : 'ad_campaign',
     amountTotal: session.amount_total,
     currency: session.currency || 'usd',
@@ -201,11 +200,13 @@ async function markOutreachConverted(listingId: string) {
   }
 }
 
-// Persist who earns commission on a subscription so renewals can pay residuals.
+// Persist the seller + service on a subscription so renewals can re-apply the
+// split. Recorded even with NO seller (autonomous/organic) so the Editor still
+// earns their residual share on those renewals.
 async function recordSubscriptionAttribution(subscriptionId: any, payeeUserId: any, service: string) {
-  if (!subscriptionId || !payeeUserId) return
+  if (!subscriptionId) return
   await adminDb.collection('subscriptions').doc(String(subscriptionId)).set(
-    { payout_user_id: payeeUserId, payout_service: service, updated_at: new Date().toISOString() },
+    { payout_user_id: payeeUserId || null, payout_service: service, updated_at: new Date().toISOString() },
     { merge: true }
   )
 }
@@ -221,15 +222,15 @@ async function payResidualCommissionIfDue(invoice: any) {
 
   const subDoc = await adminDb.collection('subscriptions').doc(String(invoice.subscription)).get()
   const sub = subDoc.exists ? (subDoc.data() as any) : null
-  if (!sub?.payout_user_id || !sub.payout_service) return
+  if (!sub?.payout_service) return
 
   // Don't double-pay a renewal on webhook retries.
   const existing = await adminDb.collection('transfers').where('source_payment', '==', invoice.id).limit(1).get()
   if (!existing.empty) return
 
-  await payoutToUser({
+  await payoutSplit({
     stripe,
-    payeeUserId: sub.payout_user_id,
+    sellerUserId: sub.payout_user_id || null,
     service: sub.payout_service,
     amountTotal: invoice.amount_paid ?? invoice.amount_due ?? 0,
     currency: invoice.currency || 'usd',
