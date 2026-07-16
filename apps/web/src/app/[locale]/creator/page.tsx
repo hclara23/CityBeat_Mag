@@ -8,6 +8,7 @@ import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
+import { hasEditorAccess } from '@citybeat/lib/roles'
 
 type ArticleStatus = 'draft' | 'pending_review' | 'approved' | 'rejected' | 'published'
 
@@ -112,8 +113,7 @@ export default function CreatorDashboard() {
         fetch('/api/profile')
           .then((res) => res.ok ? res.json() : null)
           .then((data) => {
-            const profile = data?.profile
-            setCanPublish(Boolean(profile?.is_editor || profile?.is_developer || ['developer', 'admin', 'editor'].includes(profile?.role)))
+            setCanPublish(hasEditorAccess(data?.profile))
           })
           .catch(() => setCanPublish(false))
       }

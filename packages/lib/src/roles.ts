@@ -14,6 +14,7 @@ export type PlatformProfile = {
   id?: string
   role?: string | null
   is_developer?: boolean | null
+  can_manage_platform?: boolean | null
   is_editor?: boolean | null
   is_writer?: boolean | null
   is_sales?: boolean | null
@@ -35,7 +36,9 @@ function hasActiveRole(profile: PlatformProfile | null | undefined, roles: Platf
 }
 
 export function hasDeveloperAccess(profile: PlatformProfile | null | undefined) {
-  return Boolean(profile?.is_developer || hasActiveRole(profile, ['developer']))
+  // `can_manage_platform` is the godmode flag used across the app; treat it as
+  // developer so the two never diverge.
+  return Boolean(profile?.is_developer || profile?.can_manage_platform || hasActiveRole(profile, ['developer']))
 }
 
 export function hasAdminAccess(profile: PlatformProfile | null | undefined) {
@@ -64,6 +67,16 @@ export function hasSalesAccess(profile: PlatformProfile | null | undefined) {
     profile?.is_sales ||
     profile?.sales_dashboard_enabled ||
     hasActiveRole(profile, ['sales'])
+  )
+}
+
+// Advertiser/owner surfaces (campaigns, listing management). Developer/admin are
+// a superset — godmode can do everything an advertiser can.
+export function hasAdvertiserAccess(profile: PlatformProfile | null | undefined) {
+  return Boolean(
+    hasAdminAccess(profile) ||
+    profile?.is_advertiser ||
+    hasActiveRole(profile, ['advertiser'])
   )
 }
 

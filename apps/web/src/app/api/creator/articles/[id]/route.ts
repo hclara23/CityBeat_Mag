@@ -3,10 +3,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { FieldValue } from 'firebase-admin/firestore'
 import { translateArticleToEs } from '@/lib/translate'
-
-function hasEditorAccess(profile: any) {
-  return Boolean(profile?.is_developer || profile?.is_editor || ['developer', 'admin', 'editor'].includes(profile?.role))
-}
+import { hasEditorAccess } from '@citybeat/lib/roles'
 
 async function getCategoryId(slug?: string) {
   const categorySlug = slug || 'news'

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/TranslationProvider'
 import { Navigation, Button } from '@citybeat/ui'
 import { LocaleToggle } from '@/components/citybeat/LocaleToggle'
+import { hasAdvertiserAccess } from '@citybeat/lib/roles'
 import { AuthError } from '@citybeat/ui/auth'
 import { MyListingsBoost } from '@/components/citybeat/MyListingsBoost'
 import { MyDeals } from '@/components/citybeat/MyDeals'
@@ -86,6 +87,9 @@ export default function DashboardPage() {
     )
   }
 
+  // Developers/admins are a superset — they can act as an advertiser too.
+  const canAdvertise = hasAdvertiserAccess(profile)
+
   return (
     <div className="min-h-screen bg-white">
       <Navigation rightSlot={<LocaleToggle />} />
@@ -100,10 +104,10 @@ export default function DashboardPage() {
               📖 {isEs ? 'Guía del usuario' : 'User Guide'}
             </a>
             <p className="text-gray-600 mt-2">
-              {profile?.is_advertiser ? (isEs ? 'Panel de anunciante' : 'Advertiser Dashboard') : (isEs ? 'Panel' : 'Dashboard')}
+              {canAdvertise ? (isEs ? 'Panel de anunciante' : 'Advertiser Dashboard') : (isEs ? 'Panel' : 'Dashboard')}
             </p>
           </div>
-          {profile?.is_advertiser && (
+          {canAdvertise && (
             <Button
               className="bg-red-600 hover:bg-red-700"
               onClick={() => router.push(`/${locale}/ads`)}
@@ -165,7 +169,7 @@ export default function DashboardPage() {
         <div>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">{isEs ? 'Tus campañas' : 'Your Campaigns'}</h2>
-            {profile?.is_advertiser && campaigns.length > 0 && (
+            {canAdvertise && campaigns.length > 0 && (
               <Button
                 className="bg-red-600 hover:bg-red-700"
                 onClick={() => router.push(`/${locale}/ads`)}
@@ -179,7 +183,7 @@ export default function DashboardPage() {
             <div className="bg-gray-50 rounded-lg p-12 border border-gray-200 text-center">
               <p className="text-gray-500">{isEs ? 'Aún no hay campañas' : 'No campaigns yet'}</p>
               <p className="text-sm text-gray-400 mt-2">
-                {profile?.is_advertiser
+                {canAdvertise
                   ? (isEs ? 'Crea tu primera campaña publicitaria para empezar' : 'Create your first advertising campaign to get started')
                   : (isEs ? 'No eres anunciante' : 'You are not an advertiser')}
               </p>

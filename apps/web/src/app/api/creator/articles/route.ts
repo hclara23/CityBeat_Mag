@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { FieldValue } from 'firebase-admin/firestore'
+import { hasWriterAccess, hasEditorAccess } from '@citybeat/lib/roles'
 
 function slugify(text: string): string {
   return text
@@ -21,13 +22,9 @@ function textToContent(text: string) {
   }))
 }
 
-function hasCreatorAccess(profile: any) {
-  return Boolean(profile?.is_developer || profile?.is_writer || profile?.is_editor || ['developer', 'admin', 'editor', 'writer'].includes(profile?.role))
-}
-
-function hasEditorAccess(profile: any) {
-  return Boolean(profile?.is_developer || profile?.is_editor || ['developer', 'admin', 'editor'].includes(profile?.role))
-}
+// Writer/creator access (write) and editor access (publish) come from the shared
+// role helpers so godmode (`can_manage_platform`/`is_developer`) always qualifies.
+const hasCreatorAccess = hasWriterAccess
 
 async function getCategoryId(slug?: string) {
   const categorySlug = slug || 'news'
