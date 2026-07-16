@@ -6,16 +6,10 @@ import type { DocumentReference } from 'firebase-admin/firestore'
 const WORKER_URL = process.env.WORKER_URL || 'https://citybeat-worker.morningstarelp.workers.dev'
 const DEEPL_MAX_BATCH = 40 // DeepL allows up to 50 texts per request; stay under.
 
-// Translate an array of strings EN->ES (chunked). Returns null on any failure
-// so callers can fall back to the original language without breaking.
-export async function translateTexts(texts: string[]): Promise<string[] | null> {
+// Primary path: DeepL via the Cloudflare worker (best quality for ES).
+async function translateViaWorker(texts: string[]): Promise<string[] | null> {
   const secret = process.env.INGEST_SECRET
-  if (!secret) {
-    console.error('translateTexts: INGEST_SECRET not set')
-    return null
-  }
-  if (texts.length === 0) return []
-
+  if (!secret) return null
   const out: string[] = []
   for (let i = 0; i < texts.length; i += DEEPL_MAX_BATCH) {
     const chunk = texts.slice(i, i + DEEPL_MAX_BATCH)
@@ -25,19 +19,54 @@ export async function translateTexts(texts: string[]): Promise<string[] | null> 
         headers: { 'Content-Type': 'application/json', 'x-ingest-secret': secret },
         body: JSON.stringify({ texts: chunk, target_lang: 'ES', source_lang: 'EN' }),
       })
-      if (!res.ok) {
-        console.error('translateTexts worker error:', res.status, await res.text().catch(() => ''))
-        return null
-      }
+      if (!res.ok) return null
       const data: any = await res.json()
-      if (!Array.isArray(data.translations)) return null
-      out.push(...data.translations)
-    } catch (error) {
-      console.error('translateTexts failed:', error)
+      if (!Array.isArray(data.translations) || data.translations.length !== chunk.length) return null
+      out.push(...data.translations.map((s: any) => String(s)))
+    } catch {
       return null
     }
   }
   return out
+}
+
+// Fallback path: Claude. No external worker dependency, so translation keeps
+// working even when the worker/DeepL is down.
+async function translateViaClaude(texts: string[]): Promise<string[] | null> {
+  const key = process.env.ANTHROPIC_API_KEY
+  if (!key) return null
+  const model = process.env.CHAT_MODEL || 'claude-haiku-4-5-20251001'
+  const out: string[] = []
+  for (let i = 0; i < texts.length; i += DEEPL_MAX_BATCH) {
+    const chunk = texts.slice(i, i + DEEPL_MAX_BATCH)
+    const prompt = `Translate each string in this JSON array from English to natural Mexican Spanish (es-MX). Preserve meaning and any inline markup; do not add, drop, merge, or reorder items. Return ONLY a JSON array of the same length and order, no commentary.\n\n${JSON.stringify(chunk)}`
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({ model, max_tokens: 4000, messages: [{ role: 'user', content: prompt }] }),
+      })
+      if (!res.ok) return null
+      const data: any = await res.json()
+      const text: string = data?.content?.[0]?.text || ''
+      const parsed = JSON.parse(text.replace(/^```(json)?/i, '').replace(/```$/i, '').trim())
+      if (!Array.isArray(parsed) || parsed.length !== chunk.length) return null
+      out.push(...parsed.map((s: any) => String(s)))
+    } catch {
+      return null
+    }
+  }
+  return out
+}
+
+// Translate an array of strings EN->ES (chunked). Tries DeepL via the worker,
+// then falls back to Claude. Returns null only if both fail, so callers can keep
+// the original language without breaking.
+export async function translateTexts(texts: string[]): Promise<string[] | null> {
+  if (texts.length === 0) return []
+  const viaWorker = await translateViaWorker(texts)
+  if (viaWorker) return viaWorker
+  return translateViaClaude(texts)
 }
 
 // Collect every text leaf from a TipTap doc or flat block array, in order.
