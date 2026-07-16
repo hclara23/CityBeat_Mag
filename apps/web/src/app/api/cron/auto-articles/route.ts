@@ -29,6 +29,11 @@ function slugify(s: string) {
   return `${base || 'story'}-${Date.now().toString(36).slice(-4)}`
 }
 
+// Illustrative CC stock images suit soft/representative stories, but a generic
+// photo on a specific crime/breaking item misleads — so only attach images to
+// these categories and skip the hard-news bucket ('news').
+const IMAGE_CATEGORIES = new Set(['business', 'events', 'culture'])
+
 // A short, stock-search-friendly image query. Prefer the model's 2-4 word
 // suggestion; if it's missing, use a generic term for the category (a full
 // headline is far too specific for CC stock search).
@@ -94,14 +99,15 @@ export async function GET(request: NextRequest) {
       }
 
       if (dryRun) {
+        const wantsImg = IMAGE_CATEGORIES.has(written.category)
         const q = imageQueryFor(written)
-        const previewImg = await findArticleImage(q).catch(() => null)
+        const previewImg = wantsImg ? await findArticleImage(q).catch(() => null) : null
         created.push({
           title: written.title,
           category: written.category,
           source: item.source,
           words: written.body_en.trim().split(/\s+/).length,
-          image_query: q,
+          image_query: wantsImg ? q : '(skipped — hard news)',
           image: previewImg?.url || null,
           image_credit: previewImg?.credit || null,
           preview: written.body_en,
@@ -109,9 +115,12 @@ export async function GET(request: NextRequest) {
         continue
       }
 
-      // Legally-safe illustrative image (CC-licensed via Openverse) with the
-      // attribution we must display. Never blocks publishing if none is found.
-      const img = await findArticleImage(imageQueryFor(written)).catch(() => null)
+      // Legally-safe illustrative image (CC-licensed via Openverse) — only for
+      // soft categories; hard news stays imageless so a generic photo can't
+      // misrepresent a specific event. Never blocks publishing.
+      const img = IMAGE_CATEGORIES.has(written.category)
+        ? await findArticleImage(imageQueryFor(written)).catch(() => null)
+        : null
 
       const slug = slugify(written.title)
       const ref = await adminDb.collection('articles').add({
