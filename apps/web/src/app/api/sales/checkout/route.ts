@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      return NextResponse.json({ url: session.url, listingId })
+      return NextResponse.json({ url: session.url, listingId, priceLabel: plan.priceLabel })
     }
 
     // kind === 'custom' — a one-off charge for an ad/banner/sponsored/anything sold
