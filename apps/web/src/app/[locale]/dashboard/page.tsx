@@ -23,6 +23,7 @@ interface Campaign {
 export default function DashboardPage() {
   const router = useRouter()
   const locale = useLocale()
+  const isEs = locale === 'es'
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
@@ -78,7 +79,7 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-white">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 py-12">
-          <p className="text-gray-500">Loading...</p>
+          <p className="text-gray-500">{isEs ? 'Cargando…' : 'Loading…'}</p>
         </div>
       </div>
     )
@@ -92,13 +93,13 @@ export default function DashboardPage() {
         <div className="flex justify-between items-start mb-8">
           <div>
             <h1 className="text-4xl font-bold">
-              Welcome, {profile?.full_name || 'User'}
+              {isEs ? 'Bienvenido' : 'Welcome'}, {profile?.full_name || (isEs ? 'Usuario' : 'User')}
             </h1>
             <a href={`/${locale}/guide`} className="mt-1 inline-block text-xs font-bold text-cyan-600 underline">
-              📖 User Guide
+              📖 {isEs ? 'Guía del usuario' : 'User Guide'}
             </a>
             <p className="text-gray-600 mt-2">
-              {profile?.is_advertiser ? 'Advertiser Dashboard' : 'Dashboard'}
+              {profile?.is_advertiser ? (isEs ? 'Panel de anunciante' : 'Advertiser Dashboard') : (isEs ? 'Panel' : 'Dashboard')}
             </p>
           </div>
           {profile?.is_advertiser && (
@@ -106,7 +107,7 @@ export default function DashboardPage() {
               className="bg-red-600 hover:bg-red-700"
               onClick={() => router.push(`/${locale}/ads`)}
             >
-              Create Campaign
+              {isEs ? 'Crear campaña' : 'Create Campaign'}
             </Button>
           )}
         </div>
@@ -122,37 +123,39 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {/* Stats Cards */}
           <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-            <p className="text-sm text-gray-600 mb-2">Total Impressions</p>
+            <p className="text-sm text-gray-600 mb-2">{isEs ? 'Impresiones totales' : 'Total Impressions'}</p>
             <p className="text-3xl font-bold">{stats.totalImpressions.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-2">This month</p>
+            <p className="text-xs text-gray-500 mt-2">{isEs ? 'Este mes' : 'This month'}</p>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-            <p className="text-sm text-gray-600 mb-2">Total Clicks</p>
+            <p className="text-sm text-gray-600 mb-2">{isEs ? 'Clics totales' : 'Total Clicks'}</p>
             <p className="text-3xl font-bold">{stats.totalClicks.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-2">This month</p>
+            <p className="text-xs text-gray-500 mt-2">{isEs ? 'Este mes' : 'This month'}</p>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-            <p className="text-sm text-gray-600 mb-2">Click-Through Rate</p>
+            <p className="text-sm text-gray-600 mb-2">{isEs ? 'Tasa de clics' : 'Click-Through Rate'}</p>
             <p className="text-3xl font-bold">{stats.ctr.toFixed(2)}%</p>
-            <p className="text-xs text-gray-500 mt-2">This month</p>
+            <p className="text-xs text-gray-500 mt-2">{isEs ? 'Este mes' : 'This month'}</p>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-            <p className="text-sm text-gray-600 mb-2">Active Campaigns</p>
+            <p className="text-sm text-gray-600 mb-2">{isEs ? 'Campañas activas' : 'Active Campaigns'}</p>
             <p className="text-3xl font-bold">{stats.activeCampaigns}</p>
-            <p className="text-xs text-gray-500 mt-2">Currently running</p>
+            <p className="text-xs text-gray-500 mt-2">{isEs ? 'En ejecución' : 'Currently running'}</p>
           </div>
         </div>
 
         {/* Recent Activity */}
         <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 mb-12">
-          <h2 className="text-2xl font-bold mb-4">Recent Activity</h2>
+          <h2 className="text-2xl font-bold mb-4">{isEs ? 'Actividad reciente' : 'Recent Activity'}</h2>
           <div className="text-center py-12">
-            <p className="text-gray-500">No activity data available yet</p>
+            <p className="text-gray-500">{isEs ? 'Aún no hay datos de actividad' : 'No activity data available yet'}</p>
             <p className="text-sm text-gray-400 mt-2">
-              Analytics will appear here once your campaigns go live
+              {isEs
+                ? 'Las analíticas aparecerán aquí cuando tus campañas estén activas'
+                : 'Analytics will appear here once your campaigns go live'}
             </p>
           </div>
         </div>
@@ -160,24 +163,24 @@ export default function DashboardPage() {
         {/* Campaigns Section */}
         <div>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Your Campaigns</h2>
+            <h2 className="text-2xl font-bold">{isEs ? 'Tus campañas' : 'Your Campaigns'}</h2>
             {profile?.is_advertiser && campaigns.length > 0 && (
               <Button
                 className="bg-red-600 hover:bg-red-700"
                 onClick={() => router.push(`/${locale}/ads`)}
               >
-                New Campaign
+                {isEs ? 'Nueva campaña' : 'New Campaign'}
               </Button>
             )}
           </div>
 
           {campaigns.length === 0 ? (
             <div className="bg-gray-50 rounded-lg p-12 border border-gray-200 text-center">
-              <p className="text-gray-500">No campaigns yet</p>
+              <p className="text-gray-500">{isEs ? 'Aún no hay campañas' : 'No campaigns yet'}</p>
               <p className="text-sm text-gray-400 mt-2">
                 {profile?.is_advertiser
-                  ? 'Create your first advertising campaign to get started'
-                  : 'You are not an advertiser'}
+                  ? (isEs ? 'Crea tu primera campaña publicitaria para empezar' : 'Create your first advertising campaign to get started')
+                  : (isEs ? 'No eres anunciante' : 'You are not an advertiser')}
               </p>
             </div>
           ) : (
@@ -193,7 +196,7 @@ export default function DashboardPage() {
                         {campaign.name}
                       </h3>
                       <p className="text-sm text-gray-500 mt-1">
-                        Created {new Date(campaign.created_at).toLocaleDateString()}
+                        {isEs ? 'Creada el' : 'Created'} {new Date(campaign.created_at).toLocaleDateString(isEs ? 'es-MX' : 'en-US')}
                       </p>
                     </div>
                     <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
@@ -203,13 +206,13 @@ export default function DashboardPage() {
 
                   <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
                     <div>
-                      <p className="text-xs text-gray-600">Impressions</p>
+                      <p className="text-xs text-gray-600">{isEs ? 'Impresiones' : 'Impressions'}</p>
                       <p className="text-lg font-semibold">
                         {campaign.impressions.toLocaleString()}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600">Clicks</p>
+                      <p className="text-xs text-gray-600">{isEs ? 'Clics' : 'Clicks'}</p>
                       <p className="text-lg font-semibold">
                         {campaign.clicks.toLocaleString()}
                       </p>

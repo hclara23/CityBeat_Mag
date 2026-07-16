@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLocale } from '@/components/TranslationProvider'
 
 interface Lead {
   id: string
@@ -16,6 +17,7 @@ interface Lead {
 // Dashboard leads inbox. Premium/Featured listings see full contact details;
 // basic listings see masked leads with an upgrade path (the lead ladder).
 export function LeadsPanel() {
+  const isEs = useLocale() === 'es'
   const [leads, setLeads] = useState<Lead[] | null>(null)
 
   useEffect(() => {
@@ -31,13 +33,17 @@ export function LeadsPanel() {
 
   return (
     <div className="mb-12">
-      <h2 className="text-2xl font-bold mb-2">Customer leads</h2>
+      <h2 className="text-2xl font-bold mb-2">{isEs ? 'Clientes potenciales' : 'Customer leads'}</h2>
       <p className="text-sm text-gray-500 mb-6">
-        People who asked to be contacted through your listings.
+        {isEs
+          ? 'Personas que pidieron que las contactes a través de tus fichas.'
+          : 'People who asked to be contacted through your listings.'}
         {locked > 0 && (
           <span className="font-semibold text-gray-700">
             {' '}
-            {locked} lead{locked === 1 ? ' is' : 's are'} waiting — upgrade that listing to Premium to unlock contact details.
+            {isEs
+              ? `${locked} ${locked === 1 ? 'contacto está esperando' : 'contactos están esperando'} — sube esa ficha a Premium para desbloquear los datos de contacto.`
+              : `${locked} lead${locked === 1 ? ' is' : 's are'} waiting — upgrade that listing to Premium to unlock contact details.`}
           </span>
         )}
       </p>
@@ -55,7 +61,7 @@ export function LeadsPanel() {
                   <span className="ml-2 font-medium text-gray-500">{lead.contact}</span>
                 </p>
                 {lead.business_name && (
-                  <p className="text-xs text-gray-500 mt-0.5">for {lead.business_name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{isEs ? 'para' : 'for'} {lead.business_name}</p>
                 )}
                 {lead.message && (
                   <p className={`text-sm mt-2 ${lead.unlocked ? 'text-gray-700' : 'text-amber-700 italic'}`}>{lead.message}</p>
@@ -64,11 +70,11 @@ export function LeadsPanel() {
               <div className="shrink-0 text-right">
                 {!lead.unlocked && (
                   <span className="inline-block rounded bg-amber-200 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-900">
-                    🔒 Locked
+                    🔒 {isEs ? 'Bloqueado' : 'Locked'}
                   </span>
                 )}
                 {lead.created_at && (
-                  <p className="text-[11px] text-gray-400 mt-1">{new Date(lead.created_at).toLocaleDateString()}</p>
+                  <p className="text-[11px] text-gray-400 mt-1">{new Date(lead.created_at).toLocaleDateString(isEs ? 'es-MX' : 'en-US')}</p>
                 )}
               </div>
             </div>
