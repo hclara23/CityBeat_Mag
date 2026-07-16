@@ -194,14 +194,17 @@ Respond with ONLY valid JSON (no markdown fences):
 // commercial reuse (modification allowed) and we KEEP the attribution so the
 // article can credit the photographer + license. These are illustrative stock
 // images, not the actual news scene — the article page labels them as such.
-export async function findArticleImage(query: string): Promise<ArticleImage | null> {
-  const q = query.trim()
-  if (!q) return null
+async function openverseSearch(q: string): Promise<ArticleImage | null> {
+  const url =
+    `https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}` +
+    `&license_type=commercial,modification&mature=false&page_size=8`
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 8000)
   try {
-    const url =
-      `https://api.openverse.org/v1/images/?q=${encodeURIComponent(q)}` +
-      `&license_type=commercial,modification&mature=false&page_size=6&aspect_ratio=wide`
-    const res = await fetch(url, { headers: { 'User-Agent': 'CityBeatNewsroom/1.0 (+https://citybeatmag.co)' } })
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'CityBeatNewsroom/1.0 (+https://citybeatmag.co)' },
+      signal: ctrl.signal,
+    })
     if (!res.ok) return null
     const data: any = await res.json()
     const hit = (data?.results || []).find((r: any) => r?.url && (r?.creator || r?.license))
@@ -215,5 +218,23 @@ export async function findArticleImage(query: string): Promise<ArticleImage | nu
     }
   } catch {
     return null
+  } finally {
+    clearTimeout(timer)
   }
+}
+
+// Progressive search — a full headline is too specific for stock/CC search, so
+// try the (short) query, then fall back to its first few keywords.
+export async function findArticleImage(query: string): Promise<ArticleImage | null> {
+  const base = query.trim()
+  if (!base) return null
+  const words = base.split(/\s+/).filter((w) => w.length > 2)
+  const attempts = Array.from(
+    new Set([base, words.slice(0, 3).join(' '), words.slice(0, 2).join(' ')].map((s) => s.trim()).filter(Boolean)),
+  )
+  for (const q of attempts) {
+    const hit = await openverseSearch(q)
+    if (hit) return hit
+  }
+  return null
 }

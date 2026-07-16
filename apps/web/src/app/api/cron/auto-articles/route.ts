@@ -29,6 +29,21 @@ function slugify(s: string) {
   return `${base || 'story'}-${Date.now().toString(36).slice(-4)}`
 }
 
+// A short, stock-search-friendly image query. Prefer the model's 2-4 word
+// suggestion; if it's missing, use a generic term for the category (a full
+// headline is far too specific for CC stock search).
+function imageQueryFor(w: { image_query?: string; category: string }): string {
+  const q = (w.image_query || '').trim()
+  if (q) return q
+  const byCat: Record<string, string> = {
+    news: 'city government building',
+    business: 'small business storefront',
+    events: 'concert crowd event',
+    culture: 'art mural gallery',
+  }
+  return byCat[w.category] || 'el paso texas'
+}
+
 // Autonomous newsroom cron. Pulls fresh El Paso / borderland headlines, has Claude
 // re-report each as an original AP-style brief (see lib/newsroom.ts rules), and
 // saves them to the `articles` collection. Default status is PENDING_REVIEW, so
@@ -79,12 +94,14 @@ export async function GET(request: NextRequest) {
       }
 
       if (dryRun) {
-        const previewImg = await findArticleImage(written.image_query || written.title).catch(() => null)
+        const q = imageQueryFor(written)
+        const previewImg = await findArticleImage(q).catch(() => null)
         created.push({
           title: written.title,
           category: written.category,
           source: item.source,
           words: written.body_en.trim().split(/\s+/).length,
+          image_query: q,
           image: previewImg?.url || null,
           image_credit: previewImg?.credit || null,
           preview: written.body_en,
@@ -94,7 +111,7 @@ export async function GET(request: NextRequest) {
 
       // Legally-safe illustrative image (CC-licensed via Openverse) with the
       // attribution we must display. Never blocks publishing if none is found.
-      const img = await findArticleImage(written.image_query || written.title).catch(() => null)
+      const img = await findArticleImage(imageQueryFor(written)).catch(() => null)
 
       const slug = slugify(written.title)
       const ref = await adminDb.collection('articles').add({
