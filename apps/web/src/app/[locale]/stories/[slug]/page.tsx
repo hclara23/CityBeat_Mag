@@ -127,6 +127,22 @@ export default async function StoryPage({ params }: Props) {
             <p key={index}>{paragraph}</p>
           ))}
         </div>
+
+        {article.sourceName && (
+          <p className="mt-10 border-t border-white/10 pt-6 text-sm text-white/50">
+            {isEs ? 'Reporte original: ' : 'Original reporting: '}
+            {article.sourceUrl ? (
+              <a href={article.sourceUrl} target="_blank" rel="noreferrer nofollow" className="text-brand-neon underline hover:text-cyan-300">
+                {article.sourceName}
+              </a>
+            ) : (
+              <span className="text-white/70">{article.sourceName}</span>
+            )}
+            {isEs
+              ? '. CityBeat resumió esta noticia de forma independiente.'
+              : '. CityBeat independently summarized this report.'}
+          </p>
+        )}
       </article>
     </CityBeatShell>
   )

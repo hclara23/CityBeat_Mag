@@ -18,6 +18,9 @@ export type Article = {
   contentEN: string
   contentES: string
   status: string
+  // Attribution for briefs re-reported from another outlet (autonomous newsroom).
+  sourceName: string | null
+  sourceUrl: string | null
 }
 
 export const CATEGORY_IDS = ['news', 'business', 'events', 'culture'] as const
@@ -95,6 +98,8 @@ function normalizeFirestore(
     contentEN: text,
     contentES: textEs,
     status: a.status || 'published',
+    sourceName: a.source_name || null,
+    sourceUrl: a.source_url || null,
   }
 }
 
@@ -113,6 +118,8 @@ function fromLocal(a: LocalArticle): Article {
     contentEN: a.contentEN || a.content,
     contentES: a.contentES || a.content,
     status: 'published',
+    sourceName: null,
+    sourceUrl: null,
   }
 }
 

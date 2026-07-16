@@ -26,6 +26,7 @@ export async function PATCH(request: NextRequest) {
   const body = await request.json().catch(() => ({}))
   const patch: any = {}
   if (typeof body.auto_approve_claims === 'boolean') patch.auto_approve_claims = body.auto_approve_claims
+  if (typeof body.newsroom_auto_publish === 'boolean') patch.newsroom_auto_publish = body.newsroom_auto_publish
 
   const settings = await savePlatformSettings(patch, auth.user.id)
   return NextResponse.json({ settings })

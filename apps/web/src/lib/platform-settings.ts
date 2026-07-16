@@ -5,11 +5,14 @@ export type PlatformSettings = {
   // When true, a self-serve owner who pays for a directory claim is approved
   // instantly (skips manual admin review). Default OFF — preserves human review.
   auto_approve_claims: boolean
+  // When true, the autonomous newsroom (cron/auto-articles) publishes its briefs
+  // immediately instead of saving them as drafts for review. Default OFF.
+  newsroom_auto_publish: boolean
   updated_at?: string
   updated_by?: string
 }
 
-const DEFAULTS: PlatformSettings = { auto_approve_claims: false }
+const DEFAULTS: PlatformSettings = { auto_approve_claims: false, newsroom_auto_publish: false }
 const DOC = () => adminDb.collection('settings').doc('platform')
 
 export async function getPlatformSettings(): Promise<PlatformSettings> {
@@ -18,6 +21,7 @@ export async function getPlatformSettings(): Promise<PlatformSettings> {
     const data = doc.exists ? (doc.data() as any) : {}
     return {
       auto_approve_claims: Boolean(data?.auto_approve_claims),
+      newsroom_auto_publish: Boolean(data?.newsroom_auto_publish),
       updated_at: data?.updated_at,
       updated_by: data?.updated_by,
     }
