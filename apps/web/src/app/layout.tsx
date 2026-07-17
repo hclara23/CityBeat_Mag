@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Space_Grotesk } from 'next/font/google'
 import './globals.css'
+import { PostHogProvider } from '@/components/PostHogProvider'
 
 // The brand display/body font. Self-hosted by next/font (no network round-trip,
 // no layout shift). Space Grotesk ships 300–700 — combined with font-synthesis:none
@@ -42,7 +43,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={spaceGrotesk.variable}>
       <body className="antialiased">
-        {children}
+        <PostHogProvider phKey={process.env.NEXT_PUBLIC_POSTHOG_KEY} phHost={process.env.NEXT_PUBLIC_POSTHOG_HOST}>
+          {children}
+        </PostHogProvider>
       </body>
     </html>
   )

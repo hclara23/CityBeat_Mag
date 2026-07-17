@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@google-analytics/data": "^6.1.0",
+    "@novu/api": "^3.18.0",
+    "@novu/react": "^3.18.0",
     "@tailwindcss/forms": "^0.5.6",
     "@tiptap/extension-image": "^3.22.4",
     "@tiptap/extension-link": "^3.22.4",
@@ -27,6 +29,8 @@
     "next": "^14.0.0",
     "next-intl": "^3.0.0",
     "nodemailer": "^6.9.14",
+    "posthog-js": "^1.404.0",
+    "posthog-node": "^5.45.2",
     "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

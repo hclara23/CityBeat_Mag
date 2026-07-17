@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { withLocale } from './content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser, signOut } from '@citybeat/lib/firebase/auth-client'
+import { NotificationInbox } from '@/components/NotificationInbox'
 
 function getNavItems(locale: string) {
   return [
@@ -97,6 +98,9 @@ export function SiteHeader() {
               ES
             </Link>
           </div>
+
+          {/* In-app notification bell (dormant until Novu is configured). */}
+          {profile?.id && <NotificationInbox subscriberId={profile.id} />}
 
           <div className="hidden items-center gap-3 md:flex">
             {dashboardHref ? (
