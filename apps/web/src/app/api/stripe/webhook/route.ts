@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { payoutSplit, getPayoutSettings } from '@/lib/payouts'
+import { notify, NOTIFY_WORKFLOWS } from '@/lib/notify'
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
 import { sendEmail } from '@/lib/email'
@@ -35,6 +36,20 @@ async function setPaymentStatusByField(field: string, value: string, status: str
 
 async function handleCheckoutCompleted(session: any) {
   const metadata = session.metadata || {}
+
+  // Operator "cha-ching" alert on every completed payment (Novu — dormant until
+  // NOVU_SECRET_KEY + a "new-sale" workflow exist). Best-effort; never blocks
+  // fulfillment.
+  await notify({
+    workflowId: NOTIFY_WORKFLOWS.newSale,
+    to: { subscriberId: 'operator', email: process.env.ALERT_EMAIL },
+    payload: {
+      amount: ((session.amount_total || 0) / 100).toFixed(2),
+      currency: (session.currency || 'usd').toUpperCase(),
+      product: metadata.plan || metadata.adType || metadata.type || 'sale',
+      business: metadata.companyName || metadata.contact_email || '',
+    },
+  })
 
   // 0. Paid "feature this event" → publish + feature the event.
   if (metadata.type === 'event_feature' && metadata.event_id) {

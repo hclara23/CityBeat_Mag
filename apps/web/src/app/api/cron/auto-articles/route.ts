@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { fetchElPasoHeadlines, rewriteAsArticle, findArticleImage, newsroomConfigured, type NewsItem } from '@/lib/newsroom'
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { notify, NOTIFY_WORKFLOWS } from '@/lib/notify'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -150,6 +151,16 @@ export async function GET(request: NextRequest) {
         at: FieldValue.serverTimestamp(),
       })
       created.push({ id: ref.id, slug, title: written.title, category: written.category, status: publish ? 'published' : 'pending_review' })
+    }
+
+    // Ping editors when fresh drafts land in the review queue (Novu — dormant
+    // until NOVU_SECRET_KEY + an "article-review" workflow exist).
+    if (!dryRun && !publish && created.length > 0) {
+      await notify({
+        workflowId: NOTIFY_WORKFLOWS.articleReview,
+        to: { subscriberId: 'editors', email: process.env.ALERT_EMAIL },
+        payload: { count: created.length },
+      })
     }
 
     await reportSuccess('cron:auto-articles')

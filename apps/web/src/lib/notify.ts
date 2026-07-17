@@ -26,6 +26,16 @@ export function notificationsEnabled(): boolean {
   return getClient() !== null
 }
 
+// Workflow trigger identifiers to create in the Novu dashboard (Workflows → the
+// workflow's "trigger" id). notify() references these; each is a no-op until the
+// matching workflow exists AND NOVU_SECRET_KEY is set.
+//   new-sale        — a payment completed (payload: amount, currency, product, business)
+//   article-review  — new article(s) are waiting in the /admin review queue (payload: count)
+export const NOTIFY_WORKFLOWS = {
+  newSale: 'new-sale',
+  articleReview: 'article-review',
+} as const
+
 export async function notify(params: {
   workflowId: string
   to: string | { subscriberId: string; email?: string; phone?: string; firstName?: string }
