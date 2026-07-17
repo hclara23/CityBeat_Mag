@@ -3,6 +3,17 @@ const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   swcMinify: true,
+  // The Novu Inbox UI (@novu/react, wrapped by @novu/nextjs) is built on Solid.js;
+  // its Solid deps use exports maps webpack can't resolve without transpiling them.
+  transpilePackages: [
+    '@novu/nextjs',
+    '@novu/react',
+    '@novu/js',
+    'solid-motionone',
+    '@solid-primitives/props',
+    '@solid-primitives/refs',
+    '@solid-primitives/transition-group',
+  ],
   images: {
     remotePatterns: [
       {
@@ -63,7 +74,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.googleapis.com https://*.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com https://api.stripe.com https://r.stripe.com https://maps.googleapis.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com",
+              "connect-src 'self' https://*.googleapis.com https://*.gstatic.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com https://api.stripe.com https://r.stripe.com https://maps.googleapis.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://*.novu.co wss://*.novu.co https://*.posthog.com",
               "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.firebaseapp.com https://apis.google.com https://accounts.google.com",
               "worker-src 'self' blob:",
               "manifest-src 'self'",

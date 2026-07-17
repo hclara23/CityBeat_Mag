@@ -12,6 +12,7 @@
   "dependencies": {
     "@google-analytics/data": "^6.1.0",
     "@novu/api": "^3.18.0",
+    "@novu/nextjs": "^3.18.0",
     "@tailwindcss/forms": "^0.5.6",
     "@tiptap/extension-image": "^3.22.4",
     "@tiptap/extension-link": "^3.22.4",
