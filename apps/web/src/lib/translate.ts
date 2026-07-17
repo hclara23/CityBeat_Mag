@@ -1,5 +1,6 @@
 import { FieldValue } from 'firebase-admin/firestore'
 import type { DocumentReference } from 'firebase-admin/firestore'
+import { traceClaude } from '@/lib/observability'
 
 // Translation goes through the Cloudflare worker (which holds the DeepL key).
 // The web app authenticates with the shared INGEST_SECRET it already uses.
@@ -48,6 +49,7 @@ async function translateViaClaude(texts: string[]): Promise<string[] | null> {
       })
       if (!res.ok) return null
       const data: any = await res.json()
+      await traceClaude('translate.claude', prompt, data, { items: chunk.length })
       const text: string = data?.content?.[0]?.text || ''
       const parsed = JSON.parse(text.replace(/^```(json)?/i, '').replace(/```$/i, '').trim())
       if (!Array.isArray(parsed) || parsed.length !== chunk.length) return null

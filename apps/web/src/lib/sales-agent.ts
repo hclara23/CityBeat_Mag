@@ -2,6 +2,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { sendEmail as sendEmailViaProvider } from './email'
 import { isSuppressed } from './suppression'
+import { traceClaude } from '@/lib/observability'
 
 // Automated outbound sales agent: contacts unclaimed directory businesses and
 // pitches the free claim + $19/mo Premium upgrade, with a one-click deep link
@@ -105,6 +106,7 @@ async function enhanceWithClaude(listing: Listing, base: ReturnType<typeof templ
     })
     if (!res.ok) return base
     const data: any = await res.json()
+    await traceClaude('sales-agent.pitch', { business: listing.name, category: listing.category, locale }, data, { business: listing.name })
     const text = data?.content?.[0]?.text
     if (typeof text === 'string' && text.trim()) {
       return { ...base, pitch: text.trim() }

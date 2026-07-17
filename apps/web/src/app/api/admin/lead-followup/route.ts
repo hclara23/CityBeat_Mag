@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { traceClaude } from '@/lib/observability'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -68,6 +69,7 @@ Respond with ONLY valid JSON, no markdown fences:
     })
     if (!res.ok) return NextResponse.json({ ...fallback, ai: false })
     const data: any = await res.json()
+    await traceClaude('lead-followup', prompt, data, { business })
     const text: string = data?.content?.[0]?.text || ''
     const parsed = JSON.parse(text.replace(/^```(json)?|```$/g, '').trim())
     return NextResponse.json({

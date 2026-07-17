@@ -7,6 +7,8 @@
 //
 // Needs ANTHROPIC_API_KEY. Sources are free/keyless.
 
+import { traceClaude } from '@/lib/observability'
+
 const MODEL = process.env.NEWSROOM_MODEL || process.env.CHAT_MODEL || 'claude-haiku-4-5-20251001'
 
 // The "constitution" handed to the writing agent on every article. Kept verbose
@@ -169,6 +171,7 @@ Respond with ONLY valid JSON (no markdown fences):
     })
     if (!res.ok) return null
     const data: any = await res.json()
+    await traceClaude('newsroom.rewrite', prompt, data, { source: item.source })
     const text: string = data?.content?.[0]?.text || ''
     const parsed = JSON.parse(text.replace(/^```(json)?/i, '').replace(/```$/i, '').trim())
     if (!parsed || parsed.publishable === false || !parsed.title || !parsed.body_en) return null

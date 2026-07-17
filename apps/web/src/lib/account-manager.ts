@@ -1,6 +1,7 @@
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { sendEmail } from './email'
+import { traceClaude } from '@/lib/observability'
 
 // The AI account manager: every paying (premium/featured) listing gets weekly
 // marketing work product — a suggested deal, social captions, and drafted
@@ -45,6 +46,7 @@ Produce marketing work in ${lang}. Respond with ONLY valid JSON, no markdown fen
     })
     if (!res.ok) return null
     const data: any = await res.json()
+    await traceClaude('account-manager', prompt, data, { business: listing.name })
     const text: string = data?.content?.[0]?.text || ''
     const parsed = JSON.parse(text.replace(/^```(json)?|```$/g, '').trim())
     const validIds = new Set(reviews.map((r) => r.id))

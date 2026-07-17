@@ -4,6 +4,8 @@
 // ANTHROPIC_API_KEY is configured it returns null so callers fall back to a
 // summary-and-link draft (low copyright risk) rather than copying source text.
 
+import { traceClaude } from '@/lib/observability'
+
 const MODEL = process.env.REWRITE_MODEL || 'claude-haiku-4-5-20251001'
 
 export type RewrittenArticle = { title: string; summary: string; bodyText: string }
@@ -47,6 +49,7 @@ ${input.sourceText || ''}`
       return null
     }
     const data: any = await res.json()
+    await traceClaude('rewrite', userPrompt, data, { source: input.sourceName })
     const raw: string = data?.content?.[0]?.text || ''
     // The model is asked for bare JSON, but strip stray code fences defensively.
     const jsonText = raw.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim()

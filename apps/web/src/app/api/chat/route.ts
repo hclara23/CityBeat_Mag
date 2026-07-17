@@ -3,6 +3,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { retrieveLocalContext } from '@/lib/concierge'
+import { traceClaude } from '@/lib/observability'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
       })
       if (!res.ok) throw new Error(`anthropic_${res.status}`)
       const data: any = await res.json()
+      await traceClaude('concierge.chat', userMsgs, data, { hasContext: Boolean(context) })
       reply = data?.content?.[0]?.text || 'Sorry, I had trouble responding — try /ads or /directory.'
     } catch (e) {
       reply = 'Sorry, I had a hiccup. You can claim a listing at /directory or advertise at /ads.'
