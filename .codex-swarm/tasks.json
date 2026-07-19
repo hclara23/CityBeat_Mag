@@ -7274,7 +7274,7 @@
     {
       "id": "202607191856-GFQKDZ",
       "title": "Remove This Weekend menu link",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "med",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
@@ -7285,23 +7285,31 @@
       "verify": [
         "npm run type-check --workspace @citybeat/web"
       ],
+      "commit": {
+        "hash": "29519cd65e0354d7f8b896854f9c53b34696c700",
+        "message": "🎨 GFQKDZ remove This Weekend from shared desktop and mobile navigation"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: remove the shared bilingual weekend navigation item, then type-check and inspect the focused header diff."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: removed the bilingual weekend item from the shared header navigation | details: web type-check passed; focused search and diff checks passed."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-07-19T18:56:44+00:00",
+      "doc_updated_at": "2026-07-19T18:58:28+00:00",
       "doc_updated_by": "agentctl",
       "description": "Remove the This Weekend/Este finde entry from the shared CityBeat main navigation on desktop and mobile while preserving the underlying page route.",
-      "doc": "## Summary\n\nRemove the bilingual This Weekend navigation entry from the shared CityBeat site header.\n\n## Context\n\nThe main menu currently links to /this-weekend as This Weekend in English and Este finde in Spanish. The requested change is menu-only.\n\n## Scope\n\nUpdate apps/web/src/components/citybeat/SiteHeader.tsx so the shared desktop and mobile navigation arrays omit /this-weekend. Preserve the route and page content.\n\n## Risks\n\nLow risk. Removing the shared array entry affects both desktop and mobile menus in both locales; direct links to the page remain available.\n\n## Verify Steps\n\nRun npm run type-check --workspace @citybeat/web. Inspect the SiteHeader diff and confirm no /this-weekend nav item remains.\n\n## Rollback Plan\n\nRestore the bilingual /this-weekend object at the start of getNavItems and rerun the web type-check.\n\n## Notes\n\nUser-approved plan: remove only the main-menu link, not the This Weekend page or related social content."
+      "doc": "## Summary\n\nRemove the bilingual This Weekend navigation entry from the shared CityBeat site header.\n\n## Context\n\nThe main menu currently links to /this-weekend as This Weekend in English and Este finde in Spanish. The requested change is menu-only.\n\n## Scope\n\nUpdate apps/web/src/components/citybeat/SiteHeader.tsx so the shared desktop and mobile navigation arrays omit /this-weekend. Preserve the route and page content.\n\n## Risks\n\nLow risk. Removing the shared array entry affects both desktop and mobile menus in both locales; direct links to the page remain available.\n\n## Verify Steps\n\nRun npm run type-check --workspace @citybeat/web. Inspect the SiteHeader diff and confirm no /this-weekend nav item remains.\n\n## Rollback Plan\n\nRestore the bilingual /this-weekend object at the start of getNavItems and rerun the web type-check.\n\n## Notes\n\nImplemented by removing only the /this-weekend object from getNavItems. Validation passed: npm run type-check --workspace @citybeat/web; focused search confirmed the link is absent from SiteHeader; git diff --check passed."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "d2b0c52aebb714a25241adc42bb66a7b13f91c482add836038c660e1f4e8fc38"
+    "checksum": "1c2d5b25496e05867d0ef5786ba07f921ff6195d88391c1f11493d7e3a948ea0"
   }
 }

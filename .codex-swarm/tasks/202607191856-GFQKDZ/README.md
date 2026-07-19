@@ -1,14 +1,16 @@
 ---
 id: "202607191856-GFQKDZ"
 title: "Remove This Weekend menu link"
-status: "DOING"
+status: "DONE"
 priority: "med"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["frontend", "nav"]
 verify: ["npm run type-check --workspace @citybeat/web"]
+commit: { hash: "29519cd65e0354d7f8b896854f9c53b34696c700", message: "🎨 GFQKDZ remove This Weekend from shared desktop and mobile navigation" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: remove the shared bilingual weekend navigation item, then type-check and inspect the focused header diff." }
+  - { author: "ORCHESTRATOR", body: "verified: removed the bilingual weekend item from the shared header navigation | details: web type-check passed; focused search and diff checks passed." }
 doc_version: 2
 doc_updated_at: "2026-07-19T18:58:28+00:00"
 doc_updated_by: "agentctl"
