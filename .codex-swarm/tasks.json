@@ -7270,12 +7270,38 @@
       "doc_updated_at": "2026-06-13T18:38:13+00:00",
       "doc_updated_by": "agentctl",
       "description": "Migrate the entire application from Supabase to Firebase and Cloud Run, prioritizing speed over zero-downtime. Includes migrating all articles, posts, business directory, and buildout components."
+    },
+    {
+      "id": "202607191856-GFQKDZ",
+      "title": "Remove This Weekend menu link",
+      "status": "DOING",
+      "priority": "med",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "frontend",
+        "nav"
+      ],
+      "verify": [
+        "npm run type-check --workspace @citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: remove the shared bilingual weekend navigation item, then type-check and inspect the focused header diff."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-19T18:56:44+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Remove the This Weekend/Este finde entry from the shared CityBeat main navigation on desktop and mobile while preserving the underlying page route.",
+      "doc": "## Summary\n\nRemove the bilingual This Weekend navigation entry from the shared CityBeat site header.\n\n## Context\n\nThe main menu currently links to /this-weekend as This Weekend in English and Este finde in Spanish. The requested change is menu-only.\n\n## Scope\n\nUpdate apps/web/src/components/citybeat/SiteHeader.tsx so the shared desktop and mobile navigation arrays omit /this-weekend. Preserve the route and page content.\n\n## Risks\n\nLow risk. Removing the shared array entry affects both desktop and mobile menus in both locales; direct links to the page remain available.\n\n## Verify Steps\n\nRun npm run type-check --workspace @citybeat/web. Inspect the SiteHeader diff and confirm no /this-weekend nav item remains.\n\n## Rollback Plan\n\nRestore the bilingual /this-weekend object at the start of getNavItems and rerun the web type-check.\n\n## Notes\n\nUser-approved plan: remove only the main-menu link, not the This Weekend page or related social content."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "5b2f0b98db794cd48e4df5d596b9047e1acc496a9aba6835387fac7344028c1e"
+    "checksum": "d2b0c52aebb714a25241adc42bb66a7b13f91c482add836038c660e1f4e8fc38"
   }
 }

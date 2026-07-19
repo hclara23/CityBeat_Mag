@@ -10,7 +10,6 @@ import { NotificationInbox } from '@/components/NotificationInbox'
 
 function getNavItems(locale: string) {
   return [
-    { label: locale === 'es' ? 'Este finde' : 'This Weekend', href: '/this-weekend' },
     { label: locale === 'es' ? 'Boletines' : 'Stories', href: '/stories' },
     { label: locale === 'es' ? 'Eventos' : 'Events', href: '/events' },
     { label: locale === 'es' ? 'Directorio' : 'Directory', href: '/directory' },

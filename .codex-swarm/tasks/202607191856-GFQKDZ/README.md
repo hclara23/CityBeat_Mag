@@ -1,14 +1,16 @@
 ---
 id: "202607191856-GFQKDZ"
 title: "Remove This Weekend menu link"
-status: "TODO"
+status: "DOING"
 priority: "med"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["frontend", "nav"]
 verify: ["npm run type-check --workspace @citybeat/web"]
+comments:
+  - { author: "ORCHESTRATOR", body: "Start: remove the shared bilingual weekend navigation item, then type-check and inspect the focused header diff." }
 doc_version: 2
-doc_updated_at: "2026-07-19T18:56:44+00:00"
+doc_updated_at: "2026-07-19T18:58:28+00:00"
 doc_updated_by: "agentctl"
 description: "Remove the This Weekend/Este finde entry from the shared CityBeat main navigation on desktop and mobile while preserving the underlying page route."
 ---
@@ -38,5 +40,5 @@ Restore the bilingual /this-weekend object at the start of getNavItems and rerun
 
 ## Notes
 
-User-approved plan: remove only the main-menu link, not the This Weekend page or related social content.
+Implemented by removing only the /this-weekend object from getNavItems. Validation passed: npm run type-check --workspace @citybeat/web; focused search confirmed the link is absent from SiteHeader; git diff --check passed.
 
