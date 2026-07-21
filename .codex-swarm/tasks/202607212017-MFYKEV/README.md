@@ -1,14 +1,16 @@
 ---
 id: "202607212017-MFYKEV"
 title: "Verify recurring checkout behavior"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "TESTER"
 depends_on: ["202607212017-8JVTY5", "202607212017-XSEXBE"]
 tags: ["test", "stripe"]
 verify: ["npm test", "npm run type-check", "npm run lint", "npm run build"]
+commit: { hash: "f1701c8b1e87ca641c27e42e0c08800e1e6db362", message: "🧪 MFYKEV verify recurring and one-time checkout behavior" }
 comments:
   - { author: "TESTER", body: "Start: add deterministic recurring-checkout decision tests, preserve the existing test runner, and execute tests, typecheck, lint, and the production build before review." }
+  - { author: "TESTER", body: "verified: 27 automated tests pass | details: recurring and one-time Stripe defaults are directly covered; all workspace typechecks and lint jobs pass; and the production build emits both bilingual public checkout result routes." }
 doc_version: 2
 doc_updated_at: "2026-07-21T20:30:30+00:00"
 doc_updated_by: "agentctl"
