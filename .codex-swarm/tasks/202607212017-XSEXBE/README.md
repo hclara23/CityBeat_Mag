@@ -1,14 +1,16 @@
 ---
 id: "202607212017-XSEXBE"
 title: "Simplify recurring payment handoff"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: ["202607212017-8JVTY5"]
 tags: ["frontend", "code", "checkout"]
 verify: ["npm run type-check"]
+commit: { hash: "842309d3475bef504c5e04f38fe8bed3e1716ec7", message: "🎨 XSEXBE streamline recurring link and QR checkout" }
 comments:
   - { author: "CODER", body: "Start: streamline the recurring sales handoff with clear renewal disclosure, salesperson-prefilled email, locally generated QR codes, and a public post-checkout result page." }
+  - { author: "CODER", body: "verified: recurring pricing and renewal terms are explicit, required email is prefilled, QR generation stays local, link sharing remains one tap, public bilingual result pages replace staff-login redirects, and typecheck plus lint pass cleanly." }
 doc_version: 2
 doc_updated_at: "2026-07-21T20:25:15+00:00"
 doc_updated_by: "agentctl"
