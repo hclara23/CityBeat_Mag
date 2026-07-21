@@ -86,14 +86,20 @@ export function RoleGuide({ roles, locale }: { roles: GuideRoles; locale: string
 
       {roles.isSales && (
         <Section title="Sales reps — closing & commission">
-          <Item heading="Field sales wizard">
-            <L href={p('/admin/sales/new')}>/admin/sales/new</L> generates a Stripe Checkout link/QR on the spot for
-            any plan or custom amount. The sale is attributed to you; an admin attaches the owner after payment.
+          <Item heading="One Sales Desk">
+            <L href={p('/admin/sales/me')}>/admin/sales/me</L> combines leads, checkout creation, QR/email/SMS
+            handoff, order status, discounts, commission, and the leaderboard. Choose any Directory, advertising,
+            event, job, or approved custom product from the grouped selector.
           </Item>
-          <Item heading="Your pipeline & commission">
-            <L href={p('/admin/sales/me')}>/admin/sales/me</L> shows deals closed, commission earned, and the
-            leaderboard. Commission pays automatically to your connected bank when the customer pays — set up your
-            bank once from the dashboard payout onboarding.
+          <Item heading="Payment and customer brief">
+            Stripe collects the customer&apos;s card and saves it for recurring products. After payment, the same link
+            opens a private product-specific brief that autosaves job, event, listing, campaign, copy, and image
+            details. Staff can track payment, billing, brief completion, fulfillment, discounts, and commission from
+            the Sales Desk. Never collect card details yourself.
+          </Item>
+          <Item heading="Commission">
+            Commission pays automatically to your connected bank when the customer pays (one-time or residual per
+            godmode setting). Set up your bank once from the dashboard payout onboarding — it stays linked.
           </Item>
           <Item heading="Inbound leads">
             <L href={p('/admin/leads')}>/admin/leads</L> lists quote requests and chat leads to follow up.

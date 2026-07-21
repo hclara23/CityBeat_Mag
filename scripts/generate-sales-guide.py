@@ -37,8 +37,9 @@ CANONICAL_PDF = ROOT / "output" / "pdf" / "citybeat-sales-guide.pdf"
 PUBLIC_PDF = ROOT / "apps" / "web" / "public" / "downloads" / "citybeat-sales-guide.pdf"
 
 AS_OF = "July 21, 2026"
-NEW_SALE_URL = "https://citybeatmag.co/en/admin/sales/new"
-PIPELINE_URL = "https://citybeatmag.co/en/admin/sales/me"
+SALES_DESK_URL = "https://citybeatmag.co/en/admin/sales/me"
+NEW_SALE_URL = f"{SALES_DESK_URL}#new-sale"
+PIPELINE_URL = SALES_DESK_URL
 PAYOUTS_URL = "https://citybeatmag.co/en/account/payments"
 
 DARK = HexColor("#0B0D10")
@@ -392,11 +393,11 @@ def build_story() -> list:
             cover_table,
             Spacer(1, 0.44 * inch),
             para(
-                "Built for CityBeat sales representatives working in person, by phone, and through warm-lead follow-up. Keep this guide internal and use the live sales wizard as the final pricing authority.",
+                "Built for CityBeat sales representatives working in person, by phone, and through warm-lead follow-up. Keep this guide internal and use the live Sales Desk as the final pricing authority.",
                 "cover_body",
             ),
             Spacer(1, 0.23 * inch),
-            para(f"Version 1.0 | {AS_OF}", "cover_kicker"),
+            para(f"Version 2.0 | {AS_OF}", "cover_kicker"),
             PageBreak(),
         ]
     )
@@ -448,8 +449,8 @@ def build_story() -> list:
     story.append(Spacer(1, 7))
     quick_links = Table(
         [
-            [qr_code(NEW_SALE_URL, 0.9 * inch), para("<b>OPEN A NEW SALE</b><br/><link href='%s' color='#067C8E'>%s</link><br/><br/>Scan or click to open the field-sales wizard. Login and an approved sales role are required." % (NEW_SALE_URL, NEW_SALE_URL), "callout")],
-            [para("<b>PIPELINE</b><br/><link href='%s' color='#067C8E'>%s</link>" % (PIPELINE_URL, PIPELINE_URL), "callout"), para("<b>MY BANK AND PAYOUTS</b><br/><link href='%s' color='#067C8E'>%s</link>" % (PAYOUTS_URL, PAYOUTS_URL), "callout")],
+            [qr_code(NEW_SALE_URL, 0.9 * inch), para("<b>OPEN THE SALES DESK</b><br/><link href='%s' color='#067C8E'>%s</link><br/><br/>Scan or click to work leads, create any product checkout, and track the customer brief in one place. Login and an approved sales role are required." % (NEW_SALE_URL, NEW_SALE_URL), "callout")],
+            [para("<b>ORDERS + PIPELINE</b><br/><link href='%s' color='#067C8E'>%s</link>" % (PIPELINE_URL, PIPELINE_URL), "callout"), para("<b>MY BANK AND PAYOUTS</b><br/><link href='%s' color='#067C8E'>%s</link>" % (PAYOUTS_URL, PAYOUTS_URL), "callout")],
         ],
         colWidths=[2.1 * inch, 5.08 * inch],
     )
@@ -488,7 +489,7 @@ def build_story() -> list:
         ["Featured", "$49/mo", "Businesses fighting for category leadership", "Everything in Premium plus top-of-category placement, a Featured badge, and homepage rotation."],
     ]
     story.append(data_table(directory_rows, [1.13, 1.02, 1.55, 3.48], header_color=CHARCOAL))
-    story.extend([Spacer(1, 8), callout("Founding 100 must be confirmed live", "Never promise Founding availability until checkout accepts it. The offer is capped at 100 paid claimers. If a customer cancels, do not promise they can return at the same price. Founding Annual appears on the public claim page but is not currently selectable in the rep sales wizard.", GOLD, PALE_GOLD)])
+    story.extend([Spacer(1, 8), callout("Founding 100 must be confirmed live", "Never promise Founding availability until checkout accepts it. The offer is capped at 100 paid claimers and the server blocks new Founding sales when the cap is reached. If a customer cancels, do not promise they can return at the same price. Monthly and Annual Founding options are both in the Sales Desk.", GOLD, PALE_GOLD)])
     story.extend([Spacer(1, 7), para("THE PREMIUM VALUE STACK", "h2")])
     value_rows = [
         ["NEED", "LIVE BENEFIT", "HOW TO SAY IT"],
@@ -505,7 +506,7 @@ def build_story() -> list:
         heading(
             "03 | Product knowledge",
             "Advertising, recruitment, and event products",
-            "Published rates are the starting rate card. Advertising uses a clearly described custom charge in the rep wizard. Jobs and featured events use their dedicated public forms so successful payment can trigger automatic publishing.",
+            "Every published product is available in the Sales Desk. The customer pays first, then completes a product-specific brief; CityBeat creates a staff-review record only after required information is complete.",
         )
     )
     ad_rows = [
@@ -513,8 +514,8 @@ def build_story() -> list:
         ["Newsletter Sponsorship", "$50 monthly", "Top placement in the weekly send, bilingual creative review, and a campaign performance summary.", "Reach readers in a focused, repeat habit: the newsletter they already open."],
         ["Sponsored Story", "$30 per post", "Native story placement, editorial production guidance, and category plus social distribution.", "Explain a business, launch, founder story, or community impact with more depth than an ad."],
         ["Category Banner", "$25 monthly", "Category-page placement, leaderboard and rectangle formats, and simple monthly reporting.", "Put a timely offer beside readers already browsing a relevant topic."],
-        ["Featured Event", "$25 one time", "Top placement, Featured badge, and immediate publication after payment through the event-submission flow.", "Give a time-sensitive event stronger visibility when every day matters."],
-        ["Job Posting", "$50 one time", "A paid job listing published for 30 days after payment through the job-posting flow.", "Recruit from the El Paso and Juarez community without a long campaign commitment."],
+        ["Featured Event", "$25 one time", "A complete paid event brief with Featured placement after staff review.", "Give a time-sensitive event stronger visibility while collecting dates, venue, tickets, accessibility, and artwork once."],
+        ["Job Posting", "$50 one time", "A complete local job brief prepared for a 30-day posting after staff review.", "Recruit locally with clear category, workplace type, pay, benefits, qualifications, and application details."],
         ["Custom Ad / Package", "Approved quote", "A one-time custom charge for a banner, sponsored placement, or negotiated package. The receipt carries the description you enter.", "Fit the campaign to the customer's goal, timing, and budget while keeping every deliverable explicit."],
     ]
     story.append(data_table(ad_rows, [1.28, 0.86, 2.75, 2.29], header_color=CHARCOAL))
@@ -573,7 +574,7 @@ def build_story() -> list:
         ["I have a short-term offer", "Category Banner", "Contextual placement supports a focused call to action."],
         ["I need repeat exposure", "Newsletter Sponsorship", "Weekly placement supports repetition and recall."],
         ["I need applicants", "Job Posting", "A simple 30-day local recruitment product."],
-        ["My event is soon", "Featured Event", "Immediate paid publishing and enhanced placement."],
+        ["My event is soon", "Featured Event", "A paid, complete brief moves into the staff review queue with enhanced placement requested."],
     ]
     story.append(data_table(fit_rows, [2.25, 1.55, 3.38]))
     story.extend([Spacer(1, 7), callout("Pricing discipline", "Say the full term every time: '$19.99 per month,' '$199 per year,' or '$50 for 30 days.' Never present recurring pricing as if it were a one-time charge.", GOLD, PALE_GOLD), PageBreak()])
@@ -595,7 +596,7 @@ def build_story() -> list:
         ["Newsletter", "Concentrated repeat attention", "A weekly habit, premium placement, bilingual creative review, and reporting.", "Which four-week period matters most for your campaign?"],
         ["Sponsored Story", "Trust through explanation", "Tell the founder, launch, expertise, or community story in a useful format.", "What would you want a local reader to understand after reading it?"],
         ["Category Banner", "Contextual demand", "Put a focused offer beside people already browsing the relevant subject.", "Which category and offer should the banner own this month?"],
-        ["Featured Event", "Time-sensitive visibility", "Top placement and immediate publishing after payment support a short runway.", "How many days do you have before the event?"],
+        ["Featured Event", "Time-sensitive visibility", "A complete event brief and Featured placement request support a short runway without publishing incomplete details.", "How many days do you have before the event?"],
         ["Job Posting", "Simple local recruiting", "One price for a 30-day listing aimed at the regional community.", "When do you need applications to start arriving?"],
     ]
     story.append(data_table(angle_rows, [1.0, 1.45, 3.2, 1.53]))
@@ -617,7 +618,7 @@ def build_story() -> list:
         heading(
             "06 | In-person procedure",
             "Charge on the spot with a Stripe QR code",
-            "The sales wizard creates a Stripe-hosted checkout link and a QR code. The customer completes payment on their own device; the sale stays attributed to the signed-in rep.",
+            "The Sales Desk creates a Stripe-hosted checkout link and an on-device QR for every product. The customer pays privately, then continues through the same order into a product-specific fulfillment brief.",
         )
     )
     story.append(callout("Before you begin", "Confirm your sales access, connect your bank under My Bank and Payouts, and collect the business name, customer email, optional phone, exact product, exact term, and permission to send the link.", CYAN, PALE_CYAN))
@@ -625,16 +626,16 @@ def build_story() -> list:
     story.extend(
         numbered_steps(
             [
-                ("Open the sales wizard.", f"Sign in and go to <link href='{NEW_SALE_URL}' color='#067C8E'>{NEW_SALE_URL}</link>."),
-                ("Choose the product path.", "Use <b>Directory listing</b> for a recurring plan or <b>Ad / custom amount</b> for an ad, banner, sponsored placement, or approved package. Use the dedicated public form for a job or featured event; ask management before substituting a custom charge."),
-                ("Enter the client.", "Add the exact business name and a valid email for the checkout and receipt. Add a phone only with permission."),
-                ("Set the product.", "For directory, choose the plan shown in the wizard. For custom, enter the approved USD amount and a precise receipt description."),
+                ("Open the Sales Desk.", f"Sign in and go to <link href='{NEW_SALE_URL}' color='#067C8E'>{NEW_SALE_URL}</link>. Leads, checkout creation, and order status are on the same screen."),
+                ("Choose the exact product.", "Use the grouped selector for any Directory plan, Newsletter Sponsorship, Sponsored Story, Category Banner, Featured Event, 30-Day Job Posting, or manager-approved custom quote."),
+                ("Enter the essentials once.", "Add the exact business name and a valid customer email. The email prefills Stripe and the post-payment brief. Add a phone only with permission."),
+                ("Confirm price and cadence.", "Fixed prices come from the server. Directory, Newsletter Sponsorship, and Category Banner recur automatically. For custom, enter the approved USD amount and exact deliverable."),
                 ("Read back the offer.", "Say the product, deliverable, amount, and billing term. Correct any error before continuing."),
-                ("Generate the payment link.", "Select <b>Generate payment link</b>. A Stripe URL and QR code appear."),
+                ("Create checkout.", "Select the single checkout button. A Stripe URL, local QR, email, text, open, and copy actions appear in the same panel."),
                 ("Let the customer pay.", "Have the customer scan the QR code. They review Stripe Checkout and enter their own card details."),
-                ("Stay on the result screen.", "Do not assume that scanning means payment. Wait for Stripe's success confirmation or the paid receipt."),
-                ("Confirm next steps.", "Explain activation, creative handoff, owner attachment, or publishing timing for the product sold."),
-                ("Record the close.", "Check your pipeline and start another sale only after the first customer's outcome is clear."),
+                ("Continue into the customer brief.", "After Stripe confirms payment, the customer lands on the correct private wizard. Known details are prefilled, progress autosaves, and a private resume link is emailed."),
+                ("Complete required details.", "Help the customer understand what CityBeat needs, but let them enter job, event, listing, campaign, copy, and image details. Do not upload private card or identity documents."),
+                ("Confirm the handoff.", "The Sales Desk should show Paid, Brief Submitted, and Fulfillment In Review. Start another sale only after the first customer's outcome is clear."),
             ]
         )
     )
@@ -662,12 +663,12 @@ def build_story() -> list:
             [
                 ("Verify the decision maker.", "Confirm the business, contact name, callback number, and email. Never ask for card details."),
                 ("Agree on the offer.", "Read the product, deliverables, exact charge, and recurring or one-time term."),
-                ("Build the checkout.", "Use the sales wizard for directory and advertising sales. Use the dedicated job-posting or event-submission form when that product must auto-publish after payment."),
+                ("Build the checkout.", "Use the unified Sales Desk for every product. The selected product controls recurring versus one-time billing and which customer brief opens after payment."),
                 ("Choose the best handoff.", "Use <b>Email the link</b> for a clear branded message. Use <b>Text the link</b> only with permission and only when SMS is configured. Otherwise use <b>Copy link</b> and send it through the approved business channel."),
                 ("Have the customer verify it.", "Ask them to confirm the Stripe page shows the expected business, product, price, and term before paying."),
                 ("Stay available, not intrusive.", "Remain on the line for questions, but be silent while they enter card information."),
                 ("Confirm payment.", "Look for success and ask the customer to confirm the Stripe receipt. A sent link is not a paid sale."),
-                ("Send fulfillment expectations.", "Restate what happens next and who will contact them for listing ownership, creative, job, or event details."),
+                ("Move into the customer brief.", "After payment, ask the customer to continue in the private wizard. It prefills known details, autosaves each answer, supports image uploads, and emails a 30-day resume link."),
             ]
         )
     )
@@ -718,7 +719,7 @@ def build_story() -> list:
         ["I need to think about it.", "Absolutely. Which part needs clarity - fit, timing, price, or deliverables? I can send the exact secure link and follow up at an agreed time."],
         ["I do not want a subscription.", "A Sponsored Story, Featured Event, Job Posting, or approved custom campaign can be a one-time purchase. I will label the deliverable clearly on the receipt."],
         ["Is the payment secure?", "Yes. You pay on Stripe's hosted checkout. I never see or collect your card number, and Stripe emails the receipt."],
-        ["Give me the Founding rate.", "I can select Founding Monthly in the rep wizard and let checkout confirm availability. Founding Annual uses the public claim flow. I cannot promise either after the 100 spots are filled."],
+        ["Give me the Founding rate.", "I can select Founding Monthly or Founding Annual in the Sales Desk and let checkout confirm availability. I cannot promise either after the 100 spots are filled."],
     ]
     story.append(data_table(objection_rows, [1.72, 5.46]))
     story.extend([Spacer(1, 7), para("Never argue. Clarify the concern, answer once, and let the customer decide. Pressure creates refunds and damages trust.", "small"), PageBreak()])
@@ -734,7 +735,7 @@ def build_story() -> list:
     promo_rows = [
         ["OFFER", "WHAT IS TRUE", "HOW TO PRESENT IT", "DO NOT SAY"],
         ["Founding 100 Monthly", "$9.99/month; Premium features; first 100 paid claimers; rate locked for life of active subscription.", "If a spot is available, this is the lowest monthly entry into Premium and the rate stays protected while the subscription remains active.", "There will always be a spot; you can cancel and return at the same rate; lifetime means forever regardless of subscription status."],
-        ["Founding 100 Annual", "$99/year; $8.25/month effective; saves $140 versus twelve Premium Monthly payments; public claim flow.", "Best published value for an owner ready to commit for a year, subject to live availability.", "It is selectable in the rep wizard; it is refundable; availability is guaranteed."],
+        ["Founding 100 Annual", "$99/year; $8.25/month effective; saves $140 versus twelve Premium Monthly payments; available in the Sales Desk subject to the same 100-member cap.", "Best published value for an owner ready to commit for a year, subject to live availability.", "It is refundable; availability is guaranteed; cancellation preserves the Founding rate."],
         ["Premium Annual", "$199/year; $16.58/month effective; two months free versus monthly.", "A straightforward savings choice for a stable business that wants Premium for a full year.", "It is monthly billing; it includes an extra discount beyond the published annual price."],
         ["Custom approved quote", "A manager-approved one-time amount with exact deliverables written on the Stripe receipt.", "Use when the published products need a clear, negotiated package.", "Custom automatically means discounted; verbal extras are included."],
     ]
@@ -751,7 +752,7 @@ def build_story() -> list:
     story.append(data_table(follow_rows, [1.2, 4.45, 1.53]))
     story.extend([Spacer(1, 8), callout("Work warm leads first", "The sales dashboard ranks businesses that opened or clicked outreach. A click is the strongest buying signal; call clickers before open-only prospects. Some email opens can be automated security scans.", CYAN, PALE_CYAN), PageBreak()])
 
-    # Page 11 - After sale and commission
+    # Page 11 - After-sale fulfillment
     story.extend(
         heading(
             "10 | After the checkout",
@@ -761,13 +762,24 @@ def build_story() -> list:
     )
     after_rows = [
         ["PRODUCT", "WHAT HAPPENS AFTER PAYMENT", "REP HANDOFF"],
-        ["Directory subscription", "The listing records the paid tier and rep attribution. A new rep-created listing may require an admin to attach the real owner.", "Confirm business name, owner contact, listing, plan, and any claim or ownership step."],
-        ["Custom ad / sponsored placement", "The payment is recorded as an advertising purchase with the receipt description.", "Send the exact deliverables, dates, creative files, approvals, and contact owner to the fulfillment team."],
-        ["Featured Event", "Successful payment marks the event Featured and publishes it immediately through the webhook flow.", "Confirm title, date, venue, ticket link, image, and visibility on the event page."],
-        ["Job Posting", "Successful payment publishes the job for 30 days.", "Confirm title, company, application URL/contact, and public listing."],
+        ["Directory subscription", "The private wizard collects category, description, address, hours, contact details, logo, cover, gallery, and social links.", "Confirm the brief reaches In Review; an admin verifies ownership and publishes the enriched listing."],
+        ["Advertising", "Newsletter, banner, and sponsored-story wizards collect objectives, dates, links, copy, calls to action, logos, artwork, sources, and approvals.", "Check creative completeness and the requested placement; staff reviews before activation or publication."],
+        ["Featured Event", "The event wizard collects dates, timezone, format, venue, tickets, price, accessibility, organizer, description, and artwork.", "Confirm the paid complete event is in the staff review queue; do not promise publication before review."],
+        ["Job Posting", "The job wizard collects category, employment/workplace type, location, pay range, benefits, description, qualifications, and application details.", "Confirm the paid complete job is in review for its 30-day posting; incomplete jobs are never published."],
+        ["Custom quote", "The brief captures the approved deliverable, goal, timing, copy, destination, assets, and approval contact.", "Compare the brief to the manager-approved receipt description before fulfillment begins."],
     ]
     story.append(data_table(after_rows, [1.45, 3.25, 2.48]))
-    story.extend([Spacer(1, 9), para("YOUR COMMISSION", "h2")])
+    story.extend([Spacer(1, 7), callout("Customer wizard standard", "Payment unlocks the order brief; it does not replace the brief. The customer needs no account, sees only fields for the purchased product, receives an emailed resume link, and can upload validated images directly. Fulfillment starts only after required fields are submitted.", CYAN, PALE_CYAN), PageBreak()])
+
+    # Page 12 - Commission and customer trust
+    story.extend(
+        heading(
+            "10A | Protect the relationship",
+            "Commission, customer data, and consent",
+            "Accurate attribution and careful handling protect the customer, the salesperson, and CityBeat.",
+        )
+    )
+    story.append(para("YOUR COMMISSION", "h2"))
     story.append(callout("Current rep split in the application", "The current code assigns a sales rep 40% of an attributed directory sale and 50% of an attributed ad or add-on sale. Management controls payout policy and whether recurring subscriptions pay once or residually. Confirm the current compensation policy in your dashboard; never discuss internal splits with customers.", GOLD, PALE_GOLD))
     story.extend(
         [
@@ -777,7 +789,7 @@ def build_story() -> list:
                     "Connect your bank at <link href='%s' color='#067C8E'>%s</link>. Stripe transfers require a connected account with payouts enabled." % (PAYOUTS_URL, PAYOUTS_URL),
                     "Commission records appear after successful processing. A generated or sent link does not earn commission.",
                     "Refunds, failed renewals, or cancellations can change payment and listing status. Do not promise payout timing before it appears in the system.",
-                    "The sale stays attributed through the signed-in rep wizard's checkout metadata. Dedicated public job and event flows may not carry rep attribution, so confirm the approved process before promising commission. Never use another rep's login or reuse another customer's link.",
+                    "Every product sold through the signed-in Sales Desk carries the rep and order attribution into Stripe, fulfillment, and reporting. Never use another rep's login or reuse another customer's link.",
                 ]
             ),
             Spacer(1, 7),
@@ -791,7 +803,7 @@ def build_story() -> list:
     story.append(data_table(safety_rows, [3.59, 3.59], header_color=CHARCOAL))
     story.extend([Spacer(1, 8), callout("When in doubt", "Pause the sale. Confirm the product, price, availability, fulfillment, or policy with management. Then generate a fresh link. It is better to delay checkout than to process the wrong offer.", MAGENTA, PALE_MAGENTA), PageBreak()])
 
-    # Page 12 - Quick reference
+    # Page 13 - Quick reference
     story.extend(
         heading(
             "11 | Desk reference",
@@ -802,8 +814,8 @@ def build_story() -> list:
     checklist_rows = [
         [
             para("<b>BEFORE</b><br/>[ ] Correct customer and business<br/>[ ] Decision maker confirmed<br/>[ ] Goal and best-fit product<br/>[ ] Exact price and term<br/>[ ] Email and consent to send<br/>[ ] Fulfillment expectation", "body_tight"),
-            para("<b>BUILD</b><br/>[ ] Directory or custom path<br/>[ ] Correct plan or amount<br/>[ ] Clear receipt description<br/>[ ] Offer read back aloud<br/>[ ] Fresh Stripe link generated<br/>[ ] Valid Stripe host", "body_tight"),
-            para("<b>CLOSE</b><br/>[ ] Customer enters own card<br/>[ ] Success or receipt confirmed<br/>[ ] No card data recorded<br/>[ ] Next steps explained<br/>[ ] Pipeline checked<br/>[ ] Follow-up scheduled", "body_tight"),
+            para("<b>BUILD</b><br/>[ ] Exact product selected<br/>[ ] Correct price and cadence<br/>[ ] Client email prefilled<br/>[ ] Offer read back aloud<br/>[ ] Fresh Stripe link generated<br/>[ ] Valid Stripe host", "body_tight"),
+            para("<b>CLOSE</b><br/>[ ] Customer enters own card<br/>[ ] Success or receipt confirmed<br/>[ ] Product brief opened<br/>[ ] Required details submitted<br/>[ ] In Review status checked<br/>[ ] Follow-up scheduled", "body_tight"),
         ]
     ]
     checklist = Table(checklist_rows, colWidths=[2.39 * inch] * 3)
@@ -823,25 +835,25 @@ def build_story() -> list:
             ]
         )
     )
-    story.extend([checklist, Spacer(1, 9), para("CURRENT REP-WIZARD DIRECTORY OPTIONS", "h2")])
+    story.extend([checklist, Spacer(1, 9), para("ALL PRODUCTS IN THE SALES DESK", "h2")])
     wizard_rows = [
-        ["AVAILABLE IN REP WIZARD", "NOT CURRENTLY IN REP WIZARD"],
-        ["Founding Monthly - $9.99/mo<br/>Premium Monthly - $19.99/mo<br/>Premium Annual - $199/yr<br/>Featured - $49/mo", "Founding Annual - $99/yr<br/><br/>Use the public claim flow or confirm the approved process with management."],
+        ["RECURRING / CARD SAVED IN STRIPE", "ONE-TIME / NO RENEWAL"],
+        ["Founding Annual - $99/yr<br/>Founding Monthly - $9.99/mo<br/>Premium Annual - $199/yr<br/>Premium Monthly - $19.99/mo<br/>Featured - $49/mo<br/>Newsletter Sponsorship - $50/mo<br/>Category Banner - $25/mo", "Sponsored Story - $30<br/>Featured Event - $25<br/>30-Day Job Posting - $50<br/>Manager-approved custom quote - approved amount"],
     ]
     story.append(data_table(wizard_rows, [3.59, 3.59]))
     story.extend([Spacer(1, 8), para("DIRECT LINKS", "h2")])
     links = [
-        ["New sale", NEW_SALE_URL],
-        ["My pipeline", PIPELINE_URL],
+        ["Sales Desk / new sale", NEW_SALE_URL],
+        ["Orders, pipeline, commission", PIPELINE_URL],
         ["My bank and payouts", PAYOUTS_URL],
         ["Advertising products", "https://citybeatmag.co/en/ads"],
         ["Directory", "https://citybeatmag.co/en/directory"],
-        ["Submit / feature event", "https://citybeatmag.co/en/events/submit"],
-        ["Post a job", "https://citybeatmag.co/en/jobs/post"],
+        ["Public event calendar", "https://citybeatmag.co/en/events"],
+        ["Public jobs board", "https://citybeatmag.co/en/jobs"],
     ]
     link_rows = [["RESOURCE", "LINK"]] + [[label, f"<link href='{url}' color='#067C8E'>{url}</link>"] for label, url in links]
     story.append(data_table(link_rows, [1.62, 5.56]))
-    story.extend([Spacer(1, 8), callout("Final close standard", "Recommend the right product. State the exact price and term. Let the customer pay privately through Stripe. Confirm success. Explain fulfillment. Record the handoff.", CYAN, PALE_CYAN), Spacer(1, 8), para("CityBeat internal sales enablement | Questions or pricing exceptions: contact platform management before checkout.", "center_small")])
+    story.extend([Spacer(1, 8), callout("Final close standard", "Recommend the right product. State the exact price and term. Let the customer pay privately through Stripe. Confirm success. Complete the product brief. Verify In Review. Record the handoff.", CYAN, PALE_CYAN), Spacer(1, 8), para("CityBeat internal sales enablement | Questions or pricing exceptions: contact platform management before checkout.", "center_small")])
 
     return story
 
@@ -854,7 +866,7 @@ def build_pdf(output: Path) -> None:
         leftMargin=0.66 * inch,
         rightMargin=0.66 * inch,
         topMargin=0.56 * inch,
-        bottomMargin=0.75 * inch,
+        bottomMargin=0.9 * inch,
         title="CityBeat Sales Playbook",
         author="CityBeat Mag",
         subject="Internal product, promotion, and secure payment guide",
@@ -890,6 +902,9 @@ def verify_pdf(path: Path, public_copy: Path | None = None) -> None:
         "Phone procedure",
         "checkout.stripe.com",
         "Current rep split",
+        "ALL PRODUCTS IN THE SALES DESK",
+        "Customer wizard standard",
+        "30-Day Job Posting",
         "The one-page close checklist",
     ]
     missing = [value for value in required if " ".join(value.split()).lower() not in normalized_text]

@@ -7752,7 +7752,7 @@
     {
       "id": "202607212040-HTN28A",
       "title": "Refresh sales workflow documentation and guide",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "DOCS",
       "depends_on": [
@@ -7764,6 +7764,12 @@
       ],
       "verify": [
         "python scripts/generate-sales-guide.py"
+      ],
+      "comments": [
+        {
+          "author": "DOCS",
+          "body": "Start: update staff instructions for the unified Sales Desk and customer brief, regenerate both PDF copies, and visually inspect every rendered page."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-07-21T20:41:00+00:00",
@@ -7811,6 +7817,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "6dab826ebf070f7bed4ee82bafcc81b462c8eb7a8db52446f5e4c2f296fe3ac2"
+    "checksum": "af8b921d097be3037f7823fe791c3c00f2bdd8e7a69e218c144f1520bb52c44b"
   }
 }

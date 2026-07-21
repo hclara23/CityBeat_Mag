@@ -64,8 +64,11 @@ Submit story ideas/tips at [/en/contribute](https://citybeatmag.co/en/contribute
 
 ## 5. Sales Rep (`sales`)
 
-- **`/en/admin/sales/me`** — your pipeline: deals closed, commission earned/pending, leaderboard.
-- **`/en/admin/sales/new`** — the field-sales wizard: enter a business + plan (or custom amount) → get a Stripe Checkout link/QR on the spot. The sale is attributed to you for commission; the listing is created and an admin attaches the owner after payment.
+- **`/en/admin/sales/me` — one Sales Desk.** Work leads, see pipeline metrics, choose any Directory, advertising, event, job, or manager-approved custom product, and generate a Stripe Checkout link plus an on-device QR without switching dashboards. Email, text (when configured), open, or copy the same link from the handoff panel.
+- **Recurring billing** — Directory plans, Newsletter Sponsorship, and Category Banner use Stripe subscriptions. Checkout charges the first payment, keeps the card securely in Stripe, and renews automatically until canceled. One-time products never schedule another charge.
+- **Customer fulfillment brief** — after successful payment, the customer lands on a private product-specific wizard with known business/contact details prefilled. It autosaves, emails a 30-day resume link, accepts validated order-scoped images, and asks only for the fields needed for that listing, job, event, campaign, sponsored story, or custom order. No customer account is required.
+- **Order status** — the Sales Desk shows payment, recurring billing, brief completion, fulfillment, discounts, and commission for every product. Paid and complete briefs create deterministic staff-review records; they do not publish incomplete material automatically.
+- **Legacy `/en/admin/sales/new` links** redirect into the Sales Desk and preserve lead prefill parameters.
 - **Commission** — paid automatically via Stripe transfer to your connected bank when the customer pays (one-time or residual per godmode setting). Set up your bank once via the payouts onboarding on your dashboard — it stays linked.
 - **`/en/admin/leads`** — inbound quote requests and chat leads to follow up on.
 
