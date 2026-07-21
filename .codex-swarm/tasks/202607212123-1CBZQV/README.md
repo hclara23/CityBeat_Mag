@@ -1,15 +1,17 @@
 ---
 id: "202607212123-1CBZQV"
 title: "Harden sales handoff and refund lifecycle"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: ["202607212040-7XJF9K", "202607212040-HTN28A"]
 tags: ["sales", "security"]
 verify: ["npm test", "npm run type-check -- --filter=@citybeat/web"]
+commit: { hash: "df33b00364eefa4bb7f9fa92e408a81b44bbbd6c", message: "🔒 1CBZQV bind sales handoffs and harden refund fulfillment" }
 comments:
   - { author: "PLANNER", body: "Created from the final security review; all listed medium-severity findings must be resolved before FQXEFT can close." }
   - { author: "CODER", body: "Start: close every recorded medium-severity handoff, provisioning, refund, and validation finding with focused regression coverage before returning to final review." }
+  - { author: "CODER", body: "verified: 46 tests, the web TypeScript check, lint, and the production build pass after binding canonical handoffs, deferring listing provisioning, and hardening refund status propagation." }
 doc_version: 2
 doc_updated_at: "2026-07-21T21:34:26+00:00"
 doc_updated_by: "agentctl"
