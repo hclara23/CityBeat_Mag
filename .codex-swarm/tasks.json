@@ -7718,7 +7718,7 @@
     {
       "id": "202607212040-KXMN5S",
       "title": "Build canonical sales order and checkout engine",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
@@ -7730,10 +7730,18 @@
       "verify": [
         "npm test"
       ],
+      "commit": {
+        "hash": "4bea089e4345a781b30e46aa98579e03a9f80e29",
+        "message": "✨ KXMN5S centralize catalog, secure order access, and Stripe checkout lifecycle"
+      },
       "comments": [
         {
           "author": "CODER",
           "body": "Start: centralize the product catalog and create the secure sales-order checkout lifecycle before either wizard is changed."
+        },
+        {
+          "author": "CODER",
+          "body": "verified: npm test passed 33 tests and the filtered web type-check completed successfully | details: catalog prices, secure order tokens, Stripe metadata, Founding capacity, and webhook payment state are covered."
         }
       ],
       "doc_version": 2,
@@ -7747,6 +7755,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "af7fbd764b0dd86a391310acb07af2c99c23f3f941405bf41879fb3f550fcc0c"
+    "checksum": "f35fa964116828c4a3cc81e4d32b1adccf5637de59240c93ee93de3166f17219"
   }
 }
