@@ -4,6 +4,14 @@ import { hasSalesAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getPlan } from '@/lib/pricing'
+import {
+  blocksReplacementSubscription,
+  normalizeSalesEmail,
+  recurringAuthorizationMessage,
+  recurringEmailError,
+  reusableStripeCustomer,
+  salesCheckoutKind,
+} from '@/lib/sales-checkout'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -24,11 +32,13 @@ export async function POST(request: NextRequest) {
   if (!hasSalesAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await request.json().catch(() => ({}))
-  const kind = body.kind === 'custom' ? 'custom' : 'directory'
+  const kind = salesCheckoutKind(body.kind)
   const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : ''
-  const contactEmail = typeof body.contactEmail === 'string' ? body.contactEmail.trim() : ''
+  const contactEmail = normalizeSalesEmail(body.contactEmail)
 
   if (!businessName) return NextResponse.json({ error: 'Business name is required' }, { status: 400 })
+  const emailError = recurringEmailError(kind, contactEmail)
+  if (emailError) return NextResponse.json({ error: emailError }, { status: 400 })
 
   const origin = request.headers.get('origin') || new URL(request.url).origin
   const success_url = `${origin}/en/admin/sales/new?status=success&session_id={CHECKOUT_SESSION_ID}`
@@ -41,6 +51,36 @@ export async function POST(request: NextRequest) {
       // Reuse an existing listing if the rep selected one, else create a fresh
       // unclaimed listing for this business (owner attached by admin on approval).
       let listingId = typeof body.listingId === 'string' && body.listingId ? body.listingId : ''
+      let listing: Record<string, any> | null = null
+      if (listingId) {
+        const listingDoc = await adminDb.collection('directory_listings').doc(listingId).get()
+        if (!listingDoc.exists) {
+          return NextResponse.json({ error: 'Directory listing not found' }, { status: 404 })
+        }
+        listing = listingDoc.data() as Record<string, any>
+
+        const existingSubscriptionId =
+          typeof listing.stripe_subscription_id === 'string' ? listing.stripe_subscription_id : ''
+        if (existingSubscriptionId) {
+          try {
+            const existingSubscription = await stripe.subscriptions.retrieve(existingSubscriptionId)
+            if (blocksReplacementSubscription(existingSubscription.status)) {
+              return NextResponse.json(
+                {
+                  error:
+                    'This listing already has a subscription. Use the customer billing portal to update its saved card instead of creating another subscription.',
+                  code: 'subscription_already_exists',
+                },
+                { status: 409 }
+              )
+            }
+          } catch (error: any) {
+            // A stale deleted Stripe id should not permanently block a legitimate
+            // reactivation. Every other Stripe failure remains fatal.
+            if (error?.code !== 'resource_missing' && error?.raw?.code !== 'resource_missing') throw error
+          }
+        }
+      }
       if (!listingId) {
         const ref = await adminDb.collection('directory_listings').add({
           name: businessName,
@@ -53,7 +93,27 @@ export async function POST(request: NextRequest) {
           updated_at: FieldValue.serverTimestamp(),
         })
         listingId = ref.id
+        listing = { contact_email: contactEmail }
       }
+
+      // Passing a validated existing Customer lets Stripe prefill its saved card,
+      // billing name, address, and email. Never reuse a Customer for a different
+      // email: a rep could otherwise expose masked payment details to the wrong
+      // recipient. First-time customers get their email prefilled instead.
+      const existingCustomerId = reusableStripeCustomer({
+        customerId: listing?.stripe_customer_id,
+        listingEmail: listing?.contact_email,
+        contactEmail,
+      })
+      const customerParams: Pick<
+        Stripe.Checkout.SessionCreateParams,
+        'customer' | 'customer_email' | 'customer_update'
+      > = existingCustomerId
+        ? {
+            customer: existingCustomerId,
+            customer_update: { address: 'auto', name: 'auto' },
+          }
+        : { customer_email: contactEmail }
 
       const checkoutMetadata: Record<string, string> = {
         listing_id: listingId,
@@ -68,8 +128,12 @@ export async function POST(request: NextRequest) {
 
       const session = await stripe.checkout.sessions.create({
         mode: 'subscription',
+        client_reference_id: listingId,
         payment_method_types: ['card'],
-        customer_email: contactEmail || undefined,
+        payment_method_collection: 'always',
+        billing_address_collection: 'auto',
+        locale: 'auto',
+        ...customerParams,
         line_items: [
           {
             quantity: 1,
@@ -86,6 +150,11 @@ export async function POST(request: NextRequest) {
         ],
         success_url,
         cancel_url,
+        custom_text: {
+          submit: {
+            message: recurringAuthorizationMessage(plan.priceLabel, plan.interval),
+          },
+        },
         metadata: checkoutMetadata,
         subscription_data: { metadata: checkoutMetadata },
       })

@@ -1,20 +1,22 @@
 ---
 id: "202607212017-8JVTY5"
 title: "Harden recurring card billing"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "CODER"
 depends_on: []
 tags: ["backend", "code", "stripe"]
 verify: ["npm run type-check"]
+comments:
+  - { author: "CODER", body: "Start: harden recurring Stripe Checkout with validated customer reuse, duplicate-subscription protection, minimal data collection, and unchanged one-time payments." }
 doc_version: 2
-doc_updated_at: "2026-07-21T20:18:12+00:00"
+doc_updated_at: "2026-07-21T20:21:25+00:00"
 doc_updated_by: "agentctl"
 description: "Strengthen the sales checkout API so recurring products always create safe Stripe subscriptions, reuse validated customer records where appropriate, prevent duplicate active subscriptions, prefill customer data, and leave one-time charges unchanged."
 ---
 ## Summary
 
-Make recurring sales checkout reliably create automatic card-on-file subscriptions while retaining the existing one-time custom-sale behavior.
+Hardened recurring sales checkout so Stripe always collects a payment method, first-time customers receive a prefilled email, safely matched returning customers can reuse their saved Stripe card, and listings with an existing non-terminal subscription cannot be charged twice.
 
 ## Context
 
@@ -30,7 +32,7 @@ An unvalidated customer identifier could expose another customer payment method,
 
 ## Verify Steps
 
-Run npm run type-check and targeted automated tests for checkout classification, required recurring email, validated customer reuse, duplicate subscription rejection, and one-time behavior.
+Ran npm run type-check after the route and checkout-decision helper changes; all four workspace packages passed TypeScript compilation. Focused behavior tests are owned by dependent task 202607212017-MFYKEV.
 
 ## Rollback Plan
 
@@ -38,5 +40,5 @@ Revert the backend commit to restore the existing Stripe Checkout session parame
 
 ## Notes
 
-CityBeat must never receive, log, or store raw card data. Stripe Checkout remains the payment-data collection surface.
+Stripe Checkout remains the only card-data collection surface. Existing Customer reuse requires a syntactically valid Stripe customer ID and an exact normalized match between the listing email and sale email. Official Stripe Checkout documentation confirms subscription mode creates a Customer when needed and prefills a validated existing Customer's default or most recently saved card.
 

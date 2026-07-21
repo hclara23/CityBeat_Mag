@@ -7434,7 +7434,7 @@
     {
       "id": "202607212017-8JVTY5",
       "title": "Harden recurring card billing",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
@@ -7445,6 +7445,12 @@
       ],
       "verify": [
         "npm run type-check"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: harden recurring Stripe Checkout with validated customer reuse, duplicate-subscription protection, minimal data collection, and unchanged one-time payments."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-07-21T20:18:12+00:00",
@@ -7506,6 +7512,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "a959c94266971ff7109905d6940cb14e80f47ee461912415038b03565b37125e"
+    "checksum": "afe65169c0a27f4b7531758acefca24c8b304d301f948e0d652c49314b075712"
   }
 }
