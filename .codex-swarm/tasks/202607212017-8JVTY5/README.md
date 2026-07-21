@@ -1,14 +1,16 @@
 ---
 id: "202607212017-8JVTY5"
 title: "Harden recurring card billing"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: []
 tags: ["backend", "code", "stripe"]
 verify: ["npm run type-check"]
+commit: { hash: "5727259f8b5bc33ac7605d03be944332360a122d", message: "🔒 8JVTY5 secure recurring card-on-file checkout" }
 comments:
   - { author: "CODER", body: "Start: harden recurring Stripe Checkout with validated customer reuse, duplicate-subscription protection, minimal data collection, and unchanged one-time payments." }
+  - { author: "CODER", body: "verified: recurring Checkout requires a client email, safely reuses only matching Stripe customers, blocks duplicate live subscriptions, always collects a card, preserves custom one-time mode, and passes monorepo typecheck." }
 doc_version: 2
 doc_updated_at: "2026-07-21T20:21:25+00:00"
 doc_updated_by: "agentctl"
