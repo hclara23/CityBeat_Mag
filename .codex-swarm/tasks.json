@@ -7643,7 +7643,7 @@
     {
       "id": "202607212040-E4YRZ8",
       "title": "Create secure post-payment intake wizard",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -7657,10 +7657,18 @@
       "verify": [
         "npm test"
       ],
+      "commit": {
+        "hash": "f0ca2c4177b8084ed5d8c768746fcfb14dfd90a6",
+        "message": "🔒 E4YRZ8 add secure autosaved post-payment intake and order-scoped uploads"
+      },
       "comments": [
         {
           "author": "CODER",
           "body": "Start: add paid-order token authorization, autosaved product-aware intake, secure resume delivery, and validated order-scoped image uploads."
+        },
+        {
+          "author": "CODER",
+          "body": "verified: 37 tests pass and the web type-check succeeds | details: paid-order access rejects missing, expired, mismatched, and unpaid sessions, while seven adaptive schemas autosave, resume by email, and accept validated order-scoped images."
         }
       ],
       "doc_version": 2,
@@ -7775,6 +7783,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "a89ed30b4f74f9d73ce0707208bb3ff2cd54e66cf982f7f278fb689afc0e339d"
+    "checksum": "0799d0b6e3dc81d23114f4e3b8b42e09a8d738bd886f2eb72e863aeb19963773"
   }
 }
