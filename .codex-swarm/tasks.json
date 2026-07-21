@@ -7414,7 +7414,7 @@
     {
       "id": "202607212017-7JACJZ",
       "title": "Streamline recurring sales checkout",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [
@@ -7425,17 +7425,25 @@
         "payments",
         "recurring"
       ],
+      "commit": {
+        "hash": "263b9507a52e94f2d8b3315af2188bfd7e4b85e0",
+        "message": "✅ 7JACJZ integrate verified recurring sales checkout"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: integrate the completed backend, customer handoff, and verification tasks; review payment security and one-time preservation; then close the approved recurring checkout request."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: recurring sales now use Stripe card-on-file subscriptions with explicit renewal consent, safe saved-customer reuse, duplicate-charge protection, minimal link and QR handoff, public bilingual results, 27 passing tests, clean lint and typecheck, and a successful production build."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-07-21T20:18:11+00:00",
+      "doc_updated_at": "2026-07-21T20:32:13+00:00",
       "doc_updated_by": "agentctl",
       "description": "Track the approved recurring-checkout improvement across backend task 202607212017-8JVTY5, customer handoff task 202607212017-XSEXBE, and verification task 202607212017-MFYKEV. Acceptance requires automatic Stripe subscription renewals with saved payment methods, unchanged one-time charges, a minimal mobile link/QR flow, automated coverage, review, and committed integration.",
-      "doc": "## Summary\n\nCoordinate and close the approved low-friction recurring sales checkout improvement across backend safeguards, the customer link and QR experience, automated verification, review, and integration.\n\n## Context\n\nDirectory products use Stripe subscription Checkout today, while custom advertising sales use one-time payment Checkout. The requested outcome is to make recurring card-on-file billing explicit and dependable while reducing customer effort.\n\n## Scope\n\nTrack backend task 202607212017-8JVTY5, handoff task 202607212017-XSEXBE, and verification task 202607212017-MFYKEV. Accept only a result that preserves one-time sales, keeps raw card data entirely in Stripe, clearly discloses renewal terms, and passes the repository verification suite.\n\n## Risks\n\nPayment-flow changes can create duplicate subscriptions, reduce supported payment methods, or collect unnecessary data. The implementation must validate listing and Stripe customer ownership and keep webhook fulfillment compatible.\n\n## Verify Steps\n\nRequire all downstream tasks to be DONE, review their diffs and verification logs, run the complete declared verification suite, and confirm the final repository is clean with task-scoped commits.\n\n## Rollback Plan\n\nRevert the task-scoped backend, frontend, and test commits. Existing Stripe subscriptions and one-time payment records remain valid because no destructive data migration is planned.\n\n## Notes\n\nNo production deployment is included in this request. Deployment remains a separately authorized operation."
+      "doc": "## Summary\n\nCompleted the approved low-friction recurring sales checkout. Recurring products charge through Stripe subscription Checkout, keep the payment method in Stripe for automatic renewals, safely prefill eligible returning customers, and block duplicate live subscriptions. Salespeople now hand off a locally generated QR or link with clear renewal terms, and customers receive a public bilingual result page.\n\n## Context\n\nDirectory products use Stripe subscription Checkout today, while custom advertising sales use one-time payment Checkout. The requested outcome is to make recurring card-on-file billing explicit and dependable while reducing customer effort.\n\n## Scope\n\nTrack backend task 202607212017-8JVTY5, handoff task 202607212017-XSEXBE, and verification task 202607212017-MFYKEV. Accept only a result that preserves one-time sales, keeps raw card data entirely in Stripe, clearly discloses renewal terms, and passes the repository verification suite.\n\n## Risks\n\nPayment-flow changes can create duplicate subscriptions, reduce supported payment methods, or collect unnecessary data. The implementation must validate listing and Stripe customer ownership and keep webhook fulfillment compatible.\n\n## Verify Steps\n\nConfirmed downstream tasks 202607212017-8JVTY5, 202607212017-XSEXBE, and 202607212017-MFYKEV are DONE with task-scoped commits. Reviewed the complete 448-line feature diff for raw-card handling, customer reuse, duplicate subscriptions, one-time preservation, and public-route access. Ran 27 tests with 0 failures, all 4 workspace typechecks, lint with 0 warnings or errors, and a successful production build that generated both bilingual checkout result routes.\n\n## Rollback Plan\n\nRevert the task-scoped backend, frontend, and test commits. Existing Stripe subscriptions and one-time payment records remain valid because no destructive data migration is planned.\n\n## Notes\n\nReviewer outcome: no blocking findings. Raw card number, CVC, and payment-method payload fields do not enter the CityBeat sales API; Stripe Checkout remains the PCI-sensitive collection surface. Recurring checkout uses subscription mode and always collects a card, while one-time checkout uses payment mode without future-use configuration. No production deployment was performed."
     },
     {
       "id": "202607212017-8JVTY5",
@@ -7554,6 +7562,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "795fc16c8a187db4cdea671f3b343a3bb3c39ee231fa4abd6df41c358993c604"
+    "checksum": "984c3df6e150096ea07a46188f4caa402c5e9663975172e3065f0666d5578bf6"
   }
 }

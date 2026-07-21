@@ -1,13 +1,15 @@
 ---
 id: "202607212017-7JACJZ"
 title: "Streamline recurring sales checkout"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202607212017-MFYKEV"]
 tags: ["checkout", "payments", "recurring"]
+commit: { hash: "263b9507a52e94f2d8b3315af2188bfd7e4b85e0", message: "✅ 7JACJZ integrate verified recurring sales checkout" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: integrate the completed backend, customer handoff, and verification tasks; review payment security and one-time preservation; then close the approved recurring checkout request." }
+  - { author: "ORCHESTRATOR", body: "verified: recurring sales now use Stripe card-on-file subscriptions with explicit renewal consent, safe saved-customer reuse, duplicate-charge protection, minimal link and QR handoff, public bilingual results, 27 passing tests, clean lint and typecheck, and a successful production build." }
 doc_version: 2
 doc_updated_at: "2026-07-21T20:32:13+00:00"
 doc_updated_by: "agentctl"
