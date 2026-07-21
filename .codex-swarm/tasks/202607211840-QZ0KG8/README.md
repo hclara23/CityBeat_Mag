@@ -1,14 +1,16 @@
 ---
 id: "202607211840-QZ0KG8"
 title: "Create downloadable sales guide"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["docs", "frontend", "sales"]
 verify: ["npm run type-check --workspace @citybeat/web"]
+comments:
+  - { author: "ORCHESTRATOR", body: "Start: author the evidence-based sales playbook, publish both PDF copies, add dashboard access, and complete visual and code verification." }
 doc_version: 2
-doc_updated_at: "2026-07-21T18:41:01+00:00"
+doc_updated_at: "2026-07-21T18:53:41+00:00"
 doc_updated_by: "agentctl"
 description: "Create and publish a branded internal CityBeat sales guide covering the current product catalog, promotions, sales angles, and safe Stripe payment-link/QR procedures, with a download link on the sales dashboard."
 ---
@@ -38,5 +40,5 @@ Remove the dashboard download link and generated PDF copies, then revert the gen
 
 ## Notes
 
-Approved deliverables: an English internal sales guide, a public-download copy, a stable output/pdf copy, and a sales-dashboard download link. The guide will distinguish published rates from negotiated custom charges and call out that Founding Annual is not currently selectable in the rep wizard.
+Implemented a branded 12-page internal sales playbook and published identical copies under output/pdf and apps/web/public/downloads. Added the sales-dashboard download link. Verified 13 clickable PDF links, required text, matching SHA-256 hashes, letter-page metadata, Python compilation, web TypeScript, and git diff whitespace. Rendered all pages at 120 DPI and visually inspected every page; the final content explicitly separates rep-wizard advertising checkout from dedicated job/event auto-publishing flows.
 

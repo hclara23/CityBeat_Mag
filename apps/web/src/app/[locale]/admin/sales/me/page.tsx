@@ -52,6 +52,14 @@ export default function RepDashboard() {
             <a href={withLocale(locale, '/guide')} className="mt-1 inline-block text-xs font-bold text-brand-neon underline">
               📖 {isEs ? 'Guía de usuario' : 'User Guide'}
             </a>
+            <span className="mx-2 text-white/20">·</span>
+            <a
+              href="/downloads/citybeat-sales-guide.pdf"
+              download
+              className="mt-1 inline-block text-xs font-bold text-brand-neon underline"
+            >
+              {isEs ? 'Descargar guía de ventas' : 'Download Sales Guide'}
+            </a>
           </div>
           <a
             href={withLocale(locale, '/admin/sales/new')}

@@ -7304,12 +7304,39 @@
       "doc_updated_by": "agentctl",
       "description": "Remove the This Weekend/Este finde entry from the shared CityBeat main navigation on desktop and mobile while preserving the underlying page route.",
       "doc": "## Summary\n\nRemove the bilingual This Weekend navigation entry from the shared CityBeat site header.\n\n## Context\n\nThe main menu currently links to /this-weekend as This Weekend in English and Este finde in Spanish. The requested change is menu-only.\n\n## Scope\n\nUpdate apps/web/src/components/citybeat/SiteHeader.tsx so the shared desktop and mobile navigation arrays omit /this-weekend. Preserve the route and page content.\n\n## Risks\n\nLow risk. Removing the shared array entry affects both desktop and mobile menus in both locales; direct links to the page remain available.\n\n## Verify Steps\n\nRun npm run type-check --workspace @citybeat/web. Inspect the SiteHeader diff and confirm no /this-weekend nav item remains.\n\n## Rollback Plan\n\nRestore the bilingual /this-weekend object at the start of getNavItems and rerun the web type-check.\n\n## Notes\n\nImplemented by removing only the /this-weekend object from getNavItems. Validation passed: npm run type-check --workspace @citybeat/web; focused search confirmed the link is absent from SiteHeader; git diff --check passed."
+    },
+    {
+      "id": "202607211840-QZ0KG8",
+      "title": "Create downloadable sales guide",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "docs",
+        "frontend",
+        "sales"
+      ],
+      "verify": [
+        "npm run type-check --workspace @citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: author the evidence-based sales playbook, publish both PDF copies, add dashboard access, and complete visual and code verification."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T18:41:01+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Create and publish a branded internal CityBeat sales guide covering the current product catalog, promotions, sales angles, and safe Stripe payment-link/QR procedures, with a download link on the sales dashboard.",
+      "doc": "## Summary\n\nCreate a downloadable, branded CityBeat sales playbook based on the product catalog and payment workflows currently implemented in the application.\n\n## Context\n\nSales representatives need one internal reference for rates, promotions, customer value, qualification, objections, and safely closing in-person or phone sales through Stripe Checkout.\n\n## Scope\n\nAuthor a ReportLab PDF generator; generate and publish the PDF under output/pdf and apps/web/public/downloads; add a download link to the sales dashboard; cover directory plans, advertising products, job and event add-ons, Founding 100 terms, sales angles, follow-up, commissions, and payment-link/QR procedures.\n\n## Risks\n\nPrices or promotions can change after publication; the guide must date its rate card and tell reps to confirm the live sales wizard. SMS depends on Twilio configuration. Customers must enter their own card details in Stripe Checkout.\n\n## Verify Steps\n\nRun the PDF generator with the bundled Python runtime. Validate page count, extracted text, hyperlinks, and duplicate output hashes. Render every page with Poppler and inspect for clipping or overlap. Run npm run type-check --workspace @citybeat/web and git diff --check.\n\n## Rollback Plan\n\nRemove the dashboard download link and generated PDF copies, then revert the generator and task artifacts through the associated commits.\n\n## Notes\n\nApproved deliverables: an English internal sales guide, a public-download copy, a stable output/pdf copy, and a sales-dashboard download link. The guide will distinguish published rates from negotiated custom charges and call out that Founding Annual is not currently selectable in the rep wizard."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "1c2d5b25496e05867d0ef5786ba07f921ff6195d88391c1f11493d7e3a948ea0"
+    "checksum": "dcff9f4566ed3f51b9a0bff52d19c2f23a03b57b018986eb65d08ddc2f738caf"
   }
 }
