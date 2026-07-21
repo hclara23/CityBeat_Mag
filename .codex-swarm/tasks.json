@@ -7694,7 +7694,7 @@
     {
       "id": "202607212040-FQXEFT",
       "title": "Review unified sales fulfillment security",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "REVIEWER",
       "depends_on": [
@@ -7704,6 +7704,12 @@
       "tags": [
         "review",
         "security"
+      ],
+      "comments": [
+        {
+          "author": "REVIEWER",
+          "body": "Start: audit authorization, server-side pricing, order-token isolation, payment-state verification, upload boundaries, webhook idempotency, discounts, commissions, and fulfillment side effects across the final implementation."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-07-21T20:41:01+00:00",
@@ -7825,6 +7831,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "6ec9e8e5212d2893cc9ed524a6196dceb3721294288b176dc5022555357f495c"
+    "checksum": "908af7d7c9305b479cbbb7d747143500ee115f5925d039f1b14457b2935f2676"
   }
 }
