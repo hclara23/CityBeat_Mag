@@ -1,13 +1,15 @@
 ---
 id: "202607211947-NHTVQ8"
 title: "Deploy directory referral rewards"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202607211917-Q5D837"]
 tags: ["deployment", "cloud-run", "scheduler"]
+commit: { hash: "6aceaf768a85906d286a9f11f064be0a70efd82e", message: "🚀 NHTVQ8 deploy referral rewards and activate production scheduler" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: deploy the committed referral rewards release, configure the protected daily scheduler, verify the live revision, and record the production result." }
+  - { author: "ORCHESTRATOR", body: "verified: production revision citybeat-web-00147-2sv is Ready with 100% traffic | details: health returns 200, unauthenticated referral cron returns 401, authenticated dry-run and scheduler-triggered execution succeeded, and citybeat-referrals is ENABLED." }
 doc_version: 2
 doc_updated_at: "2026-07-21T19:58:59+00:00"
 doc_updated_by: "agentctl"
