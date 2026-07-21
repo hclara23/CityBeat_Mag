@@ -7586,7 +7586,7 @@
     {
       "id": "202607212040-94DM4B",
       "title": "Create unified salesperson Sales Desk",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -7599,6 +7599,12 @@
       ],
       "verify": [
         "npm run type-check"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: merge pipeline and checkout creation into one adaptive Sales Desk with the complete catalog and zero intermediate wizard clicks."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-07-21T20:40:57+00:00",
@@ -7755,6 +7761,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "f35fa964116828c4a3cc81e4d32b1adccf5637de59240c93ee93de3166f17219"
+    "checksum": "227d9382455342baa3a5db21e0c48eda0ed23cc480a92326c66554e093b3468c"
   }
 }

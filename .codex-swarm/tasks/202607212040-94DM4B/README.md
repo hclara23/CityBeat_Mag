@@ -1,12 +1,14 @@
 ---
 id: "202607212040-94DM4B"
 title: "Create unified salesperson Sales Desk"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "CODER"
 depends_on: ["202607212040-KXMN5S"]
 tags: ["frontend", "code", "sales"]
 verify: ["npm run type-check"]
+comments:
+  - { author: "CODER", body: "Start: merge pipeline and checkout creation into one adaptive Sales Desk with the complete catalog and zero intermediate wizard clicks." }
 doc_version: 2
 doc_updated_at: "2026-07-21T20:40:57+00:00"
 doc_updated_by: "agentctl"

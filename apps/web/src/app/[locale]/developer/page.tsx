@@ -24,8 +24,7 @@ const developerLinks = [
 const teamLinks = [
   { href: '/creator', label: 'Creator Studio', description: 'Write, edit, and publish stories — a developer can publish directly.' },
   { href: '/admin/review', label: 'Review Queue', description: 'Approve or publish articles submitted for review.' },
-  { href: '/admin/sales/new', label: 'New Sale', description: 'Generate a payment link or QR to charge a business on the spot.' },
-  { href: '/admin/sales/me', label: 'Sales Dashboard', description: 'Rep commissions, leads, and the sales leaderboard.' },
+  { href: '/admin/sales/me', label: 'Sales Desk', description: 'Work leads, generate any product checkout, and track commissions in one place.' },
   { href: '/dashboard', label: 'Advertiser Dashboard', description: 'Campaigns, your listings, deals, and customer leads.' },
   { href: '/directory', label: 'Directory', description: 'Browse the public directory and manage any listing inline.' },
 ]
