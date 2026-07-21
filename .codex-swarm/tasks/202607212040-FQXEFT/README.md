@@ -1,14 +1,16 @@
 ---
 id: "202607212040-FQXEFT"
 title: "Review unified sales fulfillment security"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "REVIEWER"
 depends_on: ["202607212040-7XJF9K", "202607212040-HTN28A", "202607212123-1CBZQV"]
 tags: ["review", "security"]
+commit: { hash: "8556bca53d961e9f5345b90283b05c153f9258df", message: "🔍 FQXEFT record final sales security review" }
 comments:
   - { author: "REVIEWER", body: "Start: audit authorization, server-side pricing, order-token isolation, payment-state verification, upload boundaries, webhook idempotency, discounts, commissions, and fulfillment side effects across the final implementation." }
   - { author: "REVIEWER", body: "Reviewed: corrective commits df33b00 and 9341496 close every recorded medium-severity finding; no unresolved high or medium issues remain. Recommend DONE." }
+  - { author: "REVIEWER", body: "verified: final review passed after corrective task 1CBZQV | details: no unresolved high- or medium-severity authorization, payment-integrity, order-isolation, upload, refund, or fulfillment findings remain." }
 doc_version: 2
 doc_updated_at: "2026-07-21T21:35:27+00:00"
 doc_updated_by: "agentctl"
