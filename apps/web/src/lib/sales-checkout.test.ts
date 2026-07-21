@@ -34,6 +34,7 @@ import {
   missingSalesIntakeFields,
   sanitizeSalesIntakeValues,
 } from './sales-intake'
+import { buildSalesFulfillmentRecord, salesFulfillmentTarget } from './sales-fulfillment'
 
 test('sales checkout classifies only custom sales as one-time payments', () => {
   assert.equal(salesCheckoutKind('custom'), 'custom')
@@ -300,4 +301,103 @@ test('customer image validation limits file type and size before upload', () => 
   assert.equal(isAllowedIntakeImage({ type: 'image/webp', size: 1024 }), null)
   assert.match(isAllowedIntakeImage({ type: 'application/pdf', size: 1024 }) || '', /Invalid image type/)
   assert.match(isAllowedIntakeImage({ type: 'image/jpeg', size: 11 * 1024 * 1024 }) || '', /too large/)
+})
+
+test('each intake kind maps to a deterministic operational destination', () => {
+  const expected = {
+    directory: ['directory_listings', 'listing_123'],
+    job: ['jobs', 'order_123'],
+    event: ['events', 'order_123'],
+    category_banner: ['ad_banners', 'order_123'],
+    sponsored_story: ['sponsored_stories', 'order_123'],
+    newsletter_sponsorship: ['ad_campaigns', 'order_123'],
+    custom: ['sales_fulfillment_briefs', 'order_123'],
+  } as const
+  for (const [intakeKind, [collection, id]] of Object.entries(expected)) {
+    const target = salesFulfillmentTarget({
+      orderId: 'order_123',
+      intakeKind: intakeKind as keyof typeof expected,
+      listingId: 'listing_123',
+    })
+    assert.equal(target.collection, collection)
+    assert.equal(target.id, id)
+    assert.equal(target.status, 'in_review')
+  }
+  assert.throws(
+    () => salesFulfillmentTarget({ orderId: 'order_123', intakeKind: 'directory' }),
+    /missing its listing/
+  )
+})
+
+test('job fulfillment retains complete paid-intake details without publishing early', () => {
+  const record = buildSalesFulfillmentRecord({
+    orderId: 'order_123',
+    order: {
+      product_id: 'job_posting_30_day',
+      intake_kind: 'job',
+      payment_status: 'paid',
+      sold_by: 'rep_123',
+      contact_email: 'jobs@example.com',
+    },
+    values: {
+      job_title: 'Managing Editor',
+      company_name: 'Mesa Studio',
+      job_category: 'professional',
+      employment_type: 'full_time',
+      workplace_type: 'hybrid',
+      location: 'El Paso, TX',
+      pay_min: '60000',
+      pay_max: '75000',
+      pay_period: 'year',
+      benefits: 'Health and PTO',
+      schedule: 'Monday-Friday',
+      summary: 'Lead the newsroom.',
+      responsibilities: 'Edit and publish.',
+      qualifications: 'Five years experience.',
+      apply_url: 'https://example.com/jobs/editor',
+      application_email: 'jobs@example.com',
+      application_deadline: '2026-08-15',
+      company_logo_url: 'https://storage.example/logo.webp',
+    },
+    now: new Date('2026-07-21T12:00:00.000Z'),
+  })
+  assert.equal(record.status, 'pending_review')
+  assert.equal(record.is_paid, true)
+  assert.equal(record.is_active, false)
+  assert.equal(record.pay_min, 60000)
+  assert.equal(record.sales_order_id, 'order_123')
+  assert.equal(record.fulfillment_status, 'in_review')
+})
+
+test('directory fulfillment enriches the paid listing while keeping staff review', () => {
+  const record = buildSalesFulfillmentRecord({
+    orderId: 'order_123',
+    order: {
+      product_id: 'directory_premium_monthly',
+      intake_kind: 'directory',
+      payment_status: 'paid',
+      sold_by: 'rep_123',
+      contact_email: 'owner@example.com',
+    },
+    values: {
+      business_name: 'Mesa Studio',
+      primary_category: 'Design',
+      short_description: 'Local design studio',
+      street_address: '100 Mesa St',
+      city: 'El Paso',
+      state: 'TX',
+      postal_code: '79901',
+      phone: '915-555-0100',
+      website: 'https://example.com',
+      business_hours: 'Mon-Fri 9-5',
+      cover_image_url: 'https://storage.example/cover.webp',
+      logo_url: 'https://storage.example/logo.webp',
+      gallery_urls: ['https://storage.example/one.webp'],
+      instagram_url: 'https://instagram.com/mesa',
+    },
+  })
+  assert.equal(record.claim_status, 'pending_approval')
+  assert.equal(record.is_published, false)
+  assert.equal(record.address, '100 Mesa St, El Paso, TX, 79901')
+  assert.deepEqual(record.gallery_urls, ['https://storage.example/one.webp'])
 })

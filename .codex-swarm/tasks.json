@@ -7700,7 +7700,7 @@
     {
       "id": "202607212040-G73WWE",
       "title": "Implement product fulfillment and status reporting",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -7714,6 +7714,12 @@
       ],
       "verify": [
         "npm test"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: provision product-specific operational records only after paid intake submission and expose one cross-product status ledger to sales staff."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-07-21T20:40:58+00:00",
@@ -7783,6 +7789,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "0799d0b6e3dc81d23114f4e3b8b42e09a8d738bd886f2eb72e863aeb19963773"
+    "checksum": "ed3ac7497a7f169521b38b1127b1b34f97b709c5a8049f4281e367b3d94f5872"
   }
 }

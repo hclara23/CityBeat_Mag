@@ -249,10 +249,13 @@ export default function SalesDesk() {
           </div>
         </header>
 
-        <div className="mt-6 grid gap-px border border-white/10 bg-white/10 sm:grid-cols-3">
+        <div className="mt-6 grid gap-px border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-6">
           {[
             ['Commission earned', money(summary.commission_earned), `${summary.commission_count || 0} payouts`],
             ['Deals closed', String(summary.deals_closed || 0), 'All paid products'],
+            ['Awaiting customer', String(summary.awaiting_customer || 0), 'Paid / brief open'],
+            ['In fulfillment', String(summary.in_fulfillment || 0), 'Staff action'],
+            ['Discounts', money(summary.discounts_granted || 0), 'Clearly recorded'],
             ['Open leads', String(leads.length), 'Ready to contact'],
           ].map(([label, value, note]) => (
             <div key={label} className="bg-brand-charcoal px-5 py-5">
@@ -413,12 +416,24 @@ export default function SalesDesk() {
               {closedDeals.length === 0 ? (
                 <p className="bg-white/[0.03] px-5 py-6 text-sm text-white/45">No deals yet. The first one will appear here.</p>
               ) : closedDeals.slice(0, 12).map((deal: any) => (
-                <div key={deal.id} className="flex items-center justify-between gap-3 border-b border-white/5 bg-white/[0.03] px-4 py-3 text-sm last:border-0">
-                  <div className="min-w-0">
-                    <p className="truncate font-bold text-white/80">{deal.name}</p>
-                    <p className="truncate text-xs text-white/35">{deal.product_name || deal.tier || 'Directory'}</p>
+                <div key={deal.id} className="border-b border-white/5 bg-white/[0.03] px-4 py-3 text-sm last:border-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-white/85">{deal.name}</p>
+                      <p className="truncate text-xs text-white/35">{deal.product_name || 'CityBeat product'}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-black text-white">{deal.amount ? money(deal.amount) : 'Legacy'}</p>
+                      {deal.discount_amount > 0 && <p className="text-[10px] font-bold text-brand-gold">-{money(deal.discount_amount)} discount</p>}
+                    </div>
                   </div>
-                  <span className="shrink-0 border border-white/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/50">{deal.fulfillment_status || deal.claim_status}</span>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.1em]">
+                    <span className={`border px-2 py-1 ${deal.payment_status === 'paid' ? 'border-brand-neon/30 text-brand-neon' : 'border-white/15 text-white/45'}`}>Payment: {deal.payment_status}</span>
+                    {deal.billing_type === 'subscription' && <span className={`border px-2 py-1 ${deal.billing_status === 'past_due' ? 'border-red-400/40 text-red-300' : 'border-white/15 text-white/45'}`}>Billing: {String(deal.billing_status).replace(/_/g, ' ')}</span>}
+                    <span className="border border-white/15 px-2 py-1 text-white/45">Brief: {deal.intake_status}{deal.intake_status !== 'submitted' ? ` ${deal.intake_completion || 0}%` : ''}</span>
+                    <span className={`border px-2 py-1 ${deal.fulfillment_status === 'needs_attention' ? 'border-red-400/40 text-red-300' : 'border-white/15 text-white/45'}`}>Fulfillment: {String(deal.fulfillment_status).replace(/_/g, ' ')}</span>
+                    {deal.commission_amount > 0 && <span className="border border-brand-magenta/30 px-2 py-1 text-brand-magenta">Commission: {money(deal.commission_amount)}</span>}
+                  </div>
                 </div>
               ))}
             </div>

@@ -44,7 +44,10 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
         setValues(data.order?.intake_data || {})
         setStep(Math.min(data.schema.sections.length - 1, Math.max(0, data.order?.intake_current_step || 0)))
         setCompletion(data.completion || 0)
-        if (data.order?.intake_status === 'submitted') setSubmitted(true)
+        if (
+          data.order?.intake_status === 'submitted' &&
+          ['in_review', 'fulfilled'].includes(data.order?.fulfillment_status)
+        ) setSubmitted(true)
         hydrated.current = true
 
         // The Session id was needed only for the Stripe/webhook race. Remove it

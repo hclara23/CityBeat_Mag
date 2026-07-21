@@ -1,12 +1,14 @@
 ---
 id: "202607212040-G73WWE"
 title: "Implement product fulfillment and status reporting"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "CODER"
 depends_on: ["202607212040-94DM4B", "202607212040-E4YRZ8"]
 tags: ["backend", "frontend", "code"]
 verify: ["npm test"]
+comments:
+  - { author: "CODER", body: "Start: provision product-specific operational records only after paid intake submission and expose one cross-product status ledger to sales staff." }
 doc_version: 2
 doc_updated_at: "2026-07-21T20:40:58+00:00"
 doc_updated_by: "agentctl"

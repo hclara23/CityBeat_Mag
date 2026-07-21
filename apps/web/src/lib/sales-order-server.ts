@@ -55,6 +55,7 @@ export async function authorizePaidSalesOrder(input: {
     const patch = {
       checkout_status: 'completed',
       payment_status: 'paid',
+      billing_status: session.subscription ? 'active' : 'completed',
       fulfillment_status: 'awaiting_intake',
       stripe_customer_id: stripeId(session.customer),
       stripe_subscription_id: stripeId(session.subscription),
@@ -90,6 +91,7 @@ export function publicSalesOrder(order: Record<string, any>) {
     contact_email: order.contact_email,
     contact_phone: order.contact_phone,
     payment_status: order.payment_status,
+    billing_status: order.billing_status,
     intake_status: order.intake_status,
     fulfillment_status: order.fulfillment_status,
     intake_current_step: order.intake_current_step || 0,

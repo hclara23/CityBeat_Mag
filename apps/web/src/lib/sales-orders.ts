@@ -3,7 +3,14 @@ import type { SalesProduct } from './sales-products'
 
 export type SalesPaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded'
 export type SalesIntakeStatus = 'not_started' | 'in_progress' | 'submitted'
-export type SalesFulfillmentStatus = 'awaiting_payment' | 'awaiting_intake' | 'ready' | 'in_review' | 'fulfilled'
+export type SalesFulfillmentStatus =
+  | 'awaiting_payment'
+  | 'awaiting_intake'
+  | 'ready'
+  | 'provisioning'
+  | 'in_review'
+  | 'fulfilled'
+  | 'needs_attention'
 
 export const SALES_ORDER_TOKEN_BYTES = 32
 export const SALES_ORDER_ACCESS_DAYS = 30
@@ -66,6 +73,7 @@ export function buildSalesOrderRecord(input: {
     listing_id: input.listingId || null,
     custom_description: input.customDescription || null,
     payment_status: 'pending' as SalesPaymentStatus,
+    billing_status: 'pending',
     intake_status: 'not_started' as SalesIntakeStatus,
     fulfillment_status: 'awaiting_payment' as SalesFulfillmentStatus,
     intake_token_hash: input.tokenHash,

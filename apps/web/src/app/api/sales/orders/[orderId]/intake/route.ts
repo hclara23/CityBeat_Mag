@@ -12,6 +12,7 @@ import {
   missingSalesIntakeFields,
   sanitizeSalesIntakeValues,
 } from '@/lib/sales-intake'
+import { provisionSalesOrder } from '@/lib/sales-fulfillment-server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -122,7 +123,10 @@ export async function POST(request: NextRequest, { params }: { params: { orderId
     const result = await authorized(request, params.orderId)
     const schema = getSalesIntakeSchema(result.order.intake_kind)
     if (!schema) return NextResponse.json({ error: 'This product does not have an intake brief.' }, { status: 409 })
-    if (result.order.intake_status === 'submitted') {
+    if (
+      result.order.intake_status === 'submitted' &&
+      ['in_review', 'fulfilled'].includes(result.order.fulfillment_status)
+    ) {
       return NextResponse.json({ ok: true, alreadySubmitted: true })
     }
     const body = await request.json().catch(() => ({}))
@@ -138,12 +142,35 @@ export async function POST(request: NextRequest, { params }: { params: { orderId
         intake_status: 'submitted',
         intake_completion: 100,
         intake_submitted_at: new Date().toISOString(),
-        fulfillment_status: 'ready',
+        fulfillment_status: 'provisioning',
         updated_at: new Date().toISOString(),
       },
       { merge: true }
     )
-    return NextResponse.json({ ok: true, fulfillmentStatus: 'ready' })
+    try {
+      const target = await provisionSalesOrder({ orderId: params.orderId, order: result.order, values })
+      await result.ref.set(
+        {
+          fulfillment_status: target.status,
+          fulfillment_target: { collection: target.collection, id: target.id },
+          fulfillment_created_at: new Date().toISOString(),
+          fulfillment_error: null,
+          updated_at: new Date().toISOString(),
+        },
+        { merge: true }
+      )
+      return NextResponse.json({ ok: true, fulfillmentStatus: target.status })
+    } catch (fulfillmentError: any) {
+      await result.ref.set(
+        {
+          fulfillment_status: 'needs_attention',
+          fulfillment_error: String(fulfillmentError?.message || 'Provisioning failed').slice(0, 500),
+          updated_at: new Date().toISOString(),
+        },
+        { merge: true }
+      )
+      throw fulfillmentError
+    }
   } catch (error) {
     return accessError(error)
   }

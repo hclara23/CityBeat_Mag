@@ -44,14 +44,22 @@ function stripeObjectId(value: any): string | null {
 async function setPaymentStatusByField(field: string, value: string, status: string) {
   if (!value) return
   const now = new Date().toISOString()
-  const collections = ['ad_purchases', 'sales_orders']
+  const snap = await adminDb.collection('ad_purchases').where(field, '==', value).get()
+  await Promise.all(snap.docs.map((d) => d.ref.set({ payment_status: status, updated_at: now }, { merge: true })))
+}
+
+async function setSalesOrderBillingStatus(
+  subscriptionId: string,
+  billingStatus: string,
+  extra: Record<string, unknown> = {}
+) {
+  if (!subscriptionId) return
+  const snap = await adminDb.collection('sales_orders').where('stripe_subscription_id', '==', subscriptionId).get()
+  const now = new Date().toISOString()
   await Promise.all(
-    collections.map(async (collection) => {
-      const snap = await adminDb.collection(collection).where(field, '==', value).get()
-      await Promise.all(
-        snap.docs.map((d) => d.ref.set({ payment_status: status, updated_at: now }, { merge: true }))
-      )
-    })
+    snap.docs.map((document) =>
+      document.ref.set({ billing_status: billingStatus, ...extra, updated_at: now }, { merge: true })
+    )
   )
 }
 
@@ -67,6 +75,7 @@ async function syncSalesOrderFromCheckout(session: any, metadata: Record<string,
     {
       checkout_status: 'completed',
       payment_status: paymentStatus,
+      billing_status: session.subscription ? 'active' : 'completed',
       fulfillment_status: paymentStatus === 'paid' ? 'awaiting_intake' : 'awaiting_payment',
       stripe_checkout_session_id: session.id,
       stripe_customer_id: stripeObjectId(session.customer),
@@ -403,6 +412,12 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
   await setPaymentStatusByField('stripe_customer_id', invoice.customer || '', 'completed')
   const subscriptionId = stripeObjectId(invoice.subscription)
   if (subscriptionId) {
+    await setSalesOrderBillingStatus(subscriptionId, 'active', {
+      last_invoice_id: invoice.id,
+      last_invoice_amount: invoice.amount_paid ?? invoice.amount_due ?? 0,
+      last_invoice_discount: referralDiscountAmount(invoice),
+      last_invoice_paid_at: new Date().toISOString(),
+    })
     await adminDb.collection('subscriptions').doc(subscriptionId).set(
       { status: 'active', stripe_customer_id: invoice.customer || null, updated_at: new Date().toISOString() }, { merge: true }
     )
@@ -449,6 +464,10 @@ async function handleInvoicePaymentFailed(invoice: any) {
   await setPaymentStatusByField('stripe_customer_id', invoice.customer || '', 'past_due')
   const subscriptionId = stripeObjectId(invoice.subscription)
   if (subscriptionId) {
+    await setSalesOrderBillingStatus(subscriptionId, 'past_due', {
+      last_failed_invoice_id: invoice.id,
+      last_failed_invoice_amount: invoice.amount_due ?? 0,
+    })
     await adminDb.collection('subscriptions').doc(subscriptionId).set(
       { status: 'past_due', updated_at: new Date().toISOString() }, { merge: true }
     )
@@ -503,10 +522,12 @@ async function handleSubscriptionCreated(subscription: any) {
 
 async function handleSubscriptionUpdated(subscription: any) {
   await upsertSubscription(subscription)
+  await setSalesOrderBillingStatus(subscription.id, subscription.status || 'active')
 }
 
 async function handleSubscriptionDeleted(subscription: any) {
   await upsertSubscription(subscription, 'canceled')
+  await setSalesOrderBillingStatus(subscription.id, 'canceled')
   // Win-back: mark when this churned customer becomes eligible for a single
   // "come back" email (sent by the daily recovery drip).
   await adminDb.collection('subscriptions').doc(subscription.id).set(
