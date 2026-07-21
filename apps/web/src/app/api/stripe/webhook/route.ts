@@ -7,6 +7,17 @@ import { notify, NOTIFY_WORKFLOWS } from '@/lib/notify'
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
 import { sendEmail } from '@/lib/email'
+import {
+  consumeReferralRewardForInvoice,
+  disqualifyPendingReferralForListing,
+  ensureReferralProgram,
+  linkDirectorySubscription,
+  recordReferralAttribution,
+} from '@/lib/referrals-server'
+import {
+  referralCouponFromInvoice,
+  referralDiscountAmount,
+} from '@/lib/referrals'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -23,6 +34,11 @@ async function findOne(collection: string, field: string, value: string) {
   if (!value) return null
   const snap = await adminDb.collection(collection).where(field, '==', value).limit(1).get()
   return snap.empty ? null : snap.docs[0]
+}
+
+function stripeObjectId(value: any): string | null {
+  if (!value) return null
+  return typeof value === 'string' ? value : value.id || null
 }
 
 async function setPaymentStatusByField(field: string, value: string, status: string) {
@@ -65,6 +81,8 @@ async function handleCheckoutCompleted(session: any) {
   //    where the client may not have an account yet — admin attaches the owner on
   //    approval using the captured contact_email).
   if (metadata.listing_id && (metadata.owner_id || metadata.sold_by)) {
+    const directorySubscriptionId = stripeObjectId(session.subscription)
+    const directoryCustomerId = stripeObjectId(session.customer)
     // Tier the admin will grant on approval (premium/featured). Founding members
     // get Premium at the locked launch price and are flagged for the 100 cap.
     const pendingTier = metadata.tier === 'featured' ? 'featured' : 'premium'
@@ -73,8 +91,8 @@ async function handleCheckoutCompleted(session: any) {
       pending_tier: pendingTier,
       plan: metadata.plan || 'premium_monthly',
       founding_member: metadata.founding === 'true',
-      stripe_subscription_id: session.subscription || null,
-      stripe_customer_id: session.customer || null,
+      stripe_subscription_id: directorySubscriptionId,
+      stripe_customer_id: directoryCustomerId,
       claimed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
@@ -115,6 +133,38 @@ async function handleCheckoutCompleted(session: any) {
 
     await adminDb.collection('directory_listings').doc(metadata.listing_id).set(listingPatch, { merge: true })
 
+    await linkDirectorySubscription({
+      subscriptionId: directorySubscriptionId,
+      customerId: directoryCustomerId,
+      listingId: metadata.listing_id,
+      ownerId: metadata.owner_id || null,
+      plan: metadata.plan || null,
+      billingCycle: metadata.billing_cycle || null,
+    })
+
+    // Every self-serve paying owner gets a stable personalized link immediately.
+    // If this checkout came through another valid link, create the pending
+    // three-month attribution exactly once (the referred listing is the doc id).
+    if (metadata.owner_id && directorySubscriptionId) {
+      await ensureReferralProgram({
+        listingId: metadata.listing_id,
+        ownerId: metadata.owner_id,
+        subscriptionId: directorySubscriptionId,
+      })
+      if (metadata.referral_code) {
+        await recordReferralAttribution({
+          code: metadata.referral_code,
+          referredListingId: metadata.listing_id,
+          referredOwnerId: metadata.owner_id,
+          referredSubscriptionId: directorySubscriptionId,
+          referredCustomerId: directoryCustomerId,
+          referredEmail: session.customer_details?.email || session.customer_email || null,
+          referredPlan: metadata.plan || null,
+          checkoutCreated: session.created || null,
+        })
+      }
+    }
+
     // Funnel close: mark any outreach for this listing as converted.
     await markOutreachConverted(metadata.listing_id)
     // Multi-party split: Editor + Sales rep get transfers per the split table; the
@@ -129,7 +179,7 @@ async function handleCheckoutCompleted(session: any) {
       sourcePaymentId: session.id,
     })
     // Remember the seller + service so renewals re-apply the split (residual mode).
-    await recordSubscriptionAttribution(session.subscription, metadata.payout_user_id, 'directory')
+    await recordSubscriptionAttribution(directorySubscriptionId, metadata.payout_user_id, 'directory')
     return
   }
 
@@ -230,12 +280,13 @@ async function recordSubscriptionAttribution(subscriptionId: any, payeeUserId: a
 // checkout.session.completed already paid), pay the attributed rep again — but
 // only when godmode has commission_mode = 'residual'. Idempotent per invoice.
 async function payResidualCommissionIfDue(invoice: any) {
-  if (invoice.billing_reason !== 'subscription_cycle' || !invoice.subscription) return
+  const subscriptionId = stripeObjectId(invoice.subscription)
+  if (invoice.billing_reason !== 'subscription_cycle' || !subscriptionId) return
 
   const settings = await getPayoutSettings()
   if (settings.commission_mode !== 'residual') return
 
-  const subDoc = await adminDb.collection('subscriptions').doc(String(invoice.subscription)).get()
+  const subDoc = await adminDb.collection('subscriptions').doc(subscriptionId).get()
   const sub = subDoc.exists ? (subDoc.data() as any) : null
   if (!sub?.payout_service) return
 
@@ -264,18 +315,37 @@ async function handleChargeRefunded(charge: any) {
     const listing = await findOne('directory_listings', 'stripe_customer_id', charge.customer)
     if (listing) {
       await listing.ref.set({ tier: 'basic', updated_at: new Date().toISOString() }, { merge: true })
+      await disqualifyPendingReferralForListing(listing.id, 'refunded')
     }
   }
 }
 
 async function recordPayment(invoice: any) {
+  const subscriptionId = stripeObjectId(invoice.subscription)
+  const subscriptionDoc = subscriptionId
+    ? await adminDb.collection('subscriptions').doc(subscriptionId).get()
+    : null
+  const subscription = subscriptionDoc?.exists ? (subscriptionDoc.data() as any) : null
+  const metadata = invoice.subscription_details?.metadata || {}
+  const discountAmount = referralDiscountAmount(invoice)
+  const referralCoupon = referralCouponFromInvoice(invoice)
+  const amountPaid = invoice.amount_paid ?? invoice.amount_due ?? 0
+
   await adminDb.collection('payments').doc(invoice.id).set(
     {
       stripe_invoice_id: invoice.id,
       stripe_customer_id: invoice.customer || null,
-      stripe_subscription_id: invoice.subscription || null,
+      stripe_subscription_id: subscriptionId,
+      advertiser_id: metadata.owner_id || subscription?.advertiser_id || subscription?.owner_id || null,
+      listing_id: metadata.listing_id || subscription?.listing_id || null,
+      plan: metadata.plan || subscription?.plan_id || null,
+      billing_cycle: metadata.billing_cycle || subscription?.billing_cycle || null,
       advertiser_email: invoice.customer_email || null,
-      amount: invoice.amount_paid ?? invoice.amount_due ?? 0,
+      gross_amount: invoice.subtotal ?? amountPaid + discountAmount,
+      discount_amount: discountAmount,
+      discount_source: referralCoupon ? 'referral' : discountAmount > 0 ? 'stripe' : null,
+      discount_coupon_id: referralCoupon?.id || null,
+      amount: amountPaid,
       currency: invoice.currency || 'usd',
       status: invoice.status || 'paid',
       invoice_pdf: invoice.invoice_pdf || null,
@@ -288,13 +358,17 @@ async function recordPayment(invoice: any) {
 async function handleInvoicePaymentSucceeded(invoice: any) {
   await recordPayment({ ...invoice, status: 'paid' })
   await setPaymentStatusByField('stripe_customer_id', invoice.customer || '', 'completed')
-  if (invoice.subscription) {
-    await adminDb.collection('subscriptions').doc(invoice.subscription).set(
+  const subscriptionId = stripeObjectId(invoice.subscription)
+  if (subscriptionId) {
+    await adminDb.collection('subscriptions').doc(subscriptionId).set(
       { status: 'active', stripe_customer_id: invoice.customer || null, updated_at: new Date().toISOString() }, { merge: true }
     )
   }
   // Pay the rep their residual share on renewals, if godmode enabled it.
   await payResidualCommissionIfDue(invoice)
+  // Consume the exact referral months encoded on the invoice coupon. The usage
+  // document is keyed by invoice id, so Stripe retries cannot double-decrement.
+  await consumeReferralRewardForInvoice(stripe, invoice)
 }
 
 // Dunning: a failed renewal silently churns unless the customer hears about it.
@@ -330,12 +404,13 @@ async function sendDunningEmail(invoice: any) {
 async function handleInvoicePaymentFailed(invoice: any) {
   await recordPayment({ ...invoice, status: 'payment_failed' })
   await setPaymentStatusByField('stripe_customer_id', invoice.customer || '', 'past_due')
-  if (invoice.subscription) {
-    await adminDb.collection('subscriptions').doc(invoice.subscription).set(
+  const subscriptionId = stripeObjectId(invoice.subscription)
+  if (subscriptionId) {
+    await adminDb.collection('subscriptions').doc(subscriptionId).set(
       { status: 'past_due', updated_at: new Date().toISOString() }, { merge: true }
     )
     // An ads-portal banner/sponsored subscription that lapses should stop showing.
-    await setAdCampaignsBySubscription(invoice.subscription, { status: 'past_due', is_active: false })
+    await setAdCampaignsBySubscription(subscriptionId, { status: 'past_due', is_active: false })
   }
   await sendDunningEmail(invoice)
 }
@@ -353,11 +428,15 @@ async function setAdCampaignsBySubscription(subscriptionId: string, patch: Recor
 async function upsertSubscription(subscription: any, status?: string) {
   // Try to attribute the subscription to an advertiser via an existing purchase.
   const purchase = await findOne('ad_purchases', 'stripe_customer_id', subscription.customer || '')
+  const metadata = subscription.metadata || {}
   await adminDb.collection('subscriptions').doc(subscription.id).set(
     {
       stripe_subscription_id: subscription.id,
       stripe_customer_id: subscription.customer || null,
-      advertiser_id: (purchase?.data() as any)?.advertiser_id || null,
+      advertiser_id: metadata.owner_id || (purchase?.data() as any)?.advertiser_id || null,
+      owner_id: metadata.owner_id || null,
+      listing_id: metadata.listing_id || null,
+      plan_id: metadata.plan || null,
       status: status || subscription.status || 'active',
       price_per_month: subscription.items?.data?.[0]?.price?.unit_amount ?? null,
       billing_cycle: subscription.items?.data?.[0]?.price?.recurring?.interval || 'month',
@@ -396,6 +475,7 @@ async function handleSubscriptionDeleted(subscription: any) {
   const listing = await findOne('directory_listings', 'stripe_subscription_id', subscription.id)
   if (listing) {
     await listing.ref.set({ tier: 'basic', updated_at: new Date().toISOString() }, { merge: true })
+    await disqualifyPendingReferralForListing(listing.id, 'canceled')
   }
   // Stop any ads-portal campaigns tied to this subscription.
   await setAdCampaignsBySubscription(subscription.id, { status: 'cancelled', is_active: false })

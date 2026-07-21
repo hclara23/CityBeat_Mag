@@ -3,6 +3,8 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getPlan, FOUNDING_LIMIT } from '@/lib/pricing'
+import { REFERRAL_COOKIE } from '@/lib/referrals'
+import { resolveReferralForCheckout } from '@/lib/referrals-server'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -86,6 +88,34 @@ export async function POST(request: NextRequest) {
     const perLocationNote =
       locationCount > 1 ? ` — ${locationCount} locations × ${plan.priceLabel}` : ''
 
+    // The public code can arrive from the server cookie or the 30-day browser
+    // fallback (Firebase Hosting may strip non-session cookies). It is always
+    // validated against Firestore and is accepted only for a first paid checkout.
+    const referral = !listing.stripe_subscription_id
+      ? await resolveReferralForCheckout({
+          code: body.referral_code || request.cookies.get(REFERRAL_COOKIE)?.value,
+          referredListingId: listing.id,
+          referredOwnerId: user.id,
+          referredEmail: user.email,
+        })
+      : null
+    const checkoutMetadata: Record<string, string> = {
+      listing_id: listing.id,
+      owner_id: user.id,
+      plan: plan.id,
+      tier: plan.tier,
+      founding: plan.founding ? 'true' : 'false',
+      location_count: String(locationCount),
+      billing_cycle: plan.interval,
+      ...(payoutUserId ? { payout_user_id: payoutUserId } : {}),
+      ...(referral
+        ? {
+            referral_code: referral.code,
+            referrer_listing_id: referral.referrer_listing_id,
+          }
+        : {}),
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -106,15 +136,10 @@ export async function POST(request: NextRequest) {
       ],
       success_url: `${origin}/directory/${listing.id}?status=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/directory/${listing.id}?status=cancel`,
-      metadata: {
-        listing_id: listing.id,
-        owner_id: user.id,
-        plan: plan.id,
-        tier: plan.tier,
-        founding: plan.founding ? 'true' : 'false',
-        location_count: String(locationCount),
-        ...(payoutUserId ? { payout_user_id: payoutUserId } : {}),
-      },
+      metadata: checkoutMetadata,
+      // Stripe copies these identifiers onto the subscription and invoices so
+      // finance attribution does not depend on webhook delivery order.
+      subscription_data: { metadata: checkoutMetadata },
     })
 
     return NextResponse.json({ url: session.url })

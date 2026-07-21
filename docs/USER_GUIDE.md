@@ -40,6 +40,8 @@ Your business is probably already listed — the directory is seeded automatical
 - **AI marketing assistant** (Premium+) — every week it drafts a deal, 3 social captions, and replies to your unanswered reviews. Nothing publishes until you click approve.
 - **Boost your listings** — upgrade tiers; **My deals** — post/remove coupons (Premium+).
 
+**Referral rewards** (paid listings): copy your personalized link from the dashboard. When a referred listing remains paid and active for three calendar months, you automatically receive three discount months at 25% off. Rewards queue without exceeding 25% on a monthly invoice; annual listings receive the equivalent 6.25% per qualified referral on the next renewal. The limit is 16 qualified referrals per listing per calendar year.
+
 **Tiers** (per location for multi-location brands):
 | Tier | Price | Gets you |
 |---|---|---|
@@ -82,7 +84,7 @@ Hub: **`/en/admin`**.
 Everything above, plus **`/en/developer`** (Developer Control) and:
 
 - **Payouts** (`/admin/payouts`) — set commission percent + mode (one-time vs residual), issue one-off payouts. Destinations are always the payee's own connected bank.
-- **Finance** (`/admin/finance`) — read-only revenue/payout overview.
+- **Finance** (`/admin/finance`) — gross charges, discounts, net payments, plan/listing attribution, payouts, and a referral ledger showing pending/qualified signups plus each listing's remaining discount balance.
 - **Banners** (`/admin/banners`) — manage `ad_banners` (home, directory, sidebar, **newsletter sponsor slot**).
 - **Sales agent** (`/admin/sales`) — monitor the automated outbound engine.
 - **Platform settings** — `auto_approve_claims` toggle (currently ON — safe because auto-approval requires ownership verification).
@@ -100,4 +102,4 @@ The machine runs itself; your job is ~15 minutes a week:
 
 ---
 
-*Reflects the app as of 2026-07-03 (commit `ac684be`). Companion docs: [SECURITY_AUDIT.md](SECURITY_AUDIT.md), [CLAIM_VERIFICATION.md](CLAIM_VERIFICATION.md).*
+*Reflects the app as of 2026-07-21. Companion docs: [SECURITY_AUDIT.md](SECURITY_AUDIT.md), [CLAIM_VERIFICATION.md](CLAIM_VERIFICATION.md).*

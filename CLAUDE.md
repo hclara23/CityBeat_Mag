@@ -60,6 +60,7 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 
 | Job | Schedule | Endpoint | Does |
 |---|---|---|---|
+| `citybeat-referrals` | 00:30 | `/api/cron/referrals` | qualifies paid directory referrals after three calendar months, enforces the 16/year cap, credits reward balances, and synchronizes the next Stripe discount; dry-run with `?dryRun=1` |
 | `citybeat-directory-ingest` | 02:00 | `/api/cron/directory-ingest` | crawl/seed local businesses (sales inventory) — 10 verticals, El Paso + Doña Ana counties; insert-only (never touches claimed/paid listings) |
 | `citybeat-enrich-contacts` | 03:00 | `/api/cron/enrich-contacts` | find emails/phones for listings |
 | `citybeat-sync-events` | 04:00 | `/api/cron/sync-events` | real Ticketmaster events (`TICKETMASTER_API_KEY` set on Cloud Run 2026-07-02); never touches community/featured events |
@@ -75,6 +76,9 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 
 Manage with `gcloud scheduler jobs list/run/pause --location us-central1`. To add a
 new cron: create the route with the `CRON_SECRET` check, then add a scheduler job.
+For referral rewards, deploy the route first, then create `citybeat-referrals` as
+an HTTP GET job at `30 0 * * *` with the same `Authorization: Bearer
+${CRON_SECRET}` header used by the other CityBeat cron jobs.
 
 Every cron and the Stripe webhook report failures via `lib/alerts.ts` →
 `system_alerts` collection + email to `ALERT_EMAIL` (deduped 3 per 6h per source).

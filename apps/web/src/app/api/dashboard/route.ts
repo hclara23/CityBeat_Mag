@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { getReferralProgramsForOwner } from '@/lib/referrals-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,10 +60,15 @@ export async function GET() {
 
   const totalImpressions = campaigns.reduce((s, c) => s + c.impressions, 0)
   const totalClicks = campaigns.reduce((s, c) => s + c.clicks, 0)
+  const referralPrograms = await getReferralProgramsForOwner(user.id).catch((error) => {
+    console.error('referral dashboard error:', error)
+    return []
+  })
 
   return NextResponse.json({
     profile,
     campaigns,
+    referralPrograms,
     stats: {
       totalImpressions,
       totalClicks,

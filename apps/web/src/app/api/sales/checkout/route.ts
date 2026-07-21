@@ -55,6 +55,17 @@ export async function POST(request: NextRequest) {
         listingId = ref.id
       }
 
+      const checkoutMetadata: Record<string, string> = {
+        listing_id: listingId,
+        tier: plan.tier,
+        plan: plan.id,
+        founding: plan.founding ? 'true' : 'false',
+        billing_cycle: plan.interval,
+        sold_by: user.id,
+        payout_user_id: user.id,
+        contact_email: contactEmail,
+      }
+
       const session = await stripe.checkout.sessions.create({
         mode: 'subscription',
         payment_method_types: ['card'],
@@ -75,15 +86,8 @@ export async function POST(request: NextRequest) {
         ],
         success_url,
         cancel_url,
-        metadata: {
-          listing_id: listingId,
-          tier: plan.tier,
-          plan: plan.id,
-          founding: plan.founding ? 'true' : 'false',
-          sold_by: user.id,
-          payout_user_id: user.id,
-          contact_email: contactEmail,
-        },
+        metadata: checkoutMetadata,
+        subscription_data: { metadata: checkoutMetadata },
       })
 
       return NextResponse.json({ url: session.url, listingId, priceLabel: plan.priceLabel })

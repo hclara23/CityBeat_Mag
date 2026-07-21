@@ -231,6 +231,20 @@ export default function ClaimPage() {
   const handleCheckoutRedirect = async () => {
     setRedirecting(true)
     try {
+      let referralCode: string | null = null
+      try {
+        const stored = JSON.parse(
+          window.localStorage.getItem('citybeat_directory_referral') || 'null'
+        ) as { code?: string; expiresAt?: number } | null
+        if (stored?.code && Number(stored.expiresAt) > Date.now()) {
+          referralCode = stored.code
+        } else if (stored) {
+          window.localStorage.removeItem('citybeat_directory_referral')
+        }
+      } catch {
+        window.localStorage.removeItem('citybeat_directory_referral')
+      }
+
       const response = await fetch('/api/directory/claim', {
         method: 'POST',
         headers: {
@@ -239,6 +253,7 @@ export default function ClaimPage() {
         body: JSON.stringify({
           listingId: id,
           plan: selectedPlan,
+          ...(referralCode ? { referral_code: referralCode } : {}),
         }),
       })
 

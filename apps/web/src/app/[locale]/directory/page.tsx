@@ -63,6 +63,8 @@ const translations = {
     claimBtn: 'Claim & Upgrade',
     viewDetails: 'View Details',
     premiumGlowText: 'PREMIUM PARTNER',
+    referralSaved: 'Referral saved. Choose your business and complete signup within 30 days.',
+    referralInvalid: 'That referral link is inactive, but you can still browse and join the directory.',
   },
   es: {
     title: 'Directorio de Negocios Locales',
@@ -80,6 +82,8 @@ const translations = {
     claimBtn: 'Reclamar y Mejorar',
     viewDetails: 'Ver Detalles',
     premiumGlowText: 'SOCIO PREMIUM',
+    referralSaved: 'Referido guardado. Elige tu negocio y completa el registro dentro de 30 días.',
+    referralInvalid: 'Ese enlace de referido está inactivo, pero aún puedes explorar y unirte al directorio.',
   }
 }
 
@@ -92,6 +96,25 @@ export default function DirectoryPage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
+  const [referralNotice, setReferralNotice] = useState<'saved' | 'invalid' | 'inactive' | null>(null)
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const value = searchParams.get('referral')
+    if (value === 'saved' || value === 'invalid' || value === 'inactive') {
+      setReferralNotice(value)
+    }
+    const referralCode = searchParams.get('ref')?.trim().toUpperCase()
+    if (value === 'saved' && referralCode && /^[A-F0-9]{12}$/.test(referralCode)) {
+      window.localStorage.setItem(
+        'citybeat_directory_referral',
+        JSON.stringify({
+          code: referralCode,
+          expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+        })
+      )
+    }
+  }, [])
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -148,6 +171,11 @@ export default function DirectoryPage() {
   return (
     <CityBeatShell locale={locale}>
       <div className="citybeat-app min-h-screen pb-24">
+        {referralNotice && (
+          <div className={`border-b px-4 py-3 text-center text-sm font-bold ${referralNotice === 'saved' ? 'border-brand-neon/30 bg-brand-neon/10 text-brand-neon' : 'border-brand-gold/30 bg-brand-gold/10 text-brand-gold'}`}>
+            {referralNotice === 'saved' ? t.referralSaved : t.referralInvalid}
+          </div>
+        )}
         {/* Header Hero Area */}
         <section className="relative overflow-hidden py-20 citybeat-grid border-b border-white/10">
           <div className="container-wide relative z-10 text-center max-w-4xl">

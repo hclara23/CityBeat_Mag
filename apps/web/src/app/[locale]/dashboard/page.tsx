@@ -12,6 +12,10 @@ import { MyDeals } from '@/components/citybeat/MyDeals'
 import { LeadsPanel } from '@/components/citybeat/LeadsPanel'
 import { AIAssistantPanel } from '@/components/citybeat/AIAssistantPanel'
 import { FeaturedBadge } from '@/components/citybeat/FeaturedBadge'
+import {
+  ReferralProgramCard,
+  type ReferralProgramSummary,
+} from '@/components/citybeat/ReferralProgramCard'
 
 interface Campaign {
   id: string
@@ -36,6 +40,7 @@ export default function DashboardPage() {
     ctr: 0,
   })
   const [profile, setProfile] = useState<any>(null)
+  const [referralPrograms, setReferralPrograms] = useState<ReferralProgramSummary[]>([])
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -55,6 +60,7 @@ export default function DashboardPage() {
         const data = (await response.json()) as {
           profile: any
           campaigns: Campaign[]
+          referralPrograms: ReferralProgramSummary[]
           stats: {
             totalImpressions: number
             totalClicks: number
@@ -65,6 +71,7 @@ export default function DashboardPage() {
 
         setProfile(data.profile)
         setCampaigns(data.campaigns)
+        setReferralPrograms(data.referralPrograms || [])
         setStats(data.stats)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load dashboard')
@@ -119,6 +126,7 @@ export default function DashboardPage() {
 
         {error && <AuthError message={error} />}
 
+        <ReferralProgramCard programs={referralPrograms} />
         <AIAssistantPanel />
         <LeadsPanel />
         <MyListingsBoost />
