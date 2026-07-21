@@ -7936,7 +7936,7 @@
     {
       "id": "202607212230-WQPVHN",
       "title": "Repair job board and navigation",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [
@@ -7957,6 +7957,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "Approved by the user: repair the production Job Board query error, add a Jobs link to the main desktop and mobile navigation, deploy both changes, and verify them live."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: reconcile production Firestore indexes, add the exact jobs query index and bilingual navigation entry, verify responsive rendering and builds, then deploy and smoke-test production."
         }
       ],
       "doc_version": 2,
@@ -7970,6 +7974,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "15452dc4fc0164e9a782034c8780b912e9658034ea9a51454f2a8e543d7ef8a4"
+    "checksum": "f60ef0f77839a4388b66134d601aa7992717fbb3e17ac969ffa29fe7b9b66413"
   }
 }

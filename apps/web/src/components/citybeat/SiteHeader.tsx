@@ -12,6 +12,7 @@ function getNavItems(locale: string) {
   return [
     { label: locale === 'es' ? 'Boletines' : 'Stories', href: '/stories' },
     { label: locale === 'es' ? 'Eventos' : 'Events', href: '/events' },
+    { label: locale === 'es' ? 'Empleos' : 'Jobs', href: '/jobs' },
     { label: locale === 'es' ? 'Directorio' : 'Directory', href: '/directory' },
     { label: locale === 'es' ? 'Enviar' : 'Submit', href: '/contribute' },
   ]

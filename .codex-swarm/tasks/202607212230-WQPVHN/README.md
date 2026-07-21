@@ -1,7 +1,7 @@
 ---
 id: "202607212230-WQPVHN"
 title: "Repair job board and navigation"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202607212201-F115P0"]
@@ -9,8 +9,9 @@ tags: ["frontend", "backend", "jobs", "firestore", "deployment"]
 verify: ["npm run type-check", "npm run build"]
 comments:
   - { author: "ORCHESTRATOR", body: "Approved by the user: repair the production Job Board query error, add a Jobs link to the main desktop and mobile navigation, deploy both changes, and verify them live." }
+  - { author: "ORCHESTRATOR", body: "Start: reconcile production Firestore indexes, add the exact jobs query index and bilingual navigation entry, verify responsive rendering and builds, then deploy and smoke-test production." }
 doc_version: 2
-doc_updated_at: "2026-07-21T22:30:30+00:00"
+doc_updated_at: "2026-07-21T22:33:42+00:00"
 doc_updated_by: "agentctl"
 description: "Fix the production Job Board Firestore index failure, add localized Jobs navigation to the shared header, verify the paid-job query and responsive navigation, deploy the index and web release, and capture production evidence."
 ---
@@ -40,5 +41,5 @@ Route Cloud Run traffic back to citybeat-web-00148-cjs if the web revision is un
 
 ## Notes
 
-User approved implementation and production deployment on 2026-07-21. Do not print or write Firebase or Cloud Run secret values.
+User approved implementation and production deployment on 2026-07-21. Pre-deployment verification passed: Firestore index JSON validation, Firebase production-project dry run, 46 automated tests, all four TypeScript package checks, and the full Next.js production build with 102 generated static pages. The frontend-design guidance kept the change within the existing CityBeat editorial header system by reusing the shared navItems source and established typography, spacing, localization, desktop, and mobile behavior. Do not print or write Firebase or Cloud Run secret values.
 
