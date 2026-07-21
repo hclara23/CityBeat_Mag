@@ -1,22 +1,24 @@
 ---
 id: "202607211917-Q5D837"
 title: "Build directory referral rewards"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["directory", "billing", "backend", "frontend"]
 verify: ["npm run type-check", "npx tsx --test apps/web/src/lib/referrals.test.ts"]
+commit: { hash: "81a308462b06984d77015a2e1e5d6b17f11858ba", message: "✨ Q5D837 add directory referrals, automatic Stripe rewards, and discount reporting" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implement the approved directory referral program, automatic Stripe rewards, dashboard tracking, finance disclosure, tests, and operations documentation." }
+  - { author: "ORCHESTRATOR", body: "verified: referral attribution, three-month qualification, Stripe reward application and consumption, customer dashboard sharing, finance discount disclosure, anti-abuse checks, and retry idempotency are complete | details: tests, type-check, lint, production build, and declared task verification all pass." }
 doc_version: 2
-doc_updated_at: "2026-07-21T19:17:24+00:00"
+doc_updated_at: "2026-07-21T19:40:32+00:00"
 doc_updated_by: "agentctl"
 description: "Create a paid-directory referral program with personalized listing links, 30-day server-validated attribution, three-month active qualification, automatic Stripe rewards (three monthly cycles at 25% or 6.25% of the next annual renewal per qualified referral), a 16-qualified-referral annual cap, anti-abuse/idempotency safeguards, customer dashboard tracking, detailed finance reporting, tests, and operating documentation."
 ---
 ## Summary
 
-Build an end-to-end referral rewards program for paid directory listings. Each eligible listing receives a stable link; referred subscriptions qualify after three active paid months; rewards are applied automatically and shown transparently to customers and administrators.
+Implemented an end-to-end referral rewards program for paid directory listings. Each eligible listing receives a stable personalized link; attribution survives the Firebase Hosting cookie policy; referred subscriptions qualify after three paid calendar months; equivalent monthly or annual Stripe discounts are applied and consumed automatically; customer and finance dashboards expose the complete reward state.
 
 ## Context
 
@@ -32,7 +34,7 @@ Stripe discount state must remain idempotent across webhook retries and cron ret
 
 ## Verify Steps
 
-Run npm run type-check. Run npx tsx --test apps/web/src/lib/referrals.test.ts. Inspect the task-scoped git diff and confirm the repository remains clean after commits.
+Passed npm run type-check across all four workspaces. Passed npm test with 20 tests, including six referral policy tests. Passed npm run lint with one pre-existing no-img-element warning in the sales page. Passed npm run build; the production Next.js build includes /[locale]/refer/[code] and /api/cron/referrals. agentctl verify passed both declared task commands.
 
 ## Rollback Plan
 
@@ -40,5 +42,5 @@ Revert the task implementation commit. The new Firestore collections are additiv
 
 ## Notes
 
-Approved policy: the 16-referral cap counts qualified referrals per listing and calendar year. Monthly rewards queue without exceeding 25% on any invoice. Annual rewards aggregate at 6.25 percentage points per referral on the next renewal, capped at 100%.
+Planning commit: f8493ef. Implementation commit: 81a3084. Monthly rewards consume one of three earned discount months per 25%-discounted invoice. Annual rewards convert each three-month award to 6.25% of the next renewal and can aggregate to 100%, with excess balance rolling forward. Stripe and Firestore operations use deterministic coupon IDs, transaction-backed ledgers, invoice usage IDs, and retry repair. Deploy the web change before creating the documented daily citybeat-referrals Cloud Scheduler job.
 
