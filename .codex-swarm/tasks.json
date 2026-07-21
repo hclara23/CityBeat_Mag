@@ -7637,7 +7637,7 @@
     {
       "id": "202607212040-ABDG38",
       "title": "Unify sales and post-payment fulfillment",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [
@@ -7647,6 +7647,12 @@
         "sales",
         "checkout",
         "fulfillment"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: consolidate completed child tasks, verification evidence, documentation, and the final security review into the parent delivery record."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-07-21T20:40:55+00:00",
@@ -7886,6 +7892,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "6be059920af035c5661a8a29f80a3dfc936523c03d8bb4908b83d4d1981c31d1"
+    "checksum": "88d9f2d4b583ad6a0673eb76b6f47d572f4486ebd4cdc4b06989caefffdfb783"
   }
 }
