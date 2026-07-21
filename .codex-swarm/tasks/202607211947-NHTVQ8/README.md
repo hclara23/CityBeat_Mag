@@ -9,13 +9,13 @@ tags: ["deployment", "cloud-run", "scheduler"]
 comments:
   - { author: "ORCHESTRATOR", body: "Start: deploy the committed referral rewards release, configure the protected daily scheduler, verify the live revision, and record the production result." }
 doc_version: 2
-doc_updated_at: "2026-07-21T19:48:09+00:00"
+doc_updated_at: "2026-07-21T19:58:59+00:00"
 doc_updated_by: "agentctl"
 description: "Deploy implementation commit 81a3084 to the production citybeat-web Cloud Run service, configure the daily citybeat-referrals Cloud Scheduler job with the existing protected cron secret, verify live health and unauthorized-route behavior, and record the production revision and scheduler state."
 ---
 ## Summary
 
-Deploy the completed directory referral rewards release to the production Cloud Run service and activate its daily qualification scheduler.
+Deployed the completed directory referral rewards release to production Cloud Run revision citybeat-web-00147-2sv with 100% traffic and activated the protected daily referral qualification scheduler.
 
 ## Context
 
@@ -31,7 +31,7 @@ A failed source deployment could leave production on the prior revision. An inco
 
 ## Verify Steps
 
-Confirm the Cloud Run service reports Ready=True and routes 100% traffic to the new revision. Confirm /api/health returns HTTP 200 and an unauthenticated /api/cron/referrals request returns HTTP 401. Confirm citybeat-referrals is ENABLED with schedule 30 0 * * * and run its authenticated dry-run successfully.
+Verified citybeat-web-00147-2sv is the latest Ready revision and receives 100% of traffic. Verified https://citybeatmag.co/api/health returns HTTP 200 and unauthenticated https://citybeatmag.co/api/cron/referrals returns HTTP 401. Verified an authenticated dry-run returned dry_run=true, pending=0, and due=0. Verified citybeat-referrals is ENABLED in us-central1 with schedule 30 0 * * *, timezone America/Chihuahua, GET method, 600-second deadline, and a successful scheduler-triggered attempt at 2026-07-21T19:58:24Z.
 
 ## Rollback Plan
 
@@ -39,5 +39,5 @@ Route Cloud Run traffic back to the prior ready revision and pause citybeat-refe
 
 ## Notes
 
-Never emit the CRON_SECRET or scheduler Authorization header in command output or task artifacts.
+Previous production revision: citybeat-web-00146-t6w. Deployed production revision: citybeat-web-00147-2sv. The scheduler's next recorded execution is 2026-07-22T06:30:02Z (00:30 America/Chihuahua). CRON_SECRET remained confined to process memory and was not printed or written to repository artifacts.
 
