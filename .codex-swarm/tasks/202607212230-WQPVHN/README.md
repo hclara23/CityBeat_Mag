@@ -1,23 +1,25 @@
 ---
 id: "202607212230-WQPVHN"
 title: "Repair job board and navigation"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202607212201-F115P0"]
 tags: ["frontend", "backend", "jobs", "firestore", "deployment"]
 verify: ["npm run type-check", "npm run build"]
+commit: { hash: "d3f13ab665061c4f316d5e362b156a380aee8a04", message: "🐛 WQPVHN repair job board index and navigation" }
 comments:
   - { author: "ORCHESTRATOR", body: "Approved by the user: repair the production Job Board query error, add a Jobs link to the main desktop and mobile navigation, deploy both changes, and verify them live." }
   - { author: "ORCHESTRATOR", body: "Start: reconcile production Firestore indexes, add the exact jobs query index and bilingual navigation entry, verify responsive rendering and builds, then deploy and smoke-test production." }
+  - { author: "ORCHESTRATOR", body: "verified: Firestore jobs index CICAgOjXh4EK is READY | details: Cloud Run revision citybeat-web-00149-nrk is Ready with 100% traffic; English and Spanish homepages and Job Boards return 200 with localized Jobs navigation and no index error; 46 tests, type checks, and production build passed." }
 doc_version: 2
-doc_updated_at: "2026-07-21T22:33:42+00:00"
+doc_updated_at: "2026-07-21T22:46:06+00:00"
 doc_updated_by: "agentctl"
 description: "Fix the production Job Board Firestore index failure, add localized Jobs navigation to the shared header, verify the paid-job query and responsive navigation, deploy the index and web release, and capture production evidence."
 ---
 ## Summary
 
-Repair the production Job Board query and make the board discoverable from the shared bilingual top navigation.
+Repaired the production Job Board query with a tracked Firestore composite index and added localized Jobs and Empleos links to the shared desktop and mobile navigation.
 
 ## Context
 
@@ -41,5 +43,5 @@ Route Cloud Run traffic back to citybeat-web-00148-cjs if the web revision is un
 
 ## Notes
 
-User approved implementation and production deployment on 2026-07-21. Pre-deployment verification passed: Firestore index JSON validation, Firebase production-project dry run, 46 automated tests, all four TypeScript package checks, and the full Next.js production build with 102 generated static pages. The frontend-design guidance kept the change within the existing CityBeat editorial header system by reusing the shared navItems source and established typography, spacing, localization, desktop, and mobile behavior. Do not print or write Firebase or Cloud Run secret values.
+User approved implementation and production deployment on 2026-07-21. Pre-deployment verification passed: Firestore index JSON validation, Firebase production-project dry run, 46 automated tests, all four TypeScript package checks, and the full Next.js production build with 102 generated static pages. The frontend-design guidance kept the change within the existing CityBeat editorial header system by reusing the shared navItems source and established typography, spacing, localization, desktop, and mobile behavior. Firestore jobs index CICAgOjXh4EK reached READY with fields is_paid ASC, expires_at DESC, created_at DESC. Cloud Run revision citybeat-web-00149-nrk became Ready at 2026-07-21T22:44:53Z and serves 100% of traffic; rollback target is citybeat-web-00148-cjs. Production /en, /es, /en/jobs, and /es/jobs returned 200, exposed the correct localized Jobs navigation, and contained no FAILED_PRECONDITION, index requirement, or create-composite error. No secret values were printed or written.
 
