@@ -7560,7 +7560,7 @@
     {
       "id": "202607212040-7XJF9K",
       "title": "Verify unified sales and fulfillment flows",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "TESTER",
       "depends_on": [
@@ -7576,6 +7576,12 @@
         "npm run type-check",
         "npm run lint",
         "npm run build"
+      ],
+      "comments": [
+        {
+          "author": "TESTER",
+          "body": "Start: extend edge coverage for catalog cadence, schema integrity, token expiry, and every fulfillment record, then run tests, type-check, lint, and production build."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-07-21T20:40:59+00:00",
@@ -7797,6 +7803,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "908fc9d79970404f584e828d6c62c7b39321530b09b75d8819a8011cfd166043"
+    "checksum": "0e973b624ec39ee4890a418b2dbc68c747a2e63f8de7b2808ba761b13313badb"
   }
 }

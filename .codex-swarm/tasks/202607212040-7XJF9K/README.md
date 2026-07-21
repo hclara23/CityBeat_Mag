@@ -1,12 +1,14 @@
 ---
 id: "202607212040-7XJF9K"
 title: "Verify unified sales and fulfillment flows"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "TESTER"
 depends_on: ["202607212040-G73WWE"]
 tags: ["test", "stripe", "security"]
 verify: ["npm test", "npm run type-check", "npm run lint", "npm run build"]
+comments:
+  - { author: "TESTER", body: "Start: extend edge coverage for catalog cadence, schema integrity, token expiry, and every fulfillment record, then run tests, type-check, lint, and production build." }
 doc_version: 2
 doc_updated_at: "2026-07-21T20:40:59+00:00"
 doc_updated_by: "agentctl"

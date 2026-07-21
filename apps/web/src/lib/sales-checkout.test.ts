@@ -401,3 +401,85 @@ test('directory fulfillment enriches the paid listing while keeping staff review
   assert.equal(record.address, '100 Mesa St, El Paso, TX, 79901')
   assert.deepEqual(record.gallery_urls, ['https://storage.example/one.webp'])
 })
+
+test('catalog cadence is explicit for every fixed and custom product', () => {
+  const recurring = SALES_PRODUCT_ORDER.filter((id) => SALES_PRODUCTS[id].billing === 'subscription')
+  const oneTime = SALES_PRODUCT_ORDER.filter((id) => SALES_PRODUCTS[id].billing === 'one_time')
+  assert.deepEqual(recurring, [
+    'directory_founding_annual',
+    'directory_founding_monthly',
+    'directory_premium_annual',
+    'directory_premium_monthly',
+    'directory_featured_monthly',
+    'ad_newsletter_sponsorship',
+    'ad_category_banner',
+  ])
+  assert.deepEqual(oneTime, ['ad_sponsored_story', 'event_featured', 'job_posting_30_day', 'custom_one_time'])
+  assert.equal(recurring.every((id) => SALES_PRODUCTS[id].interval === 'month' || SALES_PRODUCTS[id].interval === 'year'), true)
+  assert.equal(oneTime.every((id) => SALES_PRODUCTS[id].interval === null), true)
+})
+
+test('intake field identifiers are unique within every product brief', () => {
+  for (const kind of ['directory', 'job', 'event', 'newsletter_sponsorship', 'category_banner', 'sponsored_story', 'custom']) {
+    const schema = getSalesIntakeSchema(kind)!
+    const ids = schema.sections.flatMap((section) => section.fields.map((field) => field.id))
+    assert.equal(new Set(ids).size, ids.length, kind)
+    assert.equal(ids.every((id) => /^[a-z][a-z0-9_]*$/.test(id)), true, kind)
+  }
+})
+
+test('access expiration rejects the exact boundary and malformed dates', () => {
+  const now = new Date('2026-07-21T12:00:00.000Z')
+  assert.equal(salesOrderAccessExpired('2026-07-21T12:00:00.001Z', now), false)
+  assert.equal(salesOrderAccessExpired('2026-07-21T12:00:00.000Z', now), true)
+  assert.equal(salesOrderAccessExpired('not-a-date', now), true)
+  assert.equal(salesOrderAccessExpired(undefined, now), true)
+})
+
+test('advertising and event fulfillment records stay inactive or pending review', () => {
+  const baseOrder = {
+    payment_status: 'paid',
+    sold_by: 'rep_123',
+    contact_email: 'owner@example.com',
+    business_name: 'Mesa Studio',
+  }
+  const banner = buildSalesFulfillmentRecord({
+    orderId: 'banner_order',
+    order: { ...baseOrder, product_id: 'ad_category_banner', intake_kind: 'category_banner' },
+    values: {
+      campaign_name: 'Summer', requested_category: 'Dining', preferred_start_date: '2026-08-01',
+      target_url: 'https://example.com', headline: 'Dinner downtown', description: 'Book tonight',
+      call_to_action: 'Reserve', banner_image_url: 'https://storage.example/banner.webp', alt_text: 'Dinner table',
+    },
+  })
+  assert.equal(banner.status, 'pending_review')
+  assert.equal(banner.is_active, false)
+  assert.equal(banner.placement, 'directory')
+
+  const newsletter = buildSalesFulfillmentRecord({
+    orderId: 'newsletter_order',
+    order: { ...baseOrder, product_id: 'ad_newsletter_sponsorship', intake_kind: 'newsletter_sponsorship', stripe_subscription_id: 'sub_123' },
+    values: {
+      campaign_name: 'Summer', campaign_objective: 'traffic', preferred_start_date: '2026-08-01',
+      target_url: 'https://example.com', headline: 'Visit us', body_copy: 'A short message',
+      call_to_action: 'Learn more', logo_url: 'https://storage.example/logo.webp', creative_url: 'https://storage.example/creative.webp',
+    },
+  })
+  assert.equal(newsletter.status, 'pending_review')
+  assert.equal(newsletter.is_active, false)
+  assert.equal(newsletter.stripe_subscription_id, 'sub_123')
+
+  const event = buildSalesFulfillmentRecord({
+    orderId: 'event_order',
+    order: { ...baseOrder, product_id: 'event_featured', intake_kind: 'event' },
+    values: {
+      event_title: 'Art Walk', event_category: 'Arts', start_date: '2026-08-01', start_time: '18:00',
+      timezone: 'America/Denver', event_format: 'in_person', venue_name: 'Downtown', venue_address: '100 Main',
+      price_info: 'Free', event_description: 'A local art walk', organizer_name: 'Arts Council',
+      contact_email: 'events@example.com', event_image_url: 'https://storage.example/event.webp',
+    },
+  })
+  assert.equal(event.status, 'pending')
+  assert.equal(event.featured, true)
+  assert.equal(event.start_date, '2026-08-01T18:00:00')
+})
