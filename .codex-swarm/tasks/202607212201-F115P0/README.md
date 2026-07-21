@@ -1,14 +1,16 @@
 ---
 id: "202607212201-F115P0"
 title: "Deploy unified sales fulfillment"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202607212040-ABDG38"]
 tags: ["deployment", "cloud-run", "sales"]
+commit: { hash: "646fb7c4c67b03804fa6cc33b411e960a3605409", message: "🚀 F115P0 deploy unified sales fulfillment to Cloud Run" }
 comments:
   - { author: "ORCHESTRATOR", body: "Approved by the user: deploy the completed unified Sales Desk and post-payment fulfillment release to production and verify it end to end." }
   - { author: "ORCHESTRATOR", body: "Start: capture the current production revision, deploy clean main with the repository Cloud Run script, verify traffic and protected sales routes, and retain an exact rollback target." }
+  - { author: "ORCHESTRATOR", body: "verified: production revision citybeat-web-00148-cjs is Ready with 100% traffic | details: health returned 200, protected sales and fulfillment APIs returned 401 without credentials, both wizard routes behaved correctly, and the public sales guide PDF matched the release artifact exactly." }
 doc_version: 2
 doc_updated_at: "2026-07-21T22:12:06+00:00"
 doc_updated_by: "agentctl"
