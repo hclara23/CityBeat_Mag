@@ -7376,12 +7376,38 @@
       "doc_updated_by": "agentctl",
       "description": "Create a paid-directory referral program with personalized listing links, 30-day server-validated attribution, three-month active qualification, automatic Stripe rewards (three monthly cycles at 25% or 6.25% of the next annual renewal per qualified referral), a 16-qualified-referral annual cap, anti-abuse/idempotency safeguards, customer dashboard tracking, detailed finance reporting, tests, and operating documentation.",
       "doc": "## Summary\n\nImplemented an end-to-end referral rewards program for paid directory listings. Each eligible listing receives a stable personalized link; attribution survives the Firebase Hosting cookie policy; referred subscriptions qualify after three paid calendar months; equivalent monthly or annual Stripe discounts are applied and consumed automatically; customer and finance dashboards expose the complete reward state.\n\n## Context\n\nDirectory checkout already creates Stripe subscriptions with listing and owner metadata. Stripe webhooks persist subscriptions and invoice payments, while the advertiser dashboard and admin finance dashboard expose customer and payment data. The current system has no referral attribution, reward ledger, discount application, or gross-versus-discount reporting.\n\n## Scope\n\nAdd stable per-listing referral codes and 30-day cookie attribution; validate referral ownership server-side at checkout; create idempotent referral records; qualify active paid referred subscriptions after three calendar months; cap rewards at 16 qualified referrals per referrer listing per calendar year; apply 25% for three monthly invoices or 6.25% per referral to the next annual renewal; prevent self-referrals and duplicates; expose referral stats in the customer dashboard; show listing, plan, gross fee, discount source, discount amount, and net paid in admin finance; add deterministic tests and scheduler documentation.\n\n## Risks\n\nStripe discount state must remain idempotent across webhook retries and cron retries. Annual and monthly rewards require different accounting while preserving equivalent value. Referral attribution must not trust client-supplied identities, and Firestore queries must avoid unsupported compound indexes. Existing non-referral subscription discounts must not be silently overwritten.\n\n## Verify Steps\n\nPassed npm run type-check across all four workspaces. Passed npm test with 20 tests, including six referral policy tests. Passed npm run lint with one pre-existing no-img-element warning in the sales page. Passed npm run build; the production Next.js build includes /[locale]/refer/[code] and /api/cron/referrals. agentctl verify passed both declared task commands.\n\n## Rollback Plan\n\nRevert the task implementation commit. The new Firestore collections are additive; leaving historical referral records is harmless, or they can be archived after rollback. Remove the referral qualification Cloud Scheduler job if it has been deployed. Existing directory subscriptions and payments continue using their prior webhook paths.\n\n## Notes\n\nPlanning commit: f8493ef. Implementation commit: 81a3084. Monthly rewards consume one of three earned discount months per 25%-discounted invoice. Annual rewards convert each three-month award to 6.25% of the next renewal and can aggregate to 100%, with excess balance rolling forward. Stripe and Firestore operations use deterministic coupon IDs, transaction-backed ledgers, invoice usage IDs, and retry repair. Deploy the web change before creating the documented daily citybeat-referrals Cloud Scheduler job."
+    },
+    {
+      "id": "202607211947-NHTVQ8",
+      "title": "Deploy directory referral rewards",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "202607211917-Q5D837"
+      ],
+      "tags": [
+        "deployment",
+        "cloud-run",
+        "scheduler"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: deploy the committed referral rewards release, configure the protected daily scheduler, verify the live revision, and record the production result."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T19:48:09+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Deploy implementation commit 81a3084 to the production citybeat-web Cloud Run service, configure the daily citybeat-referrals Cloud Scheduler job with the existing protected cron secret, verify live health and unauthorized-route behavior, and record the production revision and scheduler state.",
+      "doc": "## Summary\n\nDeploy the completed directory referral rewards release to the production Cloud Run service and activate its daily qualification scheduler.\n\n## Context\n\nImplementation task 202607211917-Q5D837 is DONE at commit 81a3084 with closure commit 18b1269. Production runs on Cloud Run service citybeat-web in project kerstenblueprint, region us-central1; scheduled jobs run in us-central1 with the protected CRON_SECRET bearer header.\n\n## Scope\n\nConfirm a clean main branch; deploy the repository source to citybeat-web; create or update citybeat-referrals as a daily 00:30 America/Chihuahua HTTP GET job for https://citybeatmag.co/api/cron/referrals; verify Cloud Run readiness, public health, referral endpoint authorization, scheduler state, and a safe dry-run; record the deployed revision and results.\n\n## Risks\n\nA failed source deployment could leave production on the prior revision. An incorrect scheduler header could prevent automatic qualification or expose the endpoint. Secret values must never be printed. Scheduler creation occurs only after the new Cloud Run revision is healthy.\n\n## Verify Steps\n\nConfirm the Cloud Run service reports Ready=True and routes 100% traffic to the new revision. Confirm /api/health returns HTTP 200 and an unauthenticated /api/cron/referrals request returns HTTP 401. Confirm citybeat-referrals is ENABLED with schedule 30 0 * * * and run its authenticated dry-run successfully.\n\n## Rollback Plan\n\nRoute Cloud Run traffic back to the prior ready revision and pause citybeat-referrals. The referral schema is additive and the dry-run does not mutate rewards.\n\n## Notes\n\nNever emit the CRON_SECRET or scheduler Authorization header in command output or task artifacts."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "ef70dec1f4f589e70ec68295fcbd25137e92001ba6ed70569c9c33eb92cf3a7c"
+    "checksum": "02c9d5b9bac0787a223c3eeaf8278321c4970613d9718cf07921a1bf1dd12584"
   }
 }
