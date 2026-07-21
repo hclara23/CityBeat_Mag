@@ -7410,12 +7410,102 @@
       "doc_updated_by": "agentctl",
       "description": "Deploy implementation commit 81a3084 to the production citybeat-web Cloud Run service, configure the daily citybeat-referrals Cloud Scheduler job with the existing protected cron secret, verify live health and unauthorized-route behavior, and record the production revision and scheduler state.",
       "doc": "## Summary\n\nDeployed the completed directory referral rewards release to production Cloud Run revision citybeat-web-00147-2sv with 100% traffic and activated the protected daily referral qualification scheduler.\n\n## Context\n\nImplementation task 202607211917-Q5D837 is DONE at commit 81a3084 with closure commit 18b1269. Production runs on Cloud Run service citybeat-web in project kerstenblueprint, region us-central1; scheduled jobs run in us-central1 with the protected CRON_SECRET bearer header.\n\n## Scope\n\nConfirm a clean main branch; deploy the repository source to citybeat-web; create or update citybeat-referrals as a daily 00:30 America/Chihuahua HTTP GET job for https://citybeatmag.co/api/cron/referrals; verify Cloud Run readiness, public health, referral endpoint authorization, scheduler state, and a safe dry-run; record the deployed revision and results.\n\n## Risks\n\nA failed source deployment could leave production on the prior revision. An incorrect scheduler header could prevent automatic qualification or expose the endpoint. Secret values must never be printed. Scheduler creation occurs only after the new Cloud Run revision is healthy.\n\n## Verify Steps\n\nVerified citybeat-web-00147-2sv is the latest Ready revision and receives 100% of traffic. Verified https://citybeatmag.co/api/health returns HTTP 200 and unauthenticated https://citybeatmag.co/api/cron/referrals returns HTTP 401. Verified an authenticated dry-run returned dry_run=true, pending=0, and due=0. Verified citybeat-referrals is ENABLED in us-central1 with schedule 30 0 * * *, timezone America/Chihuahua, GET method, 600-second deadline, and a successful scheduler-triggered attempt at 2026-07-21T19:58:24Z.\n\n## Rollback Plan\n\nRoute Cloud Run traffic back to the prior ready revision and pause citybeat-referrals. The referral schema is additive and the dry-run does not mutate rewards.\n\n## Notes\n\nPrevious production revision: citybeat-web-00146-t6w. Deployed production revision: citybeat-web-00147-2sv. The scheduler's next recorded execution is 2026-07-22T06:30:02Z (00:30 America/Chihuahua). CRON_SECRET remained confined to process memory and was not printed or written to repository artifacts."
+    },
+    {
+      "id": "202607212017-7JACJZ",
+      "title": "Streamline recurring sales checkout",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "202607212017-MFYKEV"
+      ],
+      "tags": [
+        "checkout",
+        "payments",
+        "recurring"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:18:11+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Track the approved recurring-checkout improvement across backend task 202607212017-8JVTY5, customer handoff task 202607212017-XSEXBE, and verification task 202607212017-MFYKEV. Acceptance requires automatic Stripe subscription renewals with saved payment methods, unchanged one-time charges, a minimal mobile link/QR flow, automated coverage, review, and committed integration.",
+      "doc": "## Summary\n\nCoordinate and close the approved low-friction recurring sales checkout improvement across backend safeguards, the customer link and QR experience, automated verification, review, and integration.\n\n## Context\n\nDirectory products use Stripe subscription Checkout today, while custom advertising sales use one-time payment Checkout. The requested outcome is to make recurring card-on-file billing explicit and dependable while reducing customer effort.\n\n## Scope\n\nTrack backend task 202607212017-8JVTY5, handoff task 202607212017-XSEXBE, and verification task 202607212017-MFYKEV. Accept only a result that preserves one-time sales, keeps raw card data entirely in Stripe, clearly discloses renewal terms, and passes the repository verification suite.\n\n## Risks\n\nPayment-flow changes can create duplicate subscriptions, reduce supported payment methods, or collect unnecessary data. The implementation must validate listing and Stripe customer ownership and keep webhook fulfillment compatible.\n\n## Verify Steps\n\nRequire all downstream tasks to be DONE, review their diffs and verification logs, run the complete declared verification suite, and confirm the final repository is clean with task-scoped commits.\n\n## Rollback Plan\n\nRevert the task-scoped backend, frontend, and test commits. Existing Stripe subscriptions and one-time payment records remain valid because no destructive data migration is planned.\n\n## Notes\n\nNo production deployment is included in this request. Deployment remains a separately authorized operation."
+    },
+    {
+      "id": "202607212017-8JVTY5",
+      "title": "Harden recurring card billing",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [
+        "backend",
+        "code",
+        "stripe"
+      ],
+      "verify": [
+        "npm run type-check"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:18:12+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Strengthen the sales checkout API so recurring products always create safe Stripe subscriptions, reuse validated customer records where appropriate, prevent duplicate active subscriptions, prefill customer data, and leave one-time charges unchanged.",
+      "doc": "## Summary\n\nMake recurring sales checkout reliably create automatic card-on-file subscriptions while retaining the existing one-time custom-sale behavior.\n\n## Context\n\nThe sales checkout already uses Stripe Checkout subscription mode for directory plans, but it does not validate an existing listing before reuse, block duplicate active subscriptions, or reuse a validated Stripe customer for a faster repeat checkout.\n\n## Scope\n\nValidate recurring customer email and selected listings, detect active or trialing directory subscriptions, safely reuse a listing Stripe customer where appropriate, configure optimized Stripe Checkout parameters, preserve attribution metadata, and leave custom one-time payment semantics unchanged.\n\n## Risks\n\nAn unvalidated customer identifier could expose another customer payment method, while an incorrect duplicate check could block legitimate reactivation. Only customer IDs read from the validated listing may be reused.\n\n## Verify Steps\n\nRun npm run type-check and targeted automated tests for checkout classification, required recurring email, validated customer reuse, duplicate subscription rejection, and one-time behavior.\n\n## Rollback Plan\n\nRevert the backend commit to restore the existing Stripe Checkout session parameters. No database migration or existing subscription mutation is required.\n\n## Notes\n\nCityBeat must never receive, log, or store raw card data. Stripe Checkout remains the payment-data collection surface."
+    },
+    {
+      "id": "202607212017-MFYKEV",
+      "title": "Verify recurring checkout behavior",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "TESTER",
+      "depends_on": [
+        "202607212017-8JVTY5",
+        "202607212017-XSEXBE"
+      ],
+      "tags": [
+        "test",
+        "stripe"
+      ],
+      "verify": [
+        "npm test",
+        "npm run type-check",
+        "npm run lint",
+        "npm run build"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:18:13+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Add deterministic automated coverage for recurring versus one-time checkout, customer reuse and duplicate-subscription safeguards, then run lint, typecheck, tests, and the production build.",
+      "doc": "## Summary\n\nProve the recurring checkout safeguards and customer handoff changes with deterministic tests and full repository verification.\n\n## Context\n\nPayment regressions can charge incorrectly or create duplicate subscriptions. Tests must exercise pure checkout decisions without making network calls to Stripe.\n\n## Scope\n\nAdd focused unit tests for billing-mode classification, recurring email validation, duplicate subscription decisions, safe customer reuse, recurring disclosure values, and one-time preservation; then run tests, typecheck, lint, and production build.\n\n## Risks\n\nTests tied directly to Stripe SDK implementation details can become brittle. Extract and test small deterministic decision helpers while retaining route-level type safety.\n\n## Verify Steps\n\nRun npm test, npm run type-check, npm run lint, and npm run build. Record any pre-existing warnings separately from failures.\n\n## Rollback Plan\n\nRevert the test commit if necessary; production behavior is unaffected by test-only changes.\n\n## Notes\n\nReview must confirm no raw payment data enters CityBeat and that one-time custom sales still use payment mode."
+    },
+    {
+      "id": "202607212017-XSEXBE",
+      "title": "Simplify recurring payment handoff",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202607212017-8JVTY5"
+      ],
+      "tags": [
+        "frontend",
+        "code",
+        "checkout"
+      ],
+      "verify": [
+        "npm run type-check"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:18:12+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Refine the sales wizard, recurring-payment disclosure, link sharing, and QR generation so customers can understand and complete a mobile checkout with minimal input.",
+      "doc": "## Summary\n\nReduce customer input and ambiguity when a salesperson hands off a recurring payment link or QR code.\n\n## Context\n\nThe current wizard generates links and externally hosted QR images, but recurring terms are not prominent and a missing customer email forces the customer to enter more information in Stripe.\n\n## Scope\n\nClearly distinguish recurring and one-time products, show the due-now and renewal cadence, require salesperson-provided email for recurring links, explain Stripe card-on-file billing, preserve one-tap open/copy/email/text actions, and generate the QR in the CityBeat client using the existing QR library.\n\n## Risks\n\nExtra disclosure must not become an extra step. QR generation must remain accessible and recover cleanly if the browser cannot generate an image.\n\n## Verify Steps\n\nRun npm run type-check, npm run lint, and inspect the mobile and desktop states for product selection, client details, recurring disclosure, generated QR, and one-time custom sales.\n\n## Rollback Plan\n\nRevert the frontend commit; existing Stripe Checkout URLs and the prior external QR rendering remain compatible.\n\n## Notes\n\nUse the existing CityBeat design tokens and a refined, mobile-first layout rather than introducing a new visual system."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "6ce1a9e5a19ad7905f04029b2b0c88080ec7cdd7ecb3a0fe6b27fe009b617ed9"
+    "checksum": "a959c94266971ff7109905d6940cb14e80f47ee461912415038b03565b37125e"
   }
 }
