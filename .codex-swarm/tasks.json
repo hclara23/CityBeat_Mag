@@ -7752,7 +7752,7 @@
     {
       "id": "202607212040-HTN28A",
       "title": "Refresh sales workflow documentation and guide",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "DOCS",
       "depends_on": [
@@ -7763,19 +7763,27 @@
         "sales"
       ],
       "verify": [
-        "python scripts/generate-sales-guide.py"
+        "C:/Users/hclar/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe scripts/generate-sales-guide.py --verify"
       ],
+      "commit": {
+        "hash": "1a53848436b3ef699632c9ff315a45f042be4ca2",
+        "message": "📚 HTN28A refresh sales workflow docs and downloadable playbook"
+      },
       "comments": [
         {
           "author": "DOCS",
           "body": "Start: update staff instructions for the unified Sales Desk and customer brief, regenerate both PDF copies, and visually inspect every rendered page."
+        },
+        {
+          "author": "DOCS",
+          "body": "verified: unified Sales Desk documentation, 13-page downloadable playbook, stable public copy, all-page render inspection, and web TypeScript check."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-07-21T20:41:00+00:00",
+      "doc_updated_at": "2026-07-21T21:16:45+00:00",
       "doc_updated_by": "agentctl",
       "description": "Update staff guidance and regenerate the downloadable sales PDF to document the unified Sales Desk, recurring billing, payment links and QR codes, customer intake, and fulfillment handoff.",
-      "doc": "## Summary\n\nUpdate staff instructions and the downloadable sales guide for the new end-to-end workflow.\n\n## Context\n\nThe current guide documents separate public forms and an older salesperson wizard.\n\n## Scope\n\nDocument product selection, recurring billing, payment links, QR codes, the customer intake experience, order statuses, follow-up, and troubleshooting; regenerate both published and output PDFs.\n\n## Risks\n\nDocumentation drifting from implemented field requirements or introducing clipped PDF content.\n\n## Verify Steps\n\nRun the guide generator, inspect PDF metadata and extracted text, render all pages with Poppler, and visually review every page.\n\n## Rollback Plan\n\nRestore the previous guide source and both generated PDF copies.\n\n## Notes\n\nUse the existing CityBeat visual language and stable download URL."
+      "doc": "## Summary\n\nUpdate staff instructions and the downloadable sales guide for the new end-to-end workflow.\n\n## Context\n\nThe current guide documents separate public forms and an older salesperson wizard.\n\n## Scope\n\nDocument product selection, recurring billing, payment links, QR codes, the customer intake experience, order statuses, follow-up, and troubleshooting; regenerate both published and output PDFs.\n\n## Risks\n\nDocumentation drifting from implemented field requirements or introducing clipped PDF content.\n\n## Verify Steps\n\nRun the guide generator, inspect PDF metadata and extracted text, render all pages with Poppler, and visually review every page.\n\n## Rollback Plan\n\nRestore the previous guide source and both generated PDF copies.\n\n## Notes\n\nUpdated the in-app staff guide and USER_GUIDE for the unified Sales Desk, recurring versus one-time billing, Stripe links and QR codes, private customer intake, fulfillment statuses, and commission attribution. Regenerated both PDF copies as version 2.0. Verification: 13 pages, 13 links, 48,514 bytes; all 13 Poppler-rendered pages visually inspected with no clipping, overflow, or broken glyphs. Web TypeScript check passed."
     },
     {
       "id": "202607212040-KXMN5S",
@@ -7817,6 +7825,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "af8b921d097be3037f7823fe791c3c00f2bdd8e7a69e218c144f1520bb52c44b"
+    "checksum": "6ec9e8e5212d2893cc9ed524a6196dceb3721294288b176dc5022555357f495c"
   }
 }
