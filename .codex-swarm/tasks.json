@@ -7414,7 +7414,7 @@
     {
       "id": "202607212017-7JACJZ",
       "title": "Streamline recurring sales checkout",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [
@@ -7424,6 +7424,12 @@
         "checkout",
         "payments",
         "recurring"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: integrate the completed backend, customer handoff, and verification tasks; review payment security and one-time preservation; then close the approved recurring checkout request."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-07-21T20:18:11+00:00",
@@ -7548,6 +7554,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "d5c9a28ae1e8333cd5ab9abb93452086590f5d4ea6794ef7d2b5d0772bb908d7"
+    "checksum": "795fc16c8a187db4cdea671f3b343a3bb3c39ee231fa4abd6df41c358993c604"
   }
 }
