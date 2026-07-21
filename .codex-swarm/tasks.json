@@ -7643,7 +7643,7 @@
     {
       "id": "202607212040-E4YRZ8",
       "title": "Create secure post-payment intake wizard",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -7656,6 +7656,12 @@
       ],
       "verify": [
         "npm test"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: add paid-order token authorization, autosaved product-aware intake, secure resume delivery, and validated order-scoped image uploads."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-07-21T20:40:57+00:00",
@@ -7769,6 +7775,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "60f4cc98dc33f89b02e464cedecdf8c8a278f3d013591667f273d4730e3031d0"
+    "checksum": "a89ed30b4f74f9d73ce0707208bb3ff2cd54e66cf982f7f278fb689afc0e339d"
   }
 }

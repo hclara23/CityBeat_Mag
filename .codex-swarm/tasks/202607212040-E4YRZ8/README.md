@@ -1,12 +1,14 @@
 ---
 id: "202607212040-E4YRZ8"
 title: "Create secure post-payment intake wizard"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "CODER"
 depends_on: ["202607212040-KXMN5S"]
 tags: ["frontend", "backend", "code"]
 verify: ["npm test"]
+comments:
+  - { author: "CODER", body: "Start: add paid-order token authorization, autosaved product-aware intake, secure resume delivery, and validated order-scoped image uploads." }
 doc_version: 2
 doc_updated_at: "2026-07-21T20:40:57+00:00"
 doc_updated_by: "agentctl"

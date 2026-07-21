@@ -26,6 +26,14 @@ import {
   salesOrderStripeMetadata,
   salesOrderTokenMatches,
 } from './sales-orders'
+import {
+  getSalesIntakeSchema,
+  initialSalesIntakeValues,
+  intakeCompletion,
+  isAllowedIntakeImage,
+  missingSalesIntakeFields,
+  sanitizeSalesIntakeValues,
+} from './sales-intake'
 
 test('sales checkout classifies only custom sales as one-time payments', () => {
   assert.equal(salesCheckoutKind('custom'), 'custom')
@@ -233,4 +241,63 @@ test('checkout success URL enters the order-specific fulfillment wizard', () => 
     urls.cancelUrl,
     'https://citybeatmag.co/es/checkout/result?status=cancel&billing=subscription&order_id=order%20123'
   )
+})
+
+test('every product intake kind has a focused multi-section schema', () => {
+  for (const kind of ['directory', 'job', 'event', 'newsletter_sponsorship', 'category_banner', 'sponsored_story', 'custom']) {
+    const schema = getSalesIntakeSchema(kind)
+    assert.ok(schema, kind)
+    assert.equal(schema.sections.length >= 2, true, kind)
+    assert.equal(schema.sections.every((section) => section.fields.length > 0), true, kind)
+  }
+  assert.equal(getSalesIntakeSchema('unknown'), null)
+})
+
+test('intake sanitizer keeps only schema fields and rejects unsafe asset URLs', () => {
+  const schema = getSalesIntakeSchema('directory')!
+  assert.deepEqual(
+    sanitizeSalesIntakeValues(schema, {
+      business_name: '  Mesa Studio  ',
+      short_description: 'x'.repeat(1300),
+      website: 'javascript:alert(1)',
+      logo_url: 'https://storage.example/logo.png',
+      gallery_urls: ['https://storage.example/1.png', 'javascript:bad', 42],
+      admin_only: 'do not keep',
+    }),
+    {
+      business_name: 'Mesa Studio',
+      short_description: 'x'.repeat(1200),
+      website: '',
+      logo_url: 'https://storage.example/logo.png',
+      gallery_urls: ['https://storage.example/1.png'],
+    }
+  )
+})
+
+test('required intake completion advances from prefill to complete', () => {
+  const schema = getSalesIntakeSchema('job')!
+  const prefill = initialSalesIntakeValues('job', {
+    business_name: 'Mesa Studio',
+    contact_email: 'jobs@example.com',
+  })
+  assert.equal(prefill.company_name, 'Mesa Studio')
+  assert.equal(prefill.application_email, 'jobs@example.com')
+  assert.equal(missingSalesIntakeFields(schema, prefill).includes('job_title'), true)
+  assert.equal(intakeCompletion(schema, prefill) < 100, true)
+
+  const completed = { ...prefill }
+  for (const section of schema.sections) {
+    for (const field of section.fields) {
+      if (!field.required) continue
+      completed[field.id] = field.type === 'images' ? ['https://storage.example/image.webp'] : 'complete'
+    }
+  }
+  assert.deepEqual(missingSalesIntakeFields(schema, completed), [])
+  assert.equal(intakeCompletion(schema, completed), 100)
+})
+
+test('customer image validation limits file type and size before upload', () => {
+  assert.equal(isAllowedIntakeImage({ type: 'image/webp', size: 1024 }), null)
+  assert.match(isAllowedIntakeImage({ type: 'application/pdf', size: 1024 }) || '', /Invalid image type/)
+  assert.match(isAllowedIntakeImage({ type: 'image/jpeg', size: 11 * 1024 * 1024 }) || '', /too large/)
 })
