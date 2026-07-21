@@ -1,14 +1,16 @@
 ---
 id: "202607211840-QZ0KG8"
 title: "Create downloadable sales guide"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["docs", "frontend", "sales"]
 verify: ["npm run type-check --workspace @citybeat/web"]
+commit: { hash: "b9da5ec3bd397e526d0d8e50f91850551a13a837", message: "📝 QZ0KG8 publish branded sales playbook and dashboard download access" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: author the evidence-based sales playbook, publish both PDF copies, add dashboard access, and complete visual and code verification." }
+  - { author: "ORCHESTRATOR", body: "verified: generated and visually reviewed the 12-page sales guide | details: PDF structure, text, links, duplicate hash, Python compilation, and web type-check all passed." }
 doc_version: 2
 doc_updated_at: "2026-07-21T18:53:41+00:00"
 doc_updated_by: "agentctl"
