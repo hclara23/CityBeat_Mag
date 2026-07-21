@@ -35,14 +35,17 @@ export async function POST(request: NextRequest) {
   const kind = salesCheckoutKind(body.kind)
   const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : ''
   const contactEmail = normalizeSalesEmail(body.contactEmail)
+  const checkoutLocale = body.locale === 'es' ? 'es' : 'en'
 
   if (!businessName) return NextResponse.json({ error: 'Business name is required' }, { status: 400 })
   const emailError = recurringEmailError(kind, contactEmail)
   if (emailError) return NextResponse.json({ error: emailError }, { status: 400 })
 
   const origin = request.headers.get('origin') || new URL(request.url).origin
-  const success_url = `${origin}/en/admin/sales/new?status=success&session_id={CHECKOUT_SESSION_ID}`
-  const cancel_url = `${origin}/en/admin/sales/new?status=cancel`
+  const billingType = kind === 'directory' ? 'recurring' : 'one_time'
+  const resultUrl = `${origin}/${checkoutLocale}/checkout/result`
+  const success_url = `${resultUrl}?status=success&billing=${billingType}&session_id={CHECKOUT_SESSION_ID}`
+  const cancel_url = `${resultUrl}?status=cancel&billing=${billingType}`
 
   try {
     if (kind === 'directory') {

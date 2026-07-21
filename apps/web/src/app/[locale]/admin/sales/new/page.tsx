@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import QRCode from 'qrcode'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
 import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
+import { normalizeSalesEmail, recurringEmailError } from '@/lib/sales-checkout'
 
 type Kind = 'directory' | 'custom'
 const DIR_PLANS: PlanId[] = ['founding', 'premium_monthly', 'premium_annual', 'featured_monthly']
@@ -30,6 +33,8 @@ export default function SalesWizard() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [checkoutUrl, setCheckoutUrl] = useState('')
+  const [qrDataUrl, setQrDataUrl] = useState('')
+  const [qrError, setQrError] = useState(false)
   const [copied, setCopied] = useState(false)
   const [sending, setSending] = useState<'email' | 'sms' | ''>('')
   const [sentMsg, setSentMsg] = useState('')
@@ -63,7 +68,29 @@ export default function SalesWizard() {
     try { localStorage.setItem('cb_sales_guide_seen', '1') } catch { /* ignore */ }
   }
 
-  const priceLabel = kind === 'directory' ? DIRECTORY_PLANS[plan].priceLabel : amount ? `$${amount}` : ''
+  // Generate the QR in this browser so the private Stripe Checkout URL is not
+  // sent to an external QR image service.
+  useEffect(() => {
+    let active = true
+    setQrDataUrl('')
+    setQrError(false)
+    if (!checkoutUrl) return () => { active = false }
+
+    QRCode.toDataURL(checkoutUrl, {
+      width: 440,
+      margin: 2,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#050505', light: '#ffffff' },
+    })
+      .then((url) => { if (active) setQrDataUrl(url) })
+      .catch(() => { if (active) setQrError(true) })
+
+    return () => { active = false }
+  }, [checkoutUrl])
+
+  const selectedPlan = DIRECTORY_PLANS[plan]
+  const priceLabel = kind === 'directory' ? selectedPlan.priceLabel : amount ? `$${amount}` : ''
+  const renewalCadence = selectedPlan.interval === 'year' ? 'every year' : 'every month'
 
   const sendLink = async (channel: 'email' | 'sms') => {
     setSentMsg('')
@@ -96,6 +123,9 @@ export default function SalesWizard() {
   const generate = async () => {
     setError('')
     if (!businessName.trim()) return setError('Enter the business name.')
+    const normalizedEmail = normalizeSalesEmail(contactEmail)
+    const emailError = recurringEmailError(kind, normalizedEmail)
+    if (emailError) return setError(emailError)
     if (kind === 'custom' && !(Number(amount) > 0)) return setError('Enter an amount greater than 0.')
     setBusy(true)
     try {
@@ -105,7 +135,8 @@ export default function SalesWizard() {
         body: JSON.stringify({
           kind,
           businessName: businessName.trim(),
-          contactEmail: contactEmail.trim(),
+          contactEmail: normalizedEmail,
+          locale,
           plan,
           listingId: listingId || undefined,
           amount: kind === 'custom' ? Number(amount) : undefined,
@@ -135,12 +166,11 @@ export default function SalesWizard() {
   if (!ready) return null
 
   const input = 'w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-white placeholder-white/30'
-  const qr = checkoutUrl ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(checkoutUrl)}` : ''
 
   const guideSteps: [string, string][] = [
     ['1 · Pick what you’re selling', 'Directory listing (recurring) or a custom one-off amount for an ad or banner.'],
-    ['2 · Add the client', 'Business name, plus their email (for the receipt) and optionally a phone to text the link.'],
-    ['3 · Charge them', 'Tap “Generate payment link.” Show the QR to scan, or email/text the link. Stripe sends the receipt — the sale is credited to you.'],
+    ['2 · Add the client', 'Enter the business and email once so the customer does not retype them in Stripe. Phone is optional for texting.'],
+    ['3 · Hand off checkout', 'Show the QR or send the link. Stripe charges today, securely keeps the card for recurring plans, and emails the receipt.'],
   ]
 
   return (
@@ -172,14 +202,14 @@ export default function SalesWizard() {
           </button>
         </div>
         <h1 className="mt-2 font-display text-4xl font-black tracking-tight text-white">New sale / onboard a client</h1>
-        <p className="mt-2 text-white/55">Generate a payment link to charge a business on the spot. The sale is credited to you.</p>
+        <p className="mt-2 text-white/55">Create a secure Stripe link or QR. You enter the client details once; they review and pay.</p>
 
         <div className="mt-6 flex gap-2 text-xs font-bold uppercase tracking-wider text-white/40">
           <span className={step >= 1 ? 'text-brand-neon' : ''}>1 · Product</span>
           <span>›</span>
           <span className={step >= 2 ? 'text-brand-neon' : ''}>2 · Client</span>
           <span>›</span>
-          <span className={step >= 3 ? 'text-brand-neon' : ''}>3 · Charge</span>
+          <span className={step >= 3 ? 'text-brand-neon' : ''}>3 · Checkout</span>
         </div>
 
         {error && <p className="mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">{error}</p>}
@@ -196,7 +226,12 @@ export default function SalesWizard() {
                 onClick={() => { setKind(k); setStep(2) }}
                 className="block w-full rounded-xl border border-white/10 bg-white/5 p-5 text-left transition hover:border-brand-neon/50 hover:bg-brand-neon/5"
               >
-                <span className="block text-base font-black uppercase tracking-wide text-white">{label}</span>
+                <span className="flex items-center justify-between gap-3 text-base font-black uppercase tracking-wide text-white">
+                  {label}
+                  <span className={`rounded-full px-2.5 py-1 text-[10px] tracking-[0.16em] ${k === 'directory' ? 'bg-brand-neon/15 text-brand-neon' : 'bg-white/10 text-white/50'}`}>
+                    {k === 'directory' ? 'Auto-renew' : 'One time'}
+                  </span>
+                </span>
                 <span className="mt-1 block text-sm text-white/55">{desc}</span>
               </button>
             ))}
@@ -208,15 +243,16 @@ export default function SalesWizard() {
           <div className="mt-6 space-y-4 rounded-xl border border-white/10 bg-white/5 p-6">
             <label className="block text-sm text-white/70">
               Business name
-              <input className={`mt-1 ${input}`} value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Joe's Tacos" />
+              <input className={`mt-1 ${input}`} value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Joe's Tacos" autoComplete="organization" />
             </label>
             <label className="block text-sm text-white/70">
-              Client email (for the receipt + payment link)
-              <input className={`mt-1 ${input}`} type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="owner@business.com" />
+              Client email {kind === 'directory' ? <span className="font-bold text-brand-neon">· required for recurring billing</span> : <span className="text-white/30">· optional</span>}
+              <input className={`mt-1 ${input}`} type="email" inputMode="email" autoComplete="email" required={kind === 'directory'} value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="owner@business.com" />
+              <span className="mt-1 block text-xs text-white/35">Prefilled in Stripe and used for receipts, so the customer does not enter it again.</span>
             </label>
             <label className="block text-sm text-white/70">
               Client phone <span className="text-white/30">(optional — to text the link)</span>
-              <input className={`mt-1 ${input}`} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 915 555 0100" />
+              <input className={`mt-1 ${input}`} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 915 555 0100" />
             </label>
 
             {kind === 'directory' ? (
@@ -229,6 +265,22 @@ export default function SalesWizard() {
                     ))}
                   </select>
                 </label>
+
+                <div className="rounded-xl border border-brand-neon/30 bg-brand-neon/[0.07] p-4" aria-live="polite">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-neon">Recurring card payment</p>
+                      <p className="mt-1 font-display text-2xl font-black text-white">{selectedPlan.priceLabel}</p>
+                    </div>
+                    <span className="rounded-full border border-brand-neon/30 px-3 py-1 text-xs font-black uppercase tracking-wider text-brand-neon">Renews {renewalCadence}</span>
+                  </div>
+                  <ul className="mt-3 grid gap-1.5 text-sm text-white/65 sm:grid-cols-2">
+                    <li>✓ First payment charged at checkout</li>
+                    <li>✓ Card kept securely by Stripe</li>
+                    <li>✓ Automatic renewal until canceled</li>
+                    <li>✓ Email receipt after each payment</li>
+                  </ul>
+                </div>
 
                 {/* Live preview — show the client what they're buying */}
                 <div>
@@ -259,13 +311,16 @@ export default function SalesWizard() {
                   What for? (appears on the receipt)
                   <input className={`mt-1 ${input}`} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Category banner — 1 month" />
                 </label>
+                <p className="rounded-lg border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/55">
+                  One payment only. This checkout does not create a subscription or schedule another charge.
+                </p>
               </>
             )}
 
             <div className="flex gap-2 pt-2">
               <button onClick={() => setStep(1)} className="rounded-md border border-white/15 px-4 py-2 text-sm font-bold text-white/70 hover:text-white">← Back</button>
               <button onClick={generate} disabled={busy} className="flex-1 rounded-md bg-brand-neon px-4 py-2 text-sm font-black uppercase tracking-wider text-black hover:bg-cyan-300 disabled:opacity-50">
-                {busy ? 'Generating…' : 'Generate payment link'}
+                {busy ? 'Creating secure checkout…' : kind === 'directory' ? 'Create recurring checkout' : 'Create one-time checkout'}
               </button>
             </div>
           </div>
@@ -274,11 +329,36 @@ export default function SalesWizard() {
         {/* Step 3 — hand off the payment link */}
         {step === 3 && checkoutUrl && (
           <div className="mt-6 space-y-4 rounded-xl border border-brand-neon/30 bg-brand-neon/5 p-6 text-center">
-            <p className="text-sm text-white/70">Have the client scan this to pay now — or send them the link below.</p>
-            {qr && <img src={qr} alt="Payment QR code" width={220} height={220} className="mx-auto rounded-lg bg-white p-2" />}
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-brand-neon">Secure checkout ready</p>
+              <h2 className="mt-1 font-display text-2xl font-black text-white">
+                {kind === 'directory' ? `${priceLabel} · renews ${renewalCadence}` : `${priceLabel} · one payment`}
+              </h2>
+              <p className="mt-2 text-sm text-white/65">Have the client scan now, or send the same checkout by email or text.</p>
+            </div>
+            {qrDataUrl ? (
+              <Image src={qrDataUrl} alt="Secure Stripe payment QR code" width={220} height={220} unoptimized className="mx-auto rounded-lg bg-white p-2" />
+            ) : qrError ? (
+              <p className="rounded-lg border border-brand-magenta/30 bg-brand-magenta/10 px-4 py-3 text-sm text-white/70">QR unavailable. Use Open checkout, Copy link, email, or text below.</p>
+            ) : (
+              <div className="mx-auto flex h-[220px] w-[220px] items-center justify-center rounded-lg bg-white/5 text-xs font-bold uppercase tracking-wider text-white/35">Generating QR…</div>
+            )}
             <div className="flex flex-wrap items-center justify-center gap-2">
               <a href={checkoutUrl} target="_blank" rel="noreferrer" className="rounded-md bg-brand-neon px-4 py-2 text-sm font-black uppercase tracking-wider text-black hover:bg-cyan-300">Open checkout</a>
               <button onClick={copy} className="rounded-md border border-white/20 px-4 py-2 text-sm font-bold text-white hover:bg-white/10">{copied ? 'Copied!' : 'Copy link'}</button>
+            </div>
+
+            <div className="grid gap-2 text-left sm:grid-cols-3">
+              {[
+                ['1', 'Open', 'Customer scans or taps the link.'],
+                ['2', 'Review', 'Email and purchase details are already filled.'],
+                ['3', 'Pay', kind === 'directory' ? 'Stripe saves the card and renews automatically.' : 'Stripe completes one charge only.'],
+              ].map(([number, title, detail]) => (
+                <div key={number} className="rounded-lg border border-white/10 bg-black/20 p-3">
+                  <p className="text-xs font-black uppercase tracking-wider text-brand-neon">{number} · {title}</p>
+                  <p className="mt-1 text-xs leading-5 text-white/50">{detail}</p>
+                </div>
+              ))}
             </div>
 
             {/* Send the link directly to the client so the sale closes on the spot. */}
@@ -301,7 +381,11 @@ export default function SalesWizard() {
                 </button>
               </div>
               {sentMsg && <p className="mt-2 text-xs text-white/70">{sentMsg}</p>}
-              <p className="mt-2 text-[11px] text-white/35">Stripe emails the paid receipt automatically. The sale is credited to you.</p>
+              <p className="mt-2 text-[11px] text-white/35">
+                {kind === 'directory'
+                  ? 'Completing checkout authorizes the amount shown now and automatic renewals until canceled. Card details stay with Stripe.'
+                  : 'Stripe emails the paid receipt automatically. This is a one-time charge.'}
+              </p>
             </div>
 
             <p className="break-all text-xs text-white/40">{checkoutUrl}</p>

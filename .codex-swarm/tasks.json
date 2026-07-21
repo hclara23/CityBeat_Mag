@@ -7495,7 +7495,7 @@
     {
       "id": "202607212017-XSEXBE",
       "title": "Simplify recurring payment handoff",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -7509,6 +7509,12 @@
       "verify": [
         "npm run type-check"
       ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: streamline the recurring sales handoff with clear renewal disclosure, salesperson-prefilled email, locally generated QR codes, and a public post-checkout result page."
+        }
+      ],
       "doc_version": 2,
       "doc_updated_at": "2026-07-21T20:18:12+00:00",
       "doc_updated_by": "agentctl",
@@ -7520,6 +7526,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "385a0256ed00eec34afd24d5bf9023cf7ed4fc7adfc0ada39b07a47c2c929559"
+    "checksum": "ce0a7e11a0f5a772825f582383f8c2e9b9e8b8d3354aa2cfba3fbc9cab97d192"
   }
 }

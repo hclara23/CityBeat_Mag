@@ -1,20 +1,22 @@
 ---
 id: "202607212017-XSEXBE"
 title: "Simplify recurring payment handoff"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "CODER"
 depends_on: ["202607212017-8JVTY5"]
 tags: ["frontend", "code", "checkout"]
 verify: ["npm run type-check"]
+comments:
+  - { author: "CODER", body: "Start: streamline the recurring sales handoff with clear renewal disclosure, salesperson-prefilled email, locally generated QR codes, and a public post-checkout result page." }
 doc_version: 2
-doc_updated_at: "2026-07-21T20:18:12+00:00"
+doc_updated_at: "2026-07-21T20:25:15+00:00"
 doc_updated_by: "agentctl"
 description: "Refine the sales wizard, recurring-payment disclosure, link sharing, and QR generation so customers can understand and complete a mobile checkout with minimal input."
 ---
 ## Summary
 
-Reduce customer input and ambiguity when a salesperson hands off a recurring payment link or QR code.
+Streamlined the sales handoff into a three-action customer journey: scan or tap, review prefilled purchase details, and pay. Recurring terms are prominent, QR codes are generated locally, and customers now return to a public bilingual result page instead of the staff-only sales dashboard.
 
 ## Context
 
@@ -30,7 +32,7 @@ Extra disclosure must not become an extra step. QR generation must remain access
 
 ## Verify Steps
 
-Run npm run type-check, npm run lint, and inspect the mobile and desktop states for product selection, client details, recurring disclosure, generated QR, and one-time custom sales.
+Ran git diff --check, npm run type-check, and npm run lint. All four workspace packages passed typecheck; both linting packages passed with no warnings or errors. The public result route compiles for English and Spanish through the typed Next.js route tree.
 
 ## Rollback Plan
 
@@ -38,5 +40,5 @@ Revert the frontend commit; existing Stripe Checkout URLs and the prior external
 
 ## Notes
 
-Use the existing CityBeat design tokens and a refined, mobile-first layout rather than introducing a new visual system.
+The browser now creates the QR data URL with the existing qrcode dependency, so Stripe Checkout URLs are not disclosed to an external QR image service. The salesperson supplies recurring customer email once, while phone remains optional and is used only to text the generated link.
 
