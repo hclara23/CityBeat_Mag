@@ -7339,12 +7339,41 @@
       "doc_updated_by": "agentctl",
       "description": "Create and publish a branded internal CityBeat sales guide covering the current product catalog, promotions, sales angles, and safe Stripe payment-link/QR procedures, with a download link on the sales dashboard.",
       "doc": "## Summary\n\nCreate a downloadable, branded CityBeat sales playbook based on the product catalog and payment workflows currently implemented in the application.\n\n## Context\n\nSales representatives need one internal reference for rates, promotions, customer value, qualification, objections, and safely closing in-person or phone sales through Stripe Checkout.\n\n## Scope\n\nAuthor a ReportLab PDF generator; generate and publish the PDF under output/pdf and apps/web/public/downloads; add a download link to the sales dashboard; cover directory plans, advertising products, job and event add-ons, Founding 100 terms, sales angles, follow-up, commissions, and payment-link/QR procedures.\n\n## Risks\n\nPrices or promotions can change after publication; the guide must date its rate card and tell reps to confirm the live sales wizard. SMS depends on Twilio configuration. Customers must enter their own card details in Stripe Checkout.\n\n## Verify Steps\n\nRun the PDF generator with the bundled Python runtime. Validate page count, extracted text, hyperlinks, and duplicate output hashes. Render every page with Poppler and inspect for clipping or overlap. Run npm run type-check --workspace @citybeat/web and git diff --check.\n\n## Rollback Plan\n\nRemove the dashboard download link and generated PDF copies, then revert the generator and task artifacts through the associated commits.\n\n## Notes\n\nImplemented a branded 12-page internal sales playbook and published identical copies under output/pdf and apps/web/public/downloads. Added the sales-dashboard download link. Verified 13 clickable PDF links, required text, matching SHA-256 hashes, letter-page metadata, Python compilation, web TypeScript, and git diff whitespace. Rendered all pages at 120 DPI and visually inspected every page; the final content explicitly separates rep-wizard advertising checkout from dedicated job/event auto-publishing flows."
+    },
+    {
+      "id": "202607211917-Q5D837",
+      "title": "Build directory referral rewards",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "billing",
+        "backend",
+        "frontend"
+      ],
+      "verify": [
+        "npm run type-check",
+        "npx tsx --test apps/web/src/lib/referrals.test.ts"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: implement the approved directory referral program, automatic Stripe rewards, dashboard tracking, finance disclosure, tests, and operations documentation."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T19:17:24+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Create a paid-directory referral program with personalized listing links, 30-day server-validated attribution, three-month active qualification, automatic Stripe rewards (three monthly cycles at 25% or 6.25% of the next annual renewal per qualified referral), a 16-qualified-referral annual cap, anti-abuse/idempotency safeguards, customer dashboard tracking, detailed finance reporting, tests, and operating documentation.",
+      "doc": "## Summary\n\nBuild an end-to-end referral rewards program for paid directory listings. Each eligible listing receives a stable link; referred subscriptions qualify after three active paid months; rewards are applied automatically and shown transparently to customers and administrators.\n\n## Context\n\nDirectory checkout already creates Stripe subscriptions with listing and owner metadata. Stripe webhooks persist subscriptions and invoice payments, while the advertiser dashboard and admin finance dashboard expose customer and payment data. The current system has no referral attribution, reward ledger, discount application, or gross-versus-discount reporting.\n\n## Scope\n\nAdd stable per-listing referral codes and 30-day cookie attribution; validate referral ownership server-side at checkout; create idempotent referral records; qualify active paid referred subscriptions after three calendar months; cap rewards at 16 qualified referrals per referrer listing per calendar year; apply 25% for three monthly invoices or 6.25% per referral to the next annual renewal; prevent self-referrals and duplicates; expose referral stats in the customer dashboard; show listing, plan, gross fee, discount source, discount amount, and net paid in admin finance; add deterministic tests and scheduler documentation.\n\n## Risks\n\nStripe discount state must remain idempotent across webhook retries and cron retries. Annual and monthly rewards require different accounting while preserving equivalent value. Referral attribution must not trust client-supplied identities, and Firestore queries must avoid unsupported compound indexes. Existing non-referral subscription discounts must not be silently overwritten.\n\n## Verify Steps\n\nRun npm run type-check. Run npx tsx --test apps/web/src/lib/referrals.test.ts. Inspect the task-scoped git diff and confirm the repository remains clean after commits.\n\n## Rollback Plan\n\nRevert the task implementation commit. The new Firestore collections are additive; leaving historical referral records is harmless, or they can be archived after rollback. Remove the referral qualification Cloud Scheduler job if it has been deployed. Existing directory subscriptions and payments continue using their prior webhook paths.\n\n## Notes\n\nApproved policy: the 16-referral cap counts qualified referrals per listing and calendar year. Monthly rewards queue without exceeding 25% on any invoice. Annual rewards aggregate at 6.25 percentage points per referral on the next renewal, capped at 100%."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "b9adf0cf25ee4422d8157912bb2f7fbf1fe8002451981f77a6c0eabe2c6e4647"
+    "checksum": "f950f9e0824ce2e34af9b9ea032406e1aa42e43e4f88523511e26d4841ac06a8"
   }
 }
