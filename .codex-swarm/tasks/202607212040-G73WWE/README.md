@@ -1,14 +1,16 @@
 ---
 id: "202607212040-G73WWE"
 title: "Implement product fulfillment and status reporting"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: ["202607212040-94DM4B", "202607212040-E4YRZ8"]
 tags: ["backend", "frontend", "code"]
 verify: ["npm test"]
+commit: { hash: "a7f8effe49bb037d38d5d9eded65ac549f8f567a", message: "✨ G73WWE provision paid briefs and expose unified fulfillment status" }
 comments:
   - { author: "CODER", body: "Start: provision product-specific operational records only after paid intake submission and expose one cross-product status ledger to sales staff." }
+  - { author: "CODER", body: "verified: 40 tests and the web type-check pass | details: paid complete briefs provision deterministic directory, job, event, banner, newsletter, sponsored-story, or custom records for staff review, while the Sales Desk shows billing, payment, intake, fulfillment, discounts, and commissions." }
 doc_version: 2
 doc_updated_at: "2026-07-21T20:40:58+00:00"
 doc_updated_by: "agentctl"
