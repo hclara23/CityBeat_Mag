@@ -8,8 +8,9 @@ depends_on: ["202607212040-7XJF9K", "202607212040-HTN28A", "202607212123-1CBZQV"
 tags: ["review", "security"]
 comments:
   - { author: "REVIEWER", body: "Start: audit authorization, server-side pricing, order-token isolation, payment-state verification, upload boundaries, webhook idempotency, discounts, commissions, and fulfillment side effects across the final implementation." }
+  - { author: "REVIEWER", body: "Reviewed: corrective commits df33b00 and 9341496 close every recorded medium-severity finding; no unresolved high or medium issues remain. Recommend DONE." }
 doc_version: 2
-doc_updated_at: "2026-07-21T21:23:10+00:00"
+doc_updated_at: "2026-07-21T21:35:27+00:00"
 doc_updated_by: "agentctl"
 description: "Review the completed payment and fulfillment implementation for authorization, price integrity, sensitive data handling, order isolation, operational completeness, and regression risk."
 ---
@@ -39,5 +40,5 @@ Keep the parent task open and return defects to the owning implementation task.
 
 ## Notes
 
-Review findings (must fix before closure): [MEDIUM] apps/web/src/app/api/sales/send-link/route.ts accepts any checkout.stripe.com or buy.stripe.com URL and caller-supplied recipient/order labels; validate the URL against a sales_orders record owned by the signed-in rep and use canonical order contact data. [MEDIUM] apps/web/src/app/api/sales/checkout/route.ts creates a new directory_listings record before payment and before the required customer brief, conflicting with the paid-and-complete provisioning boundary; defer new listing creation and make fulfillment choose a deterministic listing id. [MEDIUM] apps/web/src/app/api/stripe/webhook/route.ts leaves refunded sales orders in fulfillment_status=in_review and may miss subscription refunds when checkout has no payment_intent; resolve the exact order through payment intent or invoice subscription and mark fulfillment needs_attention. [MEDIUM] Sales Desk handoff state can diverge if customer fields are edited after checkout generation; freeze the canonical handoff snapshot or invalidate the generated checkout. Additional hardening: reject invalid canonical product ids instead of silently falling back, fail closed when Founding availability cannot be read, and validate select/email/date/time/number intake values server-side. No high-severity finding identified.
+Final review result: PASS. Initial medium findings were resolved by 202607212123-1CBZQV (implementation df33b00, verification 9341496). Re-review confirmed: send-link delivery is bound to the active rep-owned sales order and canonical recipient; checkout product, seller, currency, and subtotal are verified against the server order; new directory records are created only after paid required intake; one-time and subscription refunds resolve exact orders and force needs_attention; operational records remain inactive or pending staff review; access tokens remain hashed, time-limited, and order-isolated; structured intake and image decoding are bounded. No unresolved high- or medium-severity findings. Verification evidence: 46 tests pass, web and full workspace TypeScript checks pass, lint has zero warnings/errors, and the production build generates all 102 static pages plus dynamic fulfillment routes. Low residual operational risks: process-local upload throttling resets between server instances, and Founding availability can still be exceeded by truly simultaneous payments; neither permits unauthorized access or client-controlled pricing, and both should be monitored if sales volume increases.
 
