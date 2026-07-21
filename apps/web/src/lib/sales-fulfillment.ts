@@ -13,8 +13,7 @@ export function salesFulfillmentTarget(input: {
 }): FulfillmentTarget {
   switch (input.intakeKind) {
     case 'directory':
-      if (!input.listingId) throw new Error('Directory order is missing its listing.')
-      return { collection: 'directory_listings', id: input.listingId, status: 'in_review' }
+      return { collection: 'directory_listings', id: input.listingId || input.orderId, status: 'in_review' }
     case 'job':
       return { collection: 'jobs', id: input.orderId, status: 'in_review' }
     case 'event':
@@ -76,8 +75,19 @@ export function buildSalesFulfillmentRecord(input: {
           facebook: text(values, 'facebook_url') || null,
         },
         customer_notes: text(values, 'customer_notes') || null,
+        plan: order.directory_plan_id || null,
+        billing_cycle: order.billing_interval || null,
+        pending_tier: order.product_id === 'directory_featured_monthly' ? 'featured' : 'premium',
+        founding_member: Boolean(order.founding),
+        stripe_subscription_id: order.stripe_subscription_id || null,
+        stripe_customer_id: order.stripe_customer_id || null,
+        sold_by_rep: order.sold_by || null,
+        source: 'sales_rep',
         claim_status: 'pending_approval',
+        ownership_verified: false,
+        claimed_at: now,
         is_published: false,
+        ...(!order.listing_preexisting ? { tier: 'basic', created_at: now } : {}),
       }
     case 'job':
       return {

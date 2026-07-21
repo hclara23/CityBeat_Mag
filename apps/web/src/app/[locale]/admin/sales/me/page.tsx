@@ -43,6 +43,12 @@ export default function SalesDesk() {
   const [error, setError] = useState('')
   const [checkoutUrl, setCheckoutUrl] = useState('')
   const [checkoutPrice, setCheckoutPrice] = useState('')
+  const [handoffOrder, setHandoffOrder] = useState<{
+    orderId: string
+    businessName: string
+    contactEmail: string
+    phone: string
+  } | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [qrError, setQrError] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -111,6 +117,7 @@ export default function SalesDesk() {
     setPhone(lead.phone || '')
     setListingId(lead.id || '')
     setCheckoutUrl('')
+    setHandoffOrder(null)
     setError('')
     requestAnimationFrame(() => saleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
@@ -119,6 +126,7 @@ export default function SalesDesk() {
     setProductId(value)
     if (SALES_PRODUCTS[value].family !== 'directory') setListingId('')
     setCheckoutUrl('')
+    setHandoffOrder(null)
     setError('')
     setSentMsg('')
   }
@@ -156,6 +164,12 @@ export default function SalesDesk() {
       if (!response.ok || !data.url) throw new Error(data.error || 'Could not create checkout')
       setCheckoutUrl(data.url)
       setCheckoutPrice(data.priceLabel || displayPrice)
+      setHandoffOrder({
+        orderId: data.orderId,
+        businessName: businessName.trim(),
+        contactEmail: email,
+        phone: phone.trim(),
+      })
       setSentMsg('')
     } catch (checkoutError: any) {
       setError(checkoutError?.message || 'Could not create checkout')
@@ -175,7 +189,7 @@ export default function SalesDesk() {
   }
 
   async function sendLink(channel: 'email' | 'sms') {
-    const destination = channel === 'email' ? contactEmail.trim() : phone.trim()
+    const destination = channel === 'email' ? handoffOrder?.contactEmail || '' : handoffOrder?.phone || ''
     if (!destination) return setSentMsg(channel === 'email' ? 'Add the client email first.' : 'Add a phone number first.')
     setSending(channel)
     setSentMsg('')
@@ -185,10 +199,9 @@ export default function SalesDesk() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url: checkoutUrl,
+          orderId: handoffOrder?.orderId,
           email: channel === 'email' ? destination : '',
           phone: channel === 'sms' ? destination : '',
-          businessName: businessName.trim(),
-          priceLabel: checkoutPrice,
         }),
       })
       const data = await response.json().catch(() => ({}))
@@ -215,8 +228,18 @@ export default function SalesDesk() {
     setDescription('')
     setCheckoutUrl('')
     setCheckoutPrice('')
+    setHandoffOrder(null)
     setSentMsg('')
     setError('')
+  }
+
+  function correctSale() {
+    setCheckoutUrl('')
+    setCheckoutPrice('')
+    setHandoffOrder(null)
+    setQrDataUrl('')
+    setSentMsg('')
+    setError('Correct the details, then create a fresh checkout. The previous link should not be sent.')
   }
 
   if (!ready) return null
@@ -283,7 +306,7 @@ export default function SalesDesk() {
             <form onSubmit={generate} className="space-y-4">
               <label className="block text-xs font-black uppercase tracking-[0.14em] text-white/60">
                 Product
-                <select className={`mt-1.5 ${inputClass}`} value={productId} onChange={(event) => selectProduct(event.target.value as SalesProductId)}>
+                <select disabled={Boolean(checkoutUrl)} className={`mt-1.5 ${inputClass} disabled:cursor-not-allowed disabled:opacity-55`} value={productId} onChange={(event) => selectProduct(event.target.value as SalesProductId)}>
                   {SALES_PRODUCT_GROUPS.map((group) => (
                     <optgroup key={group.family} label={group.label}>
                       {group.products.map((id) => (
@@ -308,35 +331,35 @@ export default function SalesDesk() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-xs font-black uppercase tracking-[0.14em] text-white/60">
                   Business or organization
-                  <input className={`mt-1.5 ${inputClass}`} value={businessName} onChange={(event) => setBusinessName(event.target.value)} autoComplete="organization" placeholder="Mesa Studio" />
+                  <input disabled={Boolean(checkoutUrl)} className={`mt-1.5 ${inputClass} disabled:cursor-not-allowed disabled:opacity-55`} value={businessName} onChange={(event) => setBusinessName(event.target.value)} autoComplete="organization" placeholder="Mesa Studio" />
                 </label>
                 <label className="block text-xs font-black uppercase tracking-[0.14em] text-white/60">
                   Client email
-                  <input className={`mt-1.5 ${inputClass}`} type="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} autoComplete="email" placeholder="owner@example.com" />
+                  <input disabled={Boolean(checkoutUrl)} className={`mt-1.5 ${inputClass} disabled:cursor-not-allowed disabled:opacity-55`} type="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} autoComplete="email" placeholder="owner@example.com" />
                   <span className="mt-1 block normal-case tracking-normal text-white/30">Prefills Stripe and their brief.</span>
                 </label>
               </div>
 
               <label className="block text-xs font-black uppercase tracking-[0.14em] text-white/60 sm:max-w-[calc(50%-0.5rem)]">
                 Phone <span className="font-normal normal-case tracking-normal text-white/30">optional, for text handoff</span>
-                <input className={`mt-1.5 ${inputClass}`} type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" placeholder="+1 915 555 0100" />
+                <input disabled={Boolean(checkoutUrl)} className={`mt-1.5 ${inputClass} disabled:cursor-not-allowed disabled:opacity-55`} type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" placeholder="+1 915 555 0100" />
               </label>
 
               {product.id === 'custom_one_time' && (
                 <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
                   <label className="block text-xs font-black uppercase tracking-[0.14em] text-white/60">
                     Approved amount
-                    <input className={`mt-1.5 ${inputClass}`} type="number" min="1" max="100000" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="150.00" />
+                    <input disabled={Boolean(checkoutUrl)} className={`mt-1.5 ${inputClass} disabled:cursor-not-allowed disabled:opacity-55`} type="number" min="1" max="100000" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="150.00" />
                   </label>
                   <label className="block text-xs font-black uppercase tracking-[0.14em] text-white/60">
                     Approved product
-                    <input className={`mt-1.5 ${inputClass}`} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe exactly what CityBeat will deliver" />
+                    <input disabled={Boolean(checkoutUrl)} className={`mt-1.5 ${inputClass} disabled:cursor-not-allowed disabled:opacity-55`} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe exactly what CityBeat will deliver" />
                   </label>
                 </div>
               )}
 
               <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
-                <button type="submit" disabled={busy} className="bg-brand-neon px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-black transition hover:bg-cyan-300 disabled:cursor-wait disabled:opacity-50">
+                <button type="submit" disabled={busy || Boolean(checkoutUrl)} className="bg-brand-neon px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-black transition hover:bg-cyan-300 disabled:cursor-wait disabled:opacity-50">
                   {busy ? 'Creating secure checkout...' : `Create ${product.billing === 'subscription' ? 'recurring' : 'one-time'} checkout`}
                 </button>
                 <p className="text-xs leading-5 text-white/35">
@@ -366,6 +389,7 @@ export default function SalesDesk() {
                 <div className="text-center" aria-live="polite">
                   <p className="text-[10px] font-black uppercase tracking-[0.24em] text-brand-neon">Checkout ready</p>
                   <p className="mt-1 font-display text-2xl font-black text-white">{checkoutPrice}</p>
+                  <p className="mt-1 text-xs text-white/45">For {handoffOrder?.businessName} / {handoffOrder?.contactEmail}</p>
                   {qrDataUrl ? (
                     <Image src={qrDataUrl} alt="Secure Stripe payment QR code" width={224} height={224} unoptimized className="mx-auto mt-4 bg-white p-2" />
                   ) : qrError ? (
@@ -380,7 +404,10 @@ export default function SalesDesk() {
                     <button type="button" onClick={() => sendLink('sms')} disabled={Boolean(sending)} className="border border-white/20 px-3 py-2.5 text-white hover:bg-white/10 disabled:opacity-40">{sending === 'sms' ? 'Sending...' : 'Text'}</button>
                   </div>
                   {sentMsg && <p className="mt-3 text-xs text-white/55">{sentMsg}</p>}
-                  <button type="button" onClick={nextSale} className="mt-5 text-xs font-black uppercase tracking-[0.14em] text-brand-neon hover:underline">Start next sale</button>
+                  <div className="mt-5 flex items-center justify-center gap-4">
+                    <button type="button" onClick={correctSale} className="text-xs font-black uppercase tracking-[0.14em] text-white/50 hover:text-white">Correct details</button>
+                    <button type="button" onClick={nextSale} className="text-xs font-black uppercase tracking-[0.14em] text-brand-neon hover:underline">Start next sale</button>
+                  </div>
                 </div>
               )}
             </aside>

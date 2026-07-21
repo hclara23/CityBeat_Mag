@@ -16,6 +16,7 @@ import {
   SALES_PRODUCTS,
   getSalesProduct,
   legacySalesProductId,
+  resolveSalesProductRequest,
   salesProductAmount,
 } from './sales-products'
 import {
@@ -23,6 +24,7 @@ import {
   createSalesOrderAccess,
   salesOrderAccessExpired,
   salesOrderCheckoutUrls,
+  salesOrderHandoffMatches,
   salesOrderStripeMetadata,
   salesOrderTokenMatches,
 } from './sales-orders'
@@ -165,6 +167,10 @@ test('legacy directory and custom selections map to canonical product ids', () =
   assert.equal(legacySalesProductId('directory', 'featured_monthly'), 'directory_featured_monthly')
   assert.equal(legacySalesProductId('custom', undefined), 'custom_one_time')
   assert.equal(legacySalesProductId('unknown', 'unknown'), 'directory_premium_monthly')
+  assert.equal(resolveSalesProductRequest({ productId: 'event_featured' })?.id, 'event_featured')
+  assert.equal(resolveSalesProductRequest({ productId: 'made_up_product' }), null)
+  assert.equal(resolveSalesProductRequest({}), null)
+  assert.equal(resolveSalesProductRequest({ kind: 'directory', plan: 'premium_annual' })?.id, 'directory_premium_annual')
 })
 
 test('only custom quotes accept a bounded salesperson-entered amount', () => {
@@ -244,6 +250,54 @@ test('checkout success URL enters the order-specific fulfillment wizard', () => 
   )
 })
 
+test('payment-link handoff is bound to the active order and signed-in seller', () => {
+  const order = {
+    id: 'order_123',
+    sold_by: 'rep_123',
+    checkout_status: 'ready',
+    checkout_url: 'https://checkout.stripe.com/c/pay/cs_test_123',
+  }
+  assert.equal(
+    salesOrderHandoffMatches({
+      order,
+      sellerUserId: 'rep_123',
+      checkoutUrl: order.checkout_url,
+      orderId: 'order_123',
+    }),
+    true
+  )
+  assert.equal(salesOrderHandoffMatches({ order, sellerUserId: 'rep_other', checkoutUrl: order.checkout_url }), false)
+  assert.equal(
+    salesOrderHandoffMatches({ order, sellerUserId: 'rep_123', checkoutUrl: 'https://checkout.stripe.com/c/pay/other' }),
+    false
+  )
+  assert.equal(
+    salesOrderHandoffMatches({
+      order: { ...order, checkout_url: 'https://evil.example/checkout' },
+      sellerUserId: 'rep_123',
+      checkoutUrl: 'https://evil.example/checkout',
+    }),
+    false
+  )
+  assert.equal(
+    salesOrderHandoffMatches({
+      order: { ...order, checkout_status: 'completed' },
+      sellerUserId: 'rep_123',
+      checkoutUrl: order.checkout_url,
+    }),
+    false
+  )
+  assert.equal(
+    salesOrderHandoffMatches({
+      order: { ...order, checkout_expires_at: '2026-07-21T10:00:00.000Z' },
+      sellerUserId: 'rep_123',
+      checkoutUrl: order.checkout_url,
+      now: new Date('2026-07-21T10:00:00.000Z'),
+    }),
+    false
+  )
+})
+
 test('every product intake kind has a focused multi-section schema', () => {
   for (const kind of ['directory', 'job', 'event', 'newsletter_sponsorship', 'category_banner', 'sponsored_story', 'custom']) {
     const schema = getSalesIntakeSchema(kind)
@@ -275,6 +329,29 @@ test('intake sanitizer keeps only schema fields and rejects unsafe asset URLs', 
   )
 })
 
+test('intake sanitizer rejects invalid structured values and impossible pay ranges', () => {
+  const job = getSalesIntakeSchema('job')!
+  const values = sanitizeSalesIntakeValues(job, {
+    job_category: 'not_a_category',
+    employment_type: 'full_time',
+    pay_min: '-1',
+    pay_max: 'not-a-number',
+    application_email: 'not-an-email',
+    application_deadline: '2026-02-30',
+  })
+  assert.deepEqual(values, {
+    job_category: '',
+    employment_type: 'full_time',
+    pay_min: '',
+    pay_max: '',
+    application_email: '',
+    application_deadline: '',
+  })
+
+  const reversed = sanitizeSalesIntakeValues(job, { pay_min: '75000', pay_max: '60000' })
+  assert.equal(missingSalesIntakeFields(job, reversed).includes('pay_max'), true)
+})
+
 test('required intake completion advances from prefill to complete', () => {
   const schema = getSalesIntakeSchema('job')!
   const prefill = initialSalesIntakeValues('job', {
@@ -290,7 +367,21 @@ test('required intake completion advances from prefill to complete', () => {
   for (const section of schema.sections) {
     for (const field of section.fields) {
       if (!field.required) continue
-      completed[field.id] = field.type === 'images' ? ['https://storage.example/image.webp'] : 'complete'
+      completed[field.id] = field.type === 'images'
+        ? ['https://storage.example/image.webp']
+        : field.type === 'select'
+          ? field.options?.[0]?.value || ''
+          : field.type === 'email'
+            ? 'valid@example.com'
+            : field.type === 'url' || field.type === 'image'
+              ? 'https://storage.example/image.webp'
+              : field.type === 'date'
+                ? '2026-08-15'
+                : field.type === 'time'
+                  ? '12:30'
+                  : field.type === 'number'
+                    ? '100'
+                    : 'complete'
     }
   }
   assert.deepEqual(missingSalesIntakeFields(schema, completed), [])
@@ -323,10 +414,11 @@ test('each intake kind maps to a deterministic operational destination', () => {
     assert.equal(target.id, id)
     assert.equal(target.status, 'in_review')
   }
-  assert.throws(
-    () => salesFulfillmentTarget({ orderId: 'order_123', intakeKind: 'directory' }),
-    /missing its listing/
-  )
+  assert.deepEqual(salesFulfillmentTarget({ orderId: 'order_123', intakeKind: 'directory' }), {
+    collection: 'directory_listings',
+    id: 'order_123',
+    status: 'in_review',
+  })
 })
 
 test('job fulfillment retains complete paid-intake details without publishing early', () => {
@@ -378,6 +470,10 @@ test('directory fulfillment enriches the paid listing while keeping staff review
       payment_status: 'paid',
       sold_by: 'rep_123',
       contact_email: 'owner@example.com',
+      directory_plan_id: 'premium_monthly',
+      stripe_subscription_id: 'sub_123',
+      stripe_customer_id: 'cus_123',
+      listing_preexisting: false,
     },
     values: {
       business_name: 'Mesa Studio',
@@ -398,6 +494,10 @@ test('directory fulfillment enriches the paid listing while keeping staff review
   })
   assert.equal(record.claim_status, 'pending_approval')
   assert.equal(record.is_published, false)
+  assert.equal(record.tier, 'basic')
+  assert.equal(record.pending_tier, 'premium')
+  assert.equal(record.plan, 'premium_monthly')
+  assert.equal(record.stripe_subscription_id, 'sub_123')
   assert.equal(record.address, '100 Mesa St, El Paso, TX, 79901')
   assert.deepEqual(record.gallery_urls, ['https://storage.example/one.webp'])
 })

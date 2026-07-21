@@ -45,7 +45,11 @@ export async function POST(request: NextRequest, { params }: { params: { orderId
     const validationError = isAllowedIntakeImage({ type: file.type, size: file.size })
     if (validationError) return NextResponse.json({ error: validationError }, { status: 400 })
 
-    const optimized = await sharp(Buffer.from(await file.arrayBuffer()))
+    const optimized = await sharp(Buffer.from(await file.arrayBuffer()), {
+      animated: false,
+      failOn: 'warning',
+      limitInputPixels: 40_000_000,
+    })
       .rotate()
       .resize(1800, 1800, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 84 })

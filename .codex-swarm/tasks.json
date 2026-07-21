@@ -7699,7 +7699,8 @@
       "owner": "REVIEWER",
       "depends_on": [
         "202607212040-7XJF9K",
-        "202607212040-HTN28A"
+        "202607212040-HTN28A",
+        "202607212123-1CBZQV"
       ],
       "tags": [
         "review",
@@ -7712,10 +7713,10 @@
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-07-21T20:41:01+00:00",
+      "doc_updated_at": "2026-07-21T21:23:10+00:00",
       "doc_updated_by": "agentctl",
       "description": "Review the completed payment and fulfillment implementation for authorization, price integrity, sensitive data handling, order isolation, operational completeness, and regression risk.",
-      "doc": "## Summary\n\nPerform the final authorization, payment-integrity, fulfillment, and regression review.\n\n## Context\n\nThe feature creates public order-access links and changes how paid products become operational records.\n\n## Scope\n\nReview price authority, token handling, order isolation, upload safety, webhook idempotency, commissions, discounts, intake requirements, and operational status visibility.\n\n## Risks\n\nA missed security or payment flaw could expose customer data or mischarge orders.\n\n## Verify Steps\n\nInspect the final diff and recorded quality-gate output, then document every finding with severity and file references.\n\n## Rollback Plan\n\nKeep the parent task open and return defects to the owning implementation task.\n\n## Notes\n\nThe task closes only when no unresolved high- or medium-severity findings remain."
+      "doc": "## Summary\n\nPerform the final authorization, payment-integrity, fulfillment, and regression review.\n\n## Context\n\nThe feature creates public order-access links and changes how paid products become operational records.\n\n## Scope\n\nReview price authority, token handling, order isolation, upload safety, webhook idempotency, commissions, discounts, intake requirements, and operational status visibility.\n\n## Risks\n\nA missed security or payment flaw could expose customer data or mischarge orders.\n\n## Verify Steps\n\nInspect the final diff and recorded quality-gate output, then document every finding with severity and file references.\n\n## Rollback Plan\n\nKeep the parent task open and return defects to the owning implementation task.\n\n## Notes\n\nReview findings (must fix before closure): [MEDIUM] apps/web/src/app/api/sales/send-link/route.ts accepts any checkout.stripe.com or buy.stripe.com URL and caller-supplied recipient/order labels; validate the URL against a sales_orders record owned by the signed-in rep and use canonical order contact data. [MEDIUM] apps/web/src/app/api/sales/checkout/route.ts creates a new directory_listings record before payment and before the required customer brief, conflicting with the paid-and-complete provisioning boundary; defer new listing creation and make fulfillment choose a deterministic listing id. [MEDIUM] apps/web/src/app/api/stripe/webhook/route.ts leaves refunded sales orders in fulfillment_status=in_review and may miss subscription refunds when checkout has no payment_intent; resolve the exact order through payment intent or invoice subscription and mark fulfillment needs_attention. [MEDIUM] Sales Desk handoff state can diverge if customer fields are edited after checkout generation; freeze the canonical handoff snapshot or invalidate the generated checkout. Additional hardening: reject invalid canonical product ids instead of silently falling back, fail closed when Founding availability cannot be read, and validate select/email/date/time/number intake values server-side. No high-severity finding identified."
     },
     {
       "id": "202607212040-G73WWE",
@@ -7825,12 +7826,46 @@
       "doc_updated_by": "agentctl",
       "description": "Centralize the product catalog, server-authoritative pricing and cadence, sales-order lifecycle, Stripe metadata, recurring card billing, Founding availability, and consistent salesperson attribution.",
       "doc": "## Summary\n\nCreate one server-authoritative catalog and sales-order lifecycle for every sellable CityBeat product.\n\n## Context\n\nPricing and product behavior are currently duplicated across directory, ad, event, job, and salesperson checkout routes.\n\n## Scope\n\nCentralize product identifiers, names, prices, cadence, intake type, Stripe checkout parameters, Founding availability, order records, success metadata, and salesperson attribution.\n\n## Risks\n\nPrice drift, duplicate subscriptions, webhook replay, and changing existing checkout semantics.\n\n## Verify Steps\n\nRun npm test and add focused tests for catalog validation, server pricing, recurring billing, order creation, and webhook state transitions.\n\n## Rollback Plan\n\nRevert the catalog and order modules and restore callers to their previous checkout implementations.\n\n## Notes\n\nRecurring products must use Stripe subscriptions and retain the payment method; one-time products remain one-time charges."
+    },
+    {
+      "id": "202607212123-1CBZQV",
+      "title": "Harden sales handoff and refund lifecycle",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202607212040-7XJF9K",
+        "202607212040-HTN28A"
+      ],
+      "tags": [
+        "sales",
+        "security"
+      ],
+      "verify": [
+        "npm test",
+        "npm run type-check -- --filter=@citybeat/web"
+      ],
+      "comments": [
+        {
+          "author": "PLANNER",
+          "body": "Created from the final security review; all listed medium-severity findings must be resolved before FQXEFT can close."
+        },
+        {
+          "author": "CODER",
+          "body": "Start: close every recorded medium-severity handoff, provisioning, refund, and validation finding with focused regression coverage before returning to final review."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T21:23:43+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Resolve final review findings by binding payment-link delivery to the signed-in rep's canonical order, deferring new directory listing creation until paid intake is complete, marking exact refunded orders for staff attention, freezing handoff data, rejecting invalid products, and tightening intake validation.",
+      "doc": "## Summary\n\nClose the final security-review gaps in the unified sales and post-payment workflow.\n\n## Context\n\nThe final review found that link delivery was domain-checked but not order-bound, new directory listings were created before the paid intake boundary, and refund status handling was incomplete for subscription orders.\n\n## Scope\n\nBind send-link delivery and recipient data to the rep-owned sales order; freeze the generated handoff; defer new directory listing creation until paid intake submission; preserve directory subscription metadata during fulfillment; resolve one-time and subscription refunds to the exact order and mark staff attention; reject invalid product ids, fail closed on Founding lookup errors, and validate structured intake values.\n\n## Risks\n\nWebhook or fulfillment regressions could duplicate commissions, lose subscription attribution, create incomplete listings, or leave refunded work active.\n\n## Verify Steps\n\nRun the focused sales tests, full npm test suite, web TypeScript check, lint, and inspect the final diff against each recorded review finding.\n\n## Rollback Plan\n\nRevert the corrective commit while keeping FQXEFT and the parent task open.\n\n## Notes\n\nNo finding is considered closed until a regression test or direct route-level check covers the corrected trust boundary."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "908af7d7c9305b479cbbb7d747143500ee115f5925d039f1b14457b2935f2676"
+    "checksum": "13ae95a8b6110d51303b95c80385daf57dab3f45aeb00fb64e24880787ce47c2"
   }
 }

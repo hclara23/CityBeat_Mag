@@ -1,7 +1,7 @@
 ---
 id: "202607212123-1CBZQV"
 title: "Harden sales handoff and refund lifecycle"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "CODER"
 depends_on: ["202607212040-7XJF9K", "202607212040-HTN28A"]
@@ -9,8 +9,9 @@ tags: ["sales", "security"]
 verify: ["npm test", "npm run type-check -- --filter=@citybeat/web"]
 comments:
   - { author: "PLANNER", body: "Created from the final security review; all listed medium-severity findings must be resolved before FQXEFT can close." }
+  - { author: "CODER", body: "Start: close every recorded medium-severity handoff, provisioning, refund, and validation finding with focused regression coverage before returning to final review." }
 doc_version: 2
-doc_updated_at: "2026-07-21T21:23:43+00:00"
+doc_updated_at: "2026-07-21T21:34:26+00:00"
 doc_updated_by: "agentctl"
 description: "Resolve final review findings by binding payment-link delivery to the signed-in rep's canonical order, deferring new directory listing creation until paid intake is complete, marking exact refunded orders for staff attention, freezing handoff data, rejecting invalid products, and tightening intake validation."
 ---
@@ -40,5 +41,5 @@ Revert the corrective commit while keeping FQXEFT and the parent task open.
 
 ## Notes
 
-No finding is considered closed until a regression test or direct route-level check covers the corrected trust boundary.
+Resolved all final-review findings: canonical checkout delivery now requires the exact active rep-owned sales order and canonical recipient; the Sales Desk freezes handoff data and requires a fresh link after correction; new directory records are deferred until paid intake submission while Stripe subscription and plan data are retained; canonical webhook metadata, currency, and subtotal are checked against the server-priced order; one-time and subscription refunds resolve the exact order and set fulfillment to needs_attention; invalid product ids and structured intake values fail closed; image decoding has a 40-megapixel ceiling. Verification: 46 tests pass, web type-check passes, lint has zero warnings/errors, and the production build compiles and generates 102 static pages. No unresolved medium- or high-severity finding remains in this corrective scope.
 

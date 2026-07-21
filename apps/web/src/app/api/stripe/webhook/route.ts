@@ -66,12 +66,28 @@ async function setSalesOrderBillingStatus(
 // ---- event handlers (all write Firestore) -----------------------------------
 
 async function syncSalesOrderFromCheckout(session: any, metadata: Record<string, any>) {
-  if (!metadata.sales_order_id) return
+  if (!metadata.sales_order_id) return null
+  const orderRef = adminDb.collection('sales_orders').doc(metadata.sales_order_id)
+  const orderSnapshot = await orderRef.get()
+  if (!orderSnapshot.exists) throw new Error('Stripe Session references a missing sales order.')
+  const order = orderSnapshot.data() as Record<string, any>
+  if (order.stripe_checkout_session_id && order.stripe_checkout_session_id !== session.id) {
+    throw new Error('Stripe Session does not match the recorded sales order checkout.')
+  }
+  if (metadata.product_id !== order.product_id || metadata.sold_by !== order.sold_by) {
+    throw new Error('Stripe Session metadata does not match the recorded sales order.')
+  }
+  if (session.currency !== (order.currency || 'usd')) {
+    throw new Error('Stripe Session currency does not match the recorded sales order.')
+  }
+  if (session.amount_subtotal != null && Number(session.amount_subtotal) !== Number(order.amount)) {
+    throw new Error('Stripe Session subtotal does not match the server-priced sales order.')
+  }
   const paymentStatus =
     session.payment_status === 'paid' || session.payment_status === 'no_payment_required'
       ? 'paid'
       : 'pending'
-  await adminDb.collection('sales_orders').doc(metadata.sales_order_id).set(
+  await orderRef.set(
     {
       checkout_status: 'completed',
       payment_status: paymentStatus,
@@ -89,6 +105,7 @@ async function syncSalesOrderFromCheckout(session: any, metadata: Record<string,
     },
     { merge: true }
   )
+  return { paymentStatus, order }
 }
 
 async function handleCheckoutCompleted(session: any) {
@@ -96,7 +113,8 @@ async function handleCheckoutCompleted(session: any) {
 
   // The canonical order is updated before any product-specific legacy branch
   // returns, so jobs, events, directory listings, and ads share one lifecycle.
-  await syncSalesOrderFromCheckout(session, metadata)
+  const salesOrderSync = await syncSalesOrderFromCheckout(session, metadata)
+  if (salesOrderSync && salesOrderSync.paymentStatus !== 'paid') return
 
   // Operator "cha-ching" alert on every completed payment (Novu — dormant until
   // NOVU_SECRET_KEY + a "new-sale" workflow exist). Best-effort; never blocks
@@ -111,6 +129,53 @@ async function handleCheckoutCompleted(session: any) {
       business: metadata.companyName || metadata.contact_email || '',
     },
   })
+
+  // Canonical Sales Desk orders earn commission after confirmed payment, but
+  // operational records are deferred until the paid product brief is complete.
+  if (salesOrderSync) {
+    const order = salesOrderSync.order
+    const isDirectory = metadata.product_family === 'directory'
+    if (!isDirectory) {
+      const advertiserEmail = session.customer_email || session.customer_details?.email || order.contact_email || null
+      await adminDb.collection('ad_purchases').doc(session.id).set(
+        {
+          session_id: session.id,
+          sales_order_id: metadata.sales_order_id,
+          advertiser_email: advertiserEmail,
+          company_name: order.business_name || metadata.companyName || null,
+          ad_type: metadata.intake_kind || order.intake_kind || 'advertisement',
+          billing_cycle: order.billing_interval || null,
+          amount_total: session.amount_total || 0,
+          currency: session.currency || 'usd',
+          payment_status: 'completed',
+          stripe_customer_id: stripeObjectId(session.customer),
+          stripe_subscription_id: stripeObjectId(session.subscription),
+          stripe_payment_intent_id: stripeObjectId(session.payment_intent),
+          created_at: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      )
+    }
+
+    const payoutService = isDirectory
+      ? 'directory'
+      : metadata.intake_kind === 'sponsored_story'
+        ? 'sponsored_post'
+        : 'ad_campaign'
+    await payoutSplit({
+      stripe,
+      sellerUserId: metadata.payout_user_id || null,
+      service: payoutService,
+      amountTotal: session.amount_total,
+      currency: session.currency || 'usd',
+      sourcePaymentId: session.id,
+    })
+    await recordSubscriptionAttribution(session.subscription, metadata.payout_user_id, payoutService)
+    if (isDirectory && order.listing_preexisting && metadata.listing_id) {
+      await markOutreachConverted(metadata.listing_id)
+    }
+    return
+  }
 
   // 0. Paid "feature this event" → publish + feature the event.
   if (metadata.type === 'event_feature' && metadata.event_id) {
@@ -351,22 +416,83 @@ async function payResidualCommissionIfDue(invoice: any) {
 
 async function handleChargeRefunded(charge: any) {
   const pi = typeof charge.payment_intent === 'string' ? charge.payment_intent : ''
+  const fullyRefunded = Boolean(charge.refunded) || Number(charge.amount_refunded || 0) >= Number(charge.amount || 0)
   const doc = (await findOne('ad_purchases', 'stripe_payment_intent_id', pi)) || (await findOne('ad_purchases', 'session_id', charge.id))
   if (doc) {
-    await doc.ref.set({ payment_status: 'refunded', updated_at: new Date().toISOString() }, { merge: true })
-  }
-  const order = pi ? await findOne('sales_orders', 'stripe_payment_intent_id', pi) : null
-  if (order) {
-    await order.ref.set(
-      { payment_status: 'refunded', fulfillment_status: 'in_review', updated_at: new Date().toISOString() },
+    await doc.ref.set(
+      { payment_status: fullyRefunded ? 'refunded' : 'partially_refunded', updated_at: new Date().toISOString() },
       { merge: true }
     )
   }
-  // If the refund corresponds to a directory premium subscription, downgrade the listing.
-  if (charge.customer) {
+  let orders: FirebaseFirestore.QueryDocumentSnapshot[] = []
+  if (pi) {
+    const snapshot = await adminDb.collection('sales_orders').where('stripe_payment_intent_id', '==', pi).get()
+    orders = snapshot.docs
+  }
+  if (!orders.length && charge.invoice) {
+    const invoice = await stripe.invoices.retrieve(stripeObjectId(charge.invoice) || String(charge.invoice))
+    const subscriptionId = stripeObjectId((invoice as any).subscription)
+    if (subscriptionId) {
+      const snapshot = await adminDb
+        .collection('sales_orders')
+        .where('stripe_subscription_id', '==', subscriptionId)
+        .get()
+      orders = snapshot.docs
+    }
+  }
+
+  const now = new Date().toISOString()
+  for (const orderDocument of orders) {
+    const order = orderDocument.data() as Record<string, any>
+    await orderDocument.ref.set(
+      {
+        payment_status: fullyRefunded ? 'refunded' : order.payment_status || 'paid',
+        billing_status: fullyRefunded ? 'refunded' : order.billing_status,
+        fulfillment_status: 'needs_attention',
+        refund_status: fullyRefunded ? 'full' : 'partial',
+        refund_amount: Number(charge.amount_refunded || 0),
+        refunded_at: now,
+        updated_at: now,
+      },
+      { merge: true }
+    )
+    const purchases = await adminDb
+      .collection('ad_purchases')
+      .where('sales_order_id', '==', orderDocument.id)
+      .get()
+    await Promise.all(
+      purchases.docs.map((purchase) =>
+        purchase.ref.set(
+          { payment_status: fullyRefunded ? 'refunded' : 'partially_refunded', updated_at: now },
+          { merge: true }
+        )
+      )
+    )
+
+    const target = order.fulfillment_target
+    if (target?.collection && target?.id) {
+      await adminDb.collection(String(target.collection)).doc(String(target.id)).set(
+        {
+          payment_status: fullyRefunded ? 'refunded' : 'partially_refunded',
+          fulfillment_status: 'needs_attention',
+          ...(target.collection === 'directory_listings'
+            ? fullyRefunded ? { tier: 'basic' } : {}
+            : { status: 'needs_attention', is_active: false }),
+          updated_at: now,
+        },
+        { merge: true }
+      )
+      if (fullyRefunded && target.collection === 'directory_listings') {
+        await disqualifyPendingReferralForListing(String(target.id), 'refunded')
+      }
+    }
+  }
+
+  // Legacy directory purchases predate sales_orders and are matched by customer.
+  if (fullyRefunded && !orders.length && charge.customer) {
     const listing = await findOne('directory_listings', 'stripe_customer_id', charge.customer)
     if (listing) {
-      await listing.ref.set({ tier: 'basic', updated_at: new Date().toISOString() }, { merge: true })
+      await listing.ref.set({ tier: 'basic', payment_status: 'refunded', updated_at: now }, { merge: true })
       await disqualifyPendingReferralForListing(listing.id, 'refunded')
     }
   }

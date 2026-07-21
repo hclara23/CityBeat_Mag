@@ -291,6 +291,27 @@ function safeUrl(value: string) {
   }
 }
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function safeDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return ''
+  const [year, month, day] = value.split('-').map(Number)
+  const parsed = new Date(Date.UTC(year, month - 1, day))
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day
+    ? value
+    : ''
+}
+
+function safeTime(value: string) {
+  return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : ''
+}
+
+function safeNumber(value: string) {
+  if (!value) return ''
+  const number = Number(value)
+  return Number.isFinite(number) && number >= 0 && number <= 100000000 ? String(number) : ''
+}
+
 export function sanitizeSalesIntakeValues(schema: IntakeSchema, input: unknown): Record<string, unknown> {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return {}
   const fields = intakeFieldMap(schema)
@@ -314,7 +335,19 @@ export function sanitizeSalesIntakeValues(schema: IntakeSchema, input: unknown):
     }
     if (typeof raw !== 'string' && typeof raw !== 'number') continue
     let value = String(raw).trim()
-    if (field.type === 'url' || field.type === 'image') value = safeUrl(value)
+    if (field.type === 'select') {
+      value = field.options?.some((option) => option.value === value) ? value : ''
+    } else if (field.type === 'url' || field.type === 'image') {
+      value = safeUrl(value)
+    } else if (field.type === 'email') {
+      value = EMAIL_PATTERN.test(value) ? value.toLowerCase() : ''
+    } else if (field.type === 'date') {
+      value = safeDate(value)
+    } else if (field.type === 'time') {
+      value = safeTime(value)
+    } else if (field.type === 'number') {
+      value = safeNumber(value)
+    }
     const maxLength = field.maxLength || (field.type === 'textarea' ? 5000 : 500)
     output[key] = value.slice(0, maxLength)
   }
@@ -322,7 +355,7 @@ export function sanitizeSalesIntakeValues(schema: IntakeSchema, input: unknown):
 }
 
 export function missingSalesIntakeFields(schema: IntakeSchema, values: Record<string, unknown>): string[] {
-  return schema.sections.flatMap((section) =>
+  const missing = schema.sections.flatMap((section) =>
     section.fields
       .filter((field) => field.required)
       .filter((field) => {
@@ -333,6 +366,19 @@ export function missingSalesIntakeFields(schema: IntakeSchema, values: Record<st
       })
       .map((field) => field.id)
   )
+  const payMin = Number(values.pay_min)
+  const payMax = Number(values.pay_max)
+  if (
+    Number.isFinite(payMin) &&
+    Number.isFinite(payMax) &&
+    String(values.pay_min || '') &&
+    String(values.pay_max || '') &&
+    payMax < payMin &&
+    !missing.includes('pay_max')
+  ) {
+    missing.push('pay_max')
+  }
+  return missing
 }
 
 export function intakeCompletion(schema: IntakeSchema, values: Record<string, unknown>): number {

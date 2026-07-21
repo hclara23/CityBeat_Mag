@@ -218,6 +218,18 @@ export function legacySalesProductId(kind: unknown, plan: unknown): SalesProduct
   return typeof plan === 'string' && byPlan[plan] ? byPlan[plan] : 'directory_premium_monthly'
 }
 
+export function resolveSalesProductRequest(input: {
+  productId?: unknown
+  kind?: unknown
+  plan?: unknown
+}): SalesProduct | null {
+  if (input.productId !== undefined && input.productId !== null && input.productId !== '') {
+    return getSalesProduct(input.productId)
+  }
+  const hasLegacySelection = input.kind === 'directory' || input.kind === 'custom' || typeof input.plan === 'string'
+  return hasLegacySelection ? getSalesProduct(legacySalesProductId(input.kind, input.plan)) : null
+}
+
 export function salesProductAmount(product: SalesProduct, customDollars: unknown): number | null {
   if (product.unitAmount !== null) return product.unitAmount
   const dollars = Number(customDollars)

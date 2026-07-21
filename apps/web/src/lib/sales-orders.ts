@@ -51,6 +51,7 @@ export function buildSalesOrderRecord(input: {
   sellerUserId: string
   listingId?: string
   customDescription?: string
+  listingPreexisting?: boolean
   tokenHash: string
   now?: Date
 }) {
@@ -71,6 +72,9 @@ export function buildSalesOrderRecord(input: {
     sold_by: input.sellerUserId,
     payout_user_id: input.sellerUserId,
     listing_id: input.listingId || null,
+    listing_preexisting: Boolean(input.listingPreexisting),
+    directory_plan_id: input.product.directoryPlanId || null,
+    founding: Boolean(input.product.founding),
     custom_description: input.customDescription || null,
     payment_status: 'pending' as SalesPaymentStatus,
     billing_status: 'pending',
@@ -80,6 +84,29 @@ export function buildSalesOrderRecord(input: {
     intake_expires_at: salesOrderAccessExpiresAt(now),
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
+  }
+}
+
+export function salesOrderHandoffMatches(input: {
+  order: Record<string, unknown>
+  sellerUserId: string
+  checkoutUrl: string
+  orderId?: string
+  now?: Date
+}): boolean {
+  const { order } = input
+  if (order.sold_by !== input.sellerUserId || order.checkout_url !== input.checkoutUrl) return false
+  if (input.orderId && order.id !== input.orderId) return false
+  if (order.checkout_status !== 'ready') return false
+  if (typeof order.checkout_expires_at === 'string') {
+    const expiresAt = Date.parse(order.checkout_expires_at)
+    if (!Number.isFinite(expiresAt) || expiresAt <= (input.now || new Date()).getTime()) return false
+  }
+  try {
+    const parsed = new URL(input.checkoutUrl)
+    return parsed.protocol === 'https:' && ['checkout.stripe.com', 'buy.stripe.com'].includes(parsed.hostname)
+  } catch {
+    return false
   }
 }
 

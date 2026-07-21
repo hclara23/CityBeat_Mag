@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { FieldValue } from 'firebase-admin/firestore'
 import { FOUNDING_LIMIT, getPlan } from '@/lib/pricing'
 import {
-  getSalesProduct,
-  legacySalesProductId,
+  resolveSalesProductRequest,
   salesProductAmount,
   salesProductPriceLabel,
 } from '@/lib/sales-products'
@@ -30,40 +28,55 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 async function foundingOfferAvailable() {
-  const count = await adminDb
-    .collection('directory_listings')
-    .where('founding_member', '==', true)
-    .count()
-    .get()
-    .then((snapshot: any) => snapshot.data().count)
-    .catch(() => 0)
-  return count < FOUNDING_LIMIT
+  try {
+    const [listingCount, monthlyOrders, annualOrders] = await Promise.all([
+      adminDb
+        .collection('directory_listings')
+        .where('founding_member', '==', true)
+        .count()
+        .get()
+        .then((snapshot: any) => snapshot.data().count),
+      adminDb.collection('sales_orders').where('product_id', '==', 'directory_founding_monthly').get(),
+      adminDb.collection('sales_orders').where('product_id', '==', 'directory_founding_annual').get(),
+    ])
+    const paidAwaitingListing = [...monthlyOrders.docs, ...annualOrders.docs].filter((document) => {
+      const order = document.data()
+      return order.payment_status === 'paid' && !order.fulfillment_target
+    }).length
+    return listingCount + paidAwaitingListing < FOUNDING_LIMIT
+  } catch (error) {
+    console.error('Could not confirm Founding availability:', error)
+    return false
+  }
 }
 
-async function reusableDirectoryListing(input: {
+async function existingDirectoryListing(input: {
   listingId: string
-  businessName: string
-  contactEmail: string
-  sellerUserId: string
   stripe: Stripe
 }) {
-  if (!input.listingId) {
-    const ref = await adminDb.collection('directory_listings').add({
-      name: input.businessName,
-      contact_email: input.contactEmail,
-      claim_status: 'unclaimed',
-      tier: 'basic',
-      sold_by_rep: input.sellerUserId,
-      source: 'sales_rep',
-      created_at: FieldValue.serverTimestamp(),
-      updated_at: FieldValue.serverTimestamp(),
-    })
-    return { id: ref.id, data: { contact_email: input.contactEmail } as Record<string, unknown> }
-  }
+  if (!input.listingId) return null
 
   const listingDoc = await adminDb.collection('directory_listings').doc(input.listingId).get()
   if (!listingDoc.exists) throw Object.assign(new Error('Directory listing not found'), { status: 404 })
   const listing = listingDoc.data() as Record<string, unknown>
+  const existingOrders = await adminDb.collection('sales_orders').where('listing_id', '==', input.listingId).get()
+  const hasBlockingOrder = existingOrders.docs.some((document) => {
+    const order = document.data()
+    if (order.billing_type !== 'subscription') return false
+    if (order.payment_status === 'refunded' || ['canceled', 'refunded'].includes(order.billing_status)) return false
+    const expiresAt = Date.parse(order.checkout_expires_at || '')
+    const createdAt = Date.parse(order.created_at || '')
+    const readyAndOpen =
+      order.checkout_status === 'ready' &&
+      (Number.isFinite(expiresAt) ? expiresAt > Date.now() : Number.isFinite(createdAt) && createdAt + 24 * 60 * 60 * 1000 > Date.now())
+    return readyAndOpen || order.checkout_status === 'completed' || order.payment_status === 'paid'
+  })
+  if (hasBlockingOrder) {
+    throw Object.assign(
+      new Error('This listing already has an active or pending Sales Desk subscription.'),
+      { status: 409, code: 'subscription_already_exists' }
+    )
+  }
   const existingSubscriptionId =
     typeof listing.stripe_subscription_id === 'string' ? listing.stripe_subscription_id : ''
 
@@ -83,7 +96,7 @@ async function reusableDirectoryListing(input: {
     }
   }
 
-  return { id: input.listingId, data: listing }
+  return listing
 }
 
 // Creates one server-priced order and one Stripe Checkout Session. The customer
@@ -102,8 +115,7 @@ export async function POST(request: NextRequest) {
   if (!hasSalesAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await request.json().catch(() => ({}))
-  const product =
-    getSalesProduct(body.productId) || getSalesProduct(legacySalesProductId(body.kind, body.plan))
+  const product = resolveSalesProductRequest({ productId: body.productId, kind: body.kind, plan: body.plan })
   if (!product) return NextResponse.json({ error: 'Choose a valid product' }, { status: 400 })
 
   const businessName = typeof body.businessName === 'string' ? body.businessName.trim().slice(0, 140) : ''
@@ -138,19 +150,16 @@ export async function POST(request: NextRequest) {
     let listingId = typeof body.listingId === 'string' ? body.listingId.trim() : ''
     let listing: Record<string, unknown> | null = null
     if (product.family === 'directory') {
-      const result = await reusableDirectoryListing({
+      listing = await existingDirectoryListing({
         listingId,
-        businessName,
-        contactEmail,
-        sellerUserId: user.id,
         stripe,
       })
-      listingId = result.id
-      listing = result.data
     }
 
     const access = createSalesOrderAccess()
     orderRef = adminDb.collection('sales_orders').doc()
+    const listingPreexisting = Boolean(listingId)
+    if (product.family === 'directory' && !listingId) listingId = orderRef.id
     await orderRef.set(
       buildSalesOrderRecord({
         product,
@@ -161,6 +170,7 @@ export async function POST(request: NextRequest) {
         locale,
         sellerUserId: user.id,
         listingId,
+        listingPreexisting,
         customDescription,
         tokenHash: access.tokenHash,
       })
@@ -241,6 +251,9 @@ export async function POST(request: NextRequest) {
         checkout_status: 'ready',
         stripe_checkout_session_id: session.id,
         checkout_url: session.url,
+        checkout_expires_at: session.expires_at
+          ? new Date(session.expires_at * 1000).toISOString()
+          : null,
         updated_at: new Date().toISOString(),
       },
       { merge: true }

@@ -153,6 +153,7 @@ export async function POST(request: NextRequest, { params }: { params: { orderId
         {
           fulfillment_status: target.status,
           fulfillment_target: { collection: target.collection, id: target.id },
+          ...(target.collection === 'directory_listings' ? { listing_id: target.id } : {}),
           fulfillment_created_at: new Date().toISOString(),
           fulfillment_error: null,
           updated_at: new Date().toISOString(),

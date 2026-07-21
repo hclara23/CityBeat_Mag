@@ -5,6 +5,9 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { sendEmail } from '@/lib/email'
 import { sendSms, smsConfigured } from '@/lib/sms'
+import { normalizeSalesEmail } from '@/lib/sales-checkout'
+import { getSalesProduct, salesProductPriceLabel } from '@/lib/sales-products'
+import { salesOrderHandoffMatches } from '@/lib/sales-orders'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -22,8 +25,7 @@ export async function POST(request: NextRequest) {
   const url = typeof body.url === 'string' ? body.url.trim() : ''
   const email = typeof body.email === 'string' ? body.email.trim() : ''
   const phone = typeof body.phone === 'string' ? body.phone.trim() : ''
-  const businessName = (typeof body.businessName === 'string' ? body.businessName.trim() : '') || 'your business'
-  const priceLabel = typeof body.priceLabel === 'string' ? body.priceLabel.trim().slice(0, 80) : ''
+  const orderId = typeof body.orderId === 'string' ? body.orderId.trim() : ''
 
   // Only forward links to our own checkout — never an arbitrary URL.
   if (!/^https:\/\/(checkout\.stripe\.com|buy\.stripe\.com)\//.test(url)) {
@@ -32,6 +34,34 @@ export async function POST(request: NextRequest) {
   if (!email && !phone) {
     return NextResponse.json({ error: 'Provide a client email or phone' }, { status: 400 })
   }
+  if (!orderId) {
+    return NextResponse.json({ error: 'Sales order reference missing' }, { status: 400 })
+  }
+
+  const orderSnapshot = await adminDb.collection('sales_orders').where('checkout_url', '==', url).limit(1).get()
+  if (orderSnapshot.empty) {
+    return NextResponse.json({ error: 'This checkout is not a CityBeat Sales Desk order.' }, { status: 403 })
+  }
+  const orderDocument = orderSnapshot.docs[0]
+  const order = { id: orderDocument.id, ...orderDocument.data() } as Record<string, any>
+  if (!salesOrderHandoffMatches({ order, sellerUserId: user.id, checkoutUrl: url, orderId })) {
+    return NextResponse.json({ error: 'This checkout does not belong to your active sale.' }, { status: 403 })
+  }
+
+  const canonicalEmail = normalizeSalesEmail(order.contact_email)
+  const canonicalPhone = typeof order.contact_phone === 'string' ? order.contact_phone.trim() : ''
+  if (email && normalizeSalesEmail(email) !== canonicalEmail) {
+    return NextResponse.json({ error: 'Email this link only to the customer recorded on the order.' }, { status: 400 })
+  }
+  if (phone && phone !== canonicalPhone) {
+    return NextResponse.json({ error: 'Text this link only to the phone recorded on the order.' }, { status: 400 })
+  }
+
+  const businessName = String(order.business_name || 'your business').replace(/[\r\n]+/g, ' ').slice(0, 140)
+  const product = getSalesProduct(order.product_id)
+  const priceLabel = product
+    ? salesProductPriceLabel(product, Number(order.amount) || 0)
+    : `${((Number(order.amount) || 0) / 100).toFixed(2)} USD`
 
   const results: { email?: any; sms?: any } = {}
 
@@ -57,6 +87,8 @@ export async function POST(request: NextRequest) {
   // Light audit trail so a rep can see they sent it (and attribution stays clean).
   await adminDb.collection('sales_links_sent').add({
     sent_by: user.id,
+    sales_order_id: orderDocument.id,
+    stripe_checkout_session_id: order.stripe_checkout_session_id || null,
     business: businessName,
     to_email: email || null,
     to_phone: phone || null,
