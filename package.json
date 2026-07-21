@@ -14,7 +14,7 @@
     "start": "turbo run start",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
-    "test": "tsx --test packages/lib/src/roles.test.ts apps/web/src/lib/directory-security.test.ts apps/web/src/lib/referrals.test.ts"
+    "test": "tsx --test packages/lib/src/roles.test.ts apps/web/src/lib/directory-security.test.ts apps/web/src/lib/referrals.test.ts apps/web/src/lib/sales-checkout.test.ts"
   },
   "devDependencies": {
     "cypress": "^15.17.0",

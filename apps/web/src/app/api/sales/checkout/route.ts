@@ -7,9 +7,10 @@ import { getPlan } from '@/lib/pricing'
 import {
   blocksReplacementSubscription,
   normalizeSalesEmail,
-  recurringAuthorizationMessage,
+  oneTimeCheckoutDefaults,
+  recurringCheckoutDefaults,
+  recurringCustomerParams,
   recurringEmailError,
-  reusableStripeCustomer,
   salesCheckoutKind,
 } from '@/lib/sales-checkout'
 import Stripe from 'stripe'
@@ -103,20 +104,11 @@ export async function POST(request: NextRequest) {
       // billing name, address, and email. Never reuse a Customer for a different
       // email: a rep could otherwise expose masked payment details to the wrong
       // recipient. First-time customers get their email prefilled instead.
-      const existingCustomerId = reusableStripeCustomer({
+      const customerParams = recurringCustomerParams({
         customerId: listing?.stripe_customer_id,
         listingEmail: listing?.contact_email,
         contactEmail,
       })
-      const customerParams: Pick<
-        Stripe.Checkout.SessionCreateParams,
-        'customer' | 'customer_email' | 'customer_update'
-      > = existingCustomerId
-        ? {
-            customer: existingCustomerId,
-            customer_update: { address: 'auto', name: 'auto' },
-          }
-        : { customer_email: contactEmail }
 
       const checkoutMetadata: Record<string, string> = {
         listing_id: listingId,
@@ -130,12 +122,8 @@ export async function POST(request: NextRequest) {
       }
 
       const session = await stripe.checkout.sessions.create({
-        mode: 'subscription',
+        ...recurringCheckoutDefaults(plan.priceLabel, plan.interval),
         client_reference_id: listingId,
-        payment_method_types: ['card'],
-        payment_method_collection: 'always',
-        billing_address_collection: 'auto',
-        locale: 'auto',
         ...customerParams,
         line_items: [
           {
@@ -153,11 +141,6 @@ export async function POST(request: NextRequest) {
         ],
         success_url,
         cancel_url,
-        custom_text: {
-          submit: {
-            message: recurringAuthorizationMessage(plan.priceLabel, plan.interval),
-          },
-        },
         metadata: checkoutMetadata,
         subscription_data: { metadata: checkoutMetadata },
       })
@@ -174,8 +157,7 @@ export async function POST(request: NextRequest) {
     const description = typeof body.description === 'string' ? body.description.slice(0, 300) : 'CityBeat advertising'
 
     const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
+      ...oneTimeCheckoutDefaults(),
       customer_email: contactEmail || undefined,
       line_items: [
         {

@@ -50,3 +50,39 @@ export function recurringAuthorizationMessage(priceLabel: string, interval: 'mon
   const cadence = interval === 'year' ? 'each year' : 'each month'
   return `By subscribing, you authorize CityBeat to charge this payment method ${priceLabel} ${cadence} until canceled.`
 }
+
+export function recurringCustomerParams(input: {
+  customerId: unknown
+  listingEmail: unknown
+  contactEmail: string
+}) {
+  const customerId = reusableStripeCustomer(input)
+  return customerId
+    ? {
+        customer: customerId,
+        customer_update: { address: 'auto' as const, name: 'auto' as const },
+      }
+    : { customer_email: normalizeSalesEmail(input.contactEmail) }
+}
+
+export function recurringCheckoutDefaults(priceLabel: string, interval: 'month' | 'year') {
+  return {
+    mode: 'subscription' as const,
+    payment_method_types: ['card'] as ['card'],
+    payment_method_collection: 'always' as const,
+    billing_address_collection: 'auto' as const,
+    locale: 'auto' as const,
+    custom_text: {
+      submit: { message: recurringAuthorizationMessage(priceLabel, interval) },
+    },
+  }
+}
+
+export function oneTimeCheckoutDefaults() {
+  return {
+    mode: 'payment' as const,
+    payment_method_types: ['card'] as ['card'],
+    billing_address_collection: 'auto' as const,
+    locale: 'auto' as const,
+  }
+}

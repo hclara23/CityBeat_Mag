@@ -1,20 +1,22 @@
 ---
 id: "202607212017-MFYKEV"
 title: "Verify recurring checkout behavior"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "TESTER"
 depends_on: ["202607212017-8JVTY5", "202607212017-XSEXBE"]
 tags: ["test", "stripe"]
 verify: ["npm test", "npm run type-check", "npm run lint", "npm run build"]
+comments:
+  - { author: "TESTER", body: "Start: add deterministic recurring-checkout decision tests, preserve the existing test runner, and execute tests, typecheck, lint, and the production build before review." }
 doc_version: 2
-doc_updated_at: "2026-07-21T20:18:13+00:00"
+doc_updated_at: "2026-07-21T20:30:30+00:00"
 doc_updated_by: "agentctl"
 description: "Add deterministic automated coverage for recurring versus one-time checkout, customer reuse and duplicate-subscription safeguards, then run lint, typecheck, tests, and the production build."
 ---
 ## Summary
 
-Prove the recurring checkout safeguards and customer handoff changes with deterministic tests and full repository verification.
+Added deterministic tests that prove recurring sales use Stripe subscription mode, always collect a card for future renewals, safely prefill matched returning customers, require valid email, reject duplicate non-terminal subscriptions, disclose cadence, and keep custom sales in one-time payment mode.
 
 ## Context
 
@@ -30,7 +32,7 @@ Tests tied directly to Stripe SDK implementation details can become brittle. Ext
 
 ## Verify Steps
 
-Run npm test, npm run type-check, npm run lint, and npm run build. Record any pre-existing warnings separately from failures.
+Ran npm test: 27 passed, 0 failed. Ran npm run type-check: 4 of 4 workspace packages passed. Ran npm run lint: 2 of 2 lint packages passed with zero warnings or errors. Ran npm run build: the Next.js production build compiled, checked types, generated 102 static pages, and emitted both /en/checkout/result and /es/checkout/result.
 
 ## Rollback Plan
 
@@ -38,5 +40,5 @@ Revert the test commit if necessary; production behavior is unaffected by test-o
 
 ## Notes
 
-Review must confirm no raw payment data enters CityBeat and that one-time custom sales still use payment mode.
+The tests exercise pure session-default and customer-selection helpers without Stripe network calls. Existing non-failing build notices remain for the age of caniuse-lite and an unrelated edge-runtime static-generation limitation.
 

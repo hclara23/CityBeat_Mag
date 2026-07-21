@@ -7469,7 +7469,7 @@
     {
       "id": "202607212017-MFYKEV",
       "title": "Verify recurring checkout behavior",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "TESTER",
       "depends_on": [
@@ -7485,6 +7485,12 @@
         "npm run type-check",
         "npm run lint",
         "npm run build"
+      ],
+      "comments": [
+        {
+          "author": "TESTER",
+          "body": "Start: add deterministic recurring-checkout decision tests, preserve the existing test runner, and execute tests, typecheck, lint, and the production build before review."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-07-21T20:18:13+00:00",
@@ -7534,6 +7540,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "c6dc9955a94081e5ee9308af38fae50d01ae88a4daadb3084b1760334a377d71"
+    "checksum": "b6a1dced539db0d8b4d69d5643af800bdc18d5d77be45d83ef7957971490a756"
   }
 }
