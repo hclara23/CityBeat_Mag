@@ -1,12 +1,14 @@
 ---
 id: "202607212040-KXMN5S"
 title: "Build canonical sales order and checkout engine"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "CODER"
 depends_on: []
 tags: ["backend", "code", "stripe"]
 verify: ["npm test"]
+comments:
+  - { author: "CODER", body: "Start: centralize the product catalog and create the secure sales-order checkout lifecycle before either wizard is changed." }
 doc_version: 2
 doc_updated_at: "2026-07-21T20:40:56+00:00"
 doc_updated_by: "agentctl"

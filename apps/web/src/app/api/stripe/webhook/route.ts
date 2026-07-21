@@ -43,15 +43,51 @@ function stripeObjectId(value: any): string | null {
 
 async function setPaymentStatusByField(field: string, value: string, status: string) {
   if (!value) return
-  const snap = await adminDb.collection('ad_purchases').where(field, '==', value).get()
   const now = new Date().toISOString()
-  await Promise.all(snap.docs.map((d) => d.ref.set({ payment_status: status, updated_at: now }, { merge: true })))
+  const collections = ['ad_purchases', 'sales_orders']
+  await Promise.all(
+    collections.map(async (collection) => {
+      const snap = await adminDb.collection(collection).where(field, '==', value).get()
+      await Promise.all(
+        snap.docs.map((d) => d.ref.set({ payment_status: status, updated_at: now }, { merge: true }))
+      )
+    })
+  )
 }
 
 // ---- event handlers (all write Firestore) -----------------------------------
 
+async function syncSalesOrderFromCheckout(session: any, metadata: Record<string, any>) {
+  if (!metadata.sales_order_id) return
+  const paymentStatus =
+    session.payment_status === 'paid' || session.payment_status === 'no_payment_required'
+      ? 'paid'
+      : 'pending'
+  await adminDb.collection('sales_orders').doc(metadata.sales_order_id).set(
+    {
+      checkout_status: 'completed',
+      payment_status: paymentStatus,
+      fulfillment_status: paymentStatus === 'paid' ? 'awaiting_intake' : 'awaiting_payment',
+      stripe_checkout_session_id: session.id,
+      stripe_customer_id: stripeObjectId(session.customer),
+      stripe_subscription_id: stripeObjectId(session.subscription),
+      stripe_payment_intent_id: stripeObjectId(session.payment_intent),
+      amount_paid: session.amount_total || 0,
+      discount_amount: Math.max(0, (session.amount_subtotal || 0) - (session.amount_total || 0)),
+      customer_email: session.customer_details?.email || session.customer_email || metadata.contact_email || null,
+      paid_at: paymentStatus === 'paid' ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    },
+    { merge: true }
+  )
+}
+
 async function handleCheckoutCompleted(session: any) {
   const metadata = session.metadata || {}
+
+  // The canonical order is updated before any product-specific legacy branch
+  // returns, so jobs, events, directory listings, and ads share one lifecycle.
+  await syncSalesOrderFromCheckout(session, metadata)
 
   // Operator "cha-ching" alert on every completed payment (Novu — dormant until
   // NOVU_SECRET_KEY + a "new-sale" workflow exist). Best-effort; never blocks
@@ -62,7 +98,7 @@ async function handleCheckoutCompleted(session: any) {
     payload: {
       amount: ((session.amount_total || 0) / 100).toFixed(2),
       currency: (session.currency || 'usd').toUpperCase(),
-      product: metadata.plan || metadata.adType || metadata.type || 'sale',
+      product: metadata.product_id || metadata.plan || metadata.adType || metadata.type || 'sale',
       business: metadata.companyName || metadata.contact_email || '',
     },
   })
@@ -309,6 +345,13 @@ async function handleChargeRefunded(charge: any) {
   const doc = (await findOne('ad_purchases', 'stripe_payment_intent_id', pi)) || (await findOne('ad_purchases', 'session_id', charge.id))
   if (doc) {
     await doc.ref.set({ payment_status: 'refunded', updated_at: new Date().toISOString() }, { merge: true })
+  }
+  const order = pi ? await findOne('sales_orders', 'stripe_payment_intent_id', pi) : null
+  if (order) {
+    await order.ref.set(
+      { payment_status: 'refunded', fulfillment_status: 'in_review', updated_at: new Date().toISOString() },
+      { merge: true }
+    )
   }
   // If the refund corresponds to a directory premium subscription, downgrade the listing.
   if (charge.customer) {

@@ -7556,12 +7556,197 @@
       "doc_updated_by": "agentctl",
       "description": "Refine the sales wizard, recurring-payment disclosure, link sharing, and QR generation so customers can understand and complete a mobile checkout with minimal input.",
       "doc": "## Summary\n\nStreamlined the sales handoff into a three-action customer journey: scan or tap, review prefilled purchase details, and pay. Recurring terms are prominent, QR codes are generated locally, and customers now return to a public bilingual result page instead of the staff-only sales dashboard.\n\n## Context\n\nThe current wizard generates links and externally hosted QR images, but recurring terms are not prominent and a missing customer email forces the customer to enter more information in Stripe.\n\n## Scope\n\nClearly distinguish recurring and one-time products, show the due-now and renewal cadence, require salesperson-provided email for recurring links, explain Stripe card-on-file billing, preserve one-tap open/copy/email/text actions, and generate the QR in the CityBeat client using the existing QR library.\n\n## Risks\n\nExtra disclosure must not become an extra step. QR generation must remain accessible and recover cleanly if the browser cannot generate an image.\n\n## Verify Steps\n\nRan git diff --check, npm run type-check, and npm run lint. All four workspace packages passed typecheck; both linting packages passed with no warnings or errors. The public result route compiles for English and Spanish through the typed Next.js route tree.\n\n## Rollback Plan\n\nRevert the frontend commit; existing Stripe Checkout URLs and the prior external QR rendering remain compatible.\n\n## Notes\n\nThe browser now creates the QR data URL with the existing qrcode dependency, so Stripe Checkout URLs are not disclosed to an external QR image service. The salesperson supplies recurring customer email once, while phone remains optional and is used only to text the generated link."
+    },
+    {
+      "id": "202607212040-7XJF9K",
+      "title": "Verify unified sales and fulfillment flows",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "TESTER",
+      "depends_on": [
+        "202607212040-G73WWE"
+      ],
+      "tags": [
+        "test",
+        "stripe",
+        "security"
+      ],
+      "verify": [
+        "npm test",
+        "npm run type-check",
+        "npm run lint",
+        "npm run build"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:40:59+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Add deterministic coverage for catalog pricing, recurring and one-time checkout, access tokens, unpaid rejection, autosave, uploads, field requirements, fulfillment, discounts, and commissions; run the full quality gate.",
+      "doc": "## Summary\n\nAdd regression coverage and run the complete sales and fulfillment release gate.\n\n## Context\n\nThe unified flow crosses security, Stripe, data validation, uploads, UI state, and multiple fulfillment destinations.\n\n## Scope\n\nTest the canonical catalog, checkout modes, order authorization, autosave, uploads, required fields, fulfillment idempotency, discounts, commissions, and existing recurring behavior.\n\n## Risks\n\nFalse confidence from mocked Stripe behavior and build-only issues not covered by focused tests.\n\n## Verify Steps\n\nRun npm test, npm run type-check, npm run lint, and npm run build with no unresolved failures.\n\n## Rollback Plan\n\nRevert test-only changes if they are invalid; implementation defects return to the owning task.\n\n## Notes\n\nTests must be deterministic and make no network calls."
+    },
+    {
+      "id": "202607212040-94DM4B",
+      "title": "Create unified salesperson Sales Desk",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202607212040-KXMN5S"
+      ],
+      "tags": [
+        "frontend",
+        "code",
+        "sales"
+      ],
+      "verify": [
+        "npm run type-check"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:40:57+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Combine the rep pipeline and new-sale experience into one adaptive dashboard with the complete grouped product catalog, minimal customer inputs, and one-click payment-link and QR handoff.",
+      "doc": "## Summary\n\nReplace separate salesperson pipeline and new-sale screens with one adaptive Sales Desk.\n\n## Context\n\nSalespeople currently switch between two dashboards and only see a subset of the available CityBeat products.\n\n## Scope\n\nCombine pipeline metrics and quick sale creation, expose the complete grouped catalog, reduce repeated fields, and generate payment links plus local QR codes with accessible responsive UI.\n\n## Risks\n\nRole authorization regressions, route compatibility, and excessive UI complexity.\n\n## Verify Steps\n\nRun npm run type-check and manually verify keyboard, narrow-screen, product-switching, link, and QR interactions.\n\n## Rollback Plan\n\nRestore the previous /admin/sales/me and /admin/sales/new page implementations.\n\n## Notes\n\nThe developer-only automated outreach screen remains separate."
+    },
+    {
+      "id": "202607212040-ABDG38",
+      "title": "Unify sales and post-payment fulfillment",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "202607212040-FQXEFT"
+      ],
+      "tags": [
+        "sales",
+        "checkout",
+        "fulfillment"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:40:55+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Deliver one low-click Sales Desk and a secure paid-order customer intake flow across directory, advertising, events, jobs, and custom products. Downstream tasks: 202607212040-KXMN5S canonical orders/checkout; 202607212040-94DM4B unified Sales Desk; 202607212040-E4YRZ8 secure customer intake; 202607212040-G73WWE product fulfillment/reporting; 202607212040-7XJF9K verification; 202607212040-HTN28A documentation/PDF; 202607212040-FQXEFT security and completeness review.",
+      "doc": "## Summary\n\nCoordinate delivery of a unified salesperson checkout desk and secure post-payment fulfillment experience.\n\n## Context\n\nCityBeat currently splits salesperson pipeline and checkout tools, while jobs, events, directory listings, and advertising collect different data through disconnected flows.\n\n## Scope\n\nTrack the canonical catalog, sales-order checkout engine, unified Sales Desk, customer intake wizard, fulfillment adapters, reporting, tests, documentation, and final review.\n\n## Risks\n\nPayment regressions, inconsistent legacy product records, unauthorized order access, and incomplete customer submissions are the primary risks.\n\n## Verify Steps\n\nConfirm every downstream task is DONE, all recorded quality gates pass, and final review has no unresolved findings.\n\n## Rollback Plan\n\nRevert downstream implementation commits and restore the previous Sales Desk routes and Stripe fulfillment behavior.\n\n## Notes\n\nApproved by the user on 2026-07-21. No deployment is included in this task."
+    },
+    {
+      "id": "202607212040-E4YRZ8",
+      "title": "Create secure post-payment intake wizard",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202607212040-KXMN5S"
+      ],
+      "tags": [
+        "frontend",
+        "backend",
+        "code"
+      ],
+      "verify": [
+        "npm test"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:40:57+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Provide paid-order token access without account creation, product-aware adaptive steps, autosave, resumable links, and validated order-scoped asset uploads.",
+      "doc": "## Summary\n\nAdd a secure no-account customer wizard that starts after successful payment.\n\n## Context\n\nCustomers need product-specific fulfillment intake after Checkout without creating an account or re-entering known information.\n\n## Scope\n\nImplement opaque order access, paid-order verification, adaptive schemas, prefill, autosave, resume support, completion state, and validated order-scoped image uploads.\n\n## Risks\n\nToken leakage, cross-order data access, unpaid access, unsafe uploads, and abandoned intake sessions.\n\n## Verify Steps\n\nRun npm test with authorization, unpaid-order, expiry, autosave, resume, upload validation, and order-isolation cases.\n\n## Rollback Plan\n\nDisable the fulfillment route and revert success URLs to the existing checkout result page.\n\n## Notes\n\nCard data remains exclusively in Stripe Checkout and is never collected by the CityBeat wizard."
+    },
+    {
+      "id": "202607212040-FQXEFT",
+      "title": "Review unified sales fulfillment security",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "REVIEWER",
+      "depends_on": [
+        "202607212040-7XJF9K",
+        "202607212040-HTN28A"
+      ],
+      "tags": [
+        "review",
+        "security"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:41:01+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Review the completed payment and fulfillment implementation for authorization, price integrity, sensitive data handling, order isolation, operational completeness, and regression risk.",
+      "doc": "## Summary\n\nPerform the final authorization, payment-integrity, fulfillment, and regression review.\n\n## Context\n\nThe feature creates public order-access links and changes how paid products become operational records.\n\n## Scope\n\nReview price authority, token handling, order isolation, upload safety, webhook idempotency, commissions, discounts, intake requirements, and operational status visibility.\n\n## Risks\n\nA missed security or payment flaw could expose customer data or mischarge orders.\n\n## Verify Steps\n\nInspect the final diff and recorded quality-gate output, then document every finding with severity and file references.\n\n## Rollback Plan\n\nKeep the parent task open and return defects to the owning implementation task.\n\n## Notes\n\nThe task closes only when no unresolved high- or medium-severity findings remain."
+    },
+    {
+      "id": "202607212040-G73WWE",
+      "title": "Implement product fulfillment and status reporting",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202607212040-94DM4B",
+        "202607212040-E4YRZ8"
+      ],
+      "tags": [
+        "backend",
+        "frontend",
+        "code"
+      ],
+      "verify": [
+        "npm test"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:40:58+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Define complete intake schemas for directory, jobs, events, and advertising; provision fulfillment records only after payment and required intake; and expose payment, intake, fulfillment, discount, and commission statuses.",
+      "doc": "## Summary\n\nConvert completed paid intake into operational directory, job, event, and advertising fulfillment records.\n\n## Context\n\nLegacy flows publish or collect partial data at different stages and do not expose one consistent operational status.\n\n## Scope\n\nDefine full product-specific requirements, validate completion, provision target records after payment and intake, and expose payment, intake, fulfillment, discount, and commission status to staff.\n\n## Risks\n\nPremature publishing, partial record creation, duplicate fulfillment on retries, and legacy collection inconsistencies.\n\n## Verify Steps\n\nRun npm test with every product family, missing-field validation, idempotent fulfillment, recurring attribution, discount display, and commission coverage.\n\n## Rollback Plan\n\nStop new fulfillment dispatch, preserve sales orders for audit, and revert to the previous per-product provisioning branches.\n\n## Notes\n\nOperational records must not be marked ready until both payment and required intake are complete."
+    },
+    {
+      "id": "202607212040-HTN28A",
+      "title": "Refresh sales workflow documentation and guide",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "DOCS",
+      "depends_on": [
+        "202607212040-G73WWE"
+      ],
+      "tags": [
+        "docs",
+        "sales"
+      ],
+      "verify": [
+        "python scripts/generate-sales-guide.py"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:41:00+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Update staff guidance and regenerate the downloadable sales PDF to document the unified Sales Desk, recurring billing, payment links and QR codes, customer intake, and fulfillment handoff.",
+      "doc": "## Summary\n\nUpdate staff instructions and the downloadable sales guide for the new end-to-end workflow.\n\n## Context\n\nThe current guide documents separate public forms and an older salesperson wizard.\n\n## Scope\n\nDocument product selection, recurring billing, payment links, QR codes, the customer intake experience, order statuses, follow-up, and troubleshooting; regenerate both published and output PDFs.\n\n## Risks\n\nDocumentation drifting from implemented field requirements or introducing clipped PDF content.\n\n## Verify Steps\n\nRun the guide generator, inspect PDF metadata and extracted text, render all pages with Poppler, and visually review every page.\n\n## Rollback Plan\n\nRestore the previous guide source and both generated PDF copies.\n\n## Notes\n\nUse the existing CityBeat visual language and stable download URL."
+    },
+    {
+      "id": "202607212040-KXMN5S",
+      "title": "Build canonical sales order and checkout engine",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [
+        "backend",
+        "code",
+        "stripe"
+      ],
+      "verify": [
+        "npm test"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: centralize the product catalog and create the secure sales-order checkout lifecycle before either wizard is changed."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-21T20:40:56+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Centralize the product catalog, server-authoritative pricing and cadence, sales-order lifecycle, Stripe metadata, recurring card billing, Founding availability, and consistent salesperson attribution.",
+      "doc": "## Summary\n\nCreate one server-authoritative catalog and sales-order lifecycle for every sellable CityBeat product.\n\n## Context\n\nPricing and product behavior are currently duplicated across directory, ad, event, job, and salesperson checkout routes.\n\n## Scope\n\nCentralize product identifiers, names, prices, cadence, intake type, Stripe checkout parameters, Founding availability, order records, success metadata, and salesperson attribution.\n\n## Risks\n\nPrice drift, duplicate subscriptions, webhook replay, and changing existing checkout semantics.\n\n## Verify Steps\n\nRun npm test and add focused tests for catalog validation, server pricing, recurring billing, order creation, and webhook state transitions.\n\n## Rollback Plan\n\nRevert the catalog and order modules and restore callers to their previous checkout implementations.\n\n## Notes\n\nRecurring products must use Stripe subscriptions and retain the payment method; one-time products remain one-time charges."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "984c3df6e150096ea07a46188f4caa402c5e9663975172e3065f0666d5578bf6"
+    "checksum": "af7fbd764b0dd86a391310acb07af2c99c23f3f941405bf41879fb3f550fcc0c"
   }
 }
