@@ -60,13 +60,21 @@ export default function DeveloperDashboard() {
     <div className="min-h-screen bg-brand-dark text-white">
       <SiteHeader />
       <main className="mx-auto max-w-6xl px-4 py-12">
-        <div className="mb-10">
-          <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-magenta">Godmode</p>
-          <h1 className="font-display text-4xl font-black tracking-tight tracking-tight uppercase">Developer Control</h1>
-          <p className="mt-1 text-white/50 text-sm">Advanced platform settings and automations.</p>
-          <a href={withLocale(locale, '/guide')} className="mt-1 inline-block text-xs font-bold text-brand-neon underline">
-            📖 User Guide
-          </a>
+        <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-magenta">Godmode</p>
+            <h1 className="font-display text-4xl font-black tracking-tight uppercase">Developer Control</h1>
+            <p className="mt-1 text-sm text-white/50">Advanced platform settings and automations.</p>
+            <a href={withLocale(locale, '/guide')} className="mt-1 inline-block text-xs font-bold text-brand-neon underline">
+              📖 User Guide
+            </a>
+          </div>
+          <Link
+            href={withLocale(locale, '/admin/sales/new')}
+            className="inline-flex min-h-12 items-center justify-center bg-brand-neon px-6 py-3 text-sm font-black uppercase tracking-[0.16em] text-black transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-dark"
+          >
+            {locale === 'es' ? '+ Nueva venta' : '+ New sale'}
+          </Link>
         </div>
 
         <section className="mb-10">

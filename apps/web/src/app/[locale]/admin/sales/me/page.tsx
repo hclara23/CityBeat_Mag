@@ -110,6 +110,11 @@ export default function SalesDesk() {
     return () => { active = false }
   }, [checkoutUrl])
 
+  useEffect(() => {
+    if (!ready || window.location.hash !== '#new-sale') return
+    requestAnimationFrame(() => saleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }, [ready])
+
   const summary = me?.summary || {}
   const closedDeals = useMemo(() => me?.deals || [], [me])
 
@@ -283,6 +288,13 @@ export default function SalesDesk() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3 text-xs font-black uppercase tracking-[0.14em]">
+              <button
+                type="button"
+                onClick={() => saleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="bg-brand-neon px-4 py-2 text-black transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                {isEs ? '+ Nueva venta' : '+ New sale'}
+              </button>
               <a href="/downloads/citybeat-sales-guide.pdf" download className="border border-white/20 px-4 py-2 text-white/70 hover:border-brand-neon/60 hover:text-brand-neon">
                 Download guide
               </a>
@@ -313,7 +325,9 @@ export default function SalesDesk() {
         <div ref={saleRef} id="new-sale" className="mt-8 scroll-mt-4 border border-brand-neon/25 bg-gradient-to-br from-brand-neon/[0.07] via-white/[0.025] to-brand-magenta/[0.04] p-5 sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-brand-neon">Quick sale</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-brand-neon">
+                {isEs ? 'Nueva venta' : 'New sale'}
+              </p>
               <h2 className="mt-1 font-display text-2xl font-black text-white">One form. No setup maze.</h2>
             </div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/45">
