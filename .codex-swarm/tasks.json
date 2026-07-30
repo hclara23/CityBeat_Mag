@@ -8024,7 +8024,7 @@
     {
       "id": "202607301844-2TCNRM",
       "title": "Replenish newsroom queue and vary article visuals",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [
@@ -8046,6 +8046,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "Approved by the user: populate the empty article review queue with a secure newsroom crawl, eliminate the repeated default article image everywhere, deploy the change, and verify production."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: securely trigger the bounded newsroom crawl through Cloud Scheduler, verify pending-review records, repair any zero-draft failure if necessary, then replace recycled article imagery with deterministic editorial visuals and deploy."
         }
       ],
       "doc_version": 2,
@@ -8059,6 +8063,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "130e391aebe8c3818cb598040b07d2564b30b2f81ad4f754edd21f78d44e7a15"
+    "checksum": "d0046f475e40e9fb09df5a9ef8254c8deeebd6c5a6b062cd0d40343b79727f08"
   }
 }

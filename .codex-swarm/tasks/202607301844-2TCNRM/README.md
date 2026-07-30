@@ -1,7 +1,7 @@
 ---
 id: "202607301844-2TCNRM"
 title: "Replenish newsroom queue and vary article visuals"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202607301822-ZSCD9X"]
@@ -9,8 +9,9 @@ tags: ["frontend", "backend", "newsroom", "articles", "deployment"]
 verify: ["npm run test", "npm run type-check", "npm run build"]
 comments:
   - { author: "ORCHESTRATOR", body: "Approved by the user: populate the empty article review queue with a secure newsroom crawl, eliminate the repeated default article image everywhere, deploy the change, and verify production." }
+  - { author: "ORCHESTRATOR", body: "Start: securely trigger the bounded newsroom crawl through Cloud Scheduler, verify pending-review records, repair any zero-draft failure if necessary, then replace recycled article imagery with deterministic editorial visuals and deploy." }
 doc_version: 2
-doc_updated_at: "2026-07-30T18:46:05+00:00"
+doc_updated_at: "2026-07-30T18:58:36+00:00"
 doc_updated_by: "agentctl"
 description: "Securely trigger and verify the autonomous newsroom queue, diagnose any zero-draft ingestion failure, replace the fixed recycled article fallback photo across public surfaces with truthful deterministic CityBeat editorial visuals, test and visually verify the change, deploy it, and record production evidence."
 ---
@@ -40,5 +41,5 @@ Route Cloud Run traffic back to citybeat-web-00150-f2b if the visual release is 
 
 ## Notes
 
-User approved the secure crawl and production visual change on 2026-07-30. The frontend-design guidance favors a reusable editorial fallback that clearly looks designed rather than pretending to be event photography. Never print or persist CRON_SECRET or ANTHROPIC_API_KEY values.
+Implementation adds explicit written, editorial-reject, and retryable-error outcomes for newsroom rewrites; bounded hourly retries recover legacy provider failures without retry loops or leaking provider responses. Article cards and the home hero now render real images when present and deterministic category-colored CityBeat editorial visuals otherwise. Local verification passed: 50 tests, all four package type checks, and the production Next.js build.
 

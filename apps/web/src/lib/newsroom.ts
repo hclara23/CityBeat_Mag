@@ -55,6 +55,15 @@ export type WrittenArticle = {
   image_query: string
 }
 
+export type RewriteArticleResult =
+  | { outcome: 'written'; article: WrittenArticle }
+  | { outcome: 'editorial_reject'; reason: 'not_publishable' }
+  | {
+      outcome: 'retryable_error'
+      reason: 'missing_api_key' | 'invalid_response' | 'request_failed' | `anthropic_http_${number}`
+      status?: number
+    }
+
 export type ArticleImage = { url: string; credit: string; creditUrl: string }
 
 export function newsroomConfigured(): boolean {
@@ -137,9 +146,9 @@ export async function fetchElPasoHeadlines(maxAgeHours = 72): Promise<NewsItem[]
 }
 
 // Re-report one headline as an original AP-style brief (EN + ES) via Claude.
-export async function rewriteAsArticle(item: NewsItem): Promise<WrittenArticle | null> {
+export async function rewriteAsArticle(item: NewsItem): Promise<RewriteArticleResult> {
   const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return null
+  if (!key) return { outcome: 'retryable_error', reason: 'missing_api_key' }
 
   const prompt = `${AI_WRITING_RULES}
 
@@ -169,26 +178,40 @@ Respond with ONLY valid JSON (no markdown fences):
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model: MODEL, max_tokens: 3000, messages: [{ role: 'user', content: prompt }] }),
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      return {
+        outcome: 'retryable_error',
+        reason: `anthropic_http_${res.status}`,
+        status: res.status,
+      }
+    }
     const data: any = await res.json()
     await traceClaude('newsroom.rewrite', prompt, data, { source: item.source })
     const text: string = data?.content?.[0]?.text || ''
     const parsed = JSON.parse(text.replace(/^```(json)?/i, '').replace(/```$/i, '').trim())
-    if (!parsed || parsed.publishable === false || !parsed.title || !parsed.body_en) return null
+    if (parsed?.publishable === false) {
+      return { outcome: 'editorial_reject', reason: 'not_publishable' }
+    }
+    if (!parsed || !parsed.title || !parsed.body_en) {
+      return { outcome: 'retryable_error', reason: 'invalid_response' }
+    }
     const cat = ['news', 'business', 'events', 'culture'].includes(parsed.category) ? parsed.category : 'news'
     return {
-      publishable: true,
-      category: cat,
-      title: String(parsed.title).slice(0, 140),
-      title_es: String(parsed.title_es || parsed.title).slice(0, 160),
-      excerpt: String(parsed.excerpt || '').slice(0, 200),
-      excerpt_es: String(parsed.excerpt_es || parsed.excerpt || '').slice(0, 200),
-      body_en: String(parsed.body_en).slice(0, 6000),
-      body_es: String(parsed.body_es || parsed.body_en).slice(0, 6000),
-      image_query: String(parsed.image_query || '').slice(0, 60),
+      outcome: 'written',
+      article: {
+        publishable: true,
+        category: cat,
+        title: String(parsed.title).slice(0, 140),
+        title_es: String(parsed.title_es || parsed.title).slice(0, 160),
+        excerpt: String(parsed.excerpt || '').slice(0, 200),
+        excerpt_es: String(parsed.excerpt_es || parsed.excerpt || '').slice(0, 200),
+        body_en: String(parsed.body_en).slice(0, 6000),
+        body_es: String(parsed.body_es || parsed.body_en).slice(0, 6000),
+        image_query: String(parsed.image_query || '').slice(0, 60),
+      },
     }
   } catch {
-    return null
+    return { outcome: 'retryable_error', reason: 'request_failed' }
   }
 }
 

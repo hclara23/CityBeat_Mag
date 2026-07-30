@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
+import { ArticleVisual } from '@/components/citybeat/ArticleVisual'
 import { withLocale, type Locale } from '@/components/citybeat/content'
 import { getServerUser } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
@@ -58,16 +58,14 @@ export default async function SavedPage({ params }: Props) {
                 className="group"
               >
                 <article className="grid gap-4">
-                  <div className="overflow-hidden rounded-md bg-white/5">
-                    <Image
-                      src={article.image ?? 'https://picsum.photos/seed/citybeat-local/1600/1000'}
-                      alt=""
-                      width={900}
-                      height={650}
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      className="aspect-[4/3] w-full object-cover opacity-85 transition duration-500 group-hover:scale-105"
-                    />
-                  </div>
+                  <ArticleVisual
+                    identifier={article.slug}
+                    title={locale === 'es' ? article.titleES : article.title}
+                    category={article.category}
+                    image={article.image}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="aspect-[4/3] rounded-md"
+                  />
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-neon">
                       {article.category}

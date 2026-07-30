@@ -6,6 +6,11 @@ import { fetchElPasoHeadlines, rewriteAsArticle, findArticleImage, newsroomConfi
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
 import { notify, NOTIFY_WORKFLOWS } from '@/lib/notify'
+import {
+  nextRetryRecord,
+  shouldAttemptProcessedNews,
+  type ProcessedNewsRecord,
+} from '@/lib/newsroom-processing'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -75,6 +80,7 @@ export async function GET(request: NextRequest) {
     const headlines = await fetchElPasoHeadlines()
     const created: any[] = []
     const skipped: string[] = []
+    const rewriteFailures: Record<string, number> = {}
     let attempts = 0
     const maxAttempts = limit + 6 // bound token spend even if many are unusable
 
@@ -82,22 +88,44 @@ export async function GET(request: NextRequest) {
       if (created.length >= limit || attempts >= maxAttempts) break
       const id = keyOf(item)
 
-      // Skip anything we've already handled (published or rejected).
-      const seen = await adminDb.collection('processed_news').doc(id).get()
-      if (seen.exists) continue
+      // Published and genuine editorial rejections stay deduplicated. Legacy
+      // provider failures and due retryable failures get a bounded recovery path.
+      const processedRef = adminDb.collection('processed_news').doc(id)
+      const seen = await processedRef.get()
+      const previous = seen.exists ? (seen.data() as ProcessedNewsRecord) : undefined
+      if (!shouldAttemptProcessedNews(previous)) continue
       attempts++
 
-      const written = await rewriteAsArticle(item)
-      if (!written) {
+      const rewrite = await rewriteAsArticle(item)
+      if (rewrite.outcome === 'editorial_reject') {
         if (!dryRun) {
-          await adminDb.collection('processed_news').doc(id).set({
+          await processedRef.set({
             title: item.title, link: item.link, source: item.source,
-            publishable: false, at: FieldValue.serverTimestamp(),
+            publishable: false, outcome: 'editorial_reject', at: FieldValue.serverTimestamp(),
           })
         }
         skipped.push(item.title)
         continue
       }
+      if (rewrite.outcome === 'retryable_error') {
+        rewriteFailures[rewrite.reason] = (rewriteFailures[rewrite.reason] || 0) + 1
+        console.warn('newsroom rewrite unavailable', {
+          source: item.source,
+          reason: rewrite.reason,
+          status: rewrite.status,
+        })
+        if (!dryRun) {
+          await processedRef.set({
+            title: item.title,
+            link: item.link,
+            source: item.source,
+            ...nextRetryRecord(previous, rewrite.reason),
+            at: FieldValue.serverTimestamp(),
+          })
+        }
+        continue
+      }
+      const written = rewrite.article
 
       if (dryRun) {
         const wantsImg = IMAGE_CATEGORIES.has(written.category)
@@ -145,7 +173,7 @@ export async function GET(request: NextRequest) {
         created_at: FieldValue.serverTimestamp(),
         published_at: publish ? FieldValue.serverTimestamp() : null,
       })
-      await adminDb.collection('processed_news').doc(id).set({
+      await processedRef.set({
         title: item.title, link: item.link, source: item.source,
         publishable: true, article_id: ref.id, slug, status: publish ? 'published' : 'pending_review',
         at: FieldValue.serverTimestamp(),
@@ -173,6 +201,8 @@ export async function GET(request: NextRequest) {
       created: created.length,
       articles: created,
       skipped_thin: skipped.length,
+      retryable_failures: Object.values(rewriteFailures).reduce((sum, count) => sum + count, 0),
+      rewrite_failure_reasons: rewriteFailures,
     })
   } catch (error) {
     await reportFailure('cron:auto-articles', error)

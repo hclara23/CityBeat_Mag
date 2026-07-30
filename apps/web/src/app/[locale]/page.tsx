@@ -7,6 +7,7 @@ import { getUpcomingEvents } from '@/lib/events'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { NewsletterForm } from '@/components/NewsletterForm'
 import { AdBanner } from '@/components/citybeat/AdBanner'
+import { ArticleVisual } from '@/components/citybeat/ArticleVisual'
 import { jsonLdSafe } from '@/lib/jsonld'
 import { affiliateTicketUrl } from '@/lib/affiliate'
 type HomePageProps = {
@@ -24,7 +25,7 @@ export default async function Home({ params }: HomePageProps) {
     title: locale === 'es' ? article.titleES : article.title,
     dek: locale === 'es' ? article.excerptES : article.excerpt,
     category: article.category,
-    image: article.image ?? 'https://picsum.photos/seed/citybeat-local/1600/1000',
+    image: article.image,
     href: `/stories/${article.slug}`,
   }))
   const stories = importedStories.length > 0 ? importedStories : getTopStories(locale)
@@ -93,13 +94,14 @@ export default async function Home({ params }: HomePageProps) {
     <CityBeatShell locale={locale}>
       <section className="relative min-h-[86svh] overflow-hidden">
         <div className="absolute inset-0">
-          <Image
-            src={featured.image}
-            alt=""
-            fill
+          <ArticleVisual
+            identifier={featured.href}
+            title={featured.title}
+            category={featured.category}
+            image={featured.image}
             priority
             sizes="100vw"
-            className="object-cover opacity-70"
+            className="h-full w-full"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black via-black/72 to-black/15" />
           <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-transparent to-transparent" />
@@ -138,16 +140,14 @@ export default async function Home({ params }: HomePageProps) {
           {secondaryStories.map((story) => (
             <Link key={story.title} href={withLocale(locale, story.href)} className="group">
               <article className="grid gap-4">
-                <div className="overflow-hidden rounded-md bg-white/5">
-                  <Image
-                    src={story.image}
-                    alt=""
-                    width={900}
-                    height={650}
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    className="aspect-[4/3] w-full object-cover opacity-85 transition duration-500 group-hover:scale-105 group-hover:opacity-70"
-                  />
-                </div>
+                <ArticleVisual
+                  identifier={story.href}
+                  title={story.title}
+                  category={story.category}
+                  image={story.image}
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="aspect-[4/3] rounded-md"
+                />
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-neon">{story.category}</p>
                   <h2 className="mt-2 text-2xl font-black leading-tight text-white transition group-hover:text-brand-neon">
