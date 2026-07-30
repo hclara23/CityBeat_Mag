@@ -23,7 +23,7 @@ const developerLinks = [
 // admin ⊇ editor/writer/sales, + advertiser), these are just the entry points.
 const teamLinks = [
   { href: '/creator', label: 'Creator Studio', description: 'Write, edit, and publish stories — a developer can publish directly.' },
-  { href: '/admin/review', label: 'Review Queue', description: 'Approve or publish articles submitted for review.' },
+  { href: '/admin', label: 'Review Queue', description: 'Approve or publish articles submitted for review.' },
   { href: '/admin/sales/me', label: 'Sales Desk', description: 'Work leads, generate any product checkout, and track commissions in one place.' },
   { href: '/dashboard', label: 'Advertiser Dashboard', description: 'Campaigns, your listings, deals, and customer leads.' },
   { href: '/directory', label: 'Directory', description: 'Browse the public directory and manage any listing inline.' },

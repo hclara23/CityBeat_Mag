@@ -7980,7 +7980,7 @@
     {
       "id": "202607301822-ZSCD9X",
       "title": "Repair article review queue route",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [
@@ -8001,6 +8001,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "Approved by the user: repair the article Review Queue 404, preserve English and Spanish direct URLs, deploy the fix, and verify production routing."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: correct the canonical Developer Control queue link, add locale-preserving compatibility redirects, verify route precedence and authentication behavior, then deploy and smoke-test production."
         }
       ],
       "doc_version": 2,
@@ -8014,6 +8018,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "7ae2b402b84ccc7d4c39218b0f8d67eee06f198f2f147f475683f25b58a516d3"
+    "checksum": "c47b6ea9900145eedddb222f1181acf278bd7ff7821ea4b3f727157c0748fbaa"
   }
 }

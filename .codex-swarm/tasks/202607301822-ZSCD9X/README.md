@@ -1,7 +1,7 @@
 ---
 id: "202607301822-ZSCD9X"
 title: "Repair article review queue route"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202607212230-WQPVHN"]
@@ -9,8 +9,9 @@ tags: ["frontend", "routing", "admin", "deployment"]
 verify: ["npm run test", "npm run type-check", "npm run build"]
 comments:
   - { author: "ORCHESTRATOR", body: "Approved by the user: repair the article Review Queue 404, preserve English and Spanish direct URLs, deploy the fix, and verify production routing." }
+  - { author: "ORCHESTRATOR", body: "Start: correct the canonical Developer Control queue link, add locale-preserving compatibility redirects, verify route precedence and authentication behavior, then deploy and smoke-test production." }
 doc_version: 2
-doc_updated_at: "2026-07-30T18:22:21+00:00"
+doc_updated_at: "2026-07-30T18:25:30+00:00"
 doc_updated_by: "agentctl"
 description: "Fix the Developer Control article Review Queue link, preserve localized /admin/review bookmarks with canonical redirects to /admin, verify individual /admin/review/[id] routes remain intact, deploy the web repair, and record production evidence."
 ---
@@ -40,5 +41,5 @@ Route Cloud Run traffic back to citybeat-web-00149-nrk if the new revision is un
 
 ## Notes
 
-User approved implementation and production deployment on 2026-07-30. The frontend-design guidance will preserve the established CityBeat editorial admin styling rather than introduce a duplicate queue interface. No data migration or secret changes are required.
+User approved implementation and production deployment on 2026-07-30. The frontend-design guidance preserved the established CityBeat editorial admin experience: no duplicate queue UI was introduced; the existing /admin workspace remains canonical. Pre-deployment verification passed: focused source regression check, all 46 automated tests, all four TypeScript package checks, and the full Next.js production build with 104 generated static pages. The build registers both localized /admin/review compatibility pages and the dynamic /admin/review/[id] article route. No data migration or secret changes are required.
 
