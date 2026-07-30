@@ -205,6 +205,13 @@ export default function SalesDesk() {
     }
   }
 
+  async function openSmsComposer(destination: string) {
+    const recipient = destination.replace(/[^\d+]/g, '')
+    const message = `CityBeat: secure payment link for ${handoffOrder?.businessName || 'your order'}${checkoutPrice ? ` (${checkoutPrice})` : ''}: ${checkoutUrl}`
+    await navigator.clipboard.writeText(checkoutUrl).catch(() => {})
+    window.location.href = `sms:${recipient}?&body=${encodeURIComponent(message)}`
+  }
+
   async function sendLink(channel: 'email' | 'sms') {
     const destination = channel === 'email' ? handoffOrder?.contactEmail || '' : handoffOrder?.phone || ''
     if (!destination) return setSentMsg(channel === 'email' ? 'Add the client email first.' : 'Add a phone number first.')
@@ -225,7 +232,8 @@ export default function SalesDesk() {
       if (response.ok && data.ok) {
         setSentMsg(channel === 'email' ? 'Payment link emailed.' : 'Payment link texted.')
       } else if (data?.results?.sms?.error === 'sms_not_configured') {
-        setSentMsg('Texting is not configured yet. Email or copy the link instead.')
+        await openSmsComposer(destination)
+        setSentMsg('Opened your texting app with the payment message ready. The link is also copied.')
       } else {
         setSentMsg(data.error || 'Could not send the link.')
       }

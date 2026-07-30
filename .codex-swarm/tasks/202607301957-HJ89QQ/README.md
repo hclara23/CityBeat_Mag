@@ -10,7 +10,7 @@ verify: ["npm run lint", "npm run build"]
 comments:
   - { author: "ORCHESTRATOR", body: "Start: trace the current developer and Sales Desk routes, restore a direct New Sale entry point, verify checkout-link and QR sharing, then deploy and smoke-test production." }
 doc_version: 2
-doc_updated_at: "2026-07-30T20:03:04+00:00"
+doc_updated_at: "2026-07-30T20:12:05+00:00"
 doc_updated_by: "agentctl"
 description: "Restore a prominent, low-click New Sale entry point for platform sales staff; preserve the product and variation selector; verify Stripe payment-link and QR generation plus text and email sharing; deploy and confirm the production workflow."
 ---
@@ -40,5 +40,5 @@ Route Cloud Run traffic back to production revision citybeat-web-00152-9lb and r
 
 ## Notes
 
-The existing Sales Desk implementation was confirmed to retain the complete product catalog, recurring and one-time Stripe checkout, customer fulfillment handoff, QR generation, secure order-bound email/SMS sending, and copy-link fallback. The frontend-design skill kept the change within CityBeat's editorial dark/neon design system and emphasized the primary sales action without introducing a duplicate flow.
+The existing Sales Desk retains the complete product catalog, recurring and one-time Stripe checkout, customer fulfillment handoff, QR generation, secure order-bound email/SMS delivery, and copy-link fallback. The frontend-design skill kept the restored action within CityBeat's editorial dark/neon design system. Initial production revision citybeat-web-00153-cqj verified Stripe and Resend configuration but found Twilio absent; the Text action now keeps automatic Twilio delivery when available and otherwise opens the salesperson's native SMS composer with the customer number and payment message prefilled while copying the link as a fallback. All 52 tests, lint, type checks, and the production build pass after this fallback.
 
