@@ -8242,12 +8242,47 @@
       "doc_updated_by": "agentctl",
       "description": "Correct the unified Sales Desk so new businesses explicitly choose Basic Free, Founders $9.99 monthly, or Premium $19.99 monthly; free listings bypass Stripe and return only a claimable public listing handoff, while paid listings return both their order-bound payment handoff and the created listing handoff; provide Open, QR, Email, Text, and Copy actions, prevent stale or duplicate payment handoffs, update tests and sales guidance, deploy, and smoke-test production.",
       "doc": "## Summary\n\nMake new directory creation an explicit three-choice flow: Basic Free, Founders $9.99 monthly, or Premium $19.99 monthly. Free listings bypass Stripe and return only a public claim handoff; paid new listings return both the Stripe payment handoff and the public listing handoff.\n\n## Context\n\nThe Sales Desk initialized every new directory sale as Premium Monthly, which could produce a $19.99 checkout without an explicit price choice. Newly created businesses also lacked an immediate public listing URL and claim QR, so salespeople could not hand the customer their actual listing independently of payment.\n\n## Scope\n\nAdd Basic Free to the canonical catalog; limit new-business choices to Free, Founders Monthly, and Premium Monthly; create public Basic directory records before or without checkout; preserve claimability after paid webhooks and fulfillment; add listing Open, QR, Email, Text, and Copy handoff with seller and destination validation; show payment handoff only for paid products; label free records accurately in Recent Orders; prevent private directory billing and seller fields from reaching public client props; update in-app, Markdown, and printable sales guidance; test, deploy, and smoke-test production.\n\n## Risks\n\nFree creation must never initialize Stripe or produce a payment URL. Listing handoffs must be restricted to records created by the signed-in seller and to the recorded customer destination. Paid rep-created listings must remain unclaimed until the real owner verifies the on-record business email; payment alone cannot prove ownership. Fulfillment must merge paid details without hiding or resetting a claimed public page. Existing listing upgrades keep the wider paid-plan catalog.\n\n## Verify Steps\n\nRun npm run test, npm run lint, npm run type-check, and npm run build. Generate both PDFs with the bundled Python runtime, confirm page counts, link counts, extracted text, and public copies, render all six pages at 144 DPI, and inspect for clipping or misleading free/payment language. Run source-only git diff --check. After deployment, verify health, guide and PDF routes, the protected Sales Desk redirect, and the new send-listing endpoint authentication boundary.\n\n## Rollback Plan\n\nRevert the implementation commit and redeploy the prior Cloud Run revision. The change introduces no schema migration: added listing and audit fields are additive, and existing paid orders remain readable. If necessary, disable the Basic Free catalog option while retaining existing public listings.\n\n## Notes\n\nThe Sales Desk uses the existing CityBeat industrial/editorial design. Cyan identifies Stripe payment; magenta identifies the public listing claim handoff. Basic Free is the default for a blank new-business flow. Paid new businesses receive two clearly labeled cards, while free listings never render payment actions. Claiming a Sales Desk listing verifies ownership without creating another checkout; a confirmed paid pending tier survives verification, and the payment webhook preserves an owner who claimed before paying. Implementation commit 627fc65c05d7 deployed as Cloud Run revision citybeat-web-00156-dkf at 100% traffic. Production smoke checks passed for homepage, health, guide, PDF content types and exact hashes, the protected Sales Desk redirect, and the 401 authentication boundary on the new listing-link sender."
+    },
+    {
+      "id": "202607302139-85BZPC",
+      "title": "Document directory platform implementation handoff",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "docs",
+        "handoff",
+        "directory"
+      ],
+      "verify": [
+        "rg -q Claude docs/CLAUDE_HANDOFF_DIRECTORY_PLATFORM.md"
+      ],
+      "commit": {
+        "hash": "213ee28ab0ad34c6c8aa59896caeb17c9988e581",
+        "message": "📝 202607302139-85BZPC document Claude directory platform handoff"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: Build a complete implementation handoff so another coding agent can continue without conversation history."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: The handoff contains all six implementation packages, critical code paths, security constraints, rollout sequencing, test coverage, deployment guidance, and completion criteria | details: all referenced critical files exist."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-30T21:43:58+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Create a self-contained Claude handoff covering the six requested directory platform implementations plus newsletter consent, developer-only audience management, security, analytics, rollout, testing, and deployment guidance.",
+      "doc": "## Summary\n\nCreate a self-contained Claude handoff for the planned directory owner platform, analytics, notifications, newsletter consent, and developer-only audience console work.\n\n## Context\n\nThe user requested a handoff because the current conversation is nearing its token limit. The document must preserve completed production baseline work, the six outstanding implementation packages, recommended architecture, security constraints, tests, and deployment steps.\n\n## Scope\n\nAdd docs/CLAUDE_HANDOFF_DIRECTORY_PLATFORM.md covering salesperson verification bypass; owner CMS and entitlements; Google Business Profile parity and CityBeat differentiators; listing analytics; owner notifications and monthly reports; newsletter preferences and developer-only downloadable audience data.\n\n## Risks\n\nThe handoff must not blur completed and pending work, weaken payment or claim security, imply disabled UI is authorization, or recommend marketing behavior without jurisdiction-aware consent and suppression safeguards.\n\n## Verify Steps\n\nConfirm the Markdown file exists; verify all six implementation headings, existing code map, rollout order, tests, deployment notes, and definition of done are present; inspect repository status and commit only the handoff/task artifacts.\n\n## Rollback Plan\n\nRevert the documentation commit. No runtime code, configuration, production data, or deployment state is changed by this task.\n\n## Notes\n\nImplementation remains pending for the next agent. Starting production baseline is main commit 240fa6a3e359fc414e31928e9adc9cb1b2a1b3e4 and Cloud Run revision citybeat-web-00156-dkf."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "bdc8b49bbd26cedc2734d470420d181502002f873897b1c1799a3ce10b98cf1b"
+    "checksum": "7191d3181b0fb5ec441a1f169dea20cdb7597b14e245d1393198eb499d67a5ad"
   }
 }
