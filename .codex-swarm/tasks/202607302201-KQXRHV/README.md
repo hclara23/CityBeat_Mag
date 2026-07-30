@@ -1,16 +1,18 @@
 ---
 id: "202607302201-KQXRHV"
 title: "Restore owner godmode and unify developer access"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["auth", "roles", "security", "production", "frontend", "backend"]
 verify: ["npm test", "npm run lint", "npm run type-check"]
+commit: { hash: "8f3b48bca1024a9a23461c5b9bc38bca0cc7434a", message: "✨ 202607302201-KQXRHV restore owner godmode and unify developer access" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: Restore the confirmed owner account to unrestricted developer access and eliminate inconsistent role resolution without elevating unrelated users." }
+  - { author: "ORCHESTRATOR", body: "verified: Restored the owner account to complete developer access, preserved the Yahoo account as non-developer, passed 56 tests plus lint, type checking, and production build, deployed revision citybeat-web-00157-zlx at 100% traffic, purged the stale Hosting cache, and passed public production smoke checks." }
 doc_version: 2
-doc_updated_at: "2026-07-30T22:11:55+00:00"
+doc_updated_at: "2026-07-30T22:23:46+00:00"
 doc_updated_by: "agentctl"
 description: "Identify the CityBeat owner account, restore unrestricted developer/superadmin capabilities, keep citybeatmag@yahoo.com non-developer, unify legacy role checks, test, deploy, and verify production access."
 ---
@@ -40,5 +42,5 @@ Revert the implementation commit and redeploy the previous Cloud Run revision. I
 
 ## Notes
 
-Production role normalization updated the current Firebase owner UID and its migrated legacy profile, and explicitly preserved the Yahoo stakeholder as non-developer. Three role_change_audits records identify the before/after state and this task ID.
+Production role normalization updated both owner profile records to the complete cumulative capability set and preserved the Yahoo stakeholder as non-developer, with three role_change_audits. Code commit 8f3b48b deployed as Cloud Run revision citybeat-web-00157-zlx at 100% traffic. Firebase Hosting was redeployed to purge a stale one-year /developer cache; unauthenticated production access now returns 307 to login with private no-store caching. Public health checks pass. Synthetic authenticated testing was not available because the local deploy identity lacks iam.serviceAccounts.signBlob; normal Firebase login is unaffected.
 

@@ -8277,12 +8277,52 @@
       "doc_updated_by": "agentctl",
       "description": "Create a self-contained Claude handoff covering the six requested directory platform implementations plus newsletter consent, developer-only audience management, security, analytics, rollout, testing, and deployment guidance.",
       "doc": "## Summary\n\nCreate a self-contained Claude handoff for the planned directory owner platform, analytics, notifications, newsletter consent, and developer-only audience console work.\n\n## Context\n\nThe user requested a handoff because the current conversation is nearing its token limit. The document must preserve completed production baseline work, the six outstanding implementation packages, recommended architecture, security constraints, tests, and deployment steps.\n\n## Scope\n\nAdd docs/CLAUDE_HANDOFF_DIRECTORY_PLATFORM.md covering salesperson verification bypass; owner CMS and entitlements; Google Business Profile parity and CityBeat differentiators; listing analytics; owner notifications and monthly reports; newsletter preferences and developer-only downloadable audience data.\n\n## Risks\n\nThe handoff must not blur completed and pending work, weaken payment or claim security, imply disabled UI is authorization, or recommend marketing behavior without jurisdiction-aware consent and suppression safeguards.\n\n## Verify Steps\n\nConfirm the Markdown file exists; verify all six implementation headings, existing code map, rollout order, tests, deployment notes, and definition of done are present; inspect repository status and commit only the handoff/task artifacts.\n\n## Rollback Plan\n\nRevert the documentation commit. No runtime code, configuration, production data, or deployment state is changed by this task.\n\n## Notes\n\nImplementation remains pending for the next agent. Starting production baseline is main commit 240fa6a3e359fc414e31928e9adc9cb1b2a1b3e4 and Cloud Run revision citybeat-web-00156-dkf."
+    },
+    {
+      "id": "202607302201-KQXRHV",
+      "title": "Restore owner godmode and unify developer access",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "auth",
+        "roles",
+        "security",
+        "production",
+        "frontend",
+        "backend"
+      ],
+      "verify": [
+        "npm test",
+        "npm run lint",
+        "npm run type-check"
+      ],
+      "commit": {
+        "hash": "8f3b48bca1024a9a23461c5b9bc38bca0cc7434a",
+        "message": "✨ 202607302201-KQXRHV restore owner godmode and unify developer access"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: Restore the confirmed owner account to unrestricted developer access and eliminate inconsistent role resolution without elevating unrelated users."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: Restored the owner account to complete developer access, preserved the Yahoo account as non-developer, passed 56 tests plus lint, type checking, and production build, deployed revision citybeat-web-00157-zlx at 100% traffic, purged the stale Hosting cache, and passed public production smoke checks."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-30T22:23:46+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Identify the CityBeat owner account, restore unrestricted developer/superadmin capabilities, keep citybeatmag@yahoo.com non-developer, unify legacy role checks, test, deploy, and verify production access.",
+      "doc": "## Summary\n\nRestore the CityBeat owner account to complete cumulative developer access, fix the login redirect that sent developers to the smaller editor dashboard, and centralize role capability resolution across authentication, navigation, pages, and APIs.\n\n## Context\n\nThe production owner account resolved as developer but lacked stored can_manage_platform and advertiser flags. The login page checked editor before developer, producing the Admin Control screen in the user's screenshot. A migrated legacy owner profile also exists.\n\n## Scope\n\nNormalize both owner profile records to developer plus every cumulative role; keep citybeatmag@yahoo.com explicitly non-developer; add audited production role changes; centralize effective capabilities and dashboard destination; harden developer server access; expand Developer Control module visibility; update the user guide and tests.\n\n## Risks\n\nPrivilege changes affect production authorization. Limit elevation to the confirmed owner email, preserve the Yahoo editor restriction, avoid elevating ordinary customers, require MFA on developer routes, audit external changes, and keep server authorization independent of visible navigation.\n\n## Verify Steps\n\nRun npm test, npm run lint, npm run type-check, and npm run build. Verify production Firestore owner profiles report every cumulative flag, the Yahoo profile is non-developer, login/Dashboard resolve to /developer, non-developers cannot access the developer route, and the deployed Developer Control exposes every module.\n\n## Rollback Plan\n\nRevert the implementation commit and redeploy the previous Cloud Run revision. If necessary, restore role fields from role_change_audits for task 202607302201-KQXRHV; do not alter passwords, sessions, payment data, or unrelated profiles.\n\n## Notes\n\nProduction role normalization updated both owner profile records to the complete cumulative capability set and preserved the Yahoo stakeholder as non-developer, with three role_change_audits. Code commit 8f3b48b deployed as Cloud Run revision citybeat-web-00157-zlx at 100% traffic. Firebase Hosting was redeployed to purge a stale one-year /developer cache; unauthenticated production access now returns 307 to login with private no-store caching. Public health checks pass. Synthetic authenticated testing was not available because the local deploy identity lacks iam.serviceAccounts.signBlob; normal Firebase login is unaffected."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "7191d3181b0fb5ec441a1f169dea20cdb7597b14e245d1393198eb499d67a5ad"
+    "checksum": "a54c81041f3c74a0d0e5ce3f1890364da259bf7063731b5dac0f60b6dce6b4c2"
   }
 }
