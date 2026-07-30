@@ -91,22 +91,23 @@ export function RoleGuide({ roles, locale }: { roles: GuideRoles; locale: string
         <Section title="Sales reps - New Sale">
           <Item heading="1. Start">
             Open the <L href={p('/admin/sales/me')}>Sales Desk</L> and select <strong>+ New sale</strong>. Choose the
-            exact product and variation from the grouped Product menu. The displayed price and billing term are the
-            final authority.
+            exact product and variation from the grouped Product menu. A new directory business offers Basic Free,
+            Founders $9.99/month, or Premium $19.99/month; it never silently defaults to a paid plan.
           </Item>
           <Item heading="2. Add the customer">
             Enter business name and email; phone is optional. For a Directory sale, select an existing listing or
             choose <strong>Add a new business</strong>. Enter a category manually when the correct one is not listed.
           </Item>
           <Item heading="3. Create checkout">
-            Confirm the summary, then select <strong>Create secure checkout</strong>. Stripe generates one payment
-            link and its matching QR code. Never type, photograph, or record a customer&apos;s card details yourself.
+            For Basic Free, select <strong>Create free listing</strong>; no payment link or card is involved. For a
+            paid plan, confirm the summary and create the secure Stripe checkout. Never type, photograph, or record a
+            customer&apos;s card details yourself.
           </Item>
           <Item heading="4. Hand off payment">
-            Use <strong>Open</strong> for an in-person card payment, show the QR, or select{' '}
-            <strong>Email</strong>, <strong>Text</strong>, or <strong>Copy</strong>. Text falls back to the
-            device&apos;s SMS app if automated messaging is unavailable. If details are wrong, select{' '}
-            <strong>Correct details</strong> and create a fresh link.
+            Every new business gets a public listing handoff with Open, QR, Email, Text, and Copy so the customer can
+            open the page and select Claim. Paid plans also get a separate Stripe payment handoff with the same five
+            actions. Free listings show no payment link or payment QR. Claiming verifies ownership without creating a
+            second Sales Desk charge. Text falls back to the device&apos;s SMS app when automated messaging is unavailable.
           </Item>
           <Item heading="5. Customer completes the order">
             After payment, the same private link continues to a short product-specific brief. It asks only for

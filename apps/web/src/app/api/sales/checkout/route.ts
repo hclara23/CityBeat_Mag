@@ -23,6 +23,10 @@ import {
   recurringCheckoutDefaults,
   recurringCustomerParams,
 } from '@/lib/sales-checkout'
+import {
+  buildSalesDirectoryListingRecord,
+  salesDirectoryListingUrl,
+} from '@/lib/sales-directory'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -104,12 +108,6 @@ async function existingDirectoryListing(input: {
 // returns to an order-specific intake wizard after payment; no card data ever
 // passes through CityBeat.
 export async function POST(request: NextRequest) {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY
-  if (!stripeSecretKey) {
-    return NextResponse.json({ error: 'Stripe configuration missing' }, { status: 500 })
-  }
-  const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-08-16' })
-
   const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
@@ -118,11 +116,20 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}))
   const product = resolveSalesProductRequest({ productId: body.productId, kind: body.kind, plan: body.plan })
   if (!product) return NextResponse.json({ error: 'Choose a valid product' }, { status: 400 })
+  const requiresCheckout = product.billing !== 'free'
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY
+  if (requiresCheckout && !stripeSecretKey) {
+    return NextResponse.json({ error: 'Stripe configuration missing' }, { status: 500 })
+  }
+  const stripe = requiresCheckout
+    ? new Stripe(stripeSecretKey!, { apiVersion: '2023-08-16' })
+    : null
 
   const businessName = typeof body.businessName === 'string' ? body.businessName.trim().slice(0, 140) : ''
   const contactEmail = normalizeSalesEmail(body.contactEmail)
   const contactPhone = typeof body.phone === 'string' ? body.phone.trim().slice(0, 40) : ''
   const locale = body.locale === 'es' ? 'es' : 'en'
+  const appOrigin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
   const amount = salesProductAmount(product, body.amount)
   const customDescription =
     typeof body.description === 'string' ? body.description.trim().slice(0, 300) : ''
@@ -138,6 +145,15 @@ export async function POST(request: NextRequest) {
   if (product.id === 'custom_one_time' && !customDescription) {
     return NextResponse.json({ error: 'Describe the approved custom product' }, { status: 400 })
   }
+  if (product.billing === 'free' && product.id !== 'directory_basic_free') {
+    return NextResponse.json({ error: 'Choose a valid free listing product' }, { status: 400 })
+  }
+  if (product.id === 'directory_basic_free' && body.listingId) {
+    return NextResponse.json(
+      { error: 'Basic Free is for a new business. The selected listing already exists.' },
+      { status: 409 }
+    )
+  }
   if (product.founding && !(await foundingOfferAvailable())) {
     return NextResponse.json(
       { error: 'The Founding 100 launch offer is sold out. Please choose another plan.', founding_sold_out: true },
@@ -150,10 +166,10 @@ export async function POST(request: NextRequest) {
   try {
     let listingId = typeof body.listingId === 'string' ? body.listingId.trim() : ''
     let listing: Record<string, unknown> | null = null
-    if (product.family === 'directory') {
+    if (product.family === 'directory' && product.billing !== 'free') {
       listing = await existingDirectoryListing({
         listingId,
-        stripe,
+        stripe: stripe!,
       })
     }
     const directoryCategory =
@@ -167,6 +183,57 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Choose a directory category or type a new one.' },
         { status: 400 }
+      )
+    }
+
+    if (product.id === 'directory_basic_free') {
+      const listingRef = adminDb.collection('directory_listings').doc()
+      const listingUrl = salesDirectoryListingUrl({
+        origin: appOrigin,
+        locale,
+        listingId: listingRef.id,
+      })
+      await listingRef.set(
+        buildSalesDirectoryListingRecord({
+          businessName,
+          category: directoryCategory,
+          contactEmail,
+          contactPhone,
+          locale,
+          sellerUserId: user.id,
+          productId: product.id,
+        })
+      )
+      return NextResponse.json(
+        {
+          url: null,
+          checkoutRequired: false,
+          orderId: null,
+          listingId: listingRef.id,
+          listingUrl,
+          listingCreated: true,
+          productId: product.id,
+          priceLabel: product.priceLabel,
+          billing: product.billing,
+        },
+        { status: 201 }
+      )
+    }
+
+    const sellerCreatedListing =
+      product.family === 'directory' && listing?.sales_created_by === user.id
+    if (sellerCreatedListing && listingId && listing?.claim_status === 'unclaimed') {
+      await adminDb.collection('directory_listings').doc(listingId).set(
+        {
+          name: businessName,
+          category: directoryCategory,
+          email: contactEmail,
+          contact_email: contactEmail,
+          phone: contactPhone || null,
+          requested_product_id: product.id,
+          updated_at: new Date().toISOString(),
+        },
+        { merge: true }
       )
     }
 
@@ -190,13 +257,35 @@ export async function POST(request: NextRequest) {
         tokenHash: access.tokenHash,
       })
     )
+    const listingCreated = product.family === 'directory' && !listingPreexisting
+    const listingUrl = listingCreated || sellerCreatedListing
+      ? salesDirectoryListingUrl({
+          origin: appOrigin,
+          locale,
+          listingId,
+        })
+      : null
+    if (listingCreated) {
+      await adminDb.collection('directory_listings').doc(listingId).set(
+        buildSalesDirectoryListingRecord({
+          businessName,
+          category: directoryCategory,
+          contactEmail,
+          contactPhone,
+          locale,
+          sellerUserId: user.id,
+          productId: product.id,
+          orderId: orderRef.id,
+        })
+      )
+    }
 
     const urls = salesOrderCheckoutUrls({
-      origin: new URL(request.url).origin,
+      origin: appOrigin,
       locale,
       orderId: orderRef.id,
       token: access.token,
-      billing: product.billing,
+      billing: product.billing === 'subscription' ? 'subscription' : 'one_time',
     })
     const sharedMetadata = salesOrderStripeMetadata({
       orderId: orderRef.id,
@@ -216,6 +305,7 @@ export async function POST(request: NextRequest) {
             founding: directoryPlan.founding ? 'true' : 'false',
             billing_cycle: directoryPlan.interval,
             directory_category: directoryCategory,
+            listing_preexisting: listingPreexisting ? 'true' : 'false',
           }
         : {
             adType: product.intakeKind,
@@ -234,7 +324,7 @@ export async function POST(request: NextRequest) {
           : { customer_email: contactEmail }
         : { customer_email: contactEmail }
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await stripe!.checkout.sessions.create({
       ...(product.billing === 'subscription'
         ? recurringCheckoutDefaults(priceLabel, product.interval || 'month')
         : oneTimeCheckoutDefaults()),
@@ -277,8 +367,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       url: session.url,
+      checkoutRequired: true,
       orderId: orderRef.id,
       listingId: listingId || null,
+      listingUrl,
+      listingCreated,
       productId: product.id,
       priceLabel,
       billing: product.billing,

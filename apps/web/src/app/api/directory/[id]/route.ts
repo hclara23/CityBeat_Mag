@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { translateTexts } from '@/lib/translate'
+import { isSalesCreatedDirectoryListing } from '@/lib/sales-directory'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -12,8 +13,41 @@ function toIso(v: any): string | null {
   return typeof v === 'string' ? v : null
 }
 
+function maskClaimContact(value: unknown, type: 'email' | 'phone'): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  if (!normalized) return null
+  if (type === 'email') {
+    const [local, domain] = normalized.split('@')
+    if (!local || !domain) return null
+    return `${local.slice(0, 1)}${'*'.repeat(Math.max(1, local.length - 1))}@${domain}`
+  }
+  const digits = normalized.replace(/\D/g, '')
+  return digits.length >= 4 ? `•••• ${digits.slice(-4)}` : null
+}
+
 function serializeListing(id: string, data: any) {
-  return { id, ...data, created_at: toIso(data.created_at), updated_at: toIso(data.updated_at) }
+  const listing: Record<string, any> = {
+    id,
+    ...data,
+    created_at: toIso(data.created_at),
+    updated_at: toIso(data.updated_at),
+    sales_created_listing: isSalesCreatedDirectoryListing(data),
+    claim_contact_email_hint: maskClaimContact(data.email || data.contact_email, 'email'),
+    claim_contact_phone_hint: maskClaimContact(data.phone, 'phone'),
+  }
+  for (const field of [
+    'email',
+    'contact_email',
+    'stripe_customer_id',
+    'stripe_subscription_id',
+    'sales_created_by',
+    'sold_by_rep',
+    'sales_order_id',
+    'requested_product_id',
+  ]) {
+    delete listing[field]
+  }
+  return listing
 }
 
 // GET: Fetch single listing details

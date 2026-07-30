@@ -361,7 +361,7 @@ def build_sales_story() -> list:
                 [
                     ["RECURRING", "ONE-TIME"],
                     [
-                        "Directory plans, Newsletter Sponsorship, and Category Banner. Stripe charges now, saves the card securely, and renews monthly or yearly until canceled.",
+                        "Basic Free has no card or charge. Paid Directory plans, Newsletter Sponsorship, and Category Banner renew through Stripe until canceled.",
                         "Sponsored Story, Featured Event, 30-Day Job Posting, and approved custom quote. One charge; no automatic renewal.",
                     ],
                 ],
@@ -376,11 +376,17 @@ def build_sales_story() -> list:
         title_block(
             "Directory products",
             "Sell the business presence first",
-            "All paid directory plans create a richer profile, website pathway, and local discovery surface. Founding plans are limited to the first 100 paid claimers.",
+            "Every business can start with a public claimable page. Paid plans add richer tools and visibility; Founding is limited to the first 100 paid claimers.",
         )
     )
     directory_rows = [
         ["PRODUCT", "PRICE", "CUSTOMER GETS", "BEST FIT"],
+        [
+            "Basic Free",
+            "<b>$0</b><br/>No card",
+            "A public, claimable CityBeat listing with no payment link or recurring charge.",
+            "Business that needs a credible starting presence now and may upgrade later.",
+        ],
         [
             "Founding Annual",
             "<b>$99 / yr</b><br/>$8.25/mo effective",
@@ -544,9 +550,9 @@ def build_sales_story() -> list:
                 ("1", "Ask the goal", "\"Do you need ongoing visibility, a campaign, event attendance, or local applicants?\""),
                 ("2", "Match one product", "Recommend the smallest product that directly addresses the goal."),
                 ("3", "State the exact offer", "Say the product, deliverable, price, and whether it renews."),
-                ("4", "Explain the next step", "The customer pays privately on Stripe, then completes the product-specific brief."),
-                ("5", "Create the checkout", "Open New Sale, verify the details, and send the fresh link or show the live QR."),
-                ("6", "Confirm the handoff", "Check payment, brief, and fulfillment status in the Sales Desk."),
+                ("4", "Explain the next step", "Free creates a claimable listing with no card. Paid products use Stripe, then the product brief."),
+                ("5", "Create the handoffs", "Free shows the Listing link only. A paid new listing shows separate Payment and Listing links."),
+                ("6", "Confirm the handoff", "Send the correct links; check paid order, brief, and fulfillment status in the Sales Desk."),
             ]
         )
     )
@@ -556,7 +562,7 @@ def build_sales_story() -> list:
             p("CLOSE LANGUAGE", "h1"),
             callout(
                 "Recommended",
-                '"Based on your goal, I recommend [product]. You receive [deliverable] for [exact price and term]. I can create a secure Stripe link now. You enter the card privately, and after payment the brief collects everything CityBeat needs to fulfill the order."',
+                '"Based on your goal, I recommend [product] for [exact price and term]. Basic Free needs no card; I create the listing and send its claim link. Paid products use a private Stripe link, followed by the fulfillment brief."',
             ),
             Spacer(1, 7),
             p("TRUTH CHECK", "h1"),
@@ -600,7 +606,7 @@ def build_quick_start_story() -> list:
         title_block(
             "Click-by-click desk reference",
             "New Sale Quick Start",
-            "Use this sheet after signing in. The customer always enters their own card on Stripe.",
+            "Use this sheet after signing in. Free listings skip Stripe; paid customers enter their own card.",
         )
     )
     start_table = Table(
@@ -634,33 +640,32 @@ def build_quick_start_story() -> list:
             Spacer(1, 8),
             step_table(
                 [
-                    ("1", "Select Product", "Choose the exact product and variation. Read the displayed price and billing term."),
-                    ("2", "Set up a directory sale", "Choose an existing listing or switch to New business. Select a category or type a correct new category."),
+                    ("1", "Select Product", "For a new directory business choose Basic Free, Founders $9.99/mo, or Premium $19.99/mo."),
+                    ("2", "Set up the listing", "Choose an existing listing or New business. Select a category or type a correct new category."),
                     ("3", "Enter the essentials", "Business name and client email are required. Phone is optional but needed for Text."),
-                    ("4", "Review the product card", "Confirm the customer benefit, price, and whether it is recurring or one-time."),
-                    ("5", "Click Create checkout", "Stripe creates one order-specific payment link. Wait for Checkout ready."),
-                    ("6", "Read it back", "Confirm customer name, product, exact price, and billing cadence before sending."),
+                    ("4", "Review the product card", "Confirm the customer benefit and whether the choice is Free, recurring, or one-time."),
+                    ("5", "Click Create", "Basic Free publishes the listing without Stripe. Paid products create the secure checkout."),
+                    ("6", "Check both handoffs", "Free shows only Listing ready to claim. A paid new listing shows Payment plus Listing."),
                 ]
             ),
             Spacer(1, 8),
-            p("HAND OFF THE PAYMENT", "h1"),
+            p("HAND OFF THE RIGHT LINK", "h1"),
             data_table(
                 [
-                    ["BUTTON", "USE IT WHEN", "WHAT HAPPENS"],
-                    ["Open", "Customer is with you and can use the same device.", "Opens the secure Stripe checkout."],
-                    ["QR", "Customer has a second device in person.", "They scan the live order-specific QR shown in the handoff panel."],
-                    ["Email", "Phone or remote sale.", "CityBeat emails the order-bound Stripe link to the recorded customer email."],
-                    ["Text", "Customer gave a phone number and permission.", "CityBeat sends automatically when configured; otherwise your texting app opens with the message ready and the link copied."],
-                    ["Copy", "Any approved channel or backup.", "Copies the same secure checkout link."],
+                    ["HANDOFF", "WHEN IT APPEARS", "WHAT THE CUSTOMER DOES"],
+                    ["Payment", "Every paid product.", "Pays on Stripe. Use Open, QR, Email, Text, or Copy."],
+                    ["Listing", "Every newly added directory business.", "Opens the public page and selects Claim. Use Open, QR, Email, Text, or Copy."],
+                    ["Free listing", "Basic Free ($0).", "Only the Listing handoff appears. There is no payment link or payment QR."],
+                    ["Paid new listing", "Founders or Premium.", "Both Payment and Listing handoffs appear. Send both links."],
                 ],
-                [0.7, 2.25, 3.9],
+                [1.05, 2.1, 3.7],
                 small=True,
                 header_color=CYAN_DARK,
             ),
             Spacer(1, 7),
             callout(
-                "Before the customer pays",
-                "If any detail is wrong, click Correct details and create a fresh checkout. Never reuse a link from another customer or another order.",
+                "Use the correct card",
+                "Payment pays for the product. Listing opens the business page for claiming. Claiming never creates a second Sales Desk charge.",
                 GOLD,
                 PALE_GOLD,
             ),
@@ -671,19 +676,19 @@ def build_quick_start_story() -> list:
     # Page 2 - after payment
     story.extend(
         title_block(
-            "After Stripe confirms payment",
-            "Payment opens the customer brief",
-            "The private wizard asks only for the purchased product, autosaves, and can be resumed for 30 days. No customer account is required.",
+            "What happens after the handoff",
+            "Paid orders continue; new listings get claimed",
+            "Stripe opens the paid-product brief. The separate public listing link lets the business owner verify and claim the page.",
         )
     )
     story.append(
         step_table(
             [
-                ("7", "Customer completes Stripe", "They enter their own card. Recurring products save it securely and renew automatically."),
-                ("8", "Open the fulfillment brief", "After payment, Stripe returns the customer to the private CityBeat product wizard."),
-                ("9", "Collect the order details", "The customer enters copy, links, images, dates, and other product-specific information."),
-                ("10", "Submit for review", "A paid, complete brief creates a staff-review record. It does not publish incomplete material."),
-                ("11", "Check Recent orders", "Confirm Payment, Billing, Brief, Fulfillment, Discount, and Commission status."),
+                ("7", "Free skips Stripe", "The Basic listing is already public. Send its listing link so the customer can claim it."),
+                ("8", "Paid customer completes Stripe", "They enter their own card. Recurring products save it securely and renew automatically."),
+                ("9", "Customer claims the listing", "From the public listing link, they select Claim and verify the business email."),
+                ("10", "Paid customer finishes the brief", "Stripe returns them to the private product wizard for fulfillment details."),
+                ("11", "Check Recent orders", "For paid sales, confirm Payment, Billing, Brief, Fulfillment, Discount, and Commission."),
                 ("12", "Click Start next sale", "Clear the previous customer and begin with a new order."),
             ]
         )
@@ -691,7 +696,7 @@ def build_quick_start_story() -> list:
     story.extend(
         [
             Spacer(1, 8),
-            p("WHAT EACH CUSTOMER BRIEF COLLECTS", "h1"),
+            p("WHAT EACH PAID CUSTOMER BRIEF COLLECTS", "h1"),
             data_table(
                 [
                     ["PRODUCT", "MAIN INFORMATION REQUIRED"],
@@ -711,8 +716,8 @@ def build_quick_start_story() -> list:
                     ["BEFORE", "PAYMENT", "AFTER"],
                     [
                         "[ ] Right customer<br/>[ ] Right product<br/>[ ] Exact price/term<br/>[ ] Consent to email/text",
-                        "[ ] Customer enters card<br/>[ ] Stripe page matches offer<br/>[ ] Receipt or success confirmed",
-                        "[ ] Brief submitted<br/>[ ] Status is In Review<br/>[ ] Follow-up explained<br/>[ ] Start next sale",
+                        "[ ] Free has no Stripe link<br/>[ ] Paid Stripe page matches<br/>[ ] Customer enters own card",
+                        "[ ] Listing link sent<br/>[ ] Claim explained<br/>[ ] Paid brief explained<br/>[ ] Start next sale",
                     ],
                 ],
                 [2.28, 2.28, 2.29],
@@ -721,7 +726,7 @@ def build_quick_start_story() -> list:
             Spacer(1, 8),
             callout(
                 "Stop and correct",
-                "Pause if the product, price, recurring term, customer, availability, or deliverable is unclear. Confirm with management, then create a new checkout. Accuracy prevents refunds and protects trust.",
+                "Pause if the product, price, term, customer, availability, or deliverable is unclear. Confirm with management, then create a fresh handoff. Accuracy prevents refunds and protects trust.",
                 MAGENTA,
                 PALE_MAGENTA,
             ),
@@ -763,6 +768,7 @@ def sha256(path: Path) -> str:
 def assert_catalog_source() -> None:
     source = PRODUCT_SOURCE.read_text(encoding="utf-8") + PRICING_SOURCE.read_text(encoding="utf-8")
     required_source_values = [
+        "directory_basic_free",
         "$99 / yr",
         "$9.99 / mo",
         "$199 / yr",
@@ -867,10 +873,11 @@ def verify_all() -> None:
         required_text=[
             "New Sale Quick Start",
             "+ NEW SALE",
-            "Create checkout",
-            "HAND OFF THE PAYMENT",
+            "Basic Free",
+            "HAND OFF THE RIGHT LINK",
+            "Listing ready to claim",
             "Text",
-            "Payment opens the customer brief",
+            "Paid orders continue",
             "Start next sale",
         ],
         minimum_links=1,

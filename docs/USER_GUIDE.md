@@ -63,6 +63,7 @@ Submit tips and story ideas at [/en/contribute](https://citybeatmag.co/en/contri
 
 | Product | Price | Billing |
 |---|---:|---|
+| Directory Basic | $0 | Free; no card or renewal |
 | Directory Founding Annual | $99 | Annual subscription |
 | Directory Founding Monthly | $9.99 | Monthly subscription |
 | Directory Premium Annual | $199 | Annual subscription |
@@ -83,17 +84,19 @@ The Sales Desk product menu and checkout summary are the final authority for cur
 2. Select **+ New sale**.
 3. Select the exact product and variation from the grouped **Product** menu.
 4. Enter business name and customer email. Add a phone number when available.
-5. For a Directory sale, select an existing business or **Add a new business**. Enter a custom category if the correct category is not listed.
-6. Check the customer, product, price, billing term, and any approved discount.
-7. Select **Create secure checkout**.
-8. Hand off the payment in the way that fits the sale:
+5. For a Directory sale, select an existing business or **Add a new business**. New businesses offer three direct choices: **Basic Free ($0)**, **Founders ($9.99/month)**, or **Premium ($19.99/month)**. Enter a custom category if the correct category is not listed.
+6. Check the customer, product, exact price, billing term, and any approved discount.
+7. For Basic Free, select **Create free listing**. CityBeat publishes a Basic listing without contacting Stripe or collecting a card.
+8. For a paid product, select **Create secure checkout**.
+9. Use the payment handoff when payment is required:
    - **Open:** Let an in-person customer enter their own card information.
    - **QR:** Show the live QR code for the customer to scan.
    - **Email:** Open a prepared email with the secure link.
    - **Text:** Send automatically when configured; otherwise CityBeat copies the link and opens the device's SMS app.
    - **Copy:** Copy the same link for another approved channel.
-9. Confirm payment and brief status in **Recent Orders**.
-10. Select **Start next sale** when finished.
+10. Every newly added directory business also receives a separate **Listing ready to claim** card. Open, show its QR, email, text, or copy the public listing URL. The customer opens the listing and selects **Claim**. Claiming verifies ownership and never creates a second Sales Desk charge.
+11. A free listing shows only the listing handoff; it never shows a payment link or payment QR. A paid new listing shows both the payment handoff and the listing handoff; its claim page does not offer another checkout.
+12. Confirm paid-order status in **Recent Orders**, then select **Start next sale**.
 
 Never type, photograph, write down, or record a customer's card information. If customer or product details are wrong, select **Correct details** and generate a fresh checkout instead of sending the old link.
 

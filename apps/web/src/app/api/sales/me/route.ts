@@ -74,20 +74,21 @@ export async function GET() {
       .map((document) => {
         const data = document.data()
         const paid = Boolean(data.stripe_subscription_id)
+        const free = data.requested_product_id === 'directory_basic_free'
         return {
           id: document.id,
           name: data.name || 'Business',
-          product_id: 'legacy_directory',
-          product_name: `Directory - ${data.tier || data.pending_tier || 'basic'}`,
-          billing_type: 'subscription',
-          billing_interval: data.billing_cycle || 'month',
+          product_id: free ? 'directory_basic_free' : 'legacy_directory',
+          product_name: free ? 'Directory - Basic Free' : `Directory - ${data.tier || data.pending_tier || 'basic'}`,
+          billing_type: free ? 'free' : 'subscription',
+          billing_interval: free ? null : data.billing_cycle || 'month',
           amount: 0,
           discount_amount: 0,
-          payment_status: paid ? 'paid' : 'pending',
-          billing_status: paid ? 'active' : 'pending',
-          intake_status: data.claim_status === 'approved' ? 'submitted' : 'not_started',
-          intake_completion: data.claim_status === 'approved' ? 100 : 0,
-          fulfillment_status: data.claim_status === 'approved' ? 'fulfilled' : 'in_review',
+          payment_status: free ? 'not_required' : paid ? 'paid' : 'pending',
+          billing_status: free ? 'not_required' : paid ? 'active' : 'pending',
+          intake_status: free ? 'not_required' : data.claim_status === 'approved' ? 'submitted' : 'not_started',
+          intake_completion: free ? 100 : data.claim_status === 'approved' ? 100 : 0,
+          fulfillment_status: free ? 'listing_live' : data.claim_status === 'approved' ? 'fulfilled' : 'in_review',
           contact_email: data.contact_email || null,
           commission_amount: 0,
           created_at: toMs(data.claimed_at || data.created_at),

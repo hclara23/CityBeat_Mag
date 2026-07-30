@@ -1,6 +1,7 @@
 import { DIRECTORY_PLANS, type PlanId } from './pricing'
 
 export type SalesProductId =
+  | 'directory_basic_free'
   | 'directory_founding_annual'
   | 'directory_founding_monthly'
   | 'directory_premium_annual'
@@ -14,7 +15,7 @@ export type SalesProductId =
   | 'custom_one_time'
 
 export type SalesProductFamily = 'directory' | 'advertising' | 'events' | 'jobs' | 'custom'
-export type SalesBillingKind = 'subscription' | 'one_time'
+export type SalesBillingKind = 'free' | 'subscription' | 'one_time'
 export type SalesIntakeKind =
   | 'directory'
   | 'newsletter_sponsorship'
@@ -65,6 +66,19 @@ function directoryProduct(
 }
 
 export const SALES_PRODUCTS: Record<SalesProductId, SalesProduct> = {
+  directory_basic_free: {
+    id: 'directory_basic_free',
+    family: 'directory',
+    intakeKind: 'directory',
+    name: 'Directory - Basic Free',
+    shortName: 'Basic Free',
+    description: 'A public, claimable CityBeat directory listing with no payment or recurring charge.',
+    salesAngle: 'Give every local business a credible CityBeat presence now, with a clear path to upgrade later.',
+    billing: 'free',
+    interval: null,
+    unitAmount: 0,
+    priceLabel: 'Free',
+  },
   directory_founding_annual: directoryProduct(
     'directory_founding_annual',
     'founding_annual',
@@ -176,6 +190,7 @@ export const SALES_PRODUCTS: Record<SalesProductId, SalesProduct> = {
 }
 
 export const SALES_PRODUCT_ORDER: SalesProductId[] = [
+  'directory_basic_free',
   'directory_founding_annual',
   'directory_founding_monthly',
   'directory_premium_annual',

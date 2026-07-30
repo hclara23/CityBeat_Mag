@@ -36,6 +36,23 @@ function toPlain(v: any): any {
   return v
 }
 
+function toPublicListing(listing: any) {
+  const plain = toPlain(listing)
+  for (const field of [
+    'email',
+    'contact_email',
+    'stripe_customer_id',
+    'stripe_subscription_id',
+    'sales_created_by',
+    'sold_by_rep',
+    'sales_order_id',
+    'requested_product_id',
+  ]) {
+    delete plain[field]
+  }
+  return plain
+}
+
 function cityFromAddress(address?: string | null): string | null {
   if (!address) return null
   // ".., El Paso, TX 79902" → "El Paso"
@@ -143,7 +160,7 @@ export default async function DirectoryDetailPage({ params }: { params: Params }
       {listing && listing.is_published !== false && !listing.merged_into && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(buildSchema(listing, locale)) }} />
       )}
-      <DirectoryDetailClient initialListing={listing ? toPlain(listing) : null} />
+      <DirectoryDetailClient initialListing={listing ? toPublicListing(listing) : null} />
     </>
   )
 }

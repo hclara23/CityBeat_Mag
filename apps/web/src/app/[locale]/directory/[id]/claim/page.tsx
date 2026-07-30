@@ -13,10 +13,11 @@ interface Listing {
   name: string
   category: string
   address: string | null
-  phone?: string | null
-  email?: string | null
   location_count?: number | null
   claim_status: 'unclaimed' | 'pending_approval' | 'approved'
+  sales_created_listing?: boolean
+  claim_contact_email_hint?: string | null
+  claim_contact_phone_hint?: string | null
 }
 
 // Plan price multiplied across all locations of a multi-location brand.
@@ -33,21 +34,6 @@ function planTotalLabel(planId: PlanId, count?: number | null): string {
   return `$${str} ${per}`
 }
 
-// Mask a listed contact so we can show the owner where the code will go without
-// exposing the full address/number to anyone browsing the claim page.
-function maskClient(value: string | null | undefined, type: 'email' | 'phone'): string | null {
-  if (!value) return null
-  const v = value.trim()
-  if (!v) return null
-  if (type === 'email') {
-    const [local, domain] = v.split('@')
-    if (!domain) return null
-    return `${local.slice(0, 1)}${'*'.repeat(Math.max(1, local.length - 1))}@${domain}`
-  }
-  const digits = v.replace(/\D/g, '')
-  return digits.length >= 4 ? `•••• ${digits.slice(-4)}` : null
-}
-
 interface UserProfile {
   id: string
   email: string
@@ -56,7 +42,8 @@ interface UserProfile {
 const translations = {
   en: {
     title: 'Claim Your Business',
-    subtitle: 'Upgrade your directory listing to Premium to build trust, attract customers, and stand out.',
+    subtitle: 'Verify ownership for free. You can manage your basic information after approval, and upgrades are optional.',
+    salesManagedSubtitle: 'Verify ownership for free. Your Sales Desk plan is already set and you will not be charged on this page.',
     priceLabel: 'Monthly Subscription',
     priceValue: '$19.00 / month',
     planFeatureTitle: 'What\'s included with Premium:',
@@ -76,7 +63,8 @@ const translations = {
   },
   es: {
     title: 'Reclamar Su Negocio',
-    subtitle: 'Mejore su perfil en el directorio a Premium para generar confianza, atraer clientes y destacar.',
+    subtitle: 'Verifique la propiedad gratis. Podrá administrar la información básica después de la aprobación y las mejoras son opcionales.',
+    salesManagedSubtitle: 'Verifique la propiedad gratis. Su plan de Ventas ya está configurado y no se le cobrará en esta página.',
     priceLabel: 'Suscripción Mensual',
     priceValue: '$19.00 / mes',
     planFeatureTitle: 'Qué incluye Premium:',
@@ -320,52 +308,56 @@ export default function ClaimPage() {
                 </p>
 
                 <p className="text-sm text-white/70 mt-4 leading-relaxed">
-                  {t.subtitle}
+                  {listing?.sales_created_listing ? t.salesManagedSubtitle : t.subtitle}
                 </p>
 
-                {/* Checkout Info — reflects the selected upgrade plan */}
-                <div className="mt-8 p-6 bg-brand-ink/80 rounded-xl border border-white/10 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-white/50 uppercase tracking-wider">{DIRECTORY_PLANS[selectedPlan].label}</p>
-                    <p className="text-2xl font-black text-brand-gold mt-1">{planTotalLabel(selectedPlan, listing?.location_count)}</p>
-                    {(listing?.location_count ?? 1) > 1 && (
-                      <p className="text-[11px] text-white/50 mt-1">
-                        {listing?.location_count} {locale === 'es' ? 'ubicaciones' : 'locations'} × {DIRECTORY_PLANS[selectedPlan].priceLabel}
-                      </p>
-                    )}
-                  </div>
-                  <div className="h-10 w-10 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center font-bold">
-                    $
-                  </div>
-                </div>
+                {!listing?.sales_created_listing && (
+                  <>
+                    {/* Checkout Info — reflects the selected optional upgrade plan */}
+                    <div className="mt-8 p-6 bg-brand-ink/80 rounded-xl border border-white/10 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-white/50 uppercase tracking-wider">{DIRECTORY_PLANS[selectedPlan].label}</p>
+                        <p className="text-2xl font-black text-brand-gold mt-1">{planTotalLabel(selectedPlan, listing?.location_count)}</p>
+                        {(listing?.location_count ?? 1) > 1 && (
+                          <p className="text-[11px] text-white/50 mt-1">
+                            {listing?.location_count} {locale === 'es' ? 'ubicaciones' : 'locations'} × {DIRECTORY_PLANS[selectedPlan].priceLabel}
+                          </p>
+                        )}
+                      </div>
+                      <div className="h-10 w-10 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center font-bold">
+                        $
+                      </div>
+                    </div>
 
-                <div className="mt-8 space-y-4">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-brand-neon">
-                    {t.planFeatureTitle}
-                  </h3>
-                  <ul className="space-y-3 text-xs text-white/80 pl-1">
-                    <li className="flex items-start gap-2.5">
-                      <span className="text-brand-neon font-black flex-shrink-0">✓</span>
-                      <span>{t.premiumRank}</span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <span className="text-brand-neon font-black flex-shrink-0">✓</span>
-                      <span>{t.premiumCover}</span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <span className="text-brand-neon font-black flex-shrink-0">✓</span>
-                      <span>{t.premiumGallery}</span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <span className="text-brand-neon font-black flex-shrink-0">✓</span>
-                      <span>{t.premiumSocial}</span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <span className="text-brand-neon font-black flex-shrink-0">✓</span>
-                      <span>{t.premiumHours}</span>
-                    </li>
-                  </ul>
-                </div>
+                    <div className="mt-8 space-y-4">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-brand-neon">
+                        {t.planFeatureTitle}
+                      </h3>
+                      <ul className="space-y-3 text-xs text-white/80 pl-1">
+                        <li className="flex items-start gap-2.5">
+                          <span className="text-brand-neon font-black flex-shrink-0">✓</span>
+                          <span>{t.premiumRank}</span>
+                        </li>
+                        <li className="flex items-start gap-2.5">
+                          <span className="text-brand-neon font-black flex-shrink-0">✓</span>
+                          <span>{t.premiumCover}</span>
+                        </li>
+                        <li className="flex items-start gap-2.5">
+                          <span className="text-brand-neon font-black flex-shrink-0">✓</span>
+                          <span>{t.premiumGallery}</span>
+                        </li>
+                        <li className="flex items-start gap-2.5">
+                          <span className="text-brand-neon font-black flex-shrink-0">✓</span>
+                          <span>{t.premiumSocial}</span>
+                        </li>
+                        <li className="flex items-start gap-2.5">
+                          <span className="text-brand-neon font-black flex-shrink-0">✓</span>
+                          <span>{t.premiumHours}</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </>
+                )}
 
                 {/* Authentication Check */}
                 <div className="mt-10 pt-8 border-t border-white/10">
@@ -398,12 +390,12 @@ export default function ClaimPage() {
                         </div>
                       )}
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-                        {/* Option 1: Claim Free */}
+                      <div className={`grid grid-cols-1 gap-6 items-stretch ${listing?.sales_created_listing ? '' : 'md:grid-cols-2'}`}>
+                        {/* Free ownership verification */}
                         <div className="citybeat-panel rounded-xl p-5 border border-white/10 flex flex-col justify-between bg-black/20">
                           <div>
                             <h3 className="font-display text-lg font-bold text-white uppercase tracking-wide mb-2">
-                              Option 1: Claim Free
+                              {listing?.sales_created_listing ? 'Claim This Listing' : 'Option 1: Claim Free'}
                             </h3>
                             <p className="text-xs text-white/60 leading-relaxed mb-4">
                               Verify ownership to correct spelling, update phone/website, and edit basic info for free.
@@ -439,8 +431,8 @@ export default function ClaimPage() {
 
                                 {claimMethod === 'email' && (
                                   <div className="p-3 bg-white/5 border border-white/5 rounded text-[11px] text-white/70">
-                                    {maskClient(listing?.email, 'email') ? (
-                                      <>We&apos;ll email a verification code to the address on file for this business: <strong className="text-white">{maskClient(listing?.email, 'email')}</strong>. You must have access to that inbox to verify ownership.</>
+                                    {listing?.claim_contact_email_hint ? (
+                                      <>We&apos;ll email a verification code to the address on file for this business: <strong className="text-white">{listing.claim_contact_email_hint}</strong>. You must have access to that inbox to verify ownership.</>
                                     ) : (
                                       <span className="text-brand-gold">No email is on file for this business. Please use SMS or postcard verification instead.</span>
                                     )}
@@ -449,8 +441,8 @@ export default function ClaimPage() {
 
                                 {claimMethod === 'phone' && (
                                   <div className="p-3 bg-white/5 border border-white/5 rounded text-[11px] text-white/70">
-                                    {maskClient(listing?.phone, 'phone') ? (
-                                      <>We&apos;ll text a verification code to the number on file for this business: <strong className="text-white">{maskClient(listing?.phone, 'phone')}</strong>. You must have access to that line to verify ownership.</>
+                                    {listing?.claim_contact_phone_hint ? (
+                                      <>We&apos;ll text a verification code to the number on file for this business: <strong className="text-white">{listing.claim_contact_phone_hint}</strong>. You must have access to that line to verify ownership.</>
                                     ) : (
                                       <span className="text-brand-gold">No phone number is on file for this business. Please use postcard verification instead.</span>
                                     )}
@@ -527,8 +519,8 @@ export default function ClaimPage() {
                           )}
                         </div>
 
-                        {/* Option 2: Claim Premium / Featured */}
-                        <div className="citybeat-panel rounded-xl p-5 border border-brand-gold/30 bg-gradient-to-b from-brand-charcoal to-brand-dark flex flex-col justify-between shadow-[0_0_15px_rgba(255,215,0,0.05)]">
+                        {!listing?.sales_created_listing && (
+                          <div className="citybeat-panel rounded-xl p-5 border border-brand-gold/30 bg-gradient-to-b from-brand-charcoal to-brand-dark flex flex-col justify-between shadow-[0_0_15px_rgba(255,215,0,0.05)]">
                           <div>
                             <h3 className="font-display text-lg font-black text-brand-gold uppercase tracking-wide mb-2">
                               Option 2: Upgrade
@@ -595,7 +587,8 @@ export default function ClaimPage() {
                           >
                             {redirecting ? t.redirecting : `Subscribe · ${planTotalLabel(selectedPlan, listing?.location_count)}`}
                           </button>
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

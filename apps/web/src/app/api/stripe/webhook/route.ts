@@ -18,6 +18,7 @@ import {
   referralCouponFromInvoice,
   referralDiscountAmount,
 } from '@/lib/referrals'
+import { salesDirectoryClaimStatus } from '@/lib/sales-directory'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -196,17 +197,30 @@ async function handleCheckoutCompleted(session: any) {
     // Tier the admin will grant on approval (premium/featured). Founding members
     // get Premium at the locked launch price and are flagged for the 100 cap.
     const pendingTier = metadata.tier === 'featured' ? 'featured' : 'premium'
+    const currentListingDoc = await adminDb
+      .collection('directory_listings')
+      .doc(metadata.listing_id)
+      .get()
+    const currentListing = currentListingDoc.exists
+      ? (currentListingDoc.data() as Record<string, any>)
+      : {}
+    const effectiveOwnerId = metadata.owner_id || currentListing.owner_id || null
+    const claimStatus = salesDirectoryClaimStatus({
+      ownerId: effectiveOwnerId,
+      soldBy: metadata.sold_by,
+      listingPreexisting: metadata.listing_preexisting,
+    })
     const listingPatch: Record<string, any> = {
-      claim_status: 'pending_approval',
+      claim_status: claimStatus,
       pending_tier: pendingTier,
       plan: metadata.plan || 'premium_monthly',
       founding_member: metadata.founding === 'true',
       stripe_subscription_id: directorySubscriptionId,
       stripe_customer_id: directoryCustomerId,
-      claimed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
-    if (metadata.owner_id) listingPatch.owner_id = metadata.owner_id
+    if (claimStatus === 'pending_approval') listingPatch.claimed_at = new Date().toISOString()
+    if (effectiveOwnerId) listingPatch.owner_id = effectiveOwnerId
     if (metadata.sold_by) listingPatch.sold_by_rep = metadata.sold_by
     if (metadata.contact_email) listingPatch.contact_email = metadata.contact_email
 
@@ -215,11 +229,11 @@ async function handleCheckoutCompleted(session: any) {
     // could pay $19 to take over a real business's listing. The flag is stamped on
     // the listing so the admin queue can show verified vs unverified claims.
     let ownershipVerified = false
-    if (metadata.owner_id) {
+    if (effectiveOwnerId) {
       const vSnap = await adminDb
         .collection('directory_claims')
         .where('listing_id', '==', metadata.listing_id)
-        .where('user_id', '==', metadata.owner_id)
+        .where('user_id', '==', effectiveOwnerId)
         .where('status', '==', 'verified')
         .limit(1)
         .get()
@@ -247,7 +261,7 @@ async function handleCheckoutCompleted(session: any) {
       subscriptionId: directorySubscriptionId,
       customerId: directoryCustomerId,
       listingId: metadata.listing_id,
-      ownerId: metadata.owner_id || null,
+      ownerId: effectiveOwnerId,
       plan: metadata.plan || null,
       billingCycle: metadata.billing_cycle || null,
     })

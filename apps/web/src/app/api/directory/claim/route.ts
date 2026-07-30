@@ -5,6 +5,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getPlan, FOUNDING_LIMIT } from '@/lib/pricing'
 import { REFERRAL_COOKIE } from '@/lib/referrals'
 import { resolveReferralForCheckout } from '@/lib/referrals-server'
+import { salesDirectoryCheckoutIsManaged } from '@/lib/sales-directory'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -47,6 +48,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
     }
     const listing = { id: doc.id, ...(doc.data() as any) }
+
+    // Sales Desk listings already have one authoritative handoff for their
+    // selected price. Claiming verifies ownership only; it must never open a
+    // second subscription checkout.
+    if (salesDirectoryCheckoutIsManaged(listing)) {
+      return NextResponse.json(
+        {
+          error:
+            'This listing plan is managed by the CityBeat Sales Desk. Use the payment link supplied by your salesperson.',
+        },
+        { status: 409 }
+      )
+    }
 
     // Block claiming a listing another account already owns or is mid-claim on.
     // Without the `pending_approval` case, a second payer could check out for the

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { directoryClaimPendingTier } from '@/lib/sales-directory'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,12 +77,30 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Code is correct — record the verified claim, but route it through admin
     // approval rather than auto-granting ownership. The admin approves in the
     // claims dashboard, which finalizes the tier and advertiser flag.
+    const listingRef = adminDb.collection('directory_listings').doc(listingId)
+    const listingDoc = await listingRef.get()
+    if (!listingDoc.exists) {
+      return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+    }
+    const listing = listingDoc.data() as Record<string, unknown>
+    if (listing.owner_id && listing.owner_id !== user.id) {
+      return NextResponse.json(
+        { error: 'This listing is already being claimed by another account.' },
+        { status: 409 }
+      )
+    }
+
+    // Preserve a paid Sales Desk entitlement when Stripe already confirmed it.
+    // If the customer claims first, the listing stays Basic until its separate
+    // payment handoff completes and the webhook promotes the pending tier.
+    const pendingTier = directoryClaimPendingTier(listing)
     await claimDoc.ref.set({ status: 'verified', updated_at: now }, { merge: true })
-    await adminDb.collection('directory_listings').doc(listingId).set(
+    await listingRef.set(
       {
         owner_id: user.id,
         claim_status: 'pending_approval',
-        pending_tier: 'basic',
+        pending_tier: pendingTier,
+        ownership_verified: true,
         verification_method: claim.verification_method || 'unknown',
         verified_at: now,
         claimed_at: now,
@@ -93,6 +112,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json({
       success: true,
       status: 'pending_approval',
+      pending_tier: pendingTier,
       message: 'Ownership verified! Your claim is now pending review by our team and will be approved shortly.',
     })
   } catch (error: any) {

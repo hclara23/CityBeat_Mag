@@ -31,6 +31,15 @@ import {
   salesOrderTokenMatches,
 } from './sales-orders'
 import {
+  buildSalesDirectoryListingRecord,
+  directoryClaimPendingTier,
+  isSalesCreatedDirectoryListing,
+  salesDirectoryCheckoutIsManaged,
+  salesDirectoryClaimStatus,
+  salesDirectoryHandoffMatches,
+  salesDirectoryListingUrl,
+} from './sales-directory'
+import {
   getSalesIntakeSchema,
   initialSalesIntakeValues,
   intakeCompletion,
@@ -76,6 +85,104 @@ test('directory categories accept canonical or custom values without unsafe whit
       listingCategory: 'Home Services',
     }),
     'Custom Fabrication'
+  )
+})
+
+test('sales-created directory listings are public, claimable, and bound to the creating rep', () => {
+  const listing = buildSalesDirectoryListingRecord({
+    businessName: 'Mesa Studio',
+    category: 'Design',
+    contactEmail: 'owner@example.com',
+    contactPhone: '915-555-0100',
+    locale: 'en',
+    sellerUserId: 'rep_123',
+    productId: 'directory_basic_free',
+    now: new Date('2026-07-30T12:00:00.000Z'),
+  })
+  assert.equal(listing.tier, 'basic')
+  assert.equal(listing.plan, 'basic')
+  assert.equal(listing.claim_status, 'unclaimed')
+  assert.equal(listing.is_published, true)
+  assert.equal(listing.email, 'owner@example.com')
+  assert.equal(listing.sales_created_by, 'rep_123')
+
+  const url = salesDirectoryListingUrl({
+    origin: 'https://citybeatmag.co/internal/path',
+    locale: 'en',
+    listingId: 'listing 123',
+  })
+  assert.equal(url, 'https://citybeatmag.co/en/directory/listing%20123')
+  assert.equal(
+    salesDirectoryHandoffMatches({
+      listing,
+      listingId: 'listing 123',
+      sellerUserId: 'rep_123',
+      listingUrl: url,
+      requestOrigin: 'https://citybeatmag.co',
+      locale: 'en',
+    }),
+    true
+  )
+  assert.equal(
+    salesDirectoryHandoffMatches({
+      listing,
+      listingId: 'listing 123',
+      sellerUserId: 'rep_other',
+      listingUrl: url,
+      requestOrigin: 'https://citybeatmag.co',
+      locale: 'en',
+    }),
+    false
+  )
+  assert.equal(
+    salesDirectoryHandoffMatches({
+      listing,
+      listingId: 'listing 123',
+      sellerUserId: 'rep_123',
+      listingUrl: 'https://evil.example/en/directory/listing%20123',
+      requestOrigin: 'https://citybeatmag.co',
+      locale: 'en',
+    }),
+    false
+  )
+  assert.equal(
+    salesDirectoryClaimStatus({ soldBy: 'rep_123', listingPreexisting: false }),
+    'unclaimed'
+  )
+  assert.equal(
+    salesDirectoryClaimStatus({ soldBy: 'rep_123', listingPreexisting: true }),
+    'pending_approval'
+  )
+  assert.equal(salesDirectoryClaimStatus({ ownerId: 'owner_123' }), 'pending_approval')
+  assert.equal(isSalesCreatedDirectoryListing(listing), true)
+  assert.equal(isSalesCreatedDirectoryListing({ source: 'crawler' }), false)
+  assert.equal(salesDirectoryCheckoutIsManaged(listing), true)
+  assert.equal(
+    salesDirectoryCheckoutIsManaged({ ...listing, claim_status: 'approved' }),
+    false
+  )
+  assert.equal(
+    salesDirectoryCheckoutIsManaged({
+      ...listing,
+      claim_status: 'approved',
+      requested_product_id: 'directory_premium_monthly',
+    }),
+    true
+  )
+  assert.equal(
+    directoryClaimPendingTier({
+      pending_tier: 'premium',
+      stripe_subscription_id: 'sub_123',
+    }),
+    'premium'
+  )
+  assert.equal(directoryClaimPendingTier({ pending_tier: 'premium' }), 'basic')
+  assert.equal(
+    directoryClaimPendingTier({
+      pending_tier: 'featured',
+      stripe_subscription_id: 'sub_456',
+    }),
+    'featured'
   )
 })
 
@@ -173,8 +280,10 @@ test('Stripe session defaults separate automatic renewals from one-time card cha
 })
 
 test('sales catalog exposes every approved product with server-owned prices', () => {
-  assert.equal(SALES_PRODUCT_ORDER.length, 11)
+  assert.equal(SALES_PRODUCT_ORDER.length, 12)
   assert.equal(new Set(SALES_PRODUCT_ORDER).size, SALES_PRODUCT_ORDER.length)
+  assert.equal(SALES_PRODUCTS.directory_basic_free.unitAmount, 0)
+  assert.equal(SALES_PRODUCTS.directory_basic_free.billing, 'free')
   assert.equal(SALES_PRODUCTS.directory_founding_annual.unitAmount, 9900)
   assert.equal(SALES_PRODUCTS.directory_premium_monthly.unitAmount, 1999)
   assert.equal(SALES_PRODUCTS.ad_newsletter_sponsorship.unitAmount, 5000)
@@ -197,6 +306,7 @@ test('legacy directory and custom selections map to canonical product ids', () =
 })
 
 test('only custom quotes accept a bounded salesperson-entered amount', () => {
+  assert.equal(salesProductAmount(SALES_PRODUCTS.directory_basic_free, 999), 0)
   assert.equal(salesProductAmount(SALES_PRODUCTS.event_featured, 999), 2500)
   assert.equal(salesProductAmount(SALES_PRODUCTS.custom_one_time, '149.95'), 14995)
   assert.equal(salesProductAmount(SALES_PRODUCTS.custom_one_time, 0), null)
@@ -512,7 +622,7 @@ test('job fulfillment retains complete paid-intake details without publishing ea
   assert.equal(record.fulfillment_status, 'in_review')
 })
 
-test('directory fulfillment enriches the paid listing while keeping staff review', () => {
+test('directory fulfillment enriches the paid listing without hiding its claimable page', () => {
   const record = buildSalesFulfillmentRecord({
     orderId: 'order_123',
     order: {
@@ -543,8 +653,8 @@ test('directory fulfillment enriches the paid listing while keeping staff review
       instagram_url: 'https://instagram.com/mesa',
     },
   })
-  assert.equal(record.claim_status, 'pending_approval')
-  assert.equal(record.is_published, false)
+  assert.equal(record.claim_status, undefined)
+  assert.equal(record.is_published, undefined)
   assert.equal(record.tier, 'basic')
   assert.equal(record.pending_tier, 'premium')
   assert.equal(record.plan, 'premium_monthly')
@@ -554,8 +664,10 @@ test('directory fulfillment enriches the paid listing while keeping staff review
 })
 
 test('catalog cadence is explicit for every fixed and custom product', () => {
+  const free = SALES_PRODUCT_ORDER.filter((id) => SALES_PRODUCTS[id].billing === 'free')
   const recurring = SALES_PRODUCT_ORDER.filter((id) => SALES_PRODUCTS[id].billing === 'subscription')
   const oneTime = SALES_PRODUCT_ORDER.filter((id) => SALES_PRODUCTS[id].billing === 'one_time')
+  assert.deepEqual(free, ['directory_basic_free'])
   assert.deepEqual(recurring, [
     'directory_founding_annual',
     'directory_founding_monthly',

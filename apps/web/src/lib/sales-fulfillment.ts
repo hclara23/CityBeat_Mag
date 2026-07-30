@@ -83,10 +83,6 @@ export function buildSalesFulfillmentRecord(input: {
         stripe_customer_id: order.stripe_customer_id || null,
         sold_by_rep: order.sold_by || null,
         source: 'sales_rep',
-        claim_status: 'pending_approval',
-        ownership_verified: false,
-        claimed_at: now,
-        is_published: false,
         ...(!order.listing_preexisting ? { tier: 'basic', created_at: now } : {}),
       }
     case 'job':

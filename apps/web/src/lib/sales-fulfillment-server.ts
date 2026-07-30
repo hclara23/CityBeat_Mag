@@ -14,6 +14,17 @@ export async function provisionSalesOrder(input: {
   })
   const record = buildSalesFulfillmentRecord(input)
   // Deterministic target ids make submission retries idempotent.
-  await adminDb.collection(target.collection).doc(target.id).set(record, { merge: true })
+  const targetRef = adminDb.collection(target.collection).doc(target.id)
+  if (target.collection === 'directory_listings') {
+    const existing = await targetRef.get()
+    if (!existing.exists) {
+      Object.assign(record, {
+        claim_status: 'unclaimed',
+        ownership_verified: false,
+        is_published: true,
+      })
+    }
+  }
+  await targetRef.set(record, { merge: true })
   return target
 }
