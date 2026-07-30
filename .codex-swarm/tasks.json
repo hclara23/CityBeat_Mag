@@ -8020,12 +8020,45 @@
       "doc_updated_by": "agentctl",
       "description": "Fix the Developer Control article Review Queue link, preserve localized /admin/review bookmarks with canonical redirects to /admin, verify individual /admin/review/[id] routes remain intact, deploy the web repair, and record production evidence.",
       "doc": "## Summary\n\nRepaired the article Review Queue 404 by correcting the Developer Control card and adding locale-preserving compatibility routes without changing the canonical admin queue or individual article review pages.\n\n## Context\n\nProduction /en/admin/review and /es/admin/review return 404. The Developer Control team link points to /admin/review, but the queue is rendered by /[locale]/admin and individual reviews are rendered by /[locale]/admin/review/[id]. The current production rollback revision is citybeat-web-00149-nrk.\n\n## Scope\n\nChange the Developer Control Review Queue card to the canonical /admin route; add a localized /admin/review page that redirects to /admin for existing bookmarks and direct visits; leave /admin/review/[id] unchanged; validate routes, authentication redirects, tests, typecheck, and build; deploy and verify production English and Spanish behavior.\n\n## Risks\n\nA route collision could interfere with individual article review pages, or an incorrect redirect could lose locale or authentication return paths. The implementation uses a sibling static page alongside the existing [id] route and redirects within the current locale to the established queue.\n\n## Verify Steps\n\nRun npm run test, npm run type-check, and npm run build. Confirm the build contains both /[locale]/admin/review and /[locale]/admin/review/[id]. In production, confirm /en/admin/review and /es/admin/review redirect through their localized canonical /admin routes, the Developer Control HTML no longer contains a direct /admin/review card destination, and individual article review routing remains defined.\n\n## Rollback Plan\n\nRoute Cloud Run traffic back to citybeat-web-00149-nrk if the new revision is unhealthy or review routing regresses. Reverting the link correction and redirect page restores the prior behavior without data changes.\n\n## Notes\n\nUser approved implementation and production deployment on 2026-07-30. The frontend-design guidance preserved the established CityBeat editorial admin experience: no duplicate queue UI was introduced; the existing /admin workspace remains canonical. Pre-deployment verification passed: focused source regression check, all 46 automated tests, all four TypeScript package checks, and the full Next.js production build with 104 generated static pages. The build registers both localized /admin/review compatibility pages and the dynamic /admin/review/[id] article route. Cloud Run revision citybeat-web-00150-f2b became Ready at 2026-07-30T18:33:04Z and serves 100% of traffic; rollback target is citybeat-web-00149-nrk. Production /en/admin/review and /es/admin/review no longer return 404 and correctly enter localized admin authentication with redirectTo=/admin; protected individual review URLs also enter the admin authentication flow. The deployed Developer Control page bundle contains Review Queue with canonical /admin and no /admin/review destination. GET /api/health returned 200. No data migration or secret changes occurred."
+    },
+    {
+      "id": "202607301844-2TCNRM",
+      "title": "Replenish newsroom queue and vary article visuals",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "202607301822-ZSCD9X"
+      ],
+      "tags": [
+        "frontend",
+        "backend",
+        "newsroom",
+        "articles",
+        "deployment"
+      ],
+      "verify": [
+        "npm run test",
+        "npm run type-check",
+        "npm run build"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Approved by the user: populate the empty article review queue with a secure newsroom crawl, eliminate the repeated default article image everywhere, deploy the change, and verify production."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-30T18:46:05+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Securely trigger and verify the autonomous newsroom queue, diagnose any zero-draft ingestion failure, replace the fixed recycled article fallback photo across public surfaces with truthful deterministic CityBeat editorial visuals, test and visually verify the change, deploy it, and record production evidence.",
+      "doc": "## Summary\n\nPopulate the empty editorial review queue through the existing autonomous newsroom and replace the repeated missing-image stock photo with honest, varied CityBeat editorial visuals.\n\n## Context\n\nThe enabled citybeat-auto-articles scheduler has returned HTTP 200, but Firestore currently contains zero articles with status pending_review. The public home, Stories, Topics, and Saved pages all substitute the same picsum.photos seed when article.image is absent, creating repetitive and potentially misleading presentation. Production currently serves Cloud Run revision citybeat-web-00150-f2b.\n\n## Scope\n\nUse the existing protected newsroom endpoint to request up to five non-published drafts and verify queue records. If it creates none, inspect only sanitized results and logs, repair the ingestion failure within the newsroom flow, and retrigger. Replace every fixed article fallback URL with a reusable deterministic CityBeat editorial visual keyed by real article category, title, and slug across home, stories, topics, and saved pages. Run automated and visual verification, deploy, and confirm the live queue and article surfaces.\n\n## Risks\n\nThe manual crawl invokes the configured Anthropic newsroom and may consume API tokens; it remains bounded to five attempts and leaves drafts pending review. Reprocessing or clearing processed-news records is prohibited. Visual fallback changes could reduce readability or affect image layout, so they must preserve card aspect ratios, responsive behavior, real-image attribution, and existing CityBeat design tokens.\n\n## Verify Steps\n\nConfirm the protected crawl returns a sanitized successful result and Firestore contains pending_review drafts. Run a focused regression check proving the fixed Picsum seed is absent from article surfaces and deterministic fallbacks vary by article. Run npm run test, npm run type-check, and npm run build. Inspect representative desktop and mobile renders. In production, confirm Cloud Run readiness, the queue contains drafts, public story surfaces no longer reference the recycled fallback, and real article images still render unchanged.\n\n## Rollback Plan\n\nRoute Cloud Run traffic back to citybeat-web-00150-f2b if the visual release is unhealthy. The crawl creates review drafts only; editors can reject unwanted drafts through the normal queue. No processed-news records will be deleted and no published article will be unpublished.\n\n## Notes\n\nUser approved the secure crawl and production visual change on 2026-07-30. The frontend-design guidance favors a reusable editorial fallback that clearly looks designed rather than pretending to be event photography. Never print or persist CRON_SECRET or ANTHROPIC_API_KEY values."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "d0649b094bf1d3558475a1dd19ac27dab86d5315f59393c63ff5550a55397222"
+    "checksum": "130e391aebe8c3818cb598040b07d2564b30b2f81ad4f754edd21f78d44e7a15"
   }
 }
