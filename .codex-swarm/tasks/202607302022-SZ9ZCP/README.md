@@ -1,17 +1,19 @@
 ---
 id: "202607302022-SZ9ZCP"
 title: "Create sales print materials and refresh user guide"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["docs", "frontend", "sales", "deployment"]
 verify: ["npm run test", "npm run lint", "npm run type-check", "npm run build"]
+commit: { hash: "b56933a4d19c00db14eaf185e1db1e4c30bf1674", message: "✨ SZ9ZCP publish concise sales materials and current workflows" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: audit the live sales catalog and current guides, create two concise print-ready sales references, update in-app procedures and download links, render every page, then test, commit, deploy, and verify production." }
   - { author: "ORCHESTRATOR", body: "Verified: generated and validated both PDFs against the canonical catalog; visually inspected all six rendered pages; passed 52 tests, lint with zero warnings, TypeScript checks, the 104-page production build, and source-only diff whitespace checks." }
+  - { author: "ORCHESTRATOR", body: "verified: deployed revision citybeat-web-00155-wgv to 100 percent of traffic | details: production health and guide respond successfully, both PDF downloads return application/pdf and match the verified local hashes, and protected sales routes redirect unauthenticated users correctly." }
 doc_version: 2
-doc_updated_at: "2026-07-30T20:33:00+00:00"
+doc_updated_at: "2026-07-30T20:43:25+00:00"
 doc_updated_by: "agentctl"
 description: "Create short, direct, print-ready sales materials covering every current product, price, deliverable, customer value, and accurate backlink/SEO benefit; add a click-by-click Sales Desk quick-start based on the deployed interface; update the in-app user guide and download links for all current procedures and features; visually verify, commit, deploy, and smoke-test production."
 ---
@@ -41,5 +43,5 @@ Revert the task commit and redeploy the previous Cloud Run revision. The change 
 
 ## Notes
 
-PDF design uses a white, high-contrast US Letter layout for office printing. Canonical download names are citybeat-sales-guide.pdf and citybeat-sales-desk-quick-start.pdf. Official Google guidance is linked for local prominence context; salespeople are explicitly told not to promise ranking outcomes.
+PDF design uses a white, high-contrast US Letter layout for office printing. Canonical download names are citybeat-sales-guide.pdf and citybeat-sales-desk-quick-start.pdf. Official Google guidance is linked for local prominence context; salespeople are explicitly told not to promise ranking outcomes. Deployed Cloud Run revision citybeat-web-00155-wgv at 100% traffic. Production health, guide, authenticated Sales Desk redirect behavior, PDF content types, and byte-for-byte PDF hashes were verified.
 
