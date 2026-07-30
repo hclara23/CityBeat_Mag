@@ -392,6 +392,7 @@ export function initialSalesIntakeValues(kind: SalesIntakeKind, order: Record<st
   const shared = {
     business_name: order.business_name || '',
     company_name: order.business_name || '',
+    primary_category: order.directory_category || '',
     phone: order.contact_phone || '',
     contact_email: order.contact_email || '',
     application_email: order.contact_email || '',

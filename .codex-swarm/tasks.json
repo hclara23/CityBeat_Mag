@@ -8061,12 +8061,48 @@
       "doc_updated_by": "agentctl",
       "description": "Securely trigger and verify the autonomous newsroom queue, diagnose any zero-draft ingestion failure, replace the fixed recycled article fallback photo across public surfaces with truthful deterministic CityBeat editorial visuals, test and visually verify the change, deploy it, and record production evidence.",
       "doc": "## Summary\n\nPopulate the empty editorial review queue through the existing autonomous newsroom and replace the repeated missing-image stock photo with honest, varied CityBeat editorial visuals.\n\n## Context\n\nThe enabled citybeat-auto-articles scheduler has returned HTTP 200, but Firestore currently contains zero articles with status pending_review. The public home, Stories, Topics, and Saved pages all substitute the same picsum.photos seed when article.image is absent, creating repetitive and potentially misleading presentation. Production currently serves Cloud Run revision citybeat-web-00150-f2b.\n\n## Scope\n\nUse the existing protected newsroom endpoint to request up to five non-published drafts and verify queue records. If it creates none, inspect only sanitized results and logs, repair the ingestion failure within the newsroom flow, and retrigger. Replace every fixed article fallback URL with a reusable deterministic CityBeat editorial visual keyed by real article category, title, and slug across home, stories, topics, and saved pages. Run automated and visual verification, deploy, and confirm the live queue and article surfaces.\n\n## Risks\n\nThe manual crawl invokes the configured Anthropic newsroom and may consume API tokens; it remains bounded to five attempts and leaves drafts pending review. Reprocessing or clearing processed-news records is prohibited. Visual fallback changes could reduce readability or affect image layout, so they must preserve card aspect ratios, responsive behavior, real-image attribution, and existing CityBeat design tokens.\n\n## Verify Steps\n\nConfirm the protected crawl returns a sanitized successful result and Firestore contains pending_review drafts. Run a focused regression check proving the fixed Picsum seed is absent from article surfaces and deterministic fallbacks vary by article. Run npm run test, npm run type-check, and npm run build. Inspect representative desktop and mobile renders. In production, confirm Cloud Run readiness, the queue contains drafts, public story surfaces no longer reference the recycled fallback, and real article images still render unchanged.\n\n## Rollback Plan\n\nRoute Cloud Run traffic back to citybeat-web-00150-f2b if the visual release is unhealthy. The crawl creates review drafts only; editors can reject unwanted drafts through the normal queue. No processed-news records will be deleted and no published article will be unpublished.\n\n## Notes\n\nImplementation commit 19bf472 adds explicit written, editorial-reject, and retryable-error outcomes with bounded hourly retries, plus deterministic category-colored CityBeat editorial visuals wherever an article has no real image. Local verification passed: 50 tests, all four package type checks, and the production Next.js build. Cloud Run revision citybeat-web-00151-pzl is Ready with 100% traffic; health and EN/ES Stories return 200, and live visual inspection confirms distinct branded cards replace the recycled default photo. A protected scheduler run returned 200 and converted eight skipped items into retryable provider failures, but pending_review remains zero because a minimal Anthropic health request returned invalid_request_error: the account credit balance is too low. Resume by restoring Anthropic credits, waiting until the recorded hourly retry time (or explicitly rearming the retry records), and rerunning citybeat-auto-articles. Rollback remains citybeat-web-00150-f2b."
+    },
+    {
+      "id": "202607301929-DT5AV1",
+      "title": "Extend directory new-sale onboarding",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "frontend",
+        "backend",
+        "sales",
+        "directory",
+        "newsroom",
+        "deployment"
+      ],
+      "verify": [
+        "npm run test",
+        "npm run type-check",
+        "npm run build"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Approved by the user: extend New Sales for brand-new directory businesses and custom categories, rerun article prospecting, test, commit, deploy, and verify production."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: rerun protected newsroom prospecting and verify the review queue, then implement and deploy a low-click new-business directory sale with suggested or custom category prefill."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-07-30T19:29:47+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Allow a salesperson to sell a directory plan to a business that is not already listed, clearly distinguish new-business and existing-lead paths, accept a suggested or manually entered directory category, persist and prefill those details into the paid customer fulfillment wizard, rerun and verify article prospecting, test the complete flow, deploy to Cloud Run, and record production evidence.",
+      "doc": "## Summary\n\nExtend the unified Sales Desk so a representative can start a paid directory subscription for either an existing lead or a brand-new business, capture an existing or custom category at sale time, and carry that data into post-payment fulfillment. Rerun the protected newsroom crawl and verify the review queue.\n\n## Context\n\nThe checkout backend already reserves a deterministic directory listing id when no existing listing id is supplied, but the New Sales interface does not make that path explicit and only the customer is asked for the category later. The previous newsroom run was blocked by an exhausted Anthropic credit balance and left eight records safely retryable.\n\n## Scope\n\nAdd an explicit new-business versus existing-lead state for directory products; use the canonical directory category suggestions with free-text entry; prefill category from selected leads and deep links; validate and persist category server-side; initialize directory intake data so the customer does not re-enter the salesperson-provided details; preserve existing listing duplicate-subscription protections and staff review; add regression tests; rerun article prospecting; deploy and verify.\n\n## Risks\n\nA salesperson must not be able to bypass server-owned pricing, attach an order to a missing listing, overwrite an existing category unintentionally, or publish an incomplete new listing. Category input must be bounded and normalized without preventing a legitimate custom category. Newsroom retry remains dependent on Anthropic account availability.\n\n## Verify Steps\n\nRun\npm run test,\npm run type-check, and\npm run build. Exercise new-business and existing-lead directory checkout paths, verify custom-category prefill into the customer intake API, visually inspect the Sales Desk at desktop and mobile widths, trigger the protected scheduler, query pending-review counts, deploy to Cloud Run, and confirm health plus production routing.\n\n## Rollback Plan\n\nRoute Cloud Run traffic back to citybeat-web-00151-pzl. Revert the task implementation commit if the Sales Desk changes must be removed. Existing orders remain readable because the added category and intake fields are additive.\n\n## Notes\n\nApproved plan: track the work once, run the article crawl first, then implement the low-click directory onboarding changes using the existing industrial editorial Sales Desk design language."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "8d75e09647126c19c12a903be9c4446f30f6e863468ba5525a2e0c991219218c"
+    "checksum": "20e96008f989ddf8b1384b5ee7287eb0fd81cb27821145d8222a33e47357ffbd"
   }
 }

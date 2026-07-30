@@ -17,6 +17,7 @@ import {
 import {
   blocksReplacementSubscription,
   isValidSalesEmail,
+  resolveDirectoryCategory,
   normalizeSalesEmail,
   oneTimeCheckoutDefaults,
   recurringCheckoutDefaults,
@@ -155,6 +156,19 @@ export async function POST(request: NextRequest) {
         stripe,
       })
     }
+    const directoryCategory =
+      product.family === 'directory'
+        ? resolveDirectoryCategory({
+            requestedCategory: body.directoryCategory,
+            listingCategory: listing?.category,
+          })
+        : ''
+    if (product.family === 'directory' && !directoryCategory) {
+      return NextResponse.json(
+        { error: 'Choose a directory category or type a new one.' },
+        { status: 400 }
+      )
+    }
 
     const access = createSalesOrderAccess()
     orderRef = adminDb.collection('sales_orders').doc()
@@ -170,6 +184,7 @@ export async function POST(request: NextRequest) {
         locale,
         sellerUserId: user.id,
         listingId,
+        directoryCategory,
         listingPreexisting,
         customDescription,
         tokenHash: access.tokenHash,
@@ -200,6 +215,7 @@ export async function POST(request: NextRequest) {
             plan: directoryPlan.id,
             founding: directoryPlan.founding ? 'true' : 'false',
             billing_cycle: directoryPlan.interval,
+            directory_category: directoryCategory,
           }
         : {
             adType: product.intakeKind,

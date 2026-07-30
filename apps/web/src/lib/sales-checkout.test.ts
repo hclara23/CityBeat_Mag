@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   blocksReplacementSubscription,
+  normalizeDirectoryCategory,
   normalizeSalesEmail,
   oneTimeCheckoutDefaults,
   recurringAuthorizationMessage,
@@ -9,6 +10,7 @@ import {
   recurringCustomerParams,
   recurringEmailError,
   reusableStripeCustomer,
+  resolveDirectoryCategory,
   salesCheckoutKind,
 } from './sales-checkout'
 import {
@@ -54,6 +56,27 @@ test('recurring checkout requires and normalizes a valid customer email', () => 
   )
   assert.equal(recurringEmailError('directory', 'owner@business.com'), null)
   assert.equal(recurringEmailError('custom', ''), null)
+})
+
+test('directory categories accept canonical or custom values without unsafe whitespace', () => {
+  assert.equal(normalizeDirectoryCategory('  Arts   &\nCulture  '), 'Arts & Culture')
+  assert.equal(normalizeDirectoryCategory('Mobile Pet Grooming'), 'Mobile Pet Grooming')
+  assert.equal(normalizeDirectoryCategory('x'.repeat(100)).length, 80)
+  assert.equal(normalizeDirectoryCategory(null), '')
+  assert.equal(
+    resolveDirectoryCategory({
+      requestedCategory: '',
+      listingCategory: 'Restaurant',
+    }),
+    'Restaurant'
+  )
+  assert.equal(
+    resolveDirectoryCategory({
+      requestedCategory: 'Custom Fabrication',
+      listingCategory: 'Home Services',
+    }),
+    'Custom Fabrication'
+  )
 })
 
 test('all non-terminal Stripe subscription states block replacement billing', () => {
@@ -230,6 +253,34 @@ test('sales order snapshot and Stripe metadata preserve product and rep attribut
       companyName: 'Mesa Studio',
     }
   )
+})
+
+test('new directory sales retain the custom category for customer intake prefill', () => {
+  const product = SALES_PRODUCTS.directory_premium_monthly
+  const access = createSalesOrderAccess()
+  const record = buildSalesOrderRecord({
+    product,
+    amount: product.unitAmount!,
+    businessName: 'Borderland Mobile Grooming',
+    contactEmail: 'owner@example.com',
+    contactPhone: '915-555-0100',
+    locale: 'en',
+    sellerUserId: 'rep_123',
+    listingId: 'order_123',
+    listingPreexisting: false,
+    directoryCategory: 'Mobile Pet Grooming',
+    tokenHash: access.tokenHash,
+    now: new Date('2026-07-30T12:00:00.000Z'),
+  })
+
+  assert.equal(record.listing_id, 'order_123')
+  assert.equal(record.listing_preexisting, false)
+  assert.equal(record.directory_category, 'Mobile Pet Grooming')
+  assert.deepEqual(initialSalesIntakeValues('directory', record), {
+    business_name: 'Borderland Mobile Grooming',
+    primary_category: 'Mobile Pet Grooming',
+    phone: '915-555-0100',
+  })
 })
 
 test('checkout success URL enters the order-specific fulfillment wizard', () => {

@@ -12,6 +12,25 @@ export function normalizeSalesEmail(value: unknown): string {
   return typeof value === 'string' ? value.trim().toLowerCase() : ''
 }
 
+export function normalizeDirectoryCategory(value: unknown): string {
+  if (typeof value !== 'string') return ''
+  return value
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80)
+}
+
+export function resolveDirectoryCategory(input: {
+  requestedCategory: unknown
+  listingCategory?: unknown
+}): string {
+  return (
+    normalizeDirectoryCategory(input.requestedCategory) ||
+    normalizeDirectoryCategory(input.listingCategory)
+  )
+}
+
 export function isValidSalesEmail(value: string): boolean {
   return EMAIL_PATTERN.test(value)
 }

@@ -15,6 +15,7 @@ import {
   type SalesProductId,
 } from '@/lib/sales-products'
 import { EngagementBoard } from '@/components/citybeat/EngagementBoard'
+import { DIRECTORY_CATEGORIES } from '@/lib/categories'
 
 function money(cents: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'usd' }).format((cents || 0) / 100)
@@ -37,6 +38,7 @@ export default function SalesDesk() {
   const [contactEmail, setContactEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [listingId, setListingId] = useState('')
+  const [directoryCategory, setDirectoryCategory] = useState('')
   const [amount, setAmount] = useState('')
   const [description, setDescription] = useState('')
   const [busy, setBusy] = useState(false)
@@ -71,6 +73,7 @@ export default function SalesDesk() {
         setBusinessName(query.get('business') || '')
         setContactEmail(query.get('email') || '')
         setListingId(query.get('listingId') || '')
+        setDirectoryCategory(query.get('category') || '')
       } catch {
         // Deep-link prefill is optional.
       }
@@ -116,6 +119,7 @@ export default function SalesDesk() {
     setContactEmail(lead.email || '')
     setPhone(lead.phone || '')
     setListingId(lead.id || '')
+    setDirectoryCategory(lead.category || '')
     setCheckoutUrl('')
     setHandoffOrder(null)
     setError('')
@@ -124,7 +128,10 @@ export default function SalesDesk() {
 
   function selectProduct(value: SalesProductId) {
     setProductId(value)
-    if (SALES_PRODUCTS[value].family !== 'directory') setListingId('')
+    if (SALES_PRODUCTS[value].family !== 'directory') {
+      setListingId('')
+      setDirectoryCategory('')
+    }
     setCheckoutUrl('')
     setHandoffOrder(null)
     setError('')
@@ -137,6 +144,9 @@ export default function SalesDesk() {
     const email = normalizeSalesEmail(contactEmail)
     if (!businessName.trim()) return setError('Enter the business name.')
     if (!email) return setError('Enter the client email so Stripe and the fulfillment wizard can prefill it.')
+    if (product.family === 'directory' && !directoryCategory.trim()) {
+      return setError('Choose a directory category or type a new one.')
+    }
     if (product.id === 'custom_one_time' && !(Number(amount) >= 1)) {
       return setError('Enter the manager-approved amount.')
     }
@@ -155,6 +165,8 @@ export default function SalesDesk() {
           contactEmail: email,
           phone: phone.trim() || undefined,
           listingId: listingId || undefined,
+          directoryCategory:
+            product.family === 'directory' ? directoryCategory.trim() : undefined,
           locale,
           amount: product.id === 'custom_one_time' ? Number(amount) : undefined,
           description: description.trim() || undefined,
@@ -224,6 +236,7 @@ export default function SalesDesk() {
     setContactEmail('')
     setPhone('')
     setListingId('')
+    setDirectoryCategory('')
     setAmount('')
     setDescription('')
     setCheckoutUrl('')
@@ -231,6 +244,14 @@ export default function SalesDesk() {
     setHandoffOrder(null)
     setSentMsg('')
     setError('')
+  }
+
+  function startNewDirectoryBusiness() {
+    setListingId('')
+    setCheckoutUrl('')
+    setHandoffOrder(null)
+    setError('')
+    setSentMsg('')
   }
 
   function correctSale() {
@@ -327,6 +348,62 @@ export default function SalesDesk() {
                 </div>
                 <p className="mt-2 text-xs text-brand-gold/80">Sales angle: {product.salesAngle}</p>
               </div>
+
+              {product.family === 'directory' && (
+                <section className="border border-white/10 bg-black/20 p-4 sm:p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-brand-magenta">
+                        Directory setup
+                      </p>
+                      <h3 className="mt-1 font-display text-xl font-black text-white">
+                        {listingId ? 'Existing listing selected' : 'New business listing'}
+                      </h3>
+                      <p className="mt-1 max-w-xl text-xs leading-5 text-white/45">
+                        {listingId
+                          ? 'This sale stays connected to the selected directory record.'
+                          : 'No directory record is required. CityBeat reserves one now and creates it after payment and the customer brief.'}
+                      </p>
+                    </div>
+                    {listingId ? (
+                      <button
+                        type="button"
+                        disabled={Boolean(checkoutUrl)}
+                        onClick={startNewDirectoryBusiness}
+                        className="border border-white/20 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/65 transition hover:border-brand-neon/60 hover:text-brand-neon disabled:opacity-40"
+                      >
+                        Switch to new business
+                      </button>
+                    ) : (
+                      <span className="border border-brand-neon/30 bg-brand-neon/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-brand-neon">
+                        No existing listing needed
+                      </span>
+                    )}
+                  </div>
+
+                  <label className="mt-4 block text-xs font-black uppercase tracking-[0.14em] text-white/60">
+                    Directory category
+                    <input
+                      disabled={Boolean(checkoutUrl)}
+                      className={`mt-1.5 ${inputClass} disabled:cursor-not-allowed disabled:opacity-55`}
+                      list="directory-category-suggestions"
+                      value={directoryCategory}
+                      onChange={(event) => setDirectoryCategory(event.target.value)}
+                      autoComplete="off"
+                      maxLength={80}
+                      placeholder="Choose a suggestion or type a new category"
+                    />
+                    <datalist id="directory-category-suggestions">
+                      {DIRECTORY_CATEGORIES.map((category) => (
+                        <option key={category} value={category} />
+                      ))}
+                    </datalist>
+                    <span className="mt-1 block normal-case tracking-normal text-white/30">
+                      Existing categories are suggested, but any accurate custom category is accepted.
+                    </span>
+                  </label>
+                </section>
+              )}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-xs font-black uppercase tracking-[0.14em] text-white/60">

@@ -50,6 +50,7 @@ export function buildSalesOrderRecord(input: {
   locale: 'en' | 'es'
   sellerUserId: string
   listingId?: string
+  directoryCategory?: string
   customDescription?: string
   listingPreexisting?: boolean
   tokenHash: string
@@ -73,6 +74,8 @@ export function buildSalesOrderRecord(input: {
     payout_user_id: input.sellerUserId,
     listing_id: input.listingId || null,
     listing_preexisting: Boolean(input.listingPreexisting),
+    directory_category:
+      input.product.family === 'directory' ? input.directoryCategory || null : null,
     directory_plan_id: input.product.directoryPlanId || null,
     founding: Boolean(input.product.founding),
     custom_description: input.customDescription || null,
