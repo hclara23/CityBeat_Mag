@@ -1,7 +1,7 @@
 ---
 id: "202607301844-2TCNRM"
 title: "Replenish newsroom queue and vary article visuals"
-status: "DOING"
+status: "BLOCKED"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202607301822-ZSCD9X"]
@@ -10,8 +10,9 @@ verify: ["npm run test", "npm run type-check", "npm run build"]
 comments:
   - { author: "ORCHESTRATOR", body: "Approved by the user: populate the empty article review queue with a secure newsroom crawl, eliminate the repeated default article image everywhere, deploy the change, and verify production." }
   - { author: "ORCHESTRATOR", body: "Start: securely trigger the bounded newsroom crawl through Cloud Scheduler, verify pending-review records, repair any zero-draft failure if necessary, then replace recycled article imagery with deterministic editorial visuals and deploy." }
+  - { author: "ORCHESTRATOR", body: "blocked: production is deployed and the retry path is verified, but Anthropic is rejecting rewrites because the account credit balance is too low | details: restore credits before the review queue can populate." }
 doc_version: 2
-doc_updated_at: "2026-07-30T18:58:36+00:00"
+doc_updated_at: "2026-07-30T19:12:43+00:00"
 doc_updated_by: "agentctl"
 description: "Securely trigger and verify the autonomous newsroom queue, diagnose any zero-draft ingestion failure, replace the fixed recycled article fallback photo across public surfaces with truthful deterministic CityBeat editorial visuals, test and visually verify the change, deploy it, and record production evidence."
 ---
@@ -41,5 +42,5 @@ Route Cloud Run traffic back to citybeat-web-00150-f2b if the visual release is 
 
 ## Notes
 
-Implementation adds explicit written, editorial-reject, and retryable-error outcomes for newsroom rewrites; bounded hourly retries recover legacy provider failures without retry loops or leaking provider responses. Article cards and the home hero now render real images when present and deterministic category-colored CityBeat editorial visuals otherwise. Local verification passed: 50 tests, all four package type checks, and the production Next.js build.
+Implementation commit 19bf472 adds explicit written, editorial-reject, and retryable-error outcomes with bounded hourly retries, plus deterministic category-colored CityBeat editorial visuals wherever an article has no real image. Local verification passed: 50 tests, all four package type checks, and the production Next.js build. Cloud Run revision citybeat-web-00151-pzl is Ready with 100% traffic; health and EN/ES Stories return 200, and live visual inspection confirms distinct branded cards replace the recycled default photo. A protected scheduler run returned 200 and converted eight skipped items into retryable provider failures, but pending_review remains zero because a minimal Anthropic health request returned invalid_request_error: the account credit balance is too low. Resume by restoring Anthropic credits, waiting until the recorded hourly retry time (or explicitly rearming the retry records), and rerunning citybeat-auto-articles. Rollback remains citybeat-web-00150-f2b.
 
