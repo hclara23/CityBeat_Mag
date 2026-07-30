@@ -7,6 +7,7 @@ import { withLocale } from './content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser, signOut } from '@citybeat/lib/firebase/auth-client'
 import { NotificationInbox } from '@/components/NotificationInbox'
+import { dashboardPathFor } from '@citybeat/lib/roles'
 
 function getNavItems(locale: string) {
   return [
@@ -20,13 +21,7 @@ function getNavItems(locale: string) {
 
 // Where each role's "Dashboard" button lands. Most-privileged match wins.
 export function dashboardFor(profile: any): string {
-  if (!profile) return '/account'
-  if (profile.can_manage_platform || profile.is_developer) return '/developer'
-  if (profile.is_editor) return '/admin'
-  if (profile.is_sales || profile.sales_dashboard_enabled) return '/admin/sales/me'
-  if (profile.is_writer) return '/creator'
-  if (profile.is_advertiser) return '/dashboard'
-  return '/account'
+  return dashboardPathFor(profile)
 }
 
 export function SiteHeader() {

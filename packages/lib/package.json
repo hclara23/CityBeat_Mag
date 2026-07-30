@@ -23,6 +23,7 @@
     },
     "./roles": {
       "import": "./src/roles.ts",
+      "require": "./src/roles.ts",
       "types": "./src/roles.ts"
     },
     "./firebase/client": {

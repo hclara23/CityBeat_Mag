@@ -138,7 +138,9 @@ Article cards without source images use varied visual presentation; editors shou
 
 ## 7. Developer
 
-Open `/en/developer` for Developer Control.
+Open `/en/developer` for Developer Control. A normal sign-in or selecting
+**Dashboard** always sends an active developer to this full-access command
+center before any lower-role workspace.
 
 - **+ New Sale:** The bright button opens the unified Sales Desk directly.
 - **Sales Desk:** Create and track any Directory, ad, event, story, job, or approved custom checkout.
@@ -146,7 +148,8 @@ Open `/en/developer` for Developer Control.
 - **Payouts:** Set commission percentage and choose one-time or residual commission mode; issue approved one-off payouts.
 - **Ad Banners:** Manage active sponsor inventory, including the newsletter sponsor placement.
 - **Sales Agent:** Monitor automated outreach and lead progress.
-- **Directory Manager:** Create and manage businesses directly.
+- **Directory, Claims, Events, and Leads:** Create and manage businesses, review ownership claims, moderate events, and inspect incoming customer requests.
+- **All-role workspaces:** Enter Creator Studio, Review Queue, Sales Desk, Advertiser Dashboard, campaign fulfillment, Bank & Payouts, Directory, Job Board, and public Events without changing roles.
 - **Roles and settings:** Grant access and manage safe platform controls. Non-developers cannot modify developer accounts.
 
 ## 8. Operator routine

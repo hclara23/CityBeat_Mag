@@ -1,3 +1,5 @@
+import { hasWriterAccess, type PlatformProfile } from '@citybeat/lib/roles'
+
 export const MAX_CREATOR_UPLOAD_BYTES = 8 * 1024 * 1024
 
 const CREATOR_UPLOAD_TYPES = new Set([
@@ -7,13 +9,6 @@ const CREATOR_UPLOAD_TYPES = new Set([
   'image/gif',
   'image/avif',
 ])
-
-type PlatformProfile = {
-  role?: string | null
-  is_developer?: boolean | null
-  is_editor?: boolean | null
-  is_writer?: boolean | null
-}
 
 type UploadFileLike = {
   type: string
@@ -49,12 +44,7 @@ type ClaimVerificationResult =
     }
 
 export function canUploadCreatorMedia(profile: PlatformProfile | null | undefined) {
-  return Boolean(
-    profile?.is_developer ||
-      profile?.is_editor ||
-      profile?.is_writer ||
-      ['developer', 'admin', 'editor', 'writer'].includes(profile?.role ?? '')
-  )
+  return hasWriterAccess(profile)
 }
 
 export function validateCreatorUploadFile(file: UploadFileLike) {

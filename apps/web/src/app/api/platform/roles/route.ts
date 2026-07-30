@@ -3,11 +3,10 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import {
   canManageRole,
-  getPrimaryPlatformRole,
   hasAdminAccess,
   hasDeveloperAccess,
-  hasSalesAccess,
   normalizeRequestedRoles,
+  resolvePlatformCapabilities,
   type PlatformRole,
 } from '@citybeat/lib/roles'
 
@@ -19,8 +18,12 @@ function roleColumnGrantUpdates(roles: PlatformRole[]) {
 
   if (roleSet.has('developer')) {
     updates.is_developer = true
+    updates.can_manage_platform = true
     updates.is_editor = true
     updates.is_writer = true
+    updates.is_sales = true
+    updates.sales_dashboard_enabled = true
+    updates.is_advertiser = true
     updates.role = 'developer'
   } else if (roleSet.has('admin')) {
     updates.is_editor = true
@@ -64,10 +67,8 @@ export async function GET() {
       ...profile,
       id: user.id,
       email: profile?.email ?? user.email,
-      primary_role: getPrimaryPlatformRole(profile),
-      can_manage_platform: hasDeveloperAccess(profile),
+      ...resolvePlatformCapabilities(profile),
       can_manage_sales: hasAdminAccess(profile),
-      sales_dashboard_enabled: hasSalesAccess(profile),
     },
   })
 }

@@ -9,6 +9,8 @@ import {
   getPrimaryPlatformRole,
   canManageRole,
   normalizeRequestedRoles,
+  resolvePlatformCapabilities,
+  dashboardPathFor,
 } from './roles'
 
 // ── Access gates ─────────────────────────────────────────────────────────────
@@ -19,6 +21,32 @@ test('developer flag grants developer + all lower access', () => {
   assert.equal(hasAdminAccess(dev), true)
   assert.equal(hasSalesAccess(dev), true)
   assert.equal(hasWriterAccess(dev), true)
+})
+
+test('developer resolves to every cumulative platform capability', () => {
+  assert.deepEqual(resolvePlatformCapabilities({ is_developer: true }), {
+    primary_role: 'developer',
+    is_developer: true,
+    can_manage_platform: true,
+    is_editor: true,
+    is_writer: true,
+    is_sales: true,
+    sales_dashboard_enabled: true,
+    is_advertiser: true,
+  })
+})
+
+test('developer role sources and granted_roles receive the same godmode access', () => {
+  for (const profile of [
+    { role: 'developer' },
+    { can_manage_platform: true },
+    { granted_roles: ['developer'] },
+    { profile_roles: [{ role: 'developer', revoked_at: null }] },
+  ]) {
+    assert.equal(resolvePlatformCapabilities(profile).is_developer, true)
+    assert.equal(resolvePlatformCapabilities(profile).is_advertiser, true)
+    assert.equal(dashboardPathFor(profile), '/developer')
+  }
 })
 
 test('editor gets admin/editor/writer/sales but NOT developer', () => {
@@ -66,6 +94,15 @@ test('getPrimaryPlatformRole picks the most privileged role', () => {
   assert.equal(getPrimaryPlatformRole({ is_advertiser: true }), 'advertiser')
   assert.equal(getPrimaryPlatformRole({}), 'visitor')
   assert.equal(getPrimaryPlatformRole(null), 'visitor')
+})
+
+test('dashboardPathFor always routes by the highest effective role', () => {
+  assert.equal(dashboardPathFor({ is_developer: true, is_editor: true }), '/developer')
+  assert.equal(dashboardPathFor({ is_editor: true, is_sales: true }), '/admin')
+  assert.equal(dashboardPathFor({ is_sales: true, is_writer: true }), '/admin/sales/me')
+  assert.equal(dashboardPathFor({ is_writer: true, is_advertiser: true }), '/creator')
+  assert.equal(dashboardPathFor({ is_advertiser: true }), '/dashboard')
+  assert.equal(dashboardPathFor({}), '/account')
 })
 
 // ── Role management authority ────────────────────────────────────────────────

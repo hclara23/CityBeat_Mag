@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminAuth, adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { verifyTotp } from '@/lib/totp'
+import { resolvePlatformCapabilities } from '@citybeat/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,15 +11,6 @@ export const dynamic = 'force-dynamic'
 const REMEMBER_MS = 60 * 60 * 24 * 14 * 1000
 const SESSION_ONLY_MS = 60 * 60 * 12 * 1000
 const MAX_MFA_ATTEMPTS = 5
-
-function getPrimaryPlatformRole(profile: any) {
-  if (profile?.is_developer) return 'developer'
-  if (profile?.is_editor) return 'editor'
-  if (profile?.is_sales) return 'sales'
-  if (profile?.is_writer) return 'writer'
-  if (profile?.is_advertiser) return 'advertiser'
-  return 'reader'
-}
 
 // Completes a login that requires 2FA: validates the short-lived pending token +
 // the TOTP code, then issues the session cookie. Single-use.
@@ -70,18 +62,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({
       ok: true,
-      profile: {
-        primary_role: getPrimaryPlatformRole(profile),
-        is_developer: profile?.is_developer ?? false,
-        is_editor: profile?.is_editor ?? false,
-        is_writer: profile?.is_writer ?? false,
-        is_sales: profile?.is_sales ?? false,
-        is_advertiser: profile?.is_advertiser ?? false,
-        can_manage_platform: Boolean(profile?.is_developer),
-        sales_dashboard_enabled: Boolean(
-          profile?.sales_dashboard_enabled || profile?.is_developer || profile?.is_sales
-        ),
-      },
+      profile: resolvePlatformCapabilities(profile),
     })
     response.cookies.set('__session', sessionCookie, {
       // Omit maxAge when not remembering → session cookie cleared on browser close.

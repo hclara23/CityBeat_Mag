@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { getPrimaryPlatformRole, hasDeveloperAccess, hasSalesAccess } from '@citybeat/lib/roles'
+import { resolvePlatformCapabilities } from '@citybeat/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,13 +59,7 @@ export async function GET() {
       ...profile,
       id: user.id,
       email: profile?.email ?? user.email,
-      primary_role: getPrimaryPlatformRole(profile),
-      is_developer: profile?.is_developer ?? false,
-      is_editor: profile?.is_editor ?? false,
-      is_writer: profile?.is_writer ?? false,
-      is_sales: profile?.is_sales ?? false,
-      can_manage_platform: hasDeveloperAccess(profile),
-      sales_dashboard_enabled: hasSalesAccess(profile),
+      ...resolvePlatformCapabilities(profile),
     },
   })
 }

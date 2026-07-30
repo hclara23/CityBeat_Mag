@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto'
 import { adminAuth, adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit, clearRateLimit } from '@/lib/auth-security'
+import { resolvePlatformCapabilities } from '@citybeat/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,28 +14,8 @@ const REMEMBER_MS = 60 * 60 * 24 * 14 * 1000 // 14 days
 const SESSION_ONLY_MS = 60 * 60 * 12 * 1000 // 12 hours
 const MFA_PENDING_MS = 5 * 60 * 1000 // 5 min to complete the 2FA step
 
-function getPrimaryPlatformRole(profile: any) {
-  if (profile?.is_developer) return 'developer'
-  if (profile?.is_editor) return 'editor'
-  if (profile?.is_sales) return 'sales'
-  if (profile?.is_writer) return 'writer'
-  if (profile?.is_advertiser) return 'advertiser'
-  return 'reader'
-}
-
 function profilePayload(profile: any) {
-  return {
-    primary_role: getPrimaryPlatformRole(profile),
-    is_developer: profile?.is_developer ?? false,
-    is_editor: profile?.is_editor ?? false,
-    is_writer: profile?.is_writer ?? false,
-    is_sales: profile?.is_sales ?? false,
-    is_advertiser: profile?.is_advertiser ?? false,
-    can_manage_platform: Boolean(profile?.is_developer),
-    sales_dashboard_enabled: Boolean(
-      profile?.sales_dashboard_enabled || profile?.is_developer || profile?.is_sales
-    ),
-  }
+  return resolvePlatformCapabilities(profile)
 }
 
 function setSessionCookie(response: NextResponse, sessionCookie: string, remember: boolean) {

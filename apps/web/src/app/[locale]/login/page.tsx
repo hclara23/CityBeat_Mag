@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { LoginForm } from '@citybeat/ui/auth'
 import Link from 'next/link'
 import { useLocale } from '@/components/TranslationProvider'
+import { dashboardPathFor } from '@citybeat/lib/roles'
 
 const copy = {
   en: {
@@ -37,9 +38,7 @@ async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
 
 function destFor(profile: any, redirectTo: string | null) {
   if (redirectTo && redirectTo.startsWith('/')) return redirectTo
-  if (profile?.is_editor) return '/admin'
-  if (profile?.is_writer) return '/creator'
-  return '/dashboard'
+  return dashboardPathFor(profile)
 }
 
 function LoginContent() {

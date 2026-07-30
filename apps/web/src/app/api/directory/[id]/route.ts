@@ -3,6 +3,7 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { translateTexts } from '@/lib/translate'
 import { isSalesCreatedDirectoryListing } from '@/lib/sales-directory'
+import { hasEditorAccess } from '@citybeat/lib/roles'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -75,7 +76,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const profile = await getServerUserProfile(user.id)
-  const isEditor = Boolean(profile?.is_editor || profile?.is_developer)
+  const isEditor = hasEditorAccess(profile)
 
   const ref = adminDb.collection('directory_listings').doc(id)
   const doc = await ref.get()

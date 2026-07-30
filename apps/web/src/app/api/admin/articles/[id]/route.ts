@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { translateArticleToEs } from '@/lib/translate'
+import { hasEditorAccess } from '@citybeat/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,7 @@ function toIso(v: any): string | null {
 async function requireEditor() {
   const user = await getServerUser()
   const profile = user ? await getServerUserProfile(user.id) : null
-  if (!user || !(profile?.is_editor || profile?.is_developer)) return null
+  if (!user || !hasEditorAccess(profile)) return null
   return user
 }
 
