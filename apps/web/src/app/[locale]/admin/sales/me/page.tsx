@@ -304,10 +304,13 @@ export default function SalesDesk() {
                 {isEs ? '+ Nueva venta' : '+ New sale'}
               </button>
               <a href="/downloads/citybeat-sales-guide.pdf" download className="border border-white/20 px-4 py-2 text-white/70 hover:border-brand-neon/60 hover:text-brand-neon">
-                Download guide
+                {isEs ? 'Guía de ventas' : 'Sales guide'}
+              </a>
+              <a href="/downloads/citybeat-sales-desk-quick-start.pdf" download className="border border-white/20 px-4 py-2 text-white/70 hover:border-brand-neon/60 hover:text-brand-neon">
+                {isEs ? 'Guía rápida' : 'Quick start'}
               </a>
               <a href={withLocale(locale, '/guide')} className="border border-white/20 px-4 py-2 text-white/70 hover:text-white">
-                User guide
+                {isEs ? 'Guía del usuario' : 'User guide'}
               </a>
             </div>
           </div>
