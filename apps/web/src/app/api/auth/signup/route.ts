@@ -3,6 +3,7 @@ import { adminAuth, adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit, validatePassword, isPasswordBreached } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
+import { subscribeEmail } from '@/lib/newsletter-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -104,6 +105,18 @@ export async function POST(request: NextRequest) {
         created_at: FieldValue.serverTimestamp(),
         updated_at: FieldValue.serverTimestamp(),
       })
+
+    // Promotional newsletter consent — only when the customer opted in. Declining
+    // never blocks signup. Recorded with full consent metadata.
+    if (body.newsletter === true) {
+      await subscribeEmail({
+        email,
+        locale: body.locale === 'es' ? 'es' : 'en',
+        source: 'signup',
+        method: 'account_signup',
+        userId: userRecord.uid,
+      }).catch(() => {})
+    }
 
     // Send verification email (don't fail the signup if delivery hiccups).
     try {

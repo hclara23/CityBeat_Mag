@@ -3,6 +3,10 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getPublishedArticles } from '@/lib/articles'
 import { sendEmail } from '@/lib/email'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { emailHash, isSuppressedStatus, mintUnsubToken, normalizeNewsletterEmail } from '@/lib/newsletter'
+import { loadSuppressedHashes } from '@/lib/newsletter-server'
+
+const POSTAL = process.env.NEWSLETTER_POSTAL_ADDRESS || 'CityBeat Mag, El Paso, TX, USA'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -51,7 +55,8 @@ function sponsorHtml(sponsor: Sponsor, locale: 'en' | 'es') {
 
 function digestHtml(articles: any[], email: string, locale: 'en' | 'es', sponsor: Sponsor = null) {
   const isEs = locale === 'es'
-  const unsub = `${APP_URL}/api/newsletter/unsubscribe?email=${encodeURIComponent(email)}`
+  // Signed, opaque unsubscribe token — never puts the email in the URL.
+  const unsub = `${APP_URL}/api/newsletter/unsubscribe?u=${mintUnsubToken(normalizeNewsletterEmail(email))}`
   const items = articles
     .map((a) => {
       const title = isEs ? a.titleES || a.title : a.title
@@ -77,7 +82,8 @@ function digestHtml(articles: any[], email: string, locale: 'en' | 'es', sponsor
     <p style="font-size:11px;color:#999;line-height:1.5">
       ${isEs ? 'Recibes esto porque te suscribiste a CityBeat.' : 'You receive this because you subscribed to CityBeat.'}<br/>
       <a href="${unsub}" style="color:#999">${isEs ? 'Cancelar suscripción' : 'Unsubscribe'}</a> ·
-      <a href="${APP_URL}/${locale}" style="color:#999">citybeatmag.co</a>
+      <a href="${APP_URL}/${locale}" style="color:#999">citybeatmag.co</a><br/>
+      <span style="color:#bbb">${POSTAL}</span>
     </p>
   </div>`
 }
@@ -103,11 +109,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, skipped: 'no_recent_stories' })
   }
 
-  // Active subscribers.
-  const subsSnap = await adminDb.collection('newsletter_subscribers').get().catch(() => ({ docs: [] as any[] }))
+  // Active, non-suppressed subscribers only. Dedupe by normalized email so a
+  // legacy duplicate doc can't double-send, and honor the suppression list.
+  const [subsSnap, suppressed] = await Promise.all([
+    adminDb.collection('newsletter_subscribers').get().catch(() => ({ docs: [] as any[] })),
+    loadSuppressedHashes(),
+  ])
+  const seen = new Set<string>()
   const subs = (subsSnap.docs as any[])
     .map((d) => d.data())
-    .filter((s) => s.email && s.status !== 'unsubscribed')
+    .filter((s) => {
+      const email = normalizeNewsletterEmail(s.email)
+      if (!email.includes('@')) return false
+      if (isSuppressedStatus(s.status)) return false
+      const eid = emailHash(email)
+      if (suppressed.has(eid) || seen.has(eid)) return false
+      seen.add(eid)
+      return true
+    })
     .slice(0, max)
 
   const subject = recent[0]

@@ -30,6 +30,9 @@ export default function SignupPage() {
   const localeCopy = copy[locale]
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
+  // US CAN-SPAM opt-out: the newsletter box starts checked; the user can uncheck
+  // it, and declining never blocks signup.
+  const [newsletter, setNewsletter] = useState(true)
 
   const handleSubmit = async (data: {
     email: string
@@ -68,6 +71,15 @@ export default function SignupPage() {
         }
       }
 
+      // Promotional newsletter consent (best-effort; never blocks signup).
+      if (newsletter) {
+        fetch('/api/newsletter/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: data.email, locale, source: 'signup' }),
+        }).catch(() => {})
+      }
+
       setMessage(result.message || localeCopy.message)
       // Redirect to login after a delay
       setTimeout(() => {
@@ -98,6 +110,20 @@ export default function SignupPage() {
           )}
 
           <SignupForm onSubmit={handleSubmit} isLoading={isLoading} />
+
+          <label className="mt-4 flex items-start gap-2.5 cursor-pointer text-sm text-gray-600">
+            <input
+              type="checkbox"
+              checked={newsletter}
+              onChange={(e) => setNewsletter(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-cyan-600"
+            />
+            <span>
+              {locale === 'es'
+                ? 'Envíenme el boletín de CityBeat con historias, eventos y ofertas locales. Puedo cancelar la suscripción en cualquier momento.'
+                : 'Email me the CityBeat newsletter with local stories, events, and offers. I can unsubscribe at any time.'}
+            </span>
+          </label>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
