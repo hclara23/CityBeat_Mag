@@ -52,15 +52,25 @@ export async function notifyUser(input: {
     const to = input.email || profile?.email
     if (!prefs.activity_email || !to) return
 
-    const link = record.link ? `${APP_URL}/en${record.link}` : `${APP_URL}/en/dashboard`
+    // Bilingual: ~90% of the audience is Spanish-speaking — use the owner's
+    // stored locale for the subject, body, CTA, footer, and dashboard link.
+    const locale: 'en' | 'es' = profile?.locale === 'es' ? 'es' : 'en'
+    const subject = (locale === 'es' ? record.title_es : record.title) || record.title
+    const bodyText = (locale === 'es' ? record.body_es : record.body) || record.body
+    const cta = locale === 'es' ? 'Abrir panel' : 'Open dashboard'
+    const footer =
+      locale === 'es'
+        ? 'CityBeat · Puedes desactivar los correos de actividad en la configuración de tu panel.'
+        : 'CityBeat · You can turn activity emails off in your listing dashboard settings.'
+    const link = record.link ? `${APP_URL}/${locale}${record.link}` : `${APP_URL}/${locale}/dashboard`
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px">
-        <p style="font-weight:800;font-size:18px;color:#0f172a;margin:0 0 8px">${esc(record.title)}</p>
-        ${record.body ? `<p style="color:#334155;font-size:14px;line-height:1.6;margin:0 0 16px">${esc(record.body)}</p>` : ''}
-        <p style="margin:20px 0"><a href="${link}" style="background:#22d3ee;color:#000;font-weight:800;padding:11px 20px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px;font-size:12px">Open dashboard</a></p>
-        <p style="color:#94a3b8;font-size:11px">CityBeat · You can turn activity emails off in your listing dashboard settings.</p>
+        <p style="font-weight:800;font-size:18px;color:#0f172a;margin:0 0 8px">${esc(subject)}</p>
+        ${bodyText ? `<p style="color:#334155;font-size:14px;line-height:1.6;margin:0 0 16px">${esc(bodyText)}</p>` : ''}
+        <p style="margin:20px 0"><a href="${link}" style="background:#22d3ee;color:#000;font-weight:800;padding:11px 20px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px;font-size:12px">${esc(cta)}</a></p>
+        <p style="color:#94a3b8;font-size:11px">${esc(footer)}</p>
       </div>`
-    const result = await sendEmail(String(to), record.title, html)
+    const result = await sendEmail(String(to), subject, html)
     if (result.sent) {
       // Delivery is only claimed after the provider accepted the message.
       await ref.set({ email_sent: true }, { merge: true })

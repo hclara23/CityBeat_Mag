@@ -34,12 +34,23 @@ export async function POST(request: NextRequest) {
   if (!listingId || !name || !contact) {
     return NextResponse.json({ error: 'Name and contact are required.' }, { status: 400 })
   }
+  // A valid Firestore listing id — rejecting '/' also avoids the odd-segment
+  // throw when building the listing_stats doc id below.
+  if (!/^[A-Za-z0-9_-]{1,80}$/.test(listingId)) {
+    return NextResponse.json({ error: 'Invalid listing.' }, { status: 400 })
+  }
 
   let listing: any = null
   try {
     const doc = await adminDb.collection('directory_listings').doc(listingId).get()
     listing = doc.exists ? doc.data() : null
   } catch { /* ignore */ }
+
+  // Require a real listing so a garbage id can't seed junk quote_requests /
+  // listing_stats docs or email-bomb via the notification below.
+  if (!listing) {
+    return NextResponse.json({ error: 'Listing not found.' }, { status: 404 })
+  }
 
   const isClaimed = listing?.claim_status === 'approved' && Boolean(listing?.owner_id)
   const isPremium = isClaimed && ['premium', 'featured'].includes(listing?.tier)
@@ -81,7 +92,7 @@ export async function POST(request: NextRequest) {
   // First-party inbox record for the owner. The email below already delivers
   // the lead to the business, so the record skips the email channel.
   if (listing?.owner_id) {
-    void notifyUser({
+    await notifyUser({
       userId: String(listing.owner_id),
       type: 'lead',
       title: `New customer inquiry for ${listing?.name || 'your business'}`,

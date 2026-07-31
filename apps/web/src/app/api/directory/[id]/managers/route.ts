@@ -139,7 +139,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   // Tell the invited manager (first-party inbox + email).
   const bizName = String(listing.name || 'a business')
-  void notifyUser({
+  await notifyUser({
     userId: target.uid,
     type: 'manager_added',
     title: `You can now manage ${bizName} on CityBeat`,

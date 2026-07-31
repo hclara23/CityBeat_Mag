@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { sendEmail } from '@/lib/email'
+import { getNotifyPrefs } from '@/lib/notify-prefs'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
@@ -139,12 +140,18 @@ export async function GET(request: NextRequest) {
 
     let sent = 0
     let skippedNoEmail = 0
+    let skippedOptedOut = 0
     for (const [ownerId, ownerListings] of byOwner) {
       const profile = await adminDb.collection('profiles').doc(ownerId).get().catch(() => null)
       const p = profile?.exists ? (profile.data() as any) : null
       const email = p?.email
       if (!email) {
         skippedNoEmail++
+        continue
+      }
+      // Honor the owner's monthly-report preference (default on).
+      if (!getNotifyPrefs(p).monthly_report) {
+        skippedOptedOut++
         continue
       }
       const locale: 'en' | 'es' = p?.locale === 'es' ? 'es' : 'en'
@@ -161,7 +168,14 @@ export async function GET(request: NextRequest) {
     }
 
     await reportSuccess('cron:owner-reports')
-    return NextResponse.json({ ok: true, dryRun, owners: byOwner.size, sent, skipped_no_email: skippedNoEmail })
+    return NextResponse.json({
+      ok: true,
+      dryRun,
+      owners: byOwner.size,
+      sent,
+      skipped_no_email: skippedNoEmail,
+      skipped_opted_out: skippedOptedOut,
+    })
   } catch (error) {
     await reportFailure('cron:owner-reports', error)
     return NextResponse.json({ error: 'Owner reports failed' }, { status: 500 })

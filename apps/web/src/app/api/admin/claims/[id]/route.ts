@@ -64,7 +64,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (action === 'approve' && ownerId) {
       await adminDb.collection('profiles').doc(ownerId).set({ is_advertiser: true }, { merge: true })
       const bizName = String(data?.name || 'your business')
-      void notifyUser({
+      await notifyUser({
         userId: String(ownerId),
         type: 'claim_approved',
         title: `Your claim for ${bizName} was approved!`,

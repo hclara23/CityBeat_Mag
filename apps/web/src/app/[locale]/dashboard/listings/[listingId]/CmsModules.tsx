@@ -10,6 +10,7 @@ import {
   ACTION_LINK_KEYS,
   ACTION_LINK_LABELS,
   ATTRIBUTE_DEFS,
+  elPasoDayKey,
   postStatus,
   type ActionLinks,
   type ListingPost,
@@ -141,7 +142,7 @@ export function PostsEditor({
     onChange(posts.map((p) => (p.id === id ? { ...p, ...patch } : p)))
 
   const statusChip = (post: ListingPost) => {
-    const s = postStatus(post, Date.now())
+    const s = postStatus(post, elPasoDayKey(new Date()))
     const map = {
       active: { en: 'Live', es: 'Activo', cls: 'bg-brand-neon/15 text-brand-neon' },
       scheduled: { en: 'Scheduled', es: 'Programado', cls: 'bg-amber-400/15 text-amber-300' },

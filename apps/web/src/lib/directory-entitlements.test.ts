@@ -281,6 +281,12 @@ test('invited managers can edit only while the plan still allows managers', () =
     resolveListingPatchAccess(listing, { userId: 'intruder', managerAllowance: 3 }).canManage,
     false
   )
+  // Positional cap: a partial downgrade revokes overflow seats. With 3 managers
+  // and an allowance of 2, the 3rd loses access while the first 2 keep it.
+  const three = { owner_id: 'owner-1', claim_status: 'approved', manager_ids: ['m1', 'm2', 'm3'] }
+  assert.equal(resolveListingPatchAccess(three, { userId: 'm1', managerAllowance: 2 }).canManage, true)
+  assert.equal(resolveListingPatchAccess(three, { userId: 'm2', managerAllowance: 2 }).canManage, true)
+  assert.equal(resolveListingPatchAccess(three, { userId: 'm3', managerAllowance: 2 }).canManage, false)
   // Manager access also requires the claim to be approved.
   assert.equal(
     resolveListingPatchAccess(

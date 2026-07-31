@@ -9,6 +9,7 @@ import {
   ACTION_LINK_LABELS,
   activePosts,
   attributeLabel,
+  elPasoDayKey,
   type ActionLinks,
   type ListingPost,
   type ListingServiceItem,
@@ -106,7 +107,7 @@ export function ListingContentSections({
   locale: 'en' | 'es'
 }) {
   const isEs = locale === 'es'
-  const posts = activePosts(listing.posts, Date.now())
+  const posts = activePosts(listing.posts, elPasoDayKey(new Date()))
   const services = Array.isArray(listing.services) ? listing.services.filter((s) => s?.name) : []
   const products = Array.isArray(listing.products) ? listing.products.filter((p) => p?.name) : []
   const attrs = Array.isArray(listing.attributes) ? listing.attributes : []
@@ -190,8 +191,9 @@ export function SpecialHoursNote({
   isEs: boolean
 }) {
   const rows = Array.isArray(specialHours) ? specialHours : []
-  // Only upcoming (or today's) overrides matter to visitors.
-  const today = new Date().toISOString().slice(0, 10)
+  // Only upcoming (or today's) overrides matter to visitors — anchored to the
+  // business's local day so a "closed today" note doesn't vanish mid-evening.
+  const today = elPasoDayKey(new Date())
   const upcoming = rows.filter((r) => r?.date >= today).slice(0, 6)
   if (!upcoming.length) return null
   return (

@@ -165,19 +165,32 @@ export function sanitizePosts(input: unknown, now = new Date()): ListingPost[] {
 
 export type PostStatus = 'active' | 'scheduled' | 'expired'
 
-export function postStatus(post: Pick<ListingPost, 'starts_at' | 'ends_at'>, nowMs: number): PostStatus {
-  // A date-only starts_at begins at 00:00 UTC that day; ends_at lasts through
-  // the END of its day so "ends 2026-08-01" includes August 1.
-  if (post.starts_at && nowMs < Date.parse(post.starts_at)) return 'scheduled'
-  if (post.ends_at && nowMs > Date.parse(post.ends_at) + 24 * 60 * 60 * 1000 - 1) return 'expired'
+// The local business day (America/Denver = El Paso; Intl handles DST). Post and
+// special-hours boundaries are date-only, so we compare calendar days in the
+// business's own timezone rather than UTC — "ends Aug 1" stays live through all
+// of Aug 1 for local customers, not until ~6 PM the day before.
+export function elPasoDayKey(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Denver',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
+}
+
+// todayKey is a local YYYY-MM-DD (see elPasoDayKey). Date-only comparison: a post
+// is scheduled until its start day, active through the whole of its end day.
+export function postStatus(post: Pick<ListingPost, 'starts_at' | 'ends_at'>, todayKey: string): PostStatus {
+  if (post.starts_at && todayKey < post.starts_at) return 'scheduled'
+  if (post.ends_at && todayKey > post.ends_at) return 'expired'
   return 'active'
 }
 
 // Public rendering: only currently-active posts, newest first.
-export function activePosts(posts: unknown, nowMs: number): ListingPost[] {
+export function activePosts(posts: unknown, todayKey: string): ListingPost[] {
   if (!Array.isArray(posts)) return []
   return (posts as ListingPost[])
-    .filter((p) => p && typeof p === 'object' && p.title && postStatus(p, nowMs) === 'active')
+    .filter((p) => p && typeof p === 'object' && p.title && postStatus(p, todayKey) === 'active')
     .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
 }
 
@@ -189,6 +202,39 @@ export function sanitizeActionLinks(input: unknown): ActionLinks {
   for (const key of ACTION_LINK_KEYS) {
     const url = sanitizeHttpUrl((input as Record<string, unknown>)[key])
     if (url) out[key] = url
+  }
+  return out
+}
+
+// --- social links + core URL/text fields (URL-scheme hardened) ---
+
+export const SOCIAL_LINK_KEYS = ['facebook', 'instagram', 'twitter'] as const
+
+// Only valid http(s) links survive; a cleared/invalid value is omitted so the
+// caller can persist a delete for it.
+export function sanitizeSocialLinks(input: unknown): Record<string, string> {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return {}
+  const out: Record<string, string> = {}
+  for (const key of SOCIAL_LINK_KEYS) {
+    const url = sanitizeHttpUrl((input as Record<string, unknown>)[key])
+    if (url) out[key] = url
+  }
+  return out
+}
+
+export function capText(value: unknown, max: number): string {
+  return str(value, max)
+}
+
+// Standard weekly hours: a day-keyed record of bounded strings, unknown keys
+// dropped — never arbitrary/oversized JSON on the public document.
+export function sanitizeHoursRecord(input: unknown): Record<string, string> {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return {}
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  const out: Record<string, string> = {}
+  for (const day of days) {
+    const v = str((input as Record<string, unknown>)[day], 60)
+    if (v) out[day] = v
   }
   return out
 }
@@ -229,13 +275,13 @@ export function sanitizeSpecialHours(input: unknown): SpecialHour[] {
   return out.sort((a, b) => a.date.localeCompare(b.date))
 }
 
-// One sanitizer entry point keyed by listing field, so the PATCH route can run
-// every admitted structured field through its shape without a case ladder.
+// Array/plain structured fields run through the generic loop. Map-shaped fields
+// (action_links, social_links) and core URL/text fields are handled explicitly
+// in the PATCH route because clearing a map key must persist a delete.
 export const CONTENT_FIELD_SANITIZERS: Record<string, (value: unknown) => unknown> = {
   services: sanitizeServices,
   products: sanitizeProducts,
   posts: (v) => sanitizePosts(v),
-  action_links: sanitizeActionLinks,
   attributes: sanitizeAttributes,
   special_hours: sanitizeSpecialHours,
 }

@@ -33,14 +33,16 @@ export async function POST(request: NextRequest) {
   const now = new Date().toISOString()
   try {
     if (body.action === 'read' && typeof body.id === 'string' && body.id) {
-      await itemsRef(user.id).doc(body.id).set({ read_at: now }, { merge: true })
+      // update() never creates a doc — a bogus id is a harmless no-op, not a
+      // phantom write.
+      await itemsRef(user.id).doc(body.id).update({ read_at: now }).catch(() => {})
       return NextResponse.json({ ok: true })
     }
     if (body.action === 'read_all') {
       const snap = await itemsRef(user.id).orderBy('created_at', 'desc').limit(100).get()
       const batch = adminDb.batch()
       snap.docs.forEach((d) => {
-        if (!(d.data() as any).read_at) batch.set(d.ref, { read_at: now }, { merge: true })
+        if (!(d.data() as any).read_at) batch.update(d.ref, { read_at: now })
       })
       await batch.commit()
       return NextResponse.json({ ok: true })

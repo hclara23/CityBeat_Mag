@@ -1299,21 +1299,23 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 <LocationsPanel listing={listing} t={t} />
 
                 {/* Hours Schedule */}
-                {listing.hours && (
+                {(listing.hours || (listing.special_hours?.length ?? 0) > 0) && (
                   <div className="citybeat-panel rounded-2xl p-6 border border-white/10">
                     <h3 className="font-display text-xl font-bold uppercase border-b border-white/5 pb-3 mb-4">{t.hoursTitle}</h3>
-                    <div className="space-y-2">
-                      {DAYS_OF_WEEK.map((day) => (
-                        <div key={day} className="flex justify-between text-xs py-1 border-b border-white/5">
-                          <span className="font-bold text-white/70">
-                            {locale === 'es' ? DIAS_SEMANA[day as keyof typeof DIAS_SEMANA] : day}
-                          </span>
-                          <span className="text-white/90 font-medium">
-                            {listing.hours?.[day] || 'Closed'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                    {listing.hours && (
+                      <div className="space-y-2">
+                        {DAYS_OF_WEEK.map((day) => (
+                          <div key={day} className="flex justify-between text-xs py-1 border-b border-white/5">
+                            <span className="font-bold text-white/70">
+                              {locale === 'es' ? DIAS_SEMANA[day as keyof typeof DIAS_SEMANA] : day}
+                            </span>
+                            <span className="text-white/90 font-medium">
+                              {listing.hours?.[day] || 'Closed'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <SpecialHoursNote specialHours={listing.special_hours} isEs={locale === 'es'} />
                   </div>
                 )}
@@ -1380,6 +1382,26 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 {/* Booking / order / quote actions + owner-managed content */}
                 <ActionLinksBar listing={listing} locale={locale} onLinkClick={() => track('click_action')} />
                 <ListingContentSections listing={listing} locale={locale} />
+
+                {/* Hours (core, all tiers) */}
+                {(listing.hours || (listing.special_hours?.length ?? 0) > 0) && (
+                  <div className="citybeat-panel rounded-2xl p-6 border border-white/10">
+                    <h3 className="font-display text-xl font-bold uppercase border-b border-white/5 pb-3 mb-4">{t.hoursTitle}</h3>
+                    {listing.hours && (
+                      <div className="space-y-2">
+                        {DAYS_OF_WEEK.map((day) => (
+                          <div key={day} className="flex justify-between text-xs py-1 border-b border-white/5">
+                            <span className="font-bold text-white/70">
+                              {locale === 'es' ? DIAS_SEMANA[day as keyof typeof DIAS_SEMANA] : day}
+                            </span>
+                            <span className="text-white/90 font-medium">{listing.hours?.[day] || 'Closed'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <SpecialHoursNote specialHours={listing.special_hours} isEs={locale === 'es'} />
+                  </div>
+                )}
               </div>
 
               {/* Right Column: Claim Upgrade Call to Action */}

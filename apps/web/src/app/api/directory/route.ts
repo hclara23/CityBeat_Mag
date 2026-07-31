@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@citybeat/lib/firebase/admin';
 import { stripInternalListingFields } from '@/lib/listing-fields';
+import { activePosts, elPasoDayKey } from '@/lib/listing-content';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,8 +49,14 @@ export async function GET(request: NextRequest) {
     });
 
     // Strip internal/sensitive fields (contact/stripe ids, verification-bypass
-    // token) from every public list result.
-    return NextResponse.json({ listings: results.map(stripInternalListingFields) });
+    // token, manager uids) and expose only active posts on every public result.
+    const today = elPasoDayKey(new Date());
+    const publicResults = results.map((r: any) => {
+      const clean = stripInternalListingFields(r);
+      if ('posts' in clean) clean.posts = activePosts(clean.posts, today);
+      return clean;
+    });
+    return NextResponse.json({ listings: publicResults });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

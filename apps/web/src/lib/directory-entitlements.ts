@@ -255,12 +255,17 @@ export function resolveListingPatchAccess(
     actor.userId && listing?.owner_id === actor.userId && listing?.claim_status === 'approved'
   )
   const allowance = Math.max(0, actor.managerAllowance ?? 0)
+  // Positional seat cap: only the first `allowance` manager ids keep access, so a
+  // downgrade (e.g. Featured 10 → Premium 3) deterministically revokes the
+  // overflow seats instead of leaving all invited managers active.
+  const activeSeats = Array.isArray(listing?.manager_ids)
+    ? listing.manager_ids.filter((v) => typeof v === 'string').slice(0, allowance)
+    : []
   const isManager = Boolean(
     !isOwner &&
       actor.userId &&
       allowance > 0 &&
-      Array.isArray(listing?.manager_ids) &&
-      listing.manager_ids.includes(actor.userId) &&
+      activeSeats.includes(actor.userId) &&
       listing?.claim_status === 'approved'
   )
   return { isOwner, isStaff, isManager, canManage: isOwner || isStaff || isManager }

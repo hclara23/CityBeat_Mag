@@ -5,17 +5,21 @@ import {
   MAX_SERVICES,
   activePosts,
   attributeLabel,
+  elPasoDayKey,
   postStatus,
   sanitizeActionLinks,
   sanitizeAttributes,
+  sanitizeHoursRecord,
   sanitizeHttpUrl,
   sanitizePosts,
   sanitizeProducts,
   sanitizeServices,
+  sanitizeSocialLinks,
   sanitizeSpecialHours,
 } from './listing-content'
 
 const NOW = Date.parse('2026-07-31T12:00:00.000Z')
+const TODAY = '2026-07-31'
 
 test('services are trimmed, capped, and require a name', () => {
   const out = sanitizeServices([
@@ -96,13 +100,19 @@ test('posts validate type, dates, and CTA and are capped', () => {
   assert.equal(many.length, MAX_POSTS)
 })
 
-test('post scheduling: scheduled before starts_at, active through end of ends_at day, expired after', () => {
+test('post scheduling uses local calendar days: active through the whole end day', () => {
   const post = { starts_at: '2026-08-01', ends_at: '2026-08-03' }
-  assert.equal(postStatus(post, Date.parse('2026-07-31T00:00:00Z')), 'scheduled')
-  assert.equal(postStatus(post, Date.parse('2026-08-01T00:00:00Z')), 'active')
-  assert.equal(postStatus(post, Date.parse('2026-08-03T23:00:00Z')), 'active') // through end of day
-  assert.equal(postStatus(post, Date.parse('2026-08-04T00:00:01Z')), 'expired')
-  assert.equal(postStatus({ starts_at: null, ends_at: null }, NOW), 'active')
+  assert.equal(postStatus(post, '2026-07-31'), 'scheduled')
+  assert.equal(postStatus(post, '2026-08-01'), 'active')
+  assert.equal(postStatus(post, '2026-08-03'), 'active') // through the whole end day
+  assert.equal(postStatus(post, '2026-08-04'), 'expired')
+  assert.equal(postStatus({ starts_at: null, ends_at: null }, TODAY), 'active')
+})
+
+test('elPasoDayKey returns the local business calendar day (DST-aware)', () => {
+  // 01:00 UTC on Aug 1 is still Jul 31 in America/Denver (UTC-6 in summer).
+  assert.equal(elPasoDayKey(new Date('2026-08-01T01:00:00Z')), '2026-07-31')
+  assert.equal(elPasoDayKey(new Date('2026-08-01T18:00:00Z')), '2026-08-01')
 })
 
 test('activePosts filters to currently-active, newest first', () => {
@@ -115,9 +125,23 @@ test('activePosts filters to currently-active, newest first', () => {
     ],
     new Date(NOW)
   )
-  const act = activePosts(posts, NOW)
+  const act = activePosts(posts, TODAY)
   assert.deepEqual(act.map((p) => p.title), ['New', 'Old'])
-  assert.deepEqual(activePosts(null, NOW), [])
+  assert.deepEqual(activePosts(null, TODAY), [])
+})
+
+test('social links keep only valid http(s) urls', () => {
+  assert.deepEqual(
+    sanitizeSocialLinks({ facebook: 'https://fb.com/x', instagram: 'javascript:alert(1)', twitter: '', bogus: 'https://y' }),
+    { facebook: 'https://fb.com/x' }
+  )
+})
+
+test('hours record drops unknown keys and caps values', () => {
+  const out = sanitizeHoursRecord({ Monday: '9-5', Funday: 'x', Tuesday: 'y'.repeat(200) })
+  assert.equal(out.Monday, '9-5')
+  assert.equal('Funday' in out, false)
+  assert.equal(out.Tuesday.length, 60)
 })
 
 test('special hours require a valid date + label, dedupe by date, and sort', () => {

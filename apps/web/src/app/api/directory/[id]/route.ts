@@ -11,7 +11,19 @@ import {
   isStaffOverrideWrite,
 } from '@/lib/directory-entitlements'
 import { stripInternalListingFields } from '@/lib/listing-fields'
-import { CONTENT_FIELD_SANITIZERS } from '@/lib/listing-content'
+import {
+  ACTION_LINK_KEYS,
+  CONTENT_FIELD_SANITIZERS,
+  SOCIAL_LINK_KEYS,
+  activePosts,
+  capText,
+  elPasoDayKey,
+  sanitizeActionLinks,
+  sanitizeHoursRecord,
+  sanitizeHttpUrl,
+  sanitizeSocialLinks,
+} from '@/lib/listing-content'
+import { FieldValue } from 'firebase-admin/firestore'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -43,8 +55,20 @@ function serializeListing(id: string, data: any) {
     sales_created_listing: isSalesCreatedDirectoryListing(data),
     claim_contact_email_hint: maskClaimContact(data.email || data.contact_email, 'email'),
     claim_contact_phone_hint: maskClaimContact(data.phone, 'phone'),
+    // Only currently-active posts are public — scheduled/expired offers stay
+    // private until they go live.
+    posts: activePosts(data.posts, elPasoDayKey(new Date())),
   }
   return stripInternalListingFields(listing)
+}
+
+// Expand a sanitized map to a merge-safe write: known keys absent from the
+// sanitized object become FieldValue.delete() so clearing a link actually
+// persists (merge:true would otherwise keep the stale value).
+function mapWithDeletes(sanitized: Record<string, string>, allKeys: readonly string[]) {
+  const out: Record<string, unknown> = { ...sanitized }
+  for (const key of allKeys) if (!(key in sanitized)) out[key] = FieldValue.delete()
+  return out
 }
 
 // GET: Fetch single listing details
@@ -113,9 +137,34 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     entitlements,
     isStaff: isEditor,
   })
-  // Structured content modules (services, products, posts, action links,
-  // attributes, special hours) are never stored as raw client JSON — each shape
-  // is sanitized, capped, and allow-listed here.
+  // --- Field hardening: nothing reaches Firestore (or the public page) as raw
+  // client JSON. Runs on whatever the entitlement filter already admitted. ---
+
+  // URL fields: http(s) only (blocks stored javascript:/data: XSS in the anchors
+  // the public page renders). Empty/invalid clears the field.
+  if ('website' in allowedUpdates) allowedUpdates.website = sanitizeHttpUrl(allowedUpdates.website) || ''
+  if ('image_url' in allowedUpdates) allowedUpdates.image_url = sanitizeHttpUrl(allowedUpdates.image_url) || ''
+  if ('gallery_urls' in allowedUpdates) {
+    allowedUpdates.gallery_urls = Array.isArray(allowedUpdates.gallery_urls)
+      ? allowedUpdates.gallery_urls.map((u: unknown) => sanitizeHttpUrl(u)).filter(Boolean)
+      : []
+  }
+  // Core text fields: trimmed + length-capped (no arbitrary/oversized JSON).
+  if ('name' in allowedUpdates) allowedUpdates.name = capText(allowedUpdates.name, 140)
+  if ('phone' in allowedUpdates) allowedUpdates.phone = capText(allowedUpdates.phone, 40)
+  if ('address' in allowedUpdates) allowedUpdates.address = capText(allowedUpdates.address, 200)
+  if ('category' in allowedUpdates) allowedUpdates.category = capText(allowedUpdates.category, 80)
+  if ('hours' in allowedUpdates) allowedUpdates.hours = sanitizeHoursRecord(allowedUpdates.hours)
+
+  // Map-shaped fields: sanitize valid keys, and persist deletes for cleared keys
+  // (a removed booking/social link must actually disappear).
+  if ('social_links' in allowedUpdates) {
+    allowedUpdates.social_links = mapWithDeletes(sanitizeSocialLinks(allowedUpdates.social_links), SOCIAL_LINK_KEYS)
+  }
+  if ('action_links' in allowedUpdates) {
+    allowedUpdates.action_links = mapWithDeletes(sanitizeActionLinks(allowedUpdates.action_links), ACTION_LINK_KEYS)
+  }
+  // Array/plain structured content modules.
   for (const [field, sanitize] of Object.entries(CONTENT_FIELD_SANITIZERS)) {
     if (field in allowedUpdates) allowedUpdates[field] = sanitize(allowedUpdates[field])
   }

@@ -18,6 +18,9 @@ export const PUBLIC_LISTING_STRIP_FIELDS = [
   'claim_token_hash',
   'claim_token_expires_at',
   'claim_token_consumed_at',
+  // Private team membership — the Firebase UIDs of invited managers (the public
+  // team surface uses the owner/staff-gated managers route).
+  'manager_ids',
 ] as const
 
 // Mutating strip (the callers build a throwaway plain object first).

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { jsonLdSafe } from '@/lib/jsonld'
 import { stripInternalListingFields } from '@/lib/listing-fields'
+import { activePosts, elPasoDayKey } from '@/lib/listing-content'
 import DirectoryDetailClient from './DirectoryDetailClient'
 
 export const dynamic = 'force-dynamic'
@@ -38,7 +39,10 @@ function toPlain(v: any): any {
 }
 
 function toPublicListing(listing: any) {
-  return stripInternalListingFields(toPlain(listing))
+  const plain = stripInternalListingFields(toPlain(listing))
+  // Scheduled/expired posts stay private until they go live.
+  plain.posts = activePosts(plain.posts, elPasoDayKey(new Date()))
+  return plain
 }
 
 function cityFromAddress(address?: string | null): string | null {
