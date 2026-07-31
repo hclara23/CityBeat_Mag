@@ -336,6 +336,24 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
     }
   }, [id, fetchReviews])
 
+  // Privacy-safe listing analytics: fire-and-forget counters, no visitor
+  // identity. The server excludes owner/manager/staff self-traffic.
+  const track = useCallback(
+    (type: 'view' | 'click_website' | 'click_directions' | 'click_action') => {
+      void fetch('/api/track/listing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: id, type }),
+        keepalive: true,
+      }).catch(() => {})
+    },
+    [id]
+  )
+
+  useEffect(() => {
+    if (id) track('view')
+  }, [id, track])
+
   // Deep-link ?edit=1 (from the dashboard "Manage" link) opens edit mode once we
   // know the viewer is the approved owner or an editor.
   useEffect(() => {
@@ -962,7 +980,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 </div>
 
                 {/* Booking / order / quote actions + owner-managed content */}
-                <ActionLinksBar listing={listing} locale={locale} />
+                <ActionLinksBar listing={listing} locale={locale} onLinkClick={() => track('click_action')} />
                 <ListingContentSections listing={listing} locale={locale} />
 
                 {/* Photo Gallery */}
@@ -1261,17 +1279,17 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                   {listing.website && (
                     <div>
                       <p className="text-[10px] uppercase font-bold text-brand-neon">{t.website}</p>
-                      <a href={listing.website} target="_blank" rel="noopener noreferrer" className="text-sm mt-1 text-brand-neon hover:underline truncate block">
+                      <a href={listing.website} target="_blank" rel="noopener noreferrer" onClick={() => track('click_website')} className="text-sm mt-1 text-brand-neon hover:underline truncate block">
                         {listing.website.replace(/^https?:\/\/(www\.)?/, '')}
                       </a>
                     </div>
                   )}
 
                   <div className="pt-4 border-t border-white/5 space-y-2.5">
-                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="w-full text-center block rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-2.5 transition">
+                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" onClick={() => track('click_directions')} className="w-full text-center block rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-2.5 transition">
                       {t.mapsBtn}
                     </a>
-                    <a href={appleMapsUrl} target="_blank" rel="noopener noreferrer" className="w-full text-center block rounded border border-white/20 hover:bg-white/5 text-white font-bold uppercase tracking-wider text-xs py-2.5 transition">
+                    <a href={appleMapsUrl} target="_blank" rel="noopener noreferrer" onClick={() => track('click_directions')} className="w-full text-center block rounded border border-white/20 hover:bg-white/5 text-white font-bold uppercase tracking-wider text-xs py-2.5 transition">
                       {t.appleMapsBtn}
                     </a>
                   </div>
@@ -1342,7 +1360,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     {listing.website && (
                       <div className="sm:col-span-2">
                         <h4 className="text-[10px] font-black uppercase tracking-wider text-brand-neon">{t.website}</h4>
-                        <a href={listing.website} target="_blank" rel="noopener noreferrer" className="text-brand-neon hover:underline mt-1 text-sm block truncate">
+                        <a href={listing.website} target="_blank" rel="noopener noreferrer" onClick={() => track('click_website')} className="text-brand-neon hover:underline mt-1 text-sm block truncate">
                           {listing.website}
                         </a>
                       </div>
@@ -1350,17 +1368,17 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                   </div>
 
                   <div className="mt-8 pt-6 border-t border-white/5 flex flex-col sm:flex-row gap-4">
-                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-center block rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-3 transition">
+                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" onClick={() => track('click_directions')} className="flex-1 text-center block rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-3 transition">
                       {t.mapsBtn}
                     </a>
-                    <a href={appleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-center block rounded border border-white/20 hover:bg-white/5 text-white font-bold uppercase tracking-wider text-xs py-3 transition">
+                    <a href={appleMapsUrl} target="_blank" rel="noopener noreferrer" onClick={() => track('click_directions')} className="flex-1 text-center block rounded border border-white/20 hover:bg-white/5 text-white font-bold uppercase tracking-wider text-xs py-3 transition">
                       {t.appleMapsBtn}
                     </a>
                   </div>
                 </div>
 
                 {/* Booking / order / quote actions + owner-managed content */}
-                <ActionLinksBar listing={listing} locale={locale} />
+                <ActionLinksBar listing={listing} locale={locale} onLinkClick={() => track('click_action')} />
                 <ListingContentSections listing={listing} locale={locale} />
               </div>
 

@@ -36,7 +36,15 @@ const POST_TYPE_LABEL: Record<ListingPost['type'], { en: string; es: string }> =
   event: { en: 'Event', es: 'Evento' },
 }
 
-export function ActionLinksBar({ listing, locale }: { listing: ContentListing; locale: 'en' | 'es' }) {
+export function ActionLinksBar({
+  listing,
+  locale,
+  onLinkClick,
+}: {
+  listing: ContentListing
+  locale: 'en' | 'es'
+  onLinkClick?: () => void
+}) {
   const links = listing.action_links || {}
   const entries = ACTION_LINK_KEYS.filter((k) => links[k])
   if (entries.length === 0) return null
@@ -48,6 +56,7 @@ export function ActionLinksBar({ listing, locale }: { listing: ContentListing; l
           href={links[key]}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={onLinkClick}
           className="rounded-md bg-brand-neon px-4 py-2.5 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300"
         >
           {ACTION_LINK_LABELS[key][locale]} ↗

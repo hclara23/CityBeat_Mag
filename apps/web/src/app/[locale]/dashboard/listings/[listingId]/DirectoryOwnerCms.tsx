@@ -22,6 +22,7 @@ import {
 } from '@/lib/listing-content'
 import {
   ActionLinksEditor,
+  AnalyticsPanel,
   AttributesEditor,
   ItemsEditor,
   PostsEditor,
@@ -626,7 +627,13 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
             )}
             {section === 'analytics' && (
               <ModulePanel title={isEs ? 'Analíticas' : 'Analytics'} isEs={isEs}>
-                <ModulePlaceholder entitlementKey="fullAnalytics" entitled={isStaff || entitlements.fullAnalytics} locale={locale} listingId={listing.id} isEs={isEs} />
+                {/* Headline 30-day totals are all-tiers; the API shapes the
+                    response by entitlement (series/comparison/export = paid). */}
+                <AnalyticsPanel
+                  listingId={listing.id}
+                  isEs={isEs}
+                  canExport={isStaff || entitlements.analyticsExport}
+                />
               </ModulePanel>
             )}
             {section === 'team' && (

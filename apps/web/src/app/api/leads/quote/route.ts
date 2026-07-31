@@ -63,6 +63,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not submit request' }, { status: 500 })
   }
 
+  // Listing analytics: count the lead in the per-day aggregate (server-derived —
+  // never client-reported). Best effort.
+  {
+    const day = new Date().toISOString().slice(0, 10)
+    void adminDb
+      .collection('listing_stats')
+      .doc(`${listingId}_${day}`)
+      .set(
+        { listing_id: listingId, day, lead: FieldValue.increment(1), updated_at: new Date().toISOString() },
+        { merge: true }
+      )
+      .catch(() => {})
+  }
+
   // Notify the business (best effort).
   const to = listing?.contact_email || listing?.email
   if (to) {

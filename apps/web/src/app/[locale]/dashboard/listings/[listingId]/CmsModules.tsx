@@ -471,6 +471,153 @@ export function ReviewsManager({ listingId, isEs }: { listingId: string; isEs: b
   )
 }
 
+// ── Listing analytics ────────────────────────────────────────────────────────
+
+type StatTotals = {
+  view: number
+  click_website: number
+  click_directions: number
+  click_action: number
+  lead: number
+}
+
+type AnalyticsData = {
+  window_days: number
+  current: StatTotals
+  previous?: StatTotals
+  series?: { day: string; view: number; lead: number; clicks: number }[]
+  full: boolean
+}
+
+function pct(current: number, previous: number): string | null {
+  if (previous <= 0) return current > 0 ? null : '0%'
+  const p = Math.round(((current - previous) / previous) * 100)
+  return `${p > 0 ? '+' : ''}${p}%`
+}
+
+function StatCard({
+  label,
+  value,
+  change,
+  isEs,
+}: {
+  label: string
+  value: number
+  change?: string | null
+  isEs: boolean
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+      <p className="text-[10px] font-black uppercase tracking-wider text-white/40">{label}</p>
+      <p className="mt-1 font-display text-3xl font-black text-white">{value.toLocaleString()}</p>
+      {change !== undefined && (
+        <p className={`mt-1 text-xs font-bold ${change === null ? 'text-brand-neon' : change.startsWith('-') ? 'text-red-400' : 'text-brand-neon'}`}>
+          {change === null ? (isEs ? 'Nuevo' : 'New') : `${change} ${isEs ? 'vs 30 días previos' : 'vs prior 30 days'}`}
+        </p>
+      )}
+    </div>
+  )
+}
+
+export function AnalyticsPanel({
+  listingId,
+  isEs,
+  canExport,
+}: {
+  listingId: string
+  isEs: boolean
+  canExport: boolean
+}) {
+  const [data, setData] = useState<AnalyticsData | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetch(`/api/directory/${listingId}/analytics`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        if (active) setData(d)
+      })
+      .catch(() => {
+        if (active) setFailed(true)
+      })
+    return () => {
+      active = false
+    }
+  }, [listingId])
+
+  if (failed) return <p className="text-sm text-white/45">{isEs ? 'No se pudieron cargar las analíticas.' : 'Could not load analytics.'}</p>
+  if (!data) return <p className="text-sm text-white/40">{isEs ? 'Cargando analíticas…' : 'Loading analytics…'}</p>
+
+  const clicks = (t: StatTotals) => t.click_website + t.click_directions + t.click_action
+  const cur = data.current
+  const prev = data.previous
+  const maxView = data.series ? Math.max(1, ...data.series.map((d) => d.view)) : 1
+
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard
+          label={isEs ? 'Visitas (30 días)' : 'Views (30 days)'}
+          value={cur.view}
+          change={prev ? pct(cur.view, prev.view) : undefined}
+          isEs={isEs}
+        />
+        <StatCard
+          label={isEs ? 'Clics (web, mapa, acciones)' : 'Clicks (web, map, actions)'}
+          value={clicks(cur)}
+          change={prev ? pct(clicks(cur), clicks(prev)) : undefined}
+          isEs={isEs}
+        />
+        <StatCard
+          label={isEs ? 'Solicitudes de clientes' : 'Customer leads'}
+          value={cur.lead}
+          change={prev ? pct(cur.lead, prev.lead) : undefined}
+          isEs={isEs}
+        />
+      </div>
+
+      {data.full && data.series && (
+        <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+          <p className="mb-3 text-[10px] font-black uppercase tracking-wider text-white/40">
+            {isEs ? 'Visitas diarias (30 días)' : 'Daily views (30 days)'}
+          </p>
+          <div className="flex h-28 items-end gap-[2px]" role="img" aria-label={isEs ? 'Gráfica de visitas diarias' : 'Daily views chart'}>
+            {data.series.map((d) => (
+              <div
+                key={d.day}
+                title={`${d.day}: ${d.view}`}
+                className="flex-1 rounded-t-sm bg-brand-neon/70 transition hover:bg-brand-neon"
+                style={{ height: `${Math.max(3, Math.round((d.view / maxView) * 100))}%` }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        {canExport ? (
+          <a
+            href={`/api/directory/${listingId}/analytics?format=csv`}
+            className="rounded-md border border-brand-neon/40 px-4 py-2 text-xs font-black uppercase tracking-wider text-brand-neon transition hover:bg-brand-neon/10"
+          >
+            {isEs ? '⬇ Exportar CSV' : '⬇ Export CSV'}
+          </a>
+        ) : (
+          <p className="text-xs text-white/35">
+            {isEs ? 'El historial completo y la exportación vienen con Premium.' : 'Full history and export come with Premium.'}
+          </p>
+        )}
+        <p className="text-[10px] text-white/30">
+          {isEs
+            ? 'Sin identidad de visitantes — solo totales diarios. Tu propio tráfico no cuenta.'
+            : 'No visitor identity — daily totals only. Your own traffic is excluded.'}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ── Team & access (managers) ─────────────────────────────────────────────────
 
 type ManagerRow = { user_id: string; email: string | null; name: string | null }
