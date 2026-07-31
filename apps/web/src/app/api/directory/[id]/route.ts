@@ -4,6 +4,12 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { translateTexts } from '@/lib/translate'
 import { isSalesCreatedDirectoryListing } from '@/lib/sales-directory'
 import { hasEditorAccess } from '@citybeat/lib/roles'
+import {
+  resolveEntitlements,
+  filterEntitledListingUpdate,
+  resolveListingPatchAccess,
+  isStaffOverrideWrite,
+} from '@/lib/directory-entitlements'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -83,21 +89,40 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!doc.exists) return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
   const listing = doc.data() as any
 
-  const isOwner = listing.owner_id === user.id && listing.claim_status === 'approved'
-  if (!isOwner && !isEditor) {
+  const { isOwner, canManage } = resolveListingPatchAccess(listing, {
+    userId: user.id,
+    isStaff: isEditor,
+  })
+  if (!canManage) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = await request.json()
-  const allowedUpdates: Record<string, any> = {}
-  for (const f of ['name', 'phone', 'website', 'category', 'address', 'hours']) {
-    if (f in body) allowedUpdates[f] = body[f]
-  }
-  if (listing.tier === 'premium' || listing.tier === 'featured' || isEditor) {
-    for (const f of ['description', 'image_url', 'gallery_urls', 'social_links']) {
-      if (f in body) allowedUpdates[f] = body[f]
+  // Accept only a well-formed JSON object body; anything else is a 400, never an
+  // unhandled 500.
+  let body: Record<string, unknown>
+  try {
+    const parsed = await request.json()
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
+    body = parsed as Record<string, unknown>
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
+
+  // Server-side entitlement enforcement — the single source of truth for what an
+  // owner may write is the central registry, never the (easily bypassed) UI. A
+  // strict allow-list lets core fields through for any owner and paid fields only
+  // when the listing's activated tier entitles them; editors/developers override
+  // the paid gate (a role-checked staff action, audited below).
+  const entitlements = resolveEntitlements(listing)
+  const { updates: allowedUpdates } = filterEntitledListingUpdate(body, {
+    entitlements,
+    isStaff: isEditor,
+  })
+  // The user-supplied fields actually admitted (before derived/stamped fields) —
+  // used for the staff-override audit trail.
+  const writtenFields = Object.keys(allowedUpdates)
   // Keep the Spanish description in sync so ES visitors (the majority of El Paso)
   // read real Spanish, not English. Best-effort — never blocks the save.
   if ('description' in allowedUpdates) {
@@ -114,6 +139,24 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
   try {
     await ref.set(allowedUpdates, { merge: true })
+
+    // Accountability: record staff (editor/developer) overrides — an edit to a
+    // listing the actor does not own, or a paid field written past the tier gate.
+    // Best-effort; a failed audit write must never break the owner-facing save.
+    if (isStaffOverrideWrite({ isStaff: isEditor, isOwner, entitlements, writtenFields })) {
+      void adminDb
+        .collection('directory_audit_log')
+        .add({
+          actor_id: user.id,
+          listing_id: id,
+          action: 'staff_listing_edit',
+          fields: writtenFields,
+          is_owner: isOwner,
+          created_at: new Date().toISOString(),
+        })
+        .catch(() => {})
+    }
+
     const updated = await ref.get()
     return NextResponse.json({ listing: serializeListing(updated.id, updated.data()) })
   } catch (error: any) {
