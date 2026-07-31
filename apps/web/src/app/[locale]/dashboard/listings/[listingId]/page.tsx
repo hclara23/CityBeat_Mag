@@ -50,6 +50,12 @@ function toOwnerListing(id: string, raw: any) {
     gallery_urls: Array.isArray(plain.gallery_urls) ? plain.gallery_urls : [],
     social_links: plain.social_links ?? {},
     hours: plain.hours ?? {},
+    special_hours: Array.isArray(plain.special_hours) ? plain.special_hours : [],
+    services: Array.isArray(plain.services) ? plain.services : [],
+    products: Array.isArray(plain.products) ? plain.products : [],
+    posts: Array.isArray(plain.posts) ? plain.posts : [],
+    attributes: Array.isArray(plain.attributes) ? plain.attributes : [],
+    action_links: plain.action_links ?? {},
     tier: plain.tier ?? 'basic',
     claim_status: plain.claim_status ?? 'unclaimed',
     is_published: plain.is_published !== false,
@@ -71,12 +77,17 @@ export default async function OwnerListingCmsPage({ params }: { params: Params }
   if (!doc.exists) redirect(`/${locale}/dashboard`)
   const raw = doc.data() as any
 
-  // Server-enforced ownership: only the approved owner or staff may open the CMS.
-  const { canManage } = resolveListingPatchAccess(raw, { userId: user.id, isStaff })
+  // Server-enforced access: the approved owner, staff, or an invited manager
+  // (only while the plan includes manager seats) may open the CMS.
+  const entitlements = resolveEntitlements(raw)
+  const { canManage, isOwner } = resolveListingPatchAccess(raw, {
+    userId: user.id,
+    isStaff,
+    managerAllowance: entitlements.additionalManagers,
+  })
   if (!canManage) redirect(`/${locale}/dashboard`)
 
   const listing = toOwnerListing(doc.id, raw)
-  const entitlements = resolveEntitlements(raw)
   const plan = directoryPlanForListing(raw)
 
   return (
@@ -86,6 +97,7 @@ export default async function OwnerListingCmsPage({ params }: { params: Params }
       entitlements={entitlements}
       plan={plan}
       isStaff={isStaff}
+      isOwner={isOwner}
     />
   )
 }

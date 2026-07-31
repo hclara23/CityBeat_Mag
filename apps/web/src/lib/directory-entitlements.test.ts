@@ -236,18 +236,21 @@ test('resolveListingPatchAccess enforces the owner/staff boundary', () => {
   assert.deepEqual(resolveListingPatchAccess(listing, { userId: 'owner-1' }), {
     isOwner: true,
     isStaff: false,
+    isManager: false,
     canManage: true,
   })
   // A different user with no staff role is denied.
   assert.deepEqual(resolveListingPatchAccess(listing, { userId: 'someone-else' }), {
     isOwner: false,
     isStaff: false,
+    isManager: false,
     canManage: false,
   })
   // Staff (editor/developer) may manage any listing, owned or not.
   assert.deepEqual(resolveListingPatchAccess(listing, { userId: 'someone-else', isStaff: true }), {
     isOwner: false,
     isStaff: true,
+    isManager: false,
     canManage: true,
   })
   // A pending (not yet approved) claim does NOT grant owner edit rights.
@@ -257,6 +260,58 @@ test('resolveListingPatchAccess enforces the owner/staff boundary', () => {
   )
   // No authenticated user id → never an owner.
   assert.equal(resolveListingPatchAccess(listing, { userId: null }).isOwner, false)
+})
+
+test('invited managers can edit only while the plan still allows managers', () => {
+  const listing = {
+    owner_id: 'owner-1',
+    claim_status: 'approved',
+    manager_ids: ['mgr-1', 'mgr-2'],
+  }
+  // Listed manager + a plan with manager seats → can manage.
+  const mgr = resolveListingPatchAccess(listing, { userId: 'mgr-1', managerAllowance: 3 })
+  assert.deepEqual(mgr, { isOwner: false, isStaff: false, isManager: true, canManage: true })
+  // Downgraded plan (allowance 0) → the same manager loses edit access.
+  assert.equal(
+    resolveListingPatchAccess(listing, { userId: 'mgr-1', managerAllowance: 0 }).canManage,
+    false
+  )
+  // Not in manager_ids → denied even with allowance.
+  assert.equal(
+    resolveListingPatchAccess(listing, { userId: 'intruder', managerAllowance: 3 }).canManage,
+    false
+  )
+  // Manager access also requires the claim to be approved.
+  assert.equal(
+    resolveListingPatchAccess(
+      { ...listing, claim_status: 'pending_approval' },
+      { userId: 'mgr-1', managerAllowance: 3 }
+    ).canManage,
+    false
+  )
+})
+
+test('the content-module fields are gated by their entitlements', () => {
+  const basic = resolveEntitlements({ tier: 'basic' })
+  const premium = resolveEntitlements({ tier: 'premium' })
+  const body = {
+    services: [{ name: 'X' }],
+    products: [{ name: 'Y' }],
+    attributes: ['free_wifi'],
+    posts: [{ title: 'Deal', type: 'offer' }],
+    action_links: { booking: 'https://x.example' },
+    special_hours: [{ date: '2026-12-25', hours: 'Closed' }],
+  }
+  const basicRes = filterEntitledListingUpdate(body, { entitlements: basic })
+  // special_hours is core (all tiers); the rest are locked for Basic.
+  assert.deepEqual(Object.keys(basicRes.updates), ['special_hours'])
+  assert.deepEqual(
+    basicRes.rejected.sort(),
+    ['action_links', 'attributes', 'posts', 'products', 'services']
+  )
+  const premiumRes = filterEntitledListingUpdate(body, { entitlements: premium })
+  assert.equal(premiumRes.rejected.length, 0)
+  assert.ok('services' in premiumRes.updates && 'posts' in premiumRes.updates && 'action_links' in premiumRes.updates)
 })
 
 test('isStaffOverrideWrite flags only writes a plain owner could not make', () => {

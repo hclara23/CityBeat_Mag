@@ -9,6 +9,12 @@ import { QuoteForm } from '@/components/citybeat/QuoteForm'
 import { useLocale } from '@/components/TranslationProvider'
 import BookmarkButton from '@/components/BookmarkButton'
 import { DIRECTORY_CATEGORIES, categoryLabel } from '@/lib/categories'
+import {
+  ActionLinksBar,
+  ListingContentSections,
+  SpecialHoursNote,
+} from './ListingContentSections'
+import type { ActionLinks, ListingPost, ListingServiceItem, SpecialHour } from '@/lib/listing-content'
 
 interface Listing {
   id: string
@@ -36,6 +42,13 @@ interface Listing {
   longitude?: number | null
   location_count?: number | null
   locations?: ListingLocation[] | null
+  // Owner-managed content modules (Package 3)
+  services?: ListingServiceItem[] | null
+  products?: ListingServiceItem[] | null
+  posts?: ListingPost[] | null
+  attributes?: string[] | null
+  action_links?: ActionLinks | null
+  special_hours?: SpecialHour[] | null
 }
 
 interface ListingLocation {
@@ -948,6 +961,10 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                   )}
                 </div>
 
+                {/* Booking / order / quote actions + owner-managed content */}
+                <ActionLinksBar listing={listing} locale={locale} />
+                <ListingContentSections listing={listing} locale={locale} />
+
                 {/* Photo Gallery */}
                 {listing.gallery_urls && listing.gallery_urls.length > 0 && (
                   <div className="citybeat-panel rounded-2xl p-8 border border-white/10">
@@ -1279,6 +1296,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                         </div>
                       ))}
                     </div>
+                    <SpecialHoursNote specialHours={listing.special_hours} isEs={locale === 'es'} />
                   </div>
                 )}
               </div>
@@ -1340,6 +1358,10 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     </a>
                   </div>
                 </div>
+
+                {/* Booking / order / quote actions + owner-managed content */}
+                <ActionLinksBar listing={listing} locale={locale} />
+                <ListingContentSections listing={listing} locale={locale} />
               </div>
 
               {/* Right Column: Claim Upgrade Call to Action */}

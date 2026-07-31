@@ -154,6 +154,8 @@ export function resolveEntitlements(
 // --- Server-side write authorization ---
 
 // Core business fields any claimed owner (including Basic) may edit.
+// `special_hours` (holiday hours / temporary closures) is core: standard AND
+// special hours are all-tiers in the entitlement matrix.
 export const CORE_LISTING_FIELDS = [
   'name',
   'phone',
@@ -161,6 +163,7 @@ export const CORE_LISTING_FIELDS = [
   'category',
   'address',
   'hours',
+  'special_hours',
 ] as const
 
 // Paid fields, mapped to the entitlement that unlocks each one. This mirrors the
@@ -173,6 +176,12 @@ export const PAID_LISTING_FIELDS: Record<string, keyof DirectoryEntitlements> = 
   image_url: 'enhancedDescription',
   gallery_urls: 'enhancedDescription',
   social_links: 'socialLinks',
+  // Package 3 content modules (structured shapes sanitized by lib/listing-content).
+  services: 'servicesAndProducts',
+  products: 'servicesAndProducts',
+  attributes: 'servicesAndProducts',
+  posts: 'postsOffersEvents',
+  action_links: 'bookingLinks',
 }
 
 export type FilteredListingUpdate = {
@@ -221,22 +230,40 @@ export function filterEntitledListingUpdate(
 export type ListingPatchAccess = {
   isOwner: boolean
   isStaff: boolean
+  isManager: boolean
   canManage: boolean
 }
 
-// Who may edit a directory listing: the approved owner, or staff
-// (editor/developer). Pure and testable so the auth boundary itself is covered,
-// not just the entitlement filter. `claim_status` must be `approved` for owner
-// access — a pending/rejected claim does not grant edit rights.
+// Who may edit a directory listing: the approved owner, staff (editor/
+// developer), or an invited manager. Pure and testable so the auth boundary
+// itself is covered, not just the entitlement filter.
+// - Owner access requires claim_status === 'approved' (a pending/rejected claim
+//   grants nothing).
+// - Manager access requires BOTH being listed in manager_ids AND the listing's
+//   plan still allowing managers (`managerAllowance` = the resolved
+//   additionalManagers entitlement) — on downgrade, invited managers keep their
+//   listing data but lose edit access, per the matrix's downgrade rule.
 export function resolveListingPatchAccess(
-  listing: { owner_id?: string | null; claim_status?: string | null } | null | undefined,
-  actor: { userId?: string | null; isStaff?: boolean }
+  listing:
+    | { owner_id?: string | null; claim_status?: string | null; manager_ids?: string[] | null }
+    | null
+    | undefined,
+  actor: { userId?: string | null; isStaff?: boolean; managerAllowance?: number }
 ): ListingPatchAccess {
   const isStaff = Boolean(actor.isStaff)
   const isOwner = Boolean(
     actor.userId && listing?.owner_id === actor.userId && listing?.claim_status === 'approved'
   )
-  return { isOwner, isStaff, canManage: isOwner || isStaff }
+  const allowance = Math.max(0, actor.managerAllowance ?? 0)
+  const isManager = Boolean(
+    !isOwner &&
+      actor.userId &&
+      allowance > 0 &&
+      Array.isArray(listing?.manager_ids) &&
+      listing.manager_ids.includes(actor.userId) &&
+      listing?.claim_status === 'approved'
+  )
+  return { isOwner, isStaff, isManager, canManage: isOwner || isStaff || isManager }
 }
 
 // Did this write rely on the staff override — i.e. would a plain owner of this

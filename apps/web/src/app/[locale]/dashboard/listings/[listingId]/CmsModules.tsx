@@ -1,0 +1,619 @@
+'use client'
+
+// Owner-CMS content-module editors: services/products, posts & offers, business
+// attributes, action links, special hours, review replies, and team management.
+// All persistence flows through the parent's entitlement-gated autosave (PATCH)
+// except reviews + team, which use their dedicated audited routes.
+
+import { useCallback, useEffect, useState } from 'react'
+import {
+  ACTION_LINK_KEYS,
+  ACTION_LINK_LABELS,
+  ATTRIBUTE_DEFS,
+  postStatus,
+  type ActionLinks,
+  type ListingPost,
+  type ListingServiceItem,
+  type SpecialHour,
+} from '@/lib/listing-content'
+
+const inputClass =
+  'w-full rounded-md p-2.5 border border-white/15 bg-black/40 text-white text-sm focus:border-brand-neon focus:outline-none transition'
+const smallLabel = 'block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1'
+
+function newId(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+// ── Services / Products (same shape) ─────────────────────────────────────────
+
+export function ItemsEditor({
+  items,
+  onChange,
+  isEs,
+  kind,
+  max,
+}: {
+  items: ListingServiceItem[]
+  onChange: (next: ListingServiceItem[]) => void
+  isEs: boolean
+  kind: 'service' | 'product'
+  max: number
+}) {
+  const empty = items.length === 0
+  const addLabel =
+    kind === 'service'
+      ? isEs ? '+ Agregar servicio' : '+ Add service'
+      : isEs ? '+ Agregar producto' : '+ Add product'
+
+  const update = (id: string, patch: Partial<ListingServiceItem>) =>
+    onChange(items.map((it) => (it.id === id ? { ...it, ...patch } : it)))
+
+  return (
+    <div className="space-y-4">
+      {empty && (
+        <p className="text-sm text-white/45">
+          {kind === 'service'
+            ? isEs
+              ? 'Publica tus servicios con precios para que los clientes lleguen listos para comprar.'
+              : 'List your services with prices so customers arrive ready to buy.'
+            : isEs
+              ? 'Publica productos o tu menú para que los clientes sepan qué ofreces.'
+              : 'List products or your menu so customers know what you offer.'}
+        </p>
+      )}
+      {items.map((item) => (
+        <div key={item.id} className="rounded-lg border border-white/10 bg-black/25 p-4">
+          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
+            <div>
+              <label className={smallLabel}>{isEs ? 'Nombre (inglés)' : 'Name (English)'}</label>
+              <input className={inputClass} value={item.name} maxLength={120} onChange={(e) => update(item.id, { name: e.target.value })} />
+            </div>
+            <div>
+              <label className={smallLabel}>{isEs ? 'Nombre (español)' : 'Name (Spanish)'}</label>
+              <input className={inputClass} value={item.name_es || ''} maxLength={120} onChange={(e) => update(item.id, { name_es: e.target.value })} />
+            </div>
+            <div>
+              <label className={smallLabel}>{isEs ? 'Precio' : 'Price'}</label>
+              <input className={inputClass} value={item.price_label || ''} maxLength={40} placeholder="$25" onChange={(e) => update(item.id, { price_label: e.target.value })} />
+            </div>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className={smallLabel}>{isEs ? 'Descripción (inglés)' : 'Description (English)'}</label>
+              <textarea rows={2} className={inputClass} value={item.description || ''} maxLength={400} onChange={(e) => update(item.id, { description: e.target.value })} />
+            </div>
+            <div>
+              <label className={smallLabel}>{isEs ? 'Descripción (español)' : 'Description (Spanish)'}</label>
+              <textarea rows={2} className={inputClass} value={item.description_es || ''} maxLength={400} onChange={(e) => update(item.id, { description_es: e.target.value })} />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange(items.filter((it) => it.id !== item.id))}
+            className="mt-3 text-[10px] font-black uppercase tracking-wider text-red-400/80 hover:text-red-300"
+          >
+            {isEs ? 'Eliminar' : 'Remove'}
+          </button>
+        </div>
+      ))}
+      {items.length < max && (
+        <button
+          type="button"
+          onClick={() =>
+            onChange([
+              ...items,
+              { id: newId(kind === 'service' ? 'svc' : 'prod'), name: '', name_es: '', price_label: '', description: '', description_es: '' },
+            ])
+          }
+          className="rounded-md border border-brand-neon/40 px-4 py-2 text-xs font-black uppercase tracking-wider text-brand-neon transition hover:bg-brand-neon/10"
+        >
+          {addLabel}
+        </button>
+      )}
+      <p className="text-[10px] text-white/30">
+        {items.length} / {max}
+      </p>
+    </div>
+  )
+}
+
+// ── Posts, offers & events ───────────────────────────────────────────────────
+
+const POST_TYPES: { key: ListingPost['type']; en: string; es: string }[] = [
+  { key: 'update', en: 'Update', es: 'Novedad' },
+  { key: 'offer', en: 'Offer', es: 'Oferta' },
+  { key: 'event', en: 'Event', es: 'Evento' },
+]
+
+export function PostsEditor({
+  posts,
+  onChange,
+  isEs,
+  max,
+}: {
+  posts: ListingPost[]
+  onChange: (next: ListingPost[]) => void
+  isEs: boolean
+  max: number
+}) {
+  const update = (id: string, patch: Partial<ListingPost>) =>
+    onChange(posts.map((p) => (p.id === id ? { ...p, ...patch } : p)))
+
+  const statusChip = (post: ListingPost) => {
+    const s = postStatus(post, Date.now())
+    const map = {
+      active: { en: 'Live', es: 'Activo', cls: 'bg-brand-neon/15 text-brand-neon' },
+      scheduled: { en: 'Scheduled', es: 'Programado', cls: 'bg-amber-400/15 text-amber-300' },
+      expired: { en: 'Expired', es: 'Expirado', cls: 'bg-white/10 text-white/40' },
+    }[s]
+    return <span className={`rounded px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${map.cls}`}>{isEs ? map.es : map.en}</span>
+  }
+
+  return (
+    <div className="space-y-4">
+      {posts.length === 0 && (
+        <p className="text-sm text-white/45">
+          {isEs
+            ? 'Publica ofertas, eventos y novedades que aparecen en tu ficha pública.'
+            : 'Publish offers, events, and updates that appear on your public listing.'}
+        </p>
+      )}
+      {posts.map((post) => (
+        <div key={post.id} className="rounded-lg border border-white/10 bg-black/25 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex gap-1.5">
+              {POST_TYPES.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => update(post.id, { type: t.key })}
+                  className={`rounded px-2.5 py-1 text-[10px] font-black uppercase tracking-wider transition ${
+                    post.type === t.key ? 'bg-brand-neon text-black' : 'bg-white/5 text-white/50 hover:text-white'
+                  }`}
+                >
+                  {isEs ? t.es : t.en}
+                </button>
+              ))}
+            </div>
+            {statusChip(post)}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className={smallLabel}>{isEs ? 'Título (inglés)' : 'Title (English)'}</label>
+              <input className={inputClass} value={post.title} maxLength={140} onChange={(e) => update(post.id, { title: e.target.value })} />
+            </div>
+            <div>
+              <label className={smallLabel}>{isEs ? 'Título (español)' : 'Title (Spanish)'}</label>
+              <input className={inputClass} value={post.title_es || ''} maxLength={140} onChange={(e) => update(post.id, { title_es: e.target.value })} />
+            </div>
+            <div>
+              <label className={smallLabel}>{isEs ? 'Texto (inglés)' : 'Body (English)'}</label>
+              <textarea rows={2} className={inputClass} value={post.body || ''} maxLength={1000} onChange={(e) => update(post.id, { body: e.target.value })} />
+            </div>
+            <div>
+              <label className={smallLabel}>{isEs ? 'Texto (español)' : 'Body (Spanish)'}</label>
+              <textarea rows={2} className={inputClass} value={post.body_es || ''} maxLength={1000} onChange={(e) => update(post.id, { body_es: e.target.value })} />
+            </div>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div>
+              <label className={smallLabel}>{isEs ? 'Empieza' : 'Starts'}</label>
+              <input type="date" className={inputClass} value={post.starts_at || ''} onChange={(e) => update(post.id, { starts_at: e.target.value || null })} />
+            </div>
+            <div>
+              <label className={smallLabel}>{isEs ? 'Termina' : 'Ends'}</label>
+              <input type="date" className={inputClass} value={post.ends_at || ''} onChange={(e) => update(post.id, { ends_at: e.target.value || null })} />
+            </div>
+            <div>
+              <label className={smallLabel}>{isEs ? 'Enlace (opcional)' : 'Link (optional)'}</label>
+              <input className={inputClass} value={post.cta_url || ''} maxLength={300} placeholder="https://…" onChange={(e) => update(post.id, { cta_url: e.target.value || null })} />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange(posts.filter((p) => p.id !== post.id))}
+            className="mt-3 text-[10px] font-black uppercase tracking-wider text-red-400/80 hover:text-red-300"
+          >
+            {isEs ? 'Eliminar' : 'Remove'}
+          </button>
+        </div>
+      ))}
+      {posts.length < max && (
+        <button
+          type="button"
+          onClick={() =>
+            onChange([
+              ...posts,
+              {
+                id: newId('post'),
+                type: 'update',
+                title: '',
+                title_es: '',
+                body: '',
+                body_es: '',
+                starts_at: null,
+                ends_at: null,
+                cta_url: null,
+                created_at: new Date().toISOString(),
+              },
+            ])
+          }
+          className="rounded-md border border-brand-neon/40 px-4 py-2 text-xs font-black uppercase tracking-wider text-brand-neon transition hover:bg-brand-neon/10"
+        >
+          {isEs ? '+ Nueva publicación' : '+ New post'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── Business attributes ──────────────────────────────────────────────────────
+
+export function AttributesEditor({
+  selected,
+  onChange,
+  isEs,
+  disabled,
+}: {
+  selected: string[]
+  onChange: (next: string[]) => void
+  isEs: boolean
+  disabled?: boolean
+}) {
+  const toggle = (key: string) =>
+    onChange(selected.includes(key) ? selected.filter((k) => k !== key) : [...selected, key])
+  return (
+    <div className="flex flex-wrap gap-2">
+      {ATTRIBUTE_DEFS.map((attr) => {
+        const active = selected.includes(attr.key)
+        return (
+          <button
+            key={attr.key}
+            type="button"
+            disabled={disabled}
+            onClick={() => toggle(attr.key)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+              active
+                ? 'border-brand-neon bg-brand-neon/15 text-brand-neon'
+                : 'border-white/15 bg-white/5 text-white/55 hover:border-white/35 hover:text-white'
+            } disabled:cursor-not-allowed`}
+          >
+            {active ? '✓ ' : ''}
+            {isEs ? attr.es : attr.en}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Action links ─────────────────────────────────────────────────────────────
+
+export function ActionLinksEditor({
+  links,
+  onChange,
+  isEs,
+  disabled,
+}: {
+  links: ActionLinks
+  onChange: (next: ActionLinks) => void
+  isEs: boolean
+  disabled?: boolean
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {ACTION_LINK_KEYS.map((key) => (
+        <div key={key}>
+          <label className={smallLabel}>{ACTION_LINK_LABELS[key][isEs ? 'es' : 'en']}</label>
+          <input
+            className={inputClass}
+            disabled={disabled}
+            value={links[key] || ''}
+            maxLength={300}
+            placeholder="https://…"
+            onChange={(e) => {
+              const next = { ...links }
+              if (e.target.value.trim()) next[key] = e.target.value
+              else delete next[key]
+              onChange(next)
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Special hours (holiday hours / temporary closures) ───────────────────────
+
+export function SpecialHoursEditor({
+  rows,
+  onChange,
+  isEs,
+  max,
+}: {
+  rows: SpecialHour[]
+  onChange: (next: SpecialHour[]) => void
+  isEs: boolean
+  max: number
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-white/45">
+        {isEs
+          ? 'Días festivos o cierres temporales — anulan el horario normal de esa fecha.'
+          : 'Holidays or temporary closures — these override your standard hours for that date.'}
+      </p>
+      {rows.map((row, i) => (
+        <div key={`${row.date}-${i}`} className="flex items-center gap-2">
+          <input
+            type="date"
+            className={`${inputClass} w-40`}
+            value={row.date}
+            onChange={(e) => onChange(rows.map((r, j) => (j === i ? { ...r, date: e.target.value } : r)))}
+          />
+          <input
+            className={inputClass}
+            value={row.hours}
+            maxLength={60}
+            placeholder={isEs ? 'p. ej. Cerrado / 9 AM - 1 PM' : 'e.g. Closed / 9 AM - 1 PM'}
+            onChange={(e) => onChange(rows.map((r, j) => (j === i ? { ...r, hours: e.target.value } : r)))}
+          />
+          <button
+            type="button"
+            onClick={() => onChange(rows.filter((_, j) => j !== i))}
+            className="flex-shrink-0 text-xs font-black text-red-400/80 hover:text-red-300"
+            aria-label={isEs ? 'Eliminar' : 'Remove'}
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      {rows.length < max && (
+        <button
+          type="button"
+          onClick={() => onChange([...rows, { date: '', hours: '' }])}
+          className="rounded-md border border-white/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white/60 transition hover:border-brand-neon/50 hover:text-brand-neon"
+        >
+          {isEs ? '+ Agregar fecha' : '+ Add date'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── Reviews manager (list + reply) ───────────────────────────────────────────
+
+type ReviewRow = {
+  id: string
+  rating: number
+  comment?: string | null
+  created_at?: string | null
+  owner_response?: string | null
+  profiles?: { full_name?: string | null } | null
+}
+
+export function ReviewsManager({ listingId, isEs }: { listingId: string; isEs: boolean }) {
+  const [reviews, setReviews] = useState<ReviewRow[] | null>(null)
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState('')
+  const [msg, setMsg] = useState('')
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/directory/${listingId}/reviews`)
+      const data = await res.json().catch(() => ({}))
+      setReviews(res.ok ? data.reviews || [] : [])
+    } catch {
+      setReviews([])
+    }
+  }, [listingId])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const reply = async (reviewId: string) => {
+    setSaving(reviewId)
+    setMsg('')
+    try {
+      const res = await fetch(`/api/directory/${listingId}/reviews/${reviewId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response: drafts[reviewId] || '' }),
+      })
+      if (!res.ok) throw new Error()
+      setMsg(isEs ? 'Respuesta publicada.' : 'Reply published.')
+      await load()
+    } catch {
+      setMsg(isEs ? 'No se pudo publicar la respuesta.' : 'Could not publish the reply.')
+    } finally {
+      setSaving('')
+    }
+  }
+
+  if (reviews === null) return <p className="text-sm text-white/40">{isEs ? 'Cargando reseñas…' : 'Loading reviews…'}</p>
+  if (reviews.length === 0)
+    return <p className="text-sm text-white/45">{isEs ? 'Aún no hay reseñas.' : 'No reviews yet.'}</p>
+
+  return (
+    <div className="space-y-5">
+      {msg && <p className="text-xs font-bold text-brand-neon">{msg}</p>}
+      {reviews.map((rev) => (
+        <div key={rev.id} className="rounded-lg border border-white/10 bg-black/25 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-bold text-white">{rev.profiles?.full_name || (isEs ? 'Anónimo' : 'Anonymous')}</p>
+            <span className="text-xs font-black text-brand-gold">{'★'.repeat(Math.max(1, Math.min(5, rev.rating || 0)))}</span>
+          </div>
+          {rev.comment && <p className="mt-2 text-sm leading-relaxed text-white/70">{rev.comment}</p>}
+          <div className="mt-3 border-t border-white/5 pt-3">
+            <label className={smallLabel}>{isEs ? 'Tu respuesta pública' : 'Your public reply'}</label>
+            <textarea
+              rows={2}
+              className={inputClass}
+              maxLength={1000}
+              value={drafts[rev.id] ?? rev.owner_response ?? ''}
+              onChange={(e) => setDrafts((d) => ({ ...d, [rev.id]: e.target.value }))}
+            />
+            <button
+              type="button"
+              disabled={saving === rev.id}
+              onClick={() => reply(rev.id)}
+              className="mt-2 rounded-md bg-brand-neon px-4 py-1.5 text-[10px] font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-50"
+            >
+              {saving === rev.id ? (isEs ? 'Publicando…' : 'Publishing…') : isEs ? 'Publicar respuesta' : 'Publish reply'}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Team & access (managers) ─────────────────────────────────────────────────
+
+type ManagerRow = { user_id: string; email: string | null; name: string | null }
+
+export function TeamManager({
+  listingId,
+  isEs,
+  isOwner,
+}: {
+  listingId: string
+  isEs: boolean
+  isOwner: boolean
+}) {
+  const [managers, setManagers] = useState<ManagerRow[] | null>(null)
+  const [limit, setLimit] = useState(0)
+  const [email, setEmail] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/directory/${listingId}/managers`)
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setManagers(data.managers || [])
+        setLimit(data.limit || 0)
+      } else {
+        setManagers([])
+      }
+    } catch {
+      setManagers([])
+    }
+  }, [listingId])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const add = async () => {
+    setBusy(true)
+    setMsg('')
+    try {
+      const res = await fetch(`/api/directory/${listingId}/managers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMsg(
+          data.code === 'no_account'
+            ? isEs
+              ? 'Esa persona aún no tiene cuenta de CityBeat. Pídele crear una cuenta gratis primero.'
+              : "That person doesn't have a CityBeat account yet. Ask them to create a free account first."
+            : data.code === 'seats_full'
+              ? isEs
+                ? 'Todos los lugares de tu plan están ocupados. Quita a alguien o mejora tu plan.'
+                : 'All your plan seats are used. Remove someone or upgrade.'
+              : data.error || (isEs ? 'No se pudo invitar.' : 'Could not invite.')
+        )
+        return
+      }
+      setEmail('')
+      setMsg(isEs ? 'Administrador agregado.' : 'Manager added.')
+      await load()
+    } catch {
+      setMsg(isEs ? 'No se pudo invitar.' : 'Could not invite.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const remove = async (userId: string) => {
+    setBusy(true)
+    setMsg('')
+    try {
+      const res = await fetch(`/api/directory/${listingId}/managers`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+      if (!res.ok) throw new Error()
+      setMsg(isEs ? 'Administrador eliminado.' : 'Manager removed.')
+      await load()
+    } catch {
+      setMsg(isEs ? 'No se pudo eliminar.' : 'Could not remove.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (managers === null) return <p className="text-sm text-white/40">{isEs ? 'Cargando equipo…' : 'Loading team…'}</p>
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-white/45">
+        {isEs
+          ? `Los administradores pueden editar tu ficha, pero no facturación ni el equipo. ${managers.length} / ${limit} lugares usados.`
+          : `Managers can edit your listing but not billing or the team. ${managers.length} / ${limit} seats used.`}
+      </p>
+      {managers.length > 0 && (
+        <ul className="space-y-2">
+          {managers.map((m) => (
+            <li key={m.user_id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/25 px-4 py-2.5">
+              <span className="truncate text-sm text-white/80">{m.name || m.email || m.user_id}</span>
+              {isOwner && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => remove(m.user_id)}
+                  className="text-[10px] font-black uppercase tracking-wider text-red-400/80 hover:text-red-300 disabled:opacity-50"
+                >
+                  {isEs ? 'Quitar' : 'Remove'}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {isOwner ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="email"
+            className={`${inputClass} max-w-xs`}
+            placeholder={isEs ? 'correo@ejemplo.com' : 'email@example.com'}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <button
+            type="button"
+            disabled={busy || !email.trim()}
+            onClick={add}
+            className="rounded-md bg-brand-neon px-4 py-2 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-50"
+          >
+            {busy ? (isEs ? 'Invitando…' : 'Inviting…') : isEs ? 'Invitar' : 'Invite'}
+          </button>
+        </div>
+      ) : (
+        <p className="text-xs text-white/35">
+          {isEs ? 'Solo el dueño puede administrar el equipo.' : 'Only the owner can manage the team.'}
+        </p>
+      )}
+      {msg && <p className="text-xs font-bold text-brand-neon">{msg}</p>}
+    </div>
+  )
+}

@@ -11,6 +11,7 @@ import {
   isStaffOverrideWrite,
 } from '@/lib/directory-entitlements'
 import { stripInternalListingFields } from '@/lib/listing-fields'
+import { CONTENT_FIELD_SANITIZERS } from '@/lib/listing-content'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -78,9 +79,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   if (!doc.exists) return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
   const listing = doc.data() as any
 
+  // Resolve entitlements first: manager access depends on the plan still
+  // including manager seats (additionalManagers).
+  const entitlements = resolveEntitlements(listing)
   const { isOwner, canManage } = resolveListingPatchAccess(listing, {
     userId: user.id,
     isStaff: isEditor,
+    managerAllowance: entitlements.additionalManagers,
   })
   if (!canManage) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -104,11 +109,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   // strict allow-list lets core fields through for any owner and paid fields only
   // when the listing's activated tier entitles them; editors/developers override
   // the paid gate (a role-checked staff action, audited below).
-  const entitlements = resolveEntitlements(listing)
   const { updates: allowedUpdates } = filterEntitledListingUpdate(body, {
     entitlements,
     isStaff: isEditor,
   })
+  // Structured content modules (services, products, posts, action links,
+  // attributes, special hours) are never stored as raw client JSON — each shape
+  // is sanitized, capped, and allow-listed here.
+  for (const [field, sanitize] of Object.entries(CONTENT_FIELD_SANITIZERS)) {
+    if (field in allowedUpdates) allowedUpdates[field] = sanitize(allowedUpdates[field])
+  }
   // The user-supplied fields actually admitted (before derived/stamped fields) —
   // used for the staff-override audit trail.
   const writtenFields = Object.keys(allowedUpdates)

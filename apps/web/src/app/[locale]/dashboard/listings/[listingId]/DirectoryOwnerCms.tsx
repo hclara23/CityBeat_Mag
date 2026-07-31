@@ -10,6 +10,25 @@ import {
   type DirectoryPlanKey,
 } from '@/lib/directory-entitlements'
 import { profileCompleteness, localSeoScore, type ListingScore } from '@/lib/listing-scores'
+import {
+  MAX_POSTS,
+  MAX_PRODUCTS,
+  MAX_SERVICES,
+  MAX_SPECIAL_HOURS,
+  type ActionLinks,
+  type ListingPost,
+  type ListingServiceItem,
+  type SpecialHour,
+} from '@/lib/listing-content'
+import {
+  ActionLinksEditor,
+  AttributesEditor,
+  ItemsEditor,
+  PostsEditor,
+  ReviewsManager,
+  SpecialHoursEditor,
+  TeamManager,
+} from './CmsModules'
 
 type OwnerListing = {
   id: string
@@ -24,6 +43,12 @@ type OwnerListing = {
   gallery_urls: string[]
   social_links: { facebook?: string; instagram?: string; twitter?: string } & Record<string, string | undefined>
   hours: Record<string, string>
+  special_hours: SpecialHour[]
+  services: ListingServiceItem[]
+  products: ListingServiceItem[]
+  posts: ListingPost[]
+  attributes: string[]
+  action_links: ActionLinks
   tier: string
   claim_status: string
   is_published: boolean
@@ -37,6 +62,7 @@ type Props = {
   entitlements: DirectoryEntitlements
   plan: DirectoryPlanKey
   isStaff: boolean
+  isOwner: boolean
 }
 
 type SectionKey =
@@ -110,7 +136,7 @@ const inputClass =
   'w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none transition'
 const labelClass = 'block text-xs font-bold uppercase tracking-wider text-white/70 mb-2'
 
-export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff }: Props) {
+export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff, isOwner }: Props) {
   const isEs = locale === 'es'
   const [section, setSection] = useState<SectionKey>('overview')
 
@@ -131,15 +157,25 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
     DAYS.forEach((d) => (h[d] = listing.hours?.[d] || ''))
     return h
   })
+  const [specialHours, setSpecialHours] = useState<SpecialHour[]>(listing.special_hours || [])
+  const [services, setServices] = useState<ListingServiceItem[]>(listing.services || [])
+  const [products, setProducts] = useState<ListingServiceItem[]>(listing.products || [])
+  const [posts, setPosts] = useState<ListingPost[]>(listing.posts || [])
+  const [attributes, setAttributes] = useState<string[]>(listing.attributes || [])
+  const [actionLinks, setActionLinks] = useState<ActionLinks>(listing.action_links || {})
 
   const [status, setStatus] = useState<SaveState>('saved')
   const [uploadingCover, setUploadingCover] = useState(false)
   const [uploadingGallery, setUploadingGallery] = useState(false)
 
-  // Same gate the server enforces (directory-entitlements). Staff bypass the paid
-  // gate; the server re-checks, so this only drives the UI.
+  // Same gates the server enforces (directory-entitlements). Staff bypass the
+  // paid gates; the server re-checks, so these only drive the UI.
   const canPaid = isStaff || entitlements.enhancedDescription
   const canSocial = isStaff || entitlements.socialLinks
+  const canServices = isStaff || entitlements.servicesAndProducts
+  const canPosts = isStaff || entitlements.postsOffersEvents
+  const canLinks = isStaff || entitlements.bookingLinks
+  const canTeam = isStaff || entitlements.additionalManagers > 0
 
   const gallery = useMemo(
     () => galleryText.split('\n').map((u) => u.trim()).filter(Boolean),
@@ -182,6 +218,12 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
     gallery: canPaid ? galleryToSave : [],
     social: canSocial ? { facebook, instagram, twitter } : {},
     hours,
+    specialHours,
+    services: canServices ? services : [],
+    products: canServices ? products : [],
+    attributes: canServices ? attributes : [],
+    posts: canPosts ? posts : [],
+    actionLinks: canLinks ? actionLinks : {},
   })
   const sigRef = useRef(fieldSig)
   sigRef.current = fieldSig
@@ -192,13 +234,20 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
   // persists the latest values rather than a stale closure snapshot.
   const payloadRef = useRef<Record<string, unknown>>({})
   payloadRef.current = (() => {
-    const p: Record<string, unknown> = { name, category, address, phone, website, hours }
+    const p: Record<string, unknown> = { name, category, address, phone, website, hours, special_hours: specialHours }
     if (canPaid) {
       p.description = description
       p.image_url = imageUrl
       p.gallery_urls = galleryToSave
     }
     if (canSocial) p.social_links = { facebook, instagram, twitter }
+    if (canServices) {
+      p.services = services
+      p.products = products
+      p.attributes = attributes
+    }
+    if (canPosts) p.posts = posts
+    if (canLinks) p.action_links = actionLinks
     return p
   })()
 
@@ -430,6 +479,26 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
                     <input className={inputClass} value={twitter} disabled={!canSocial} onChange={(e) => setTwitter(e.target.value)} placeholder="X / Twitter URL" />
                   </div>
                 </LockableField>
+
+                <LockableField
+                  unlocked={canServices}
+                  entitlementKey="servicesAndProducts"
+                  locale={locale}
+                  listingId={listing.id}
+                  label={isEs ? 'Características del negocio' : 'Business attributes'}
+                >
+                  <AttributesEditor selected={attributes} onChange={setAttributes} isEs={isEs} disabled={!canServices} />
+                </LockableField>
+
+                <LockableField
+                  unlocked={canLinks}
+                  entitlementKey="bookingLinks"
+                  locale={locale}
+                  listingId={listing.id}
+                  label={isEs ? 'Enlaces de acción (reservar, pedir, cotizar)' : 'Action links (book, order, quote)'}
+                >
+                  <ActionLinksEditor links={actionLinks} onChange={setActionLinks} isEs={isEs} disabled={!canLinks} />
+                </LockableField>
               </Panel>
             )}
 
@@ -506,37 +575,48 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
                     </div>
                   ))}
                 </div>
+                <div className="border-t border-white/10 pt-5">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-brand-neon">
+                    {isEs ? 'Horario especial y cierres' : 'Special hours & closures'}
+                  </h3>
+                  <SpecialHoursEditor rows={specialHours} onChange={setSpecialHours} isEs={isEs} max={MAX_SPECIAL_HOURS} />
+                </div>
               </Panel>
             )}
 
             {section === 'services' && (
               <ModulePanel title={isEs ? 'Servicios' : 'Services'} isEs={isEs}>
-                <ModulePlaceholder entitlementKey="servicesAndProducts" entitled={isStaff || entitlements.servicesAndProducts} locale={locale} listingId={listing.id} isEs={isEs} />
+                {canServices ? (
+                  <ItemsEditor items={services} onChange={setServices} isEs={isEs} kind="service" max={MAX_SERVICES} />
+                ) : (
+                  <ModulePlaceholder entitlementKey="servicesAndProducts" entitled={false} locale={locale} listingId={listing.id} isEs={isEs} />
+                )}
               </ModulePanel>
             )}
             {section === 'products' && (
               <ModulePanel title={isEs ? 'Productos / Menú' : 'Products / Menu'} isEs={isEs}>
-                <ModulePlaceholder entitlementKey="servicesAndProducts" entitled={isStaff || entitlements.servicesAndProducts} locale={locale} listingId={listing.id} isEs={isEs} />
+                {canServices ? (
+                  <ItemsEditor items={products} onChange={setProducts} isEs={isEs} kind="product" max={MAX_PRODUCTS} />
+                ) : (
+                  <ModulePlaceholder entitlementKey="servicesAndProducts" entitled={false} locale={locale} listingId={listing.id} isEs={isEs} />
+                )}
               </ModulePanel>
             )}
             {section === 'posts' && (
               <ModulePanel title={isEs ? 'Publicaciones y ofertas' : 'Posts & Offers'} isEs={isEs}>
-                <ModulePlaceholder entitlementKey="postsOffersEvents" entitled={isStaff || entitlements.postsOffersEvents} locale={locale} listingId={listing.id} isEs={isEs} />
+                {canPosts ? (
+                  <PostsEditor posts={posts} onChange={setPosts} isEs={isEs} max={MAX_POSTS} />
+                ) : (
+                  <ModulePlaceholder entitlementKey="postsOffersEvents" entitled={false} locale={locale} listingId={listing.id} isEs={isEs} />
+                )}
               </ModulePanel>
             )}
             {section === 'reviews' && (
               <Panel title={isEs ? 'Reseñas' : 'Reviews'}>
-                <p className="text-sm text-white/70">
-                  {isEs
-                    ? 'Lee y responde reseñas en tu ficha pública. La gestión de reseñas dentro del panel llega pronto.'
-                    : 'Read and reply to reviews on your public listing. In-dashboard review management is coming soon.'}
-                </p>
-                <a href={`${publicUrl}#reviews`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex rounded-md border border-white/20 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white/80 transition hover:bg-white/10">
-                  {isEs ? 'Ir a reseñas ↗' : 'Go to reviews ↗'}
+                <ReviewsManager listingId={listing.id} isEs={isEs} />
+                <a href={`${publicUrl}#reviews`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex rounded-md border border-white/20 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white/80 transition hover:bg-white/10">
+                  {isEs ? 'Ver en la ficha pública ↗' : 'View on the public listing ↗'}
                 </a>
-                <div className="mt-6">
-                  <ModulePlaceholder entitlementKey="aiAssistance" entitled={isStaff || entitlements.aiAssistance} locale={locale} listingId={listing.id} isEs={isEs} />
-                </div>
               </Panel>
             )}
             {section === 'leads' && (
@@ -551,7 +631,11 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
             )}
             {section === 'team' && (
               <ModulePanel title={isEs ? 'Equipo y acceso' : 'Team & Access'} isEs={isEs}>
-                <ModulePlaceholder entitlementKey="additionalManagers" entitled={isStaff || entitlements.additionalManagers > 0} locale={locale} listingId={listing.id} isEs={isEs} />
+                {canTeam ? (
+                  <TeamManager listingId={listing.id} isEs={isEs} isOwner={isOwner || isStaff} />
+                ) : (
+                  <ModulePlaceholder entitlementKey="additionalManagers" entitled={false} locale={locale} listingId={listing.id} isEs={isEs} />
+                )}
               </ModulePanel>
             )}
 
