@@ -19,6 +19,7 @@ const developerLinks = [
   { href: '/admin/events', label: 'Events Manager', description: 'Review, moderate, publish, or remove submitted and sourced events.' },
   { href: '/admin/leads', label: 'Leads & Deals', description: 'Inspect quote requests, customer activity, and active business deals.' },
   { href: '/admin/sales', label: 'Sales Agent', description: 'Run automated outreach to unclaimed businesses and Premium prospects.' },
+  { href: '/developer/audience', label: 'Audience & Accounts', description: 'Subscribers, customers, and users across every dataset — with audited CSV exports.' },
 ]
 
 // Godmode is cumulative, so every role workspace remains available from this
