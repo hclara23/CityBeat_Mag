@@ -25,6 +25,7 @@ import {
   AnalyticsPanel,
   AttributesEditor,
   ItemsEditor,
+  NotifyPrefsPanel,
   PostsEditor,
   ReviewsManager,
   SpecialHoursEditor,
@@ -674,6 +675,12 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
                     {isEs ? 'Mejorar mi plan' : 'Upgrade my plan'}
                   </Link>
                 )}
+                <div className="mt-8 border-t border-white/10 pt-6">
+                  <h3 className="mb-4 text-xs font-black uppercase tracking-wider text-brand-neon">
+                    {isEs ? 'Notificaciones' : 'Notifications'}
+                  </h3>
+                  <NotifyPrefsPanel isEs={isEs} />
+                </div>
               </Panel>
             )}
           </div>

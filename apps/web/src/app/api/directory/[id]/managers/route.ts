@@ -4,6 +4,7 @@ import { adminDb, adminAuth } from '@citybeat/lib/firebase/admin'
 import { hasEditorAccess } from '@citybeat/lib/roles'
 import { resolveEntitlements, resolveListingPatchAccess } from '@/lib/directory-entitlements'
 import { normalizeSalesEmail, isValidSalesEmail } from '@/lib/sales-checkout'
+import { notifyUser } from '@/lib/user-notifications'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -135,6 +136,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       created_at: now,
     })
     .catch(() => {})
+
+  // Tell the invited manager (first-party inbox + email).
+  const bizName = String(listing.name || 'a business')
+  void notifyUser({
+    userId: target.uid,
+    type: 'manager_added',
+    title: `You can now manage ${bizName} on CityBeat`,
+    title_es: `Ya puedes administrar ${bizName} en CityBeat`,
+    body: 'The owner added you as a listing manager. Open the dashboard to start editing.',
+    body_es: 'El dueño te agregó como administrador de la ficha. Abre el panel para empezar a editar.',
+    link: `/dashboard/listings/${params.id}`,
+  }).catch(() => {})
 
   return NextResponse.json({ ok: true, manager: { user_id: target.uid, email: target.email || email } })
 }

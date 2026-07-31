@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { withLocale } from './content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser, signOut } from '@citybeat/lib/firebase/auth-client'
-import { NotificationInbox } from '@/components/NotificationInbox'
+import { FirstPartyInbox } from '@/components/FirstPartyInbox'
 import { dashboardPathFor } from '@citybeat/lib/roles'
 
 function getNavItems(locale: string) {
@@ -94,8 +94,9 @@ export function SiteHeader() {
             </Link>
           </div>
 
-          {/* In-app notification bell (dormant until Novu is configured). */}
-          {profile?.id && <NotificationInbox subscriberId={profile.id} />}
+          {/* First-party in-app notification bell — works without any external
+              provider; email/Novu are delivery channels on the same records. */}
+          {profile?.id && <FirstPartyInbox />}
 
           <div className="hidden items-center gap-3 md:flex">
             {dashboardHref ? (

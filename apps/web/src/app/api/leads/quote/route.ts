@@ -3,6 +3,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
+import { notifyUser } from '@/lib/user-notifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -75,6 +76,21 @@ export async function POST(request: NextRequest) {
         { merge: true }
       )
       .catch(() => {})
+  }
+
+  // First-party inbox record for the owner. The email below already delivers
+  // the lead to the business, so the record skips the email channel.
+  if (listing?.owner_id) {
+    void notifyUser({
+      userId: String(listing.owner_id),
+      type: 'lead',
+      title: `New customer inquiry for ${listing?.name || 'your business'}`,
+      title_es: `Nueva solicitud de cliente para ${listing?.name || 'tu negocio'}`,
+      body: 'A customer requested a quote from your listing.',
+      body_es: 'Un cliente pidió una cotización desde tu ficha.',
+      link: `/dashboard/listings/${listingId}`,
+      emailChannel: false,
+    }).catch(() => {})
   }
 
   // Notify the business (best effort).

@@ -471,6 +471,79 @@ export function ReviewsManager({ listingId, isEs }: { listingId: string; isEs: b
   )
 }
 
+// ── Notification preferences ─────────────────────────────────────────────────
+
+type NotifyPrefsState = { activity_email: boolean; monthly_report: boolean; sms_opt_in: boolean }
+
+export function NotifyPrefsPanel({ isEs }: { isEs: boolean }) {
+  const [prefs, setPrefs] = useState<NotifyPrefsState | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/notifications/prefs')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (active && d?.prefs) setPrefs(d.prefs)
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const toggle = async (key: keyof NotifyPrefsState) => {
+    if (!prefs) return
+    const next = { ...prefs, [key]: !prefs[key] }
+    setPrefs(next)
+    setSaving(true)
+    try {
+      await fetch('/api/notifications/prefs', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: next[key] }),
+      })
+    } catch {
+      setPrefs(prefs) // revert on failure
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!prefs) return <p className="text-xs text-white/40">{isEs ? 'Cargando preferencias…' : 'Loading preferences…'}</p>
+
+  const rows: { key: keyof NotifyPrefsState; en: string; es: string; note?: { en: string; es: string } }[] = [
+    { key: 'activity_email', en: 'Email me about reviews, leads, and account activity', es: 'Enviarme correos de reseñas, clientes y actividad' },
+    { key: 'monthly_report', en: 'Email me the monthly performance report', es: 'Enviarme el informe mensual de rendimiento' },
+    {
+      key: 'sms_opt_in',
+      en: 'Text me urgent alerts (opt-in)',
+      es: 'Enviarme alertas urgentes por SMS (requiere aceptación)',
+      note: { en: 'Off unless you turn it on.', es: 'Desactivado a menos que lo actives.' },
+    },
+  ]
+
+  return (
+    <div className="space-y-3">
+      {rows.map((row) => (
+        <label key={row.key} className="flex cursor-pointer items-start justify-between gap-4">
+          <span>
+            <span className="block text-sm text-white/80">{isEs ? row.es : row.en}</span>
+            {row.note && <span className="block text-[10px] text-white/35">{isEs ? row.note.es : row.note.en}</span>}
+          </span>
+          <input
+            type="checkbox"
+            checked={prefs[row.key]}
+            disabled={saving}
+            onChange={() => toggle(row.key)}
+            className="mt-1 h-4 w-4 accent-brand-neon"
+          />
+        </label>
+      ))}
+    </div>
+  )
+}
+
 // ── Listing analytics ────────────────────────────────────────────────────────
 
 type StatTotals = {

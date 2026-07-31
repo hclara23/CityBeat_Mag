@@ -3,6 +3,7 @@ import { getServerUser } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { sanitizePublicReview, shouldAwardReviewPoints } from '@/lib/directory-security'
+import { notifyUser } from '@/lib/user-notifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -106,33 +107,22 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const listingRef = adminDb.collection('directory_listings').doc(id)
     await listingRef.set({ rating: average, user_ratings_total: count, updated_at: new Date().toISOString() }, { merge: true })
 
-    // Owner notifications.
+    // Owner notification: first-party inbox record + preference-gated email.
+    // (Replaces the old `sent_notifications` log rows, which recorded sends
+    // that never actually happened.)
     const listingDoc = await listingRef.get()
     const listing = listingDoc.exists ? (listingDoc.data() as any) : null
     if (listing?.owner_id) {
-      const ownerDoc = await adminDb.collection('profiles').doc(listing.owner_id).get()
-      const owner = ownerDoc.exists ? (ownerDoc.data() as any) : null
-      if (owner) {
-        if (owner.email_notifications_enabled && owner.email) {
-          await adminDb.collection('sent_notifications').add({
-            user_id: listing.owner_id,
-            type: 'email',
-            recipient: owner.email,
-            subject: `New review for ${listing.name}`,
-            body: `Your business "${listing.name}" received a new ${intRating}-star review.\n\n"${comment || '(No comment)'}"`,
-            created_at: FieldValue.serverTimestamp(),
-          })
-        }
-        if (owner.sms_notifications_enabled && owner.phone_number) {
-          await adminDb.collection('sent_notifications').add({
-            user_id: listing.owner_id,
-            type: 'sms',
-            recipient: owner.phone_number,
-            body: `CityBeat Alert: ${listing.name} got a new ${intRating}-star review.`,
-            created_at: FieldValue.serverTimestamp(),
-          })
-        }
-      }
+      const bizName = String(listing.name || 'your business')
+      await notifyUser({
+        userId: listing.owner_id,
+        type: 'review',
+        title: `New ${intRating}-star review for ${bizName}`,
+        title_es: `Nueva reseña de ${intRating} estrellas para ${bizName}`,
+        body: comment ? String(comment).slice(0, 300) : 'No comment was left.',
+        body_es: comment ? String(comment).slice(0, 300) : 'Sin comentario.',
+        link: `/dashboard/listings/${id}`,
+      })
     }
 
     return NextResponse.json({ review: newReview })

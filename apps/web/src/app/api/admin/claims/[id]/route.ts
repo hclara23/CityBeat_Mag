@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasAdminAccess } from '@citybeat/lib/roles'
+import { notifyUser } from '@/lib/user-notifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,9 +59,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     await ref.set(updates, { merge: true })
 
-    // On approval, mark the owner as an advertiser so their dashboards unlock.
+    // On approval, mark the owner as an advertiser so their dashboards unlock,
+    // and tell them their listing is live (first-party inbox + email).
     if (action === 'approve' && ownerId) {
       await adminDb.collection('profiles').doc(ownerId).set({ is_advertiser: true }, { merge: true })
+      const bizName = String(data?.name || 'your business')
+      void notifyUser({
+        userId: String(ownerId),
+        type: 'claim_approved',
+        title: `Your claim for ${bizName} was approved!`,
+        title_es: `¡Tu reclamo de ${bizName} fue aprobado!`,
+        body: 'You now manage this listing. Open your dashboard to complete your profile.',
+        body_es: 'Ya administras esta ficha. Abre tu panel para completar tu perfil.',
+        link: `/dashboard/listings/${id}`,
+      }).catch(() => {})
     }
     const doc = await ref.get()
     return NextResponse.json({
