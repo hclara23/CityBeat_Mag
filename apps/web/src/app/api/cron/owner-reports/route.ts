@@ -179,14 +179,10 @@ export async function GET(request: NextRequest) {
         continue
       }
 
-      // Idempotency: one report per owner per reporting month, so a retry or an
-      // extra scheduler firing never double-sends.
+      // Idempotency: one report per owner per reporting month. Reserve the slot
+      // ATOMICALLY with create() (fails if the doc already exists) so a retry or
+      // two concurrent runs can't both send.
       const deliveryRef = adminDb.collection('report_deliveries').doc(`${ownerId}_${period}`)
-      const prior = await deliveryRef.get().catch(() => null)
-      if (prior?.exists && (prior.data() as any)?.status === 'sent') {
-        skippedAlreadySent++
-        continue
-      }
 
       const locale: 'en' | 'es' = p?.locale === 'es' ? 'es' : 'en'
       const totalViews = ownerListings.reduce((s, l) => s + l.views, 0)
@@ -199,23 +195,29 @@ export async function GET(request: NextRequest) {
         continue
       }
 
+      try {
+        await deliveryRef.create({ owner_id: ownerId, period, status: 'sending', reserved_at: new Date().toISOString() })
+      } catch {
+        // Already reserved/sent by another run → skip (don't double-send).
+        skippedAlreadySent++
+        continue
+      }
+
       const r = await sendEmail(email, subject, reportHtml(ownerListings, locale), FROM)
       // Record delivery status/provider outcome/timestamp — never claim a send
-      // that didn't happen.
-      await deliveryRef
-        .set(
-          {
-            owner_id: ownerId,
-            period,
-            status: r.sent ? 'sent' : 'failed',
-            provider_error: r.error || null,
-            listings: ownerListings.length,
-            total_views: totalViews,
-            delivered_at: new Date().toISOString(),
-          },
-          { merge: true }
-        )
-        .catch(() => {})
+      // that didn't happen. A failed send is left NOT 'sent' so a later run can
+      // retry; a persistence failure here throws to the outer catch rather than
+      // silently masking a re-send.
+      await deliveryRef.set(
+        {
+          status: r.sent ? 'sent' : 'failed',
+          provider_error: r.error || null,
+          listings: ownerListings.length,
+          total_views: totalViews,
+          delivered_at: new Date().toISOString(),
+        },
+        { merge: true }
+      )
       if (r.sent) {
         sent++
         // First-party inbox record (email already sent above → skip the channel).

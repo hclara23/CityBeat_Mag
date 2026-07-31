@@ -160,6 +160,39 @@ center before any lower-role workspace.
 - Review system alerts when an automated process fails.
 - Confirm the Sales Guide and Quick Start after material product, price, or interface changes.
 
+## 9. Directory Owner Platform (business owners)
+
+Every claimed business gets a dedicated management dashboard at
+`/{locale}/dashboard/listings/{listingId}` ("Manage my listing" from your
+Dashboard). What you can do depends on your plan; paid features are shown but
+visibly locked on the Basic (free) plan.
+
+- **Overview:** profile-completion and local-SEO scores with the exact items to fix.
+- **Business Profile / Media / Hours:** name, category, address, phone, website,
+  detailed bilingual description, photos, standard and special (holiday) hours.
+- **Services · Products/Menu · Posts & Offers:** list what you offer with prices,
+  and publish scheduled offers/events (live/scheduled/expired shown per post).
+- **Booking / action links + attributes:** "Book/Order/Quote" buttons and
+  "good to know" badges.
+- **Reviews:** read and reply, plus a printable review-request QR code.
+- **Analytics:** views, clicks, and leads (rolling 30 days for all; full history,
+  comparisons, and CSV export on paid plans). Featured plans see anonymized
+  category benchmarks.
+- **Team & Access:** invite managers to help edit (seats depend on your plan).
+- **Settings + Notifications:** control activity emails, the monthly performance
+  report, and SMS (SMS is off unless you turn it on). The in-app bell shows
+  reviews, leads, claim approvals, and reports.
+
+Salespeople can create and hand off a listing (free or paid). A rep who is
+physically at the business or knows the owner may attest to it and send a signed,
+single-use "accept ownership" link; the customer signs in with the exact recorded
+email to accept. Payment is never bypassed — a paid plan activates only after
+Stripe confirms payment.
+
+Promotional newsletter consent is separate from account, order, and business
+messages. You can unsubscribe from the newsletter at any time via the link in
+every issue without losing receipts, security notices, or business reports.
+
 ---
 
-Reflects the application as of July 30, 2026. See [SECURITY_AUDIT.md](SECURITY_AUDIT.md) and [CLAIM_VERIFICATION.md](CLAIM_VERIFICATION.md) for operational detail.
+Reflects the application as of July 31, 2026. See [SECURITY_AUDIT.md](SECURITY_AUDIT.md) and [CLAIM_VERIFICATION.md](CLAIM_VERIFICATION.md) for operational detail.

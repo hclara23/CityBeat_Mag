@@ -109,9 +109,9 @@ export default function SignupPage() {
             </div>
           )}
 
-          <SignupForm onSubmit={handleSubmit} isLoading={isLoading} />
-
-          <label className="mt-4 flex items-start gap-2.5 cursor-pointer text-sm text-gray-600">
+          {/* Consent control sits ABOVE the form's submit so it's in view before
+              the user creates their account. */}
+          <label className="mb-4 flex items-start gap-2.5 cursor-pointer text-sm text-gray-600">
             <input
               type="checkbox"
               checked={newsletter}
@@ -124,6 +124,8 @@ export default function SignupPage() {
                 : 'Email me the CityBeat newsletter with local stories, events, and offers. I can unsubscribe at any time.'}
             </span>
           </label>
+
+          <SignupForm onSubmit={handleSubmit} isLoading={isLoading} />
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">

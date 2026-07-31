@@ -64,6 +64,26 @@ flowchart TD
    Contact column) and confirm.
 3. Only then approve — the confirm dialog exists to make this deliberate.
 
+## Salesperson verification bypass (Sales Desk)
+
+An authorized sales/developer rep creating a **new** directory listing may attest
+that the business is legitimate — only when **physically at the business** or when
+they **personally know the owner** — and skip the second (email-code) challenge.
+The bypass:
+
+- Is opt-in, off by default, and rejected for existing/merged listings.
+- Requires an attestation method (`in_person_at_business` / `personally_knows_owner`),
+  an explicit authorization checkbox, and the customer's exact email.
+- Writes an **immutable** `directory_verification_audits` record (salesperson id +
+  email, method, note, normalized customer email, salted IP hash, UA summary)
+  **before** the listing is created — a bypassed listing can never exist unaudited.
+- Hands off a **signed, single-use, expiring** accept link. The customer must sign
+  in with the **exact recorded email** (verified) to accept ownership.
+
+Free listings activate on acceptance; **paid plans stay pending until Stripe
+confirms payment** — the bypass never bypasses payment. Audit notes, IP hashes,
+and salesperson ids are never exposed on the public listing or in any export.
+
 ## Known gaps / future work
 
 - **SMS and postcard verification are stubs** — the UI hides them and

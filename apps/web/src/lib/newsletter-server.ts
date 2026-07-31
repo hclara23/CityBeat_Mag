@@ -30,24 +30,31 @@ export async function isEmailSuppressed(email: string): Promise<boolean> {
 // Merges both suppression stores: newsletter_suppressions (already keyed by
 // hash) and email_suppressions (keyed by plaintext email → hashed here), so a
 // sales-outreach unsubscribe suppresses the newsletter too and vice versa.
-export async function loadSuppressedHashes(): Promise<Set<string>> {
-  const out = new Set<string>()
+// Returns null on a read failure so the caller can FAIL CLOSED (never blast
+// marketing without a confirmed suppression list).
+export async function loadSuppressedHashes(): Promise<Set<string> | null> {
   try {
+    const out = new Set<string>()
     const [nl, em] = await Promise.all([
       adminDb.collection('newsletter_suppressions').get(),
       adminDb.collection('email_suppressions').get(),
     ])
     nl.docs.forEach((d) => out.add(d.id))
     em.docs.forEach((d) => out.add(emailHash(normalizeNewsletterEmail(d.id))))
+    return out
   } catch {
-    /* handled by per-send isEmailSuppressed fallback */
+    return null
   }
-  return out
 }
 
-// Record a promotional-newsletter subscription. Deduped by emailHash. A
-// deliberate resubscribe clears an existing suppression (per the brief), but a
-// passive/duplicate submit never reactivates on its own.
+// Record a promotional-newsletter subscription. Deduped by emailHash.
+//
+// A previously SUPPRESSED (unsubscribed/complained/bounced) address is NEVER
+// silently reactivated — an unauthenticated submit or a pre-checked signup box
+// can't resurrect someone who opted out (per the non-negotiable + CAN-SPAM). Only
+// `allowReactivate: true` (a confirmed/double-opt-in flow — not yet wired to any
+// public caller) may clear a suppression. Everything else returns 'suppressed'
+// and touches nothing.
 export async function subscribeEmail(input: {
   email: string
   locale?: string
@@ -55,7 +62,8 @@ export async function subscribeEmail(input: {
   method?: string
   userId?: string | null
   listingIds?: string[]
-}): Promise<{ ok: boolean; status: 'subscribed' | 'already_active' | 'reactivated' }> {
+  allowReactivate?: boolean
+}): Promise<{ ok: boolean; status: 'subscribed' | 'already_active' | 'reactivated' | 'suppressed' }> {
   const emailNormalized = normalizeNewsletterEmail(input.email)
   if (!emailNormalized || !emailNormalized.includes('@')) return { ok: false, status: 'already_active' }
   const eid = emailHash(emailNormalized)
@@ -65,31 +73,39 @@ export async function subscribeEmail(input: {
   const existing = await subRef.get()
   const priorStatus = existing.exists ? ((existing.data() as any)?.status as NewsletterStatus) : null
   const wasSuppressed = priorStatus ? isSuppressedStatus(priorStatus) : false
+  // A suppression also exists independently in newsletter_suppressions.
+  const suppressionExists = wasSuppressed || (await adminDb.collection('newsletter_suppressions').doc(eid).get()).exists
 
   if (existing.exists && priorStatus === 'active') {
     return { ok: true, status: 'already_active' }
   }
 
+  // Refuse to reactivate a suppressed address without an explicit confirmed flow.
+  if (suppressionExists && !input.allowReactivate) {
+    await adminDb
+      .collection('newsletter_consents')
+      .add({ email_hash: eid, action: 'resubscribe_blocked', source: (input.source || 'newsletter').slice(0, 60), at: now })
+      .catch(() => {})
+    return { ok: true, status: 'suppressed' }
+  }
+
   const record = buildSubscriberRecord({ ...input, now })
   if (existing.exists) {
     // Preserve original created_at; refresh consent + reactivate.
-    await subRef.set(
-      { ...record, created_at: (existing.data() as any)?.created_at || now },
-      { merge: true }
-    )
+    await subRef.set({ ...record, created_at: (existing.data() as any)?.created_at || now }, { merge: true })
   } else {
     await subRef.set(record)
   }
 
-  // A deliberate resubscribe removes the permanent suppression.
-  if (wasSuppressed) {
+  // Only a confirmed, deliberate resubscribe removes the permanent suppression.
+  if (suppressionExists && input.allowReactivate) {
     await adminDb.collection('newsletter_suppressions').doc(eid).delete().catch(() => {})
   }
 
   // Consent history (append-only) — every consent change is auditable.
   await adminDb.collection('newsletter_consents').add({
     email_hash: eid,
-    action: wasSuppressed ? 'resubscribe' : 'subscribe',
+    action: suppressionExists ? 'resubscribe' : 'subscribe',
     source: record.consent_source,
     method: record.consent_method,
     locale: record.consent_locale,
@@ -98,7 +114,7 @@ export async function subscribeEmail(input: {
     at: now,
   })
 
-  return { ok: true, status: wasSuppressed ? 'reactivated' : 'subscribed' }
+  return { ok: true, status: suppressionExists ? 'reactivated' : 'subscribed' }
 }
 
 // Suppress an email by its verified hash (from a signed unsubscribe token).

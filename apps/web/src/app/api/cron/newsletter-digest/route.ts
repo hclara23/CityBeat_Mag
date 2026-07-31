@@ -55,8 +55,9 @@ function sponsorHtml(sponsor: Sponsor, locale: 'en' | 'es') {
 
 function digestHtml(articles: any[], email: string, locale: 'en' | 'es', sponsor: Sponsor = null) {
   const isEs = locale === 'es'
-  // Signed, opaque unsubscribe token — never puts the email in the URL.
-  const unsub = `${APP_URL}/api/newsletter/unsubscribe?u=${mintUnsubToken(normalizeNewsletterEmail(email))}`
+  // Signed, opaque unsubscribe token — never puts the email in the URL. The
+  // (non-sensitive) locale hint localizes the confirmation page.
+  const unsub = `${APP_URL}/api/newsletter/unsubscribe?u=${mintUnsubToken(normalizeNewsletterEmail(email))}&l=${locale}`
   const items = articles
     .map((a) => {
       const title = isEs ? a.titleES || a.title : a.title
@@ -115,14 +116,25 @@ export async function GET(request: NextRequest) {
     adminDb.collection('newsletter_subscribers').get().catch(() => ({ docs: [] as any[] })),
     loadSuppressedHashes(),
   ])
+  if (suppressed === null) {
+    // Fail closed: never blast marketing when the suppression list can't be read.
+    await reportFailure('cron:newsletter-digest', new Error('suppression list unavailable'))
+    return NextResponse.json({ ok: false, skipped: 'suppression_unavailable' })
+  }
   const seen = new Set<string>()
   const subs = (subsSnap.docs as any[])
     .map((d) => d.data())
+    .map((s) => ({
+      // New consent records store email_normalized/consent_locale; legacy auto-id
+      // docs used email/locale. Resolve both.
+      ...s,
+      _email: normalizeNewsletterEmail(s.email_normalized || s.email_display || s.email),
+      _locale: (s.consent_locale || s.locale) === 'es' ? 'es' : 'en',
+    }))
     .filter((s) => {
-      const email = normalizeNewsletterEmail(s.email)
-      if (!email.includes('@')) return false
+      if (!s._email.includes('@')) return false
       if (isSuppressedStatus(s.status)) return false
-      const eid = emailHash(email)
+      const eid = emailHash(s._email)
       if (suppressed.has(eid) || seen.has(eid)) return false
       seen.add(eid)
       return true
@@ -139,9 +151,9 @@ export async function GET(request: NextRequest) {
   let failed = 0
   if (!dryRun) {
     for (const s of subs) {
-      const locale: 'en' | 'es' = s.locale === 'es' ? 'es' : 'en'
+      const locale: 'en' | 'es' = s._locale
       try {
-        const r = await sendEmail(s.email, subject, digestHtml(recent, s.email, locale, sponsor), FROM)
+        const r = await sendEmail(s._email, subject, digestHtml(recent, s._email, locale, sponsor), FROM)
         if (r.sent) sent++
         else failed++
       } catch {

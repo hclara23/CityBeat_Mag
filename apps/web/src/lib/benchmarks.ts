@@ -52,12 +52,15 @@ export function computeCategoryBenchmark(input: {
   }
 
   const ratedOthers = others.map((l) => Number(l.rating)).filter((n) => Number.isFinite(n) && n > 0)
-  const avgRating = ratedOthers.length ? Math.round(mean(ratedOthers) * 10) / 10 : null
   const yourRating = Number.isFinite(Number(self.rating)) && Number(self.rating) > 0 ? Number(self.rating) : null
 
-  // Rating percentile: share of others you meet-or-beat (only when you have one).
+  // The rating aggregate is only exposed when ENOUGH other listings carry a
+  // rating — otherwise a category with a single rated competitor would leak that
+  // competitor's exact rating (and the head-to-head result).
+  const ratingsAnonymous = ratedOthers.length >= minCohort
+  const avgRating = ratingsAnonymous ? Math.round(mean(ratedOthers) * 10) / 10 : null
   let ratingPercentile: number | null = null
-  if (yourRating != null && ratedOthers.length > 0) {
+  if (ratingsAnonymous && yourRating != null) {
     const beaten = ratedOthers.filter((r) => yourRating >= r).length
     ratingPercentile = Math.round((beaten / ratedOthers.length) * 100)
   }

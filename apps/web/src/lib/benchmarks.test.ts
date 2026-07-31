@@ -46,6 +46,27 @@ test('averages exclude the requesting listing and compute rating percentile', ()
   }
 })
 
+test('a single rated competitor never leaks its rating (rating aggregate needs its own cohort)', () => {
+  const res = computeCategoryBenchmark({
+    category: 'events',
+    listingId: 'me',
+    minCohort: 5,
+    listings: [
+      { id: 'me', rating: 4.5 },
+      { id: 'grand', rating: 4.2 }, // the ONLY rated competitor
+      { id: 'a', rating: 0 },
+      { id: 'b', rating: null },
+      { id: 'c', rating: null },
+      { id: 'd', rating: null },
+    ],
+  })
+  assert.equal(res.available, true) // cohort of 5 others → views/reviews are fine
+  if (res.available) {
+    assert.equal(res.avg_rating, null) // only 1 rated other < minCohort → hidden
+    assert.equal(res.rating_percentile, null)
+  }
+})
+
 test('unrated listings and zero cohort ratings are handled', () => {
   const res = computeCategoryBenchmark({
     category: 'services',

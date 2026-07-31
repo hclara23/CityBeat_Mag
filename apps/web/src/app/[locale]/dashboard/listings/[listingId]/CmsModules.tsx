@@ -775,13 +775,14 @@ function BenchRow({ label, you, avg, isEs }: { label: string; you: number | stri
 
 export function BenchmarksPanel({ listingId, isEs, entitled }: { listingId: string; isEs: boolean; entitled: boolean }) {
   const [data, setData] = useState<Benchmark | null>(null)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     if (!entitled) return
     fetch(`/api/directory/${listingId}/benchmarks`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setData(d))
-      .catch(() => {})
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => setData(d))
+      .catch(() => setFailed(true))
   }, [listingId, entitled])
 
   if (!entitled) {
@@ -793,6 +794,7 @@ export function BenchmarksPanel({ listingId, isEs, entitled }: { listingId: stri
       </p>
     )
   }
+  if (failed) return <p className="text-sm text-white/45">{isEs ? 'No se pudieron cargar las comparativas.' : 'Could not load benchmarks.'}</p>
   if (!data) return <p className="text-sm text-white/40">{isEs ? 'Cargando comparativas…' : 'Loading benchmarks…'}</p>
   if (!data.available) {
     return (
