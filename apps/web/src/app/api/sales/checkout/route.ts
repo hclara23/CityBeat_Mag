@@ -27,6 +27,14 @@ import {
   buildSalesDirectoryListingRecord,
   salesDirectoryListingUrl,
 } from '@/lib/sales-directory'
+import { getClientIp } from '@/lib/auth-security'
+import {
+  validateBypass,
+  mintClaimToken,
+  claimTokenExpiresAt,
+  buildVerificationAuditRecord,
+  type AttestationMethod,
+} from '@/lib/verification-audit'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -161,6 +169,61 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Salesperson verification bypass (opt-in, default off). Only an authenticated
+  // sales/developer caller reaches here (public callers were 403'd above), so a
+  // public user can never set or forge it. It is valid ONLY when creating a
+  // brand-new directory listing — never for a merge or a pre-existing listing.
+  const bypassRequested = body.bypassVerification === true
+  let bypassFields: Record<string, unknown> | null = null
+  let bypassToken: string | null = null
+  let bypassAudit: { method: AttestationMethod; note: string } | null = null
+  if (bypassRequested) {
+    if (product.family !== 'directory') {
+      return NextResponse.json({ error: 'Verification bypass only applies to directory listings.' }, { status: 400 })
+    }
+    if (typeof body.listingId === 'string' && body.listingId.trim()) {
+      return NextResponse.json(
+        { error: 'Verification bypass is only available when creating a new listing.' },
+        { status: 400 }
+      )
+    }
+    const check = validateBypass({
+      attestationMethod: body.attestationMethod,
+      attestationAccepted: body.attestationAccepted,
+      customerEmail: contactEmail,
+      attestationNote: body.attestationNote,
+    })
+    if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 })
+    const { token, hash } = mintClaimToken()
+    bypassToken = token
+    bypassAudit = { method: check.method, note: check.note }
+    bypassFields = {
+      verification_path: 'salesperson_attestation',
+      claim_token_hash: hash,
+      claim_token_expires_at: claimTokenExpiresAt(Date.now()),
+      claim_token_consumed_at: null,
+    }
+  }
+
+  // Immutable audit row. Awaited BEFORE the listing is written and never
+  // swallowed, so a bypassed listing can never exist without its audit trail.
+  // The note/IP/salesperson id live only here, never on the public listing.
+  const writeBypassAudit = async (listingId: string) => {
+    if (!bypassRequested || !bypassAudit) return
+    const record = buildVerificationAuditRecord({
+      listingId,
+      salespersonId: user.id,
+      salespersonEmail: user.email || (profile?.email as string | undefined) || 'unknown',
+      method: bypassAudit.method,
+      note: bypassAudit.note,
+      customerEmail: contactEmail,
+      ip: getClientIp(request),
+      userAgent: request.headers.get('user-agent'),
+      now: new Date().toISOString(),
+    })
+    await adminDb.collection('directory_verification_audits').add(record)
+  }
+
   let orderRef: FirebaseFirestore.DocumentReference | null = null
 
   try {
@@ -193,8 +256,9 @@ export async function POST(request: NextRequest) {
         locale,
         listingId: listingRef.id,
       })
-      await listingRef.set(
-        buildSalesDirectoryListingRecord({
+      await writeBypassAudit(listingRef.id)
+      await listingRef.set({
+        ...buildSalesDirectoryListingRecord({
           businessName,
           category: directoryCategory,
           contactEmail,
@@ -202,8 +266,12 @@ export async function POST(request: NextRequest) {
           locale,
           sellerUserId: user.id,
           productId: product.id,
-        })
-      )
+        }),
+        ...(bypassFields || {}),
+      })
+      const bypassClaimUrl = bypassToken
+        ? `${listingUrl}/claim?accept=${encodeURIComponent(bypassToken)}`
+        : null
       return NextResponse.json(
         {
           url: null,
@@ -215,6 +283,8 @@ export async function POST(request: NextRequest) {
           productId: product.id,
           priceLabel: product.priceLabel,
           billing: product.billing,
+          bypass: bypassRequested,
+          bypassClaimUrl,
         },
         { status: 201 }
       )
@@ -266,8 +336,9 @@ export async function POST(request: NextRequest) {
         })
       : null
     if (listingCreated) {
-      await adminDb.collection('directory_listings').doc(listingId).set(
-        buildSalesDirectoryListingRecord({
+      await writeBypassAudit(listingId)
+      await adminDb.collection('directory_listings').doc(listingId).set({
+        ...buildSalesDirectoryListingRecord({
           businessName,
           category: directoryCategory,
           contactEmail,
@@ -276,9 +347,12 @@ export async function POST(request: NextRequest) {
           sellerUserId: user.id,
           productId: product.id,
           orderId: orderRef.id,
-        })
-      )
+        }),
+        ...(bypassFields || {}),
+      })
     }
+    const bypassClaimUrl =
+      bypassToken && listingUrl ? `${listingUrl}/claim?accept=${encodeURIComponent(bypassToken)}` : null
 
     const urls = salesOrderCheckoutUrls({
       origin: appOrigin,
@@ -375,6 +449,8 @@ export async function POST(request: NextRequest) {
       productId: product.id,
       priceLabel,
       billing: product.billing,
+      bypass: bypassRequested,
+      bypassClaimUrl,
     })
   } catch (error: any) {
     if (orderRef) {

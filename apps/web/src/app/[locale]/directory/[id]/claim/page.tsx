@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
@@ -84,13 +84,16 @@ const translations = {
   }
 }
 
-export default function ClaimPage() {
+function ClaimPageInner() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const locale = (useLocale() || 'en') as 'en' | 'es'
   const t = translations[locale] || translations.en
 
   const id = params.id as string
+  // A salesperson-attested (bypass) handoff carries a signed, single-use token.
+  const acceptToken = searchParams.get('accept') || ''
 
   const [listing, setListing] = useState<Listing | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -142,6 +145,64 @@ export default function ClaimPage() {
   const [verifying, setVerifying] = useState(false)
   const [claimSuccessMsg, setClaimSuccessMsg] = useState('')
   const [claimErrorMsg, setClaimErrorMsg] = useState('')
+  // Bypass acceptance (?accept=<token>) state.
+  const [accepting, setAccepting] = useState(false)
+  const [accepted, setAccepted] = useState(false)
+  const [acceptMsg, setAcceptMsg] = useState('')
+  const [acceptError, setAcceptError] = useState('')
+
+  const acceptErrorByCode = (code: string | undefined): string => {
+    const es = locale === 'es'
+    switch (code) {
+      case 'wrong_email':
+        return es
+          ? 'Inicia sesión con el correo exacto que registró tu representante de CityBeat.'
+          : 'Sign in with the exact email your CityBeat rep recorded.'
+      case 'expired':
+        return es ? 'Este enlace de reclamo ha expirado.' : 'This claim link has expired.'
+      case 'consumed':
+        return es ? 'Este enlace de reclamo ya fue utilizado.' : 'This claim link has already been used.'
+      case 'owned':
+        return es ? 'Esta ficha ya fue reclamada.' : 'This listing has already been claimed.'
+      case 'invalid_token':
+      case 'not_bypass':
+        return es ? 'Este enlace de reclamo no es válido.' : 'This claim link is invalid.'
+      default:
+        return es ? 'No se pudo aceptar esta ficha.' : 'Could not accept this listing.'
+    }
+  }
+
+  const handleAccept = async () => {
+    setAccepting(true)
+    setAcceptError('')
+    try {
+      const res = await fetch(`/api/directory/${id}/claim/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: acceptToken }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setAccepted(true)
+        setAcceptMsg(
+          data.paid
+            ? locale === 'es'
+              ? 'Propiedad aceptada. Completa el pago para activar tu plan.'
+              : 'Ownership accepted. Complete payment to activate your paid plan.'
+            : locale === 'es'
+              ? '¡Propiedad aceptada! Tu ficha gratis ya está activa.'
+              : 'Ownership accepted! Your free listing is now active.'
+        )
+        router.refresh()
+      } else {
+        setAcceptError(acceptErrorByCode(data.code))
+      }
+    } catch {
+      setAcceptError(locale === 'es' ? 'Ocurrió un error. Inténtalo de nuevo.' : 'An error occurred. Please try again.')
+    } finally {
+      setAccepting(false)
+    }
+  }
 
   const handleStartClaim = async () => {
     setVerifying(true)
@@ -285,7 +346,86 @@ export default function ClaimPage() {
 
         <div className="container-wide max-w-2xl mt-4">
           <div className="citybeat-panel rounded-2xl p-8 border border-white/10">
-            {error ? (
+            {acceptToken ? (
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-brand-neon border border-brand-neon/25 bg-brand-neon/5 px-2.5 py-1 rounded">
+                  {listing?.category}
+                </span>
+                <h1 className="font-display text-3xl sm:text-4xl font-black text-white mt-4 uppercase leading-none">
+                  {locale === 'es' ? 'Aceptar Propiedad' : 'Accept Ownership'}
+                </h1>
+                <p className="text-xs text-white/50 mt-1 uppercase font-bold tracking-wider">
+                  {locale === 'es' ? 'Para' : 'For'}: <span className="text-white">{listing?.name}</span>
+                </p>
+
+                <div className="mt-8">
+                  {accepted ? (
+                    <div className="rounded-xl border border-brand-neon/30 bg-brand-neon/10 p-6 text-center">
+                      <span className="mb-3 block text-4xl">✓</span>
+                      <p className="text-sm text-white/80">{acceptMsg}</p>
+                      <Link
+                        href={withLocale(locale, `/directory/${id}`)}
+                        className="mt-5 inline-block rounded bg-brand-neon px-6 py-3 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300"
+                      >
+                        {locale === 'es' ? 'Ir a mi ficha' : 'Go to my listing'}
+                      </Link>
+                    </div>
+                  ) : !userProfile ? (
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center">
+                      <h3 className="font-display text-lg font-bold uppercase tracking-wide text-white">{t.loginRequiredTitle}</h3>
+                      <p className="mt-2 text-xs leading-relaxed text-white/60">
+                        {locale === 'es'
+                          ? 'Inicia sesión con el correo exacto que registró tu representante de CityBeat y luego acepta la propiedad.'
+                          : 'Sign in with the exact email your CityBeat rep recorded, then accept ownership.'}
+                      </p>
+                      <button
+                        onClick={() =>
+                          router.push(
+                            `/${locale}/login?redirectTo=${encodeURIComponent(`/directory/${id}/claim?accept=${acceptToken}`)}`
+                          )
+                        }
+                        className="mt-5 inline-block rounded bg-brand-neon px-6 py-3 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300"
+                      >
+                        {t.loginBtn}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-brand-gold/30 bg-brand-gold/[0.06] p-6 text-center">
+                      <h3 className="font-display text-lg font-black uppercase tracking-wide text-brand-gold">
+                        {locale === 'es' ? 'Aceptar propiedad' : 'Accept ownership'}
+                      </h3>
+                      <p className="mt-2 text-xs leading-relaxed text-white/70">
+                        {locale === 'es' ? 'Sesión iniciada como' : "You're signed in as"}{' '}
+                        <strong className="text-white">{userProfile.email}</strong>.{' '}
+                        {locale === 'es'
+                          ? 'Debe coincidir con el correo que registró tu representante. Aceptar activa tu ficha gratis (los planes de pago quedan pendientes hasta el pago).'
+                          : 'This must match the email your rep recorded. Accepting activates your free listing (paid plans stay pending until payment).'}
+                      </p>
+                      {acceptError && <p className="mt-3 text-xs font-bold text-brand-magenta">⚠ {acceptError}</p>}
+                      <button
+                        onClick={handleAccept}
+                        disabled={accepting}
+                        className="mt-5 inline-block rounded bg-brand-neon px-6 py-3 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-50"
+                      >
+                        {accepting
+                          ? locale === 'es'
+                            ? 'Aceptando…'
+                            : 'Accepting…'
+                          : locale === 'es'
+                            ? 'Aceptar propiedad'
+                            : 'Accept ownership'}
+                      </button>
+                      <Link
+                        href={withLocale(locale, `/directory/${id}`)}
+                        className="mt-3 block text-xs text-white/45 underline hover:text-white"
+                      >
+                        {t.backToDetails}
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : error ? (
               <div className="text-center py-6">
                 <span className="text-brand-magenta font-black text-4xl block mb-4">⚠</span>
                 <p className="text-white/80 font-bold mb-4">{error}</p>
@@ -599,5 +739,13 @@ export default function ClaimPage() {
         </div>
       </div>
     </CityBeatShell>
+  )
+}
+
+export default function ClaimPage() {
+  return (
+    <Suspense fallback={null}>
+      <ClaimPageInner />
+    </Suspense>
   )
 }

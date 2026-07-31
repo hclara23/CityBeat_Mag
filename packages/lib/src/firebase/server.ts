@@ -33,6 +33,7 @@ export async function getServerUser(cookieStore?: any) {
     return {
       id: decodedClaims.uid,
       email: decodedClaims.email,
+      email_verified: decodedClaims.email_verified === true,
     }
   } catch (error) {
     return null

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@citybeat/lib/firebase/admin';
+import { stripInternalListingFields } from '@/lib/listing-fields';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +47,9 @@ export async function GET(request: NextRequest) {
       return (a.name || '').localeCompare(b.name || '');
     });
 
-    return NextResponse.json({ listings: results });
+    // Strip internal/sensitive fields (contact/stripe ids, verification-bypass
+    // token) from every public list result.
+    return NextResponse.json({ listings: results.map(stripInternalListingFields) });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

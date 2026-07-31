@@ -69,8 +69,15 @@ export default function SalesDesk() {
   const [listingSending, setListingSending] = useState<'email' | 'sms' | ''>('')
   const [sentMsg, setSentMsg] = useState('')
   const [listingSentMsg, setListingSentMsg] = useState('')
+  // Salesperson verification bypass (only when creating a NEW directory listing).
+  const [bypassVerification, setBypassVerification] = useState(false)
+  const [attestationMethod, setAttestationMethod] = useState<'' | 'in_person_at_business' | 'personally_knows_owner'>('')
+  const [attestationConfirmed, setAttestationConfirmed] = useState(false)
+  const [attestationNote, setAttestationNote] = useState('')
+  const [isBypassClaim, setIsBypassClaim] = useState(false)
 
   const product = SALES_PRODUCTS[productId]
+  const useBypass = product.family === 'directory' && !listingId && bypassVerification
   const handoffReady = Boolean(checkoutUrl || listingUrl)
   const displayPrice =
     product.id === 'custom_one_time' && Number(amount) > 0 ? `${money(Math.round(Number(amount) * 100))} once` : product.priceLabel
@@ -163,6 +170,7 @@ export default function SalesDesk() {
     setListingUrl('')
     setHandoffOrder(null)
     setError('')
+    resetBypass()
     requestAnimationFrame(() => saleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
@@ -178,6 +186,7 @@ export default function SalesDesk() {
     setError('')
     setSentMsg('')
     setListingSentMsg('')
+    resetBypass()
   }
 
   async function generate(event: FormEvent) {
@@ -201,6 +210,16 @@ export default function SalesDesk() {
     if (product.id === 'custom_one_time' && !description.trim()) {
       return setError('Describe the manager-approved custom product.')
     }
+    if (useBypass && !attestationMethod) {
+      return setError(isEs ? 'Elige cómo verificaste el negocio.' : 'Choose how you verified the business.')
+    }
+    if (useBypass && !attestationConfirmed) {
+      return setError(
+        isEs
+          ? 'Confirma que estás autorizado a omitir la verificación.'
+          : 'Confirm you are authorized to bypass verification.'
+      )
+    }
 
     setBusy(true)
     try {
@@ -218,6 +237,10 @@ export default function SalesDesk() {
           locale,
           amount: product.id === 'custom_one_time' ? Number(amount) : undefined,
           description: description.trim() || undefined,
+          bypassVerification: useBypass || undefined,
+          attestationMethod: useBypass ? attestationMethod : undefined,
+          attestationAccepted: useBypass ? attestationConfirmed : undefined,
+          attestationNote: useBypass ? attestationNote.trim() || undefined : undefined,
         }),
       })
       const data = await response.json().catch(() => ({}))
@@ -226,7 +249,10 @@ export default function SalesDesk() {
         throw new Error('CityBeat did not return a handoff link.')
       }
       setCheckoutUrl(data.url || '')
-      setListingUrl(data.listingUrl || '')
+      // A bypassed listing hands off a signed, single-use claim/accept link
+      // instead of the plain public listing URL.
+      setIsBypassClaim(Boolean(data.bypassClaimUrl))
+      setListingUrl(data.bypassClaimUrl || data.listingUrl || '')
       setCheckoutPrice(data.priceLabel || displayPrice)
       if (data.listingId) setListingId(data.listingId)
       setHandoffOrder({
@@ -311,10 +337,30 @@ export default function SalesDesk() {
     }
   }
 
+  function openListingMailto(destination: string) {
+    const subject = `Your CityBeat listing for ${handoffOrder?.businessName || 'your business'}`
+    const body = `Open this link, sign in with this email (${destination}), and accept ownership of your CityBeat listing: ${listingUrl}`
+    window.location.href = `mailto:${destination}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
+
   async function sendListingLink(channel: 'email' | 'sms') {
     const destination = channel === 'email' ? handoffOrder?.contactEmail || '' : handoffOrder?.phone || ''
     if (!destination) {
       return setListingSentMsg(channel === 'email' ? 'Add the client email first.' : 'Add a phone number first.')
+    }
+    // A bypass claim link is a signed, single-use token URL — it must not run
+    // through the server send-route (which validates against the plain listing
+    // path), so hand it off via the device's email/text composer instead.
+    if (isBypassClaim) {
+      await navigator.clipboard.writeText(listingUrl).catch(() => {})
+      if (channel === 'email') openListingMailto(destination)
+      else await openListingSmsComposer(destination)
+      setListingSentMsg(
+        channel === 'email'
+          ? 'Opened your email app with the acceptance link (also copied).'
+          : 'Opened your texting app with the acceptance link (also copied).'
+      )
+      return
     }
     setListingSending(channel)
     setListingSentMsg('')
@@ -346,6 +392,14 @@ export default function SalesDesk() {
     }
   }
 
+  function resetBypass() {
+    setBypassVerification(false)
+    setAttestationMethod('')
+    setAttestationConfirmed(false)
+    setAttestationNote('')
+    setIsBypassClaim(false)
+  }
+
   function nextSale() {
     setBusinessName('')
     setContactEmail('')
@@ -362,6 +416,7 @@ export default function SalesDesk() {
     setSentMsg('')
     setListingSentMsg('')
     setError('')
+    resetBypass()
   }
 
   function startNewDirectoryBusiness() {
@@ -373,6 +428,7 @@ export default function SalesDesk() {
     setError('')
     setSentMsg('')
     setListingSentMsg('')
+    resetBypass()
   }
 
   function correctSale() {
@@ -384,6 +440,7 @@ export default function SalesDesk() {
     setListingQrDataUrl('')
     setSentMsg('')
     setListingSentMsg('')
+    setIsBypassClaim(false)
     setError('Correct the details, then create a fresh checkout. The previous link should not be sent.')
   }
 
@@ -545,6 +602,87 @@ export default function SalesDesk() {
                       Existing categories are suggested, but any accurate custom category is accepted.
                     </span>
                   </label>
+
+                  {!listingId && (
+                    <div className="mt-4 border-t border-white/10 pt-4">
+                      <label className="flex cursor-pointer items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={bypassVerification}
+                          disabled={handoffReady}
+                          onChange={(event) => setBypassVerification(event.target.checked)}
+                          className="mt-0.5 h-4 w-4 accent-brand-gold"
+                        />
+                        <span>
+                          <span className="text-xs font-black uppercase tracking-[0.14em] text-brand-gold">
+                            {isEs ? 'Omitir verificación del negocio' : 'Bypass business verification'}
+                          </span>
+                          <span className="mt-1 block text-xs normal-case leading-5 tracking-normal text-white/45">
+                            {isEs
+                              ? 'Solo si estás físicamente en el negocio o conoces personalmente al dueño. El cliente acepta la propiedad sin el código por correo. El pago nunca se omite.'
+                              : 'Only if you are physically at the business or personally know the owner. The customer accepts ownership without the email-code challenge. Payment is never bypassed.'}
+                          </span>
+                        </span>
+                      </label>
+
+                      {bypassVerification && (
+                        <div className="mt-3 space-y-3 border-l-2 border-brand-gold/50 bg-brand-gold/[0.04] px-4 py-3">
+                          <fieldset>
+                            <legend className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">
+                              {isEs ? '¿Cómo lo verificaste?' : 'How did you verify?'}
+                            </legend>
+                            <label className="mt-2 flex items-center gap-2 text-sm text-white/70">
+                              <input
+                                type="radio"
+                                name="attestationMethod"
+                                checked={attestationMethod === 'in_person_at_business'}
+                                disabled={handoffReady}
+                                onChange={() => setAttestationMethod('in_person_at_business')}
+                                className="accent-brand-gold"
+                              />
+                              {isEs ? 'Estoy físicamente en el negocio' : 'I am physically at the business'}
+                            </label>
+                            <label className="mt-1.5 flex items-center gap-2 text-sm text-white/70">
+                              <input
+                                type="radio"
+                                name="attestationMethod"
+                                checked={attestationMethod === 'personally_knows_owner'}
+                                disabled={handoffReady}
+                                onChange={() => setAttestationMethod('personally_knows_owner')}
+                                className="accent-brand-gold"
+                              />
+                              {isEs ? 'Conozco personalmente al dueño' : 'I personally know the owner'}
+                            </label>
+                          </fieldset>
+
+                          <label className="block text-[10px] font-black uppercase tracking-[0.14em] text-white/50">
+                            {isEs ? 'Nota interna (opcional)' : 'Internal note (optional)'}
+                            <input
+                              disabled={handoffReady}
+                              value={attestationNote}
+                              onChange={(event) => setAttestationNote(event.target.value)}
+                              maxLength={500}
+                              className={`mt-1.5 ${inputClass} normal-case tracking-normal disabled:opacity-55`}
+                              placeholder={isEs ? 'p. ej. Verifiqué la fachada y el letrero' : 'e.g. Verified the storefront and signage'}
+                            />
+                          </label>
+
+                          <label className="flex cursor-pointer items-start gap-2 text-xs normal-case tracking-normal text-white/65">
+                            <input
+                              type="checkbox"
+                              checked={attestationConfirmed}
+                              disabled={handoffReady}
+                              onChange={(event) => setAttestationConfirmed(event.target.checked)}
+                              className="mt-0.5 h-4 w-4 accent-brand-gold"
+                            />
+                            {isEs
+                              ? 'Confirmo que estoy autorizado a omitir la verificación de este negocio.'
+                              : 'I confirm I am authorized to bypass verification for this business.'}
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </section>
               )}
 
@@ -639,9 +777,25 @@ export default function SalesDesk() {
 
                   {listingUrl && (
                     <section className="border border-brand-magenta/35 bg-brand-magenta/[0.05] p-4 text-center">
-                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-brand-magenta">Listing ready to claim</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-brand-magenta">
+                        {isBypassClaim
+                          ? isEs
+                            ? 'Enlace para aceptar propiedad'
+                            : 'Accept-ownership link'
+                          : isEs
+                            ? 'Ficha lista para reclamar'
+                            : 'Listing ready to claim'}
+                      </p>
                       <p className="mt-1 font-display text-xl font-black text-white">{handoffOrder?.businessName}</p>
-                      <p className="mt-1 text-xs leading-5 text-white/45">Share this public page. The customer opens it and selects Claim.</p>
+                      <p className="mt-1 text-xs leading-5 text-white/45">
+                        {isBypassClaim
+                          ? isEs
+                            ? `Enlace firmado de un solo uso. El cliente inicia sesión con ${handoffOrder?.contactEmail || 'el correo registrado'} y acepta la propiedad — sin código por correo.${checkoutUrl ? ' Aún completa el pago con el enlace de arriba.' : ''}`
+                            : `Signed single-use link. The customer signs in with ${handoffOrder?.contactEmail || 'the recorded email'} and accepts ownership — no email code needed.${checkoutUrl ? ' They still complete payment via the link above.' : ''}`
+                          : isEs
+                            ? 'Comparte esta página pública. El cliente la abre y selecciona Reclamar.'
+                            : 'Share this public page. The customer opens it and selects Claim.'}
+                      </p>
                       {listingQrDataUrl ? (
                         <Image src={listingQrDataUrl} alt="CityBeat directory listing QR code" width={192} height={192} unoptimized className="mx-auto mt-4 bg-white p-2" />
                       ) : listingQrError ? (

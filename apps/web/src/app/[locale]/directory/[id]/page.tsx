@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { jsonLdSafe } from '@/lib/jsonld'
+import { stripInternalListingFields } from '@/lib/listing-fields'
 import DirectoryDetailClient from './DirectoryDetailClient'
 
 export const dynamic = 'force-dynamic'
@@ -37,20 +38,7 @@ function toPlain(v: any): any {
 }
 
 function toPublicListing(listing: any) {
-  const plain = toPlain(listing)
-  for (const field of [
-    'email',
-    'contact_email',
-    'stripe_customer_id',
-    'stripe_subscription_id',
-    'sales_created_by',
-    'sold_by_rep',
-    'sales_order_id',
-    'requested_product_id',
-  ]) {
-    delete plain[field]
-  }
-  return plain
+  return stripInternalListingFields(toPlain(listing))
 }
 
 function cityFromAddress(address?: string | null): string | null {

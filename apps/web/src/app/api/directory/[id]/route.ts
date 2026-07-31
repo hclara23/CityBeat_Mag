@@ -10,6 +10,7 @@ import {
   resolveListingPatchAccess,
   isStaffOverrideWrite,
 } from '@/lib/directory-entitlements'
+import { stripInternalListingFields } from '@/lib/listing-fields'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -42,19 +43,7 @@ function serializeListing(id: string, data: any) {
     claim_contact_email_hint: maskClaimContact(data.email || data.contact_email, 'email'),
     claim_contact_phone_hint: maskClaimContact(data.phone, 'phone'),
   }
-  for (const field of [
-    'email',
-    'contact_email',
-    'stripe_customer_id',
-    'stripe_subscription_id',
-    'sales_created_by',
-    'sold_by_rep',
-    'sales_order_id',
-    'requested_product_id',
-  ]) {
-    delete listing[field]
-  }
-  return listing
+  return stripInternalListingFields(listing)
 }
 
 // GET: Fetch single listing details
