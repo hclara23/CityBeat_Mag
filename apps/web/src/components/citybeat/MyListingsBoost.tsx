@@ -16,10 +16,10 @@ interface Listing {
 // Upgrade options offered in the dashboard — annual (best value) first.
 const BOOST_PLANS: PlanId[] = ['premium_annual', 'premium_monthly', 'featured_monthly']
 
-const TIER_LABEL: Record<string, string> = {
-  basic: 'Basic',
-  premium: 'Premium — priority placement',
-  featured: 'Featured — top of category + homepage',
+const TIER_LABEL: Record<string, { en: string; es: string }> = {
+  basic: { en: 'Basic', es: 'Básico' },
+  premium: { en: 'Premium — priority placement', es: 'Premium — ubicación prioritaria' },
+  featured: { en: 'Featured — top of category + homepage', es: 'Destacado — arriba de la categoría + portada' },
 }
 
 export function MyListingsBoost() {
@@ -76,8 +76,12 @@ export function MyListingsBoost() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">{listing.name}</h3>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    {TIER_LABEL[listing.tier] || 'Basic'}
-                    {listing.pending_tier ? ` · upgrade to ${listing.pending_tier} pending approval` : ''}
+                    {(TIER_LABEL[listing.tier] || TIER_LABEL.basic)[isEs ? 'es' : 'en']}
+                    {listing.pending_tier
+                      ? isEs
+                        ? ` · mejora a ${listing.pending_tier} pendiente de aprobación`
+                        : ` · upgrade to ${listing.pending_tier} pending approval`
+                      : ''}
                   </p>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isFeatured ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-700'}`}>
@@ -85,12 +89,12 @@ export function MyListingsBoost() {
                 </span>
               </div>
 
-              {/* Direct entry to the listing's inline CMS (opens edit mode). */}
+              {/* Entry to the dedicated owner CMS (source of truth for listing management). */}
               <a
-                href={`/${locale}/directory/${listing.id}?edit=1`}
+                href={`/${locale}/dashboard/listings/${listing.id}`}
                 className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
               >
-                {isEs ? '✎ Editar mi ficha' : '✎ Manage my listing'}
+                {isEs ? '✎ Administrar mi ficha' : '✎ Manage my listing'}
               </a>
 
               <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4">
@@ -107,8 +111,8 @@ export function MyListingsBoost() {
                       onClick={() => boost(listing.id, planId)}
                       className={`rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50 ${isAnnual ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-red-600 hover:bg-red-700'}`}
                     >
-                      {busy === key ? 'Starting…' : `${plan.label} · ${plan.priceLabel}`}
-                      {isAnnual && plan.savingsLabel ? ' — 2 mo free' : ''}
+                      {busy === key ? (isEs ? 'Iniciando…' : 'Starting…') : `${plan.label} · ${plan.priceLabel}`}
+                      {isAnnual && plan.savingsLabel ? (isEs ? ' — 2 meses gratis' : ' — 2 mo free') : ''}
                     </button>
                   )
                 })}

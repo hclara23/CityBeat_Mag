@@ -149,6 +149,28 @@ test('premium API writes may set paid fields', () => {
   assert.equal(rejected.length, 0)
 })
 
+test('gallery writes are capped at the tier media limit (staff bypass the quota)', () => {
+  const many = Array.from({ length: 40 }, (_, i) => `photo-${i}.jpg`)
+  const premium = filterEntitledListingUpdate(
+    { gallery_urls: many },
+    { entitlements: resolveEntitlements({ tier: 'premium' }) }
+  )
+  assert.equal((premium.updates.gallery_urls as string[]).length, 15)
+
+  const featured = filterEntitledListingUpdate(
+    { gallery_urls: many },
+    { entitlements: resolveEntitlements({ tier: 'featured' }) }
+  )
+  assert.equal((featured.updates.gallery_urls as string[]).length, 30)
+
+  // Staff editing on behalf are not quota-capped.
+  const staff = filterEntitledListingUpdate(
+    { gallery_urls: many },
+    { entitlements: resolveEntitlements({ tier: 'basic' }), isStaff: true }
+  )
+  assert.equal((staff.updates.gallery_urls as string[]).length, 40)
+})
+
 test('staff override lets editors write paid fields on a basic listing', () => {
   const ent = resolveEntitlements({ tier: 'basic' })
   const { updates, rejected } = filterEntitledListingUpdate(

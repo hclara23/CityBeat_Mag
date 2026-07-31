@@ -200,7 +200,14 @@ export function filterEntitledListingUpdate(
   for (const [field, entitlement] of Object.entries(PAID_LISTING_FIELDS)) {
     if (!(field in body)) continue
     if (opts.isStaff || opts.entitlements[entitlement]) {
-      updates[field] = body[field]
+      let value = body[field]
+      // Enforce the tier's media quota on the gallery so a paid owner (or a
+      // tampered client) can't persist an unbounded number of photos. Staff
+      // bypass the quota, consistent with the paid-gate override.
+      if (field === 'gallery_urls' && !opts.isStaff && Array.isArray(value)) {
+        value = value.slice(0, Math.max(0, opts.entitlements.mediaLimit))
+      }
+      updates[field] = value
     } else {
       rejected.push(field)
     }
