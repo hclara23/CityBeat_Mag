@@ -24,9 +24,11 @@ import {
   ActionLinksEditor,
   AnalyticsPanel,
   AttributesEditor,
+  BenchmarksPanel,
   ItemsEditor,
   NotifyPrefsPanel,
   PostsEditor,
+  ReviewQr,
   ReviewsManager,
   SpecialHoursEditor,
   TeamManager,
@@ -619,6 +621,7 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
                 <a href={`${publicUrl}#reviews`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex rounded-md border border-white/20 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white/80 transition hover:bg-white/10">
                   {isEs ? 'Ver en la ficha pública ↗' : 'View on the public listing ↗'}
                 </a>
+                <ReviewQr listingId={listing.id} locale={locale} isEs={isEs} />
               </Panel>
             )}
             {section === 'leads' && (
@@ -635,6 +638,16 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
                   isEs={isEs}
                   canExport={isStaff || entitlements.analyticsExport}
                 />
+                <div className="mt-6 border-t border-white/10 pt-5">
+                  <h3 className="mb-3 text-xs font-black uppercase tracking-wider text-brand-neon">
+                    {isEs ? 'Comparativas de categoría' : 'Category benchmarks'}
+                  </h3>
+                  <BenchmarksPanel
+                    listingId={listing.id}
+                    isEs={isEs}
+                    entitled={isStaff || entitlements.categoryBenchmarking}
+                  />
+                </div>
               </ModulePanel>
             )}
             {section === 'team' && (

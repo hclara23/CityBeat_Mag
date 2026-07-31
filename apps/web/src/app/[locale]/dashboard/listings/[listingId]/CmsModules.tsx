@@ -6,6 +6,7 @@
 // except reviews + team, which use their dedicated audited routes.
 
 import { useCallback, useEffect, useState } from 'react'
+import QRCode from 'qrcode'
 import {
   ACTION_LINK_KEYS,
   ACTION_LINK_LABELS,
@@ -688,6 +689,141 @@ export function AnalyticsPanel({
             : 'No visitor identity — daily totals only. Your own traffic is excluded.'}
         </p>
       </div>
+    </div>
+  )
+}
+
+// ── Review-request QR (printable/shareable) ──────────────────────────────────
+
+export function ReviewQr({ listingId, locale, isEs }: { listingId: string; locale: 'en' | 'es'; isEs: boolean }) {
+  const [dataUrl, setDataUrl] = useState('')
+  const [url, setUrl] = useState('')
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const target = `${window.location.origin}/${locale}/directory/${listingId}#reviews`
+    setUrl(target)
+    QRCode.toDataURL(target, { width: 320, margin: 2, errorCorrectionLevel: 'M' })
+      .then(setDataUrl)
+      .catch(() => setDataUrl(''))
+  }, [listingId, locale])
+
+  return (
+    <div className="mt-6 rounded-xl border border-white/10 bg-black/25 p-5">
+      <h3 className="text-sm font-black uppercase tracking-wider text-brand-neon">
+        {isEs ? 'Código QR para pedir reseñas' : 'Review-request QR'}
+      </h3>
+      <p className="mt-1 text-xs text-white/55">
+        {isEs
+          ? 'Imprímelo o compártelo. Tus clientes lo escanean y dejan una reseña en tu ficha.'
+          : 'Print it or share it. Customers scan it and leave a review on your listing.'}
+      </p>
+      {dataUrl && (
+        <div className="mt-3 flex flex-wrap items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={dataUrl} alt="Review QR" className="h-32 w-32 rounded bg-white p-2" />
+          <div className="flex flex-col gap-2 text-xs">
+            <a
+              href={dataUrl}
+              download={`citybeat-review-qr.png`}
+              className="rounded-md border border-brand-neon/40 px-3 py-1.5 font-black uppercase tracking-wider text-brand-neon hover:bg-brand-neon/10"
+            >
+              {isEs ? '⬇ Descargar PNG' : '⬇ Download PNG'}
+            </a>
+            <a href={url} target="_blank" rel="noopener noreferrer" className="text-white/50 underline">
+              {isEs ? 'Abrir enlace' : 'Open link'}
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Category benchmarks (Featured) ───────────────────────────────────────────
+
+type Benchmark =
+  | { available: false; reason: string; category: string }
+  | {
+      available: true
+      category: string
+      cohort: number
+      avg_rating: number | null
+      your_rating: number | null
+      avg_reviews: number
+      your_reviews: number
+      avg_views30: number
+      your_views30: number
+      rating_percentile: number | null
+    }
+
+function BenchRow({ label, you, avg, isEs }: { label: string; you: number | string; avg: number | string; isEs: boolean }) {
+  return (
+    <div className="flex items-center justify-between border-b border-white/5 py-2 text-sm">
+      <span className="text-white/60">{label}</span>
+      <span className="flex gap-4">
+        <span className="font-bold text-brand-neon">
+          {isEs ? 'Tú' : 'You'}: {you}
+        </span>
+        <span className="text-white/50">
+          {isEs ? 'Categoría' : 'Category'}: {avg}
+        </span>
+      </span>
+    </div>
+  )
+}
+
+export function BenchmarksPanel({ listingId, isEs, entitled }: { listingId: string; isEs: boolean; entitled: boolean }) {
+  const [data, setData] = useState<Benchmark | null>(null)
+
+  useEffect(() => {
+    if (!entitled) return
+    fetch(`/api/directory/${listingId}/benchmarks`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setData(d))
+      .catch(() => {})
+  }, [listingId, entitled])
+
+  if (!entitled) {
+    return (
+      <p className="text-sm text-white/45">
+        {isEs
+          ? 'Las comparativas con tu categoría vienen con Featured.'
+          : 'Category benchmarks come with Featured.'}
+      </p>
+    )
+  }
+  if (!data) return <p className="text-sm text-white/40">{isEs ? 'Cargando comparativas…' : 'Loading benchmarks…'}</p>
+  if (!data.available) {
+    return (
+      <p className="text-sm text-white/45">
+        {isEs
+          ? 'Aún no hay suficientes negocios en tu categoría para comparar de forma anónima.'
+          : 'Not enough businesses in your category yet to compare anonymously.'}
+      </p>
+    )
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-xs text-white/40">
+        {isEs ? `Comparado con ${data.cohort} negocios de tu categoría` : `Compared with ${data.cohort} businesses in your category`}
+      </p>
+      <BenchRow label={isEs ? 'Vistas (30 días)' : 'Views (30 days)'} you={data.your_views30} avg={data.avg_views30} isEs={isEs} />
+      <BenchRow
+        label={isEs ? 'Calificación' : 'Rating'}
+        you={data.your_rating ?? '—'}
+        avg={data.avg_rating ?? '—'}
+        isEs={isEs}
+      />
+      <BenchRow label={isEs ? 'Reseñas' : 'Reviews'} you={data.your_reviews} avg={data.avg_reviews} isEs={isEs} />
+      {data.rating_percentile != null && (
+        <p className="mt-3 text-xs font-bold text-brand-neon">
+          {isEs
+            ? `Tu calificación supera al ${data.rating_percentile}% de tu categoría.`
+            : `Your rating beats ${data.rating_percentile}% of your category.`}
+        </p>
+      )}
     </div>
   )
 }
