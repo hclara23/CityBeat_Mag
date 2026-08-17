@@ -4,6 +4,7 @@ import { hasEditorAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import {
   notifyEditorialTeam,
+  promotePublicSubmission,
   reconcilePendingPublicSubmissions,
 } from '@/lib/public-submission-service'
 
@@ -41,21 +42,33 @@ export async function GET(request: NextRequest) {
 
     let query: any = adminDb.collection('articles')
     if (status) query = query.where('status', '==', status)
-    const snap = await query.get()
-    const articles = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }))
+    let snap = await query.get()
+    let articles = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }))
 
-    // Also repair an alert-only failure for a review copy that already exists.
-    // Stable notification ids make this a no-op after successful delivery.
+    // Re-check submission-scoped Storage objects for review copies that were
+    // already created, then retry any alert-only failure. Both operations are
+    // idempotent and preserve editorial changes.
     if (!status || status === 'pending_review') {
-      await Promise.all(
-        articles
-          .filter((article: any) => article.origin === 'public_submission')
-          .map((article: any) =>
-            notifyEditorialTeam(article.id, String(article.title || 'New community article')).catch((error) => {
-              console.error('Editorial notification retry failed:', article.id, error)
-            }),
-          ),
+      const publicArticles = articles.filter(
+        (article: any) => article.origin === 'public_submission' && article.source_submission_id,
       )
+      await Promise.all(
+        publicArticles.map(async (article: any) => {
+          await promotePublicSubmission(String(article.source_submission_id)).catch((error) => {
+            console.error('Submission image reconciliation failed:', article.id, error)
+          })
+          await notifyEditorialTeam(
+            article.id,
+            String(article.title || 'New community article'),
+          ).catch((error) => {
+              console.error('Editorial notification retry failed:', article.id, error)
+          })
+        }),
+      )
+      if (publicArticles.length > 0) {
+        snap = await query.get()
+        articles = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }))
+      }
     }
 
     // Resolve author names and creator emails.

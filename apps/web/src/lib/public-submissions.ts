@@ -21,8 +21,17 @@ export type StoredPublicSubmission = {
   category?: unknown
   tags?: unknown
   image_url?: unknown
+  imageUrl?: unknown
   image_path?: unknown
+  imagePath?: unknown
+  cover_image_url?: unknown
+  coverImageUrl?: unknown
+  cover_image_path?: unknown
+  asset_id?: unknown
+  assetId?: unknown
+  image?: unknown
   image_filename?: unknown
+  image_recovery_status?: unknown
   created_at?: unknown
 }
 
@@ -43,6 +52,100 @@ export function validatePublicSubmissionImage(image: SubmissionImage | null | un
 
 export function publicSubmissionArticleId(submissionId: string): string {
   return `submission-${submissionId}`
+}
+
+function safeHttpUrl(value: unknown): string | null {
+  const candidate = text(value)
+  if (!candidate) return null
+  try {
+    const url = new URL(candidate)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
+  } catch {
+    return null
+  }
+}
+
+function nestedImageValue(image: unknown, key: 'url' | 'path'): unknown {
+  if (!image || typeof image !== 'object' || Array.isArray(image)) return null
+  return (image as Record<string, unknown>)[key]
+}
+
+export function storedSubmissionImageUrl(submission: StoredPublicSubmission): string | null {
+  const candidates = [
+    submission.image_url,
+    submission.imageUrl,
+    submission.cover_image_url,
+    submission.coverImageUrl,
+    submission.cover_image_path,
+    submission.asset_id,
+    submission.assetId,
+    nestedImageValue(submission.image, 'url'),
+  ]
+  for (const candidate of candidates) {
+    const url = safeHttpUrl(candidate)
+    if (url) return url
+  }
+  return null
+}
+
+function storagePath(value: unknown): string | null {
+  let candidate = text(value)
+  if (!candidate || safeHttpUrl(candidate)) return null
+  if (candidate.startsWith('gs://')) {
+    candidate = candidate.slice(5)
+    const firstSlash = candidate.indexOf('/')
+    candidate = firstSlash >= 0 ? candidate.slice(firstSlash + 1) : ''
+  }
+  candidate = candidate.replace(/^\/+/, '')
+  if (!candidate || candidate.length > 1024 || candidate.includes('\\')) return null
+  if (candidate.split('/').some((part) => !part || part === '.' || part === '..')) return null
+  return candidate
+}
+
+function safeFilename(value: unknown): string | null {
+  const candidate = text(value)
+  if (!candidate) return null
+  const name = candidate.split(/[\\/]/).pop()?.trim() || ''
+  return name && name !== '.' && name !== '..' && name.length <= 240 ? name : null
+}
+
+export function publicSubmissionImageCandidates(
+  submissionId: string,
+  submission: StoredPublicSubmission,
+): string[] {
+  const explicit = [
+    submission.image_path,
+    submission.imagePath,
+    submission.cover_image_path,
+    submission.asset_id,
+    submission.assetId,
+    nestedImageValue(submission.image, 'path'),
+  ]
+    .map(storagePath)
+    .filter(
+      (value): value is string =>
+        value !== null && value.split('/').some((part) => part === submissionId),
+    )
+
+  const filename = safeFilename(submission.image_filename)
+  const conventional = [
+    `contributions/${submissionId}/cover.webp`,
+    `submissions/${submissionId}/cover.webp`,
+    ...(filename
+      ? [
+          `contributions/${submissionId}/${filename}`,
+          `submissions/${submissionId}/${filename}`,
+          `uploads/submissions/${submissionId}/${filename}`,
+        ]
+      : []),
+  ]
+
+  return [...new Set([...explicit, ...conventional])]
+}
+
+export function publicStorageObjectUrl(bucketName: string, path: string): string {
+  const encodedPath = path.split('/').map(encodeURIComponent).join('/')
+  return `https://storage.googleapis.com/${bucketName}/${encodedPath}`
 }
 
 function slugify(value: string): string {
@@ -84,10 +187,11 @@ export function buildPublicSubmissionArticle(submissionId: string, submission: S
 
   const articleId = publicSubmissionArticleId(submissionId)
   const originalImageName = text(submission.image_filename) || null
-  const imageUrl = text(submission.image_url) || null
-  const imagePath = text(submission.image_path) || null
-  const author = text(submission.name, 'Community Contributor')
-  const category = text(submission.category, 'news').toLowerCase()
+  const imageUrl = storedSubmissionImageUrl(submission)
+  const imagePath = storagePath(submission.image_path) || storagePath(submission.imagePath)
+  const imageRecoveryStatus = text(submission.image_recovery_status) || null
+  const author = text(submission.name) || 'Community Contributor'
+  const category = (text(submission.category) || 'news').toLowerCase()
   const excerpt = text(submission.excerpt) || bodyText.slice(0, 160)
 
   // Contributor email and source IP intentionally remain only on the private
@@ -108,8 +212,12 @@ export function buildPublicSubmissionArticle(submissionId: string, submission: S
       image_url: imageUrl,
       cover_image_path: imageUrl,
       submission_image_path: imagePath,
+      submission_image_url: imageUrl,
       submission_image_filename: originalImageName,
-      submission_image_missing: Boolean(originalImageName && !imageUrl),
+      submission_image_recovery_status: imageRecoveryStatus,
+      submission_image_missing: Boolean(
+        originalImageName && !imageUrl && imageRecoveryStatus === 'missing',
+      ),
       origin: 'public_submission',
       source_submission_id: submissionId,
       created_at: submission.created_at || new Date().toISOString(),

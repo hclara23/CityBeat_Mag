@@ -20,7 +20,9 @@ interface Article {
   image_illustrative?: boolean
   origin?: string
   submission_image_filename?: string | null
+  submission_image_url?: string | null
   submission_image_missing?: boolean
+  submission_image_recovery_status?: string | null
   author: {
     email: string
     full_name: string
@@ -145,6 +147,16 @@ export default function ReviewArticlePage({ params }: { params: { id: string } }
             {article.origin === 'public_submission' && article.submission_image_missing && (
               <div className="mt-5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
                 The contributor attached {article.submission_image_filename || 'an image'}, but the legacy form did not retain the file. The article text is preserved; request or add the image before publishing.
+              </div>
+            )}
+            {article.origin === 'public_submission' && article.submission_image_recovery_status === 'check_failed' && (
+              <div className="mt-5 rounded-lg border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                CityBeat could not verify the contributor&apos;s attached image in Storage. Do not publish until the image is checked manually.
+              </div>
+            )}
+            {article.origin === 'public_submission' && article.image_url === article.submission_image_url && article.submission_image_recovery_status === 'found' && (
+              <div className="mt-5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
+                The contributor&apos;s attached image was found and is displayed below.
               </div>
             )}
           </header>
