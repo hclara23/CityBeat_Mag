@@ -1,14 +1,17 @@
 ---
 id: "202608172158-GCM94E"
 title: "Recover and route public article submissions"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["backend", "notifications"]
 verify: ["npx tsx --test apps/web/src/lib/public-submissions.test.ts apps/web/src/lib/notify-prefs.test.ts", "npm run type-check --workspace=apps/web", "npm run build --workspace=apps/web"]
+commit: { hash: "ebd706a94027940f6bf9b659d1bda0110942fb07", message: "✅ GCM94E verify and recover attached submission images" }
+comments:
+  - { author: "ORCHESTRATOR", body: "verified: focused submission and notification tests pass, the full 153-test suite passes, TypeScript and production builds pass, GitHub CI and Cloud Run deployment succeeded, and the live health endpoint is healthy." }
 doc_version: 2
-doc_updated_at: "2026-08-17T22:28:33+00:00"
+doc_updated_at: "2026-08-17T22:37:40+00:00"
 doc_updated_by: "agentctl"
 description: "Preserve the existing public submission, make public contributions appear idempotently in the Developer and Editor review queue, retain uploaded images, notify eligible staff without leaking contributor PII, add regression coverage, and deploy the verified fix."
 ---
@@ -38,5 +41,5 @@ Revert the task commit and redeploy. Original submissions documents remain intac
 
 ## Notes
 
-Production Firestore could not be inspected directly with the current local Google credential because it returned PERMISSION_DENIED. Recovery therefore runs under the deployed CityBeat service identity during the first authenticated queue read. The second pass also rechecks review copies that were already promoted before image recovery was added. Unrelated payout, partner-sales, and package.json workspace changes were preserved and excluded from this task.
+Production Firestore could not be inspected directly with the current local Google credential because it returned PERMISSION_DENIED. Recovery therefore runs under the deployed CityBeat service identity during the first authenticated queue read. The second pass also rechecks review copies that were already promoted before image recovery was added. Commit ebd706a deployed successfully through Test and Lint run 32076251639 and Deploy Web App run 32076251847; the Cloud Run smoke test and live /api/health check passed. Unrelated payout, partner-sales, and package.json workspace changes were preserved and excluded from this task.
 
