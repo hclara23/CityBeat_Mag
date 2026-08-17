@@ -51,6 +51,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     const data = doc.data() as any
 
+    if (data.source_submission_id) {
+      await adminDb.collection('submissions').doc(data.source_submission_id).set(
+        {
+          status,
+          article_id: id,
+          reviewed_at: new Date().toISOString(),
+        },
+        { merge: true },
+      )
+    }
+
     // When publishing, keep the Spanish translation in sync (best-effort).
     if (status === 'published') {
       await translateArticleToEs(ref, { title: data.title, excerpt: data.excerpt, content: data.content })
@@ -89,6 +100,11 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       const pDoc = await adminDb.collection('profiles').doc(data.created_by).get()
       creator = pDoc.exists ? pDoc.data() : undefined
     }
+    let submission: any
+    if (data.source_submission_id) {
+      const submissionDoc = await adminDb.collection('submissions').doc(data.source_submission_id).get()
+      submission = submissionDoc.exists ? submissionDoc.data() : undefined
+    }
 
     return NextResponse.json({
       article: {
@@ -97,7 +113,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         created_at: toIso(data.created_at),
         published_at: toIso(data.published_at),
         author: {
-          email: creator?.email,
+          email: creator?.email || submission?.email,
           full_name: bylineName || creator?.full_name || creator?.email || data.author,
         },
       },

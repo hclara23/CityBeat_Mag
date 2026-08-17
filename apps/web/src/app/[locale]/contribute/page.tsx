@@ -50,6 +50,8 @@ const copy = {
     uploading: 'Uploading photo…',
     successTitle: 'Thank you for your submission!',
     successBody: 'Our editorial team will review your piece. We\'ll be in touch at the email you provided.',
+    imageWarning: 'Your article is safely in the review queue, but the image upload needs editorial attention.',
+    queueWarning: 'Your article is safely saved and will be placed in the review queue automatically.',
     successCta: 'Submit another piece',
     errorGeneric: 'Something went wrong. Please try again.',
   },
@@ -89,6 +91,8 @@ const copy = {
     uploading: 'Subiendo foto…',
     successTitle: '¡Gracias por tu envío!',
     successBody: 'Nuestro equipo editorial revisará tu pieza. Nos pondremos en contacto al correo que proporcionaste.',
+    imageWarning: 'Tu artículo está seguro en la cola de revisión, pero la imagen necesita atención editorial.',
+    queueWarning: 'Tu artículo está guardado de forma segura y se colocará automáticamente en la cola de revisión.',
     successCta: 'Enviar otra pieza',
     errorGeneric: 'Algo salió mal. Por favor intenta de nuevo.',
   },
@@ -117,6 +121,7 @@ export default function ContributePage() {
   const [status, setStatus] = useState<Status>('idle')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [serverError, setServerError] = useState('')
+  const [successWarningCode, setSuccessWarningCode] = useState('')
 
   const pickImage = useCallback((file: File) => {
     setImageFile(file)
@@ -170,6 +175,7 @@ export default function ContributePage() {
         throw new Error(data.error || t.errorGeneric)
       }
 
+      setSuccessWarningCode(typeof data.warningCode === 'string' ? data.warningCode : '')
       setStatus('success')
     } catch (err) {
       setServerError(err instanceof Error ? err.message : t.errorGeneric)
@@ -181,7 +187,7 @@ export default function ContributePage() {
     setName(''); setEmail(''); setTitle(''); setCategory('')
     setExcerpt(''); setBodyText(''); setTags(''); setAgreeTerms(false)
     setImageFile(null); setImagePreview('')
-    setStatus('idle'); setFieldErrors({}); setServerError('')
+    setStatus('idle'); setFieldErrors({}); setServerError(''); setSuccessWarningCode('')
   }
 
   const busy = status !== 'idle'
@@ -197,6 +203,11 @@ export default function ContributePage() {
               {t.successTitle}
             </h1>
             <p className="mt-4 leading-relaxed text-white/60">{t.successBody}</p>
+            {successWarningCode && (
+              <p className="mt-4 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                {successWarningCode === 'image_upload_failed' ? t.imageWarning : t.queueWarning}
+              </p>
+            )}
             <button
               type="button"
               onClick={reset}

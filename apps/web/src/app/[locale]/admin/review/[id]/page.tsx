@@ -18,6 +18,9 @@ interface Article {
   image_url: string
   image_credit?: string | null
   image_illustrative?: boolean
+  origin?: string
+  submission_image_filename?: string | null
+  submission_image_missing?: boolean
   author: {
     email: string
     full_name: string
@@ -139,6 +142,11 @@ export default function ReviewArticlePage({ params }: { params: { id: string } }
             </div>
             <h1 className="text-5xl font-black mb-6">{article.title}</h1>
             <p className="text-xl text-white/60 font-medium italic">{article.excerpt}</p>
+            {article.origin === 'public_submission' && article.submission_image_missing && (
+              <div className="mt-5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                The contributor attached {article.submission_image_filename || 'an image'}, but the legacy form did not retain the file. The article text is preserved; request or add the image before publishing.
+              </div>
+            )}
           </header>
 
           {article.image_url && (

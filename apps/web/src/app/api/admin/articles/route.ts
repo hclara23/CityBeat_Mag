@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasEditorAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import {
+  notifyEditorialTeam,
+  reconcilePendingPublicSubmissions,
+} from '@/lib/public-submission-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,10 +27,36 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get('status')
 
   try {
+    // Legacy public submissions were stored in `submissions` but never copied
+    // into `articles`. Reconcile them on the authenticated review-queue read;
+    // deterministic ids make this safe across reloads and concurrent editors.
+    let recovery = { recovered: [] as Array<{ submissionId: string; articleId: string }>, failed: [] as Array<{ submissionId: string; error: string }> }
+    if (!status || status === 'pending_review') {
+      try {
+        recovery = await reconcilePendingPublicSubmissions()
+      } catch (error) {
+        console.error('Public submission reconciliation failed:', error)
+      }
+    }
+
     let query: any = adminDb.collection('articles')
     if (status) query = query.where('status', '==', status)
     const snap = await query.get()
     const articles = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }))
+
+    // Also repair an alert-only failure for a review copy that already exists.
+    // Stable notification ids make this a no-op after successful delivery.
+    if (!status || status === 'pending_review') {
+      await Promise.all(
+        articles
+          .filter((article: any) => article.origin === 'public_submission')
+          .map((article: any) =>
+            notifyEditorialTeam(article.id, String(article.title || 'New community article')).catch((error) => {
+              console.error('Editorial notification retry failed:', article.id, error)
+            }),
+          ),
+      )
+    }
 
     // Resolve author names and creator emails.
     const authorsSnap = await adminDb.collection('authors').get()
@@ -43,14 +73,26 @@ export async function GET(request: NextRequest) {
       })
     )
 
+    const submissionIds = [
+      ...new Set(articles.map((article: any) => article.source_submission_id).filter(Boolean)),
+    ]
+    const submissionMap = new Map<string, any>()
+    await Promise.all(
+      submissionIds.map(async (submissionId: any) => {
+        const submission = await adminDb.collection('submissions').doc(submissionId).get()
+        if (submission.exists) submissionMap.set(submissionId, submission.data())
+      }),
+    )
+
     const transformed = articles
       .map((a: any) => {
         const creator = creatorMap.get(a.created_by)
+        const submission = submissionMap.get(a.source_submission_id)
         return {
           ...a,
           created_at: toIso(a.created_at),
           published_at: toIso(a.published_at),
-          author_email: creator?.email ?? null,
+          author_email: creator?.email ?? submission?.email ?? null,
           author_name:
             (a.author_id && authorMap.get(a.author_id)) ||
             creator?.full_name ||
@@ -61,7 +103,7 @@ export async function GET(request: NextRequest) {
       })
       .sort((x: any, y: any) => (String(y.created_at) > String(x.created_at) ? 1 : -1))
 
-    return NextResponse.json({ articles: transformed })
+    return NextResponse.json({ articles: transformed, recovery })
   } catch (error) {
     console.error('Admin articles error:', error)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })

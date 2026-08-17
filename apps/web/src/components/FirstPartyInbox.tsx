@@ -26,6 +26,7 @@ const TYPE_ICON: Record<string, string> = {
   claim_approved: '✅',
   manager_added: '👥',
   report: '📈',
+  article_submission: '📰',
 }
 
 export function FirstPartyInbox() {
@@ -51,6 +52,20 @@ export function FirstPartyInbox() {
 
   useEffect(() => {
     void load()
+  }, [load])
+
+  // Keep the badge current while staff work in the dashboard. Opening the
+  // inbox still refreshes immediately; this catches submissions hands-free.
+  useEffect(() => {
+    const interval = window.setInterval(() => void load(), 60_000)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [load])
 
   // Close on outside click.

@@ -18,8 +18,16 @@ function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+export type NotificationDelivery = {
+  inAppCreated: boolean
+  deduped: boolean
+  emailSent: boolean
+}
+
 export async function notifyUser(input: {
   userId: string
+  // A stable id makes retries safe and prevents duplicate inbox/email alerts.
+  notificationId?: string
   type: NotificationType
   title: string
   title_es?: string
@@ -31,26 +39,45 @@ export async function notifyUser(input: {
   // Set false when the triggering flow already delivers its own email (e.g. the
   // lead route emails the business directly) — the inbox record is still kept.
   emailChannel?: boolean
-}): Promise<void> {
-  if (!input.userId) return
+}): Promise<NotificationDelivery> {
+  if (!input.userId) return { inAppCreated: false, deduped: false, emailSent: false }
   const now = new Date().toISOString()
   const record = buildNotificationRecord({ ...input, now })
 
   try {
     // 1) First-party record — the source of truth for the in-app inbox.
-    const ref = await adminDb
+    const items = adminDb
       .collection('user_notifications')
       .doc(input.userId)
       .collection('items')
-      .add(record)
+    let ref
+    if (input.notificationId) {
+      ref = items.doc(input.notificationId)
+      try {
+        await ref.create(record)
+      } catch (error: any) {
+        // Firestore code 6 = ALREADY_EXISTS. The original alert (and any email
+        // result) is authoritative, so a retry must stop here.
+        if (error?.code === 6 || error?.code === 'already-exists') {
+          return { inAppCreated: false, deduped: true, emailSent: false }
+        }
+        throw error
+      }
+    } else {
+      ref = await items.add(record)
+    }
 
     // 2) Email delivery channel, preference-gated (activity emails default on).
-    if (input.emailChannel === false) return
+    if (input.emailChannel === false) {
+      return { inAppCreated: true, deduped: false, emailSent: false }
+    }
     const profileDoc = await adminDb.collection('profiles').doc(input.userId).get()
     const profile = profileDoc.exists ? (profileDoc.data() as Record<string, any>) : null
     const prefs = getNotifyPrefs(profile)
     const to = input.email || profile?.email
-    if (!prefs.activity_email || !to) return
+    if (!prefs.activity_email || !to) {
+      return { inAppCreated: true, deduped: false, emailSent: false }
+    }
 
     // Bilingual: ~90% of the audience is Spanish-speaking — use the owner's
     // stored locale for the subject, body, CTA, footer, and dashboard link.
@@ -75,7 +102,9 @@ export async function notifyUser(input: {
       // Delivery is only claimed after the provider accepted the message.
       await ref.set({ email_sent: true }, { merge: true })
     }
+    return { inAppCreated: true, deduped: false, emailSent: result.sent }
   } catch {
     // Notifications must never break the triggering flow.
+    return { inAppCreated: false, deduped: false, emailSent: false }
   }
 }

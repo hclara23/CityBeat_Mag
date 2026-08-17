@@ -35,7 +35,14 @@ export function sanitizeNotifyPrefsPatch(input: unknown): Partial<NotifyPrefs> {
   return out
 }
 
-export const NOTIFICATION_TYPES = ['review', 'lead', 'claim_approved', 'manager_added', 'report'] as const
+export const NOTIFICATION_TYPES = [
+  'review',
+  'lead',
+  'claim_approved',
+  'manager_added',
+  'report',
+  'article_submission',
+] as const
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
 
 export type NotificationRecord = {
