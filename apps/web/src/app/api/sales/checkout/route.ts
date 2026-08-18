@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { FOUNDING_LIMIT, getPlan } from '@/lib/pricing'
+import { getPlan } from '@/lib/pricing'
 import {
   resolveSalesProductRequest,
   salesProductAmount,
@@ -27,6 +27,7 @@ import {
   buildSalesDirectoryListingRecord,
   salesDirectoryListingUrl,
 } from '@/lib/sales-directory'
+import { foundingOfferAvailable } from '@/lib/sales-founding'
 import { getClientIp } from '@/lib/auth-security'
 import {
   validateBypass,
@@ -39,29 +40,6 @@ import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-
-async function foundingOfferAvailable() {
-  try {
-    const [listingCount, monthlyOrders, annualOrders] = await Promise.all([
-      adminDb
-        .collection('directory_listings')
-        .where('founding_member', '==', true)
-        .count()
-        .get()
-        .then((snapshot: any) => snapshot.data().count),
-      adminDb.collection('sales_orders').where('product_id', '==', 'directory_founding_monthly').get(),
-      adminDb.collection('sales_orders').where('product_id', '==', 'directory_founding_annual').get(),
-    ])
-    const paidAwaitingListing = [...monthlyOrders.docs, ...annualOrders.docs].filter((document) => {
-      const order = document.data()
-      return order.payment_status === 'paid' && !order.fulfillment_target
-    }).length
-    return listingCount + paidAwaitingListing < FOUNDING_LIMIT
-  } catch (error) {
-    console.error('Could not confirm Founding availability:', error)
-    return false
-  }
-}
 
 async function existingDirectoryListing(input: {
   listingId: string
