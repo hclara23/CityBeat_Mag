@@ -34,6 +34,9 @@ jobs:
     env:
       # Exposed at job level so step-level `if` can skip Slack when unset.
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      # Shared only with Elevate's server. GitHub masks it in command output,
+      # and --update-env-vars persists it on the Cloud Run revision.
+      ELEVATE_PARTNER_SECRET: ${{ secrets.ELEVATE_PARTNER_SECRET }}
 
     steps:
       - name: Checkout code
@@ -65,6 +68,7 @@ jobs:
             --source . \
             --project "$GCP_PROJECT" \
             --region "$GCP_REGION" \
+            --update-env-vars ELEVATE_PARTNER_SECRET="$ELEVATE_PARTNER_SECRET" \
             --quiet
 
       # Fail the workflow (and page Slack) if the LIVE site is broken after
