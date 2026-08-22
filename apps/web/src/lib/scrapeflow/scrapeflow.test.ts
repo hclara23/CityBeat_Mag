@@ -142,6 +142,8 @@ test('industrial verticals map to the new categories and TDLR names are title-ca
   assert.equal(titleCaseName('PEREZ, MARIO'), 'Mario Perez')
   assert.equal(titleCaseName('Already Cased LLC'), 'Already Cased LLC')
   assert.equal(titleCaseName("O'BRIEN ELECTRIC"), "O'Brien Electric")
+  assert.equal(titleCaseName('A&D ELECTRIC'), 'A&D Electric')
+  assert.equal(titleCaseName('J.R. ELECTRIC LLC'), 'J.R. Electric LLC')
 })
 
 test('toCandidate keeps a real Google place id as the doc id and coordinates', () => {

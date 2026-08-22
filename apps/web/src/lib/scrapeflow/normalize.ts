@@ -214,7 +214,7 @@ export function titleCaseName(raw: string): string {
     .map((w) => {
       const bare = w.replace(/[.,()]/g, '').toUpperCase()
       if (KEEP_UPPER.has(bare)) return w.toUpperCase()
-      return w.replace(/(^|[-'/(])([a-z])/g, (_m, p, c) => p + c.toUpperCase())
+      return w.replace(/(^|[-'/(&.])([a-z])/g, (_m, p, c) => p + c.toUpperCase())
     })
     .join(' ')
 }
