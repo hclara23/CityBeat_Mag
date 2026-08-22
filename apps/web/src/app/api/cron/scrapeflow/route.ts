@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ensureSeeded, runDueWorkflows } from '@/lib/scrapeflow'
+import { consolidateListings } from '@/lib/directory-consolidate'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
@@ -18,6 +19,18 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const limit = Math.max(1, Math.min(10, Number(searchParams.get('limit')) || 3))
   const dryRun = searchParams.get('dryRun') === '1'
+  // ?consolidate=1 → skip workflows and just merge same-brand duplicates across
+  // the whole directory into multi-location cards (what the sink does per run).
+  if (searchParams.get('consolidate') === '1') {
+    try {
+      const result = await consolidateListings({ apply: !dryRun })
+      await reportSuccess('cron:scrapeflow')
+      return NextResponse.json({ ok: true, dryRun, consolidation: { ...result, plan: result.plan.slice(0, 100) } })
+    } catch (error) {
+      await reportFailure('cron:scrapeflow', error, { consolidate: true })
+      return NextResponse.json({ error: 'Consolidation failed' }, { status: 500 })
+    }
+  }
   try {
     await ensureSeeded()
     const result = await runDueWorkflows({ limit, dryRun })
