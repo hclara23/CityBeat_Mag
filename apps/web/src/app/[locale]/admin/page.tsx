@@ -24,6 +24,7 @@ const primaryAdminLinks = [
   { href: '/admin/sales/me', label: 'Sales Desk', description: 'Work leads, create any product checkout, and track fulfillment in one place.' },
   { href: '/admin/leads', label: 'Leads & Deals', description: 'Captured quote requests and active business deals to moderate.' },
   { href: '/admin/events', label: 'Events Manager', description: 'Review, moderate, and delete scraped events.' },
+  { href: '/admin/scrapeflow', label: 'ScrapeFlow', description: 'Workflow scraper that pulls new businesses from public directories into the CityBeat directory.' },
   { href: '/account/payments', label: 'My Bank & Payouts', description: 'Connect a bank account, view balance and payouts received.' },
   { href: '/contribute', label: 'Public Submit Form', description: 'View the contributor intake page readers use.' },
 ]
@@ -35,6 +36,7 @@ const pageLinks = [
   { href: '/admin/directory', label: 'Dir. Manager' },
   { href: '/admin/claims', label: 'Claims Queue' },
   { href: '/admin/events', label: 'Events' },
+  { href: '/admin/scrapeflow', label: 'ScrapeFlow' },
   { href: '/ads', label: 'Advertise' },
   { href: '/ads/campaigns', label: 'Ad Campaigns' },
   { href: '/dashboard', label: 'Adv. Dashboard' },

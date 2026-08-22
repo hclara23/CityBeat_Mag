@@ -32,6 +32,7 @@
     },
     "./firebase/admin": {
       "import": "./src/firebase/admin.ts",
+      "require": "./src/firebase/admin.ts",
       "types": "./src/firebase/admin.ts"
     },
     "./firebase/server": {
