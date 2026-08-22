@@ -212,6 +212,32 @@ export default function AdminScrapeFlowPage() {
     }
   }
 
+  const consolidateAll = async () => {
+    setBusy('consolidate')
+    try {
+      const plan = await fetch('/api/admin/directory/consolidate', { cache: 'no-store' }).then((r) => r.json())
+      if (!plan || plan.error) throw new Error(plan?.error || 'Plan failed')
+      if (!plan.groups_merged) {
+        flash('Nothing to consolidate — no same-brand duplicates found.')
+        return
+      }
+      const preview = (plan.plan || []).slice(0, 8).map((p: any) => `• ${p.brand} (${p.locations} locations)`).join('\n')
+      if (!confirm(`Merge ${plan.groups_merged} brand group(s) into multi-location cards and fold ${plan.siblings_unpublished} duplicate card(s)?\n\n${preview}${plan.plan.length > 8 ? '\n…' : ''}`)) return
+      const res = await fetch('/api/admin/directory/consolidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apply: true }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Consolidation failed')
+      flash(`Consolidated ${data.groups_merged} brand group(s); ${data.siblings_unpublished} duplicate card(s) folded in (reversible via merged_into).`)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Consolidation failed')
+    } finally {
+      setBusy('')
+    }
+  }
+
   const remove = async (w: Workflow) => {
     if (!confirm(`Delete workflow "${w.name}"? Runs history stays; listings already inserted are untouched.`)) return
     await fetch(`/api/admin/scrapeflow/${w.id}`, { method: 'DELETE' })
@@ -234,6 +260,14 @@ export default function AdminScrapeFlowPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
+            <button
+              disabled={busy === 'consolidate'}
+              onClick={consolidateAll}
+              className="rounded-md border border-brand-neon/50 px-3 py-2 font-bold uppercase tracking-wider text-brand-neon hover:bg-brand-neon/10 disabled:opacity-50"
+              title="Merge same-brand listings (multiple locations) into one card with locations[]"
+            >
+              {busy === 'consolidate' ? 'Consolidating…' : 'Consolidate multi-location'}
+            </button>
             <Link href={withLocale(locale, '/admin/directory')} className="rounded-md border border-white/15 px-3 py-2 font-bold uppercase tracking-wider text-white/70 hover:text-brand-neon">
               Directory Manager
             </Link>

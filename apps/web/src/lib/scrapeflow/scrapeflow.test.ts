@@ -11,6 +11,7 @@ import {
   normalizePhone,
   normalizeWebsite,
   toCandidate,
+  titleCaseName,
 } from './normalize'
 import { WORKFLOW_TEMPLATES } from './templates'
 import { TaskType } from './types'
@@ -128,6 +129,40 @@ test('toCandidate produces stable sf: ids and dedupe keys', () => {
   assert.equal(a.source, 'scrapeflow')
   assert.equal(listingKey('Acme Law', null, '(915) 555-1234'), 'acme law|9155551234')
   assert.equal(toCandidate({ name: ' ' }, { defaultCategory: 'Retail', sourceUrl: null }), null)
+})
+
+test('industrial verticals map to the new categories and TDLR names are title-cased', () => {
+  assert.equal(mapCategory('Electrical contractor', 'Retail'), 'Electrical Contractors')
+  assert.equal(mapCategory('Beltran Electrical Contractors, Inc.', 'Retail'), 'Electrical Contractors')
+  assert.equal(mapCategory('Borderplex Automation & Controls', 'Retail'), 'Automation & Controls')
+  assert.equal(mapCategory('Systems integrator', 'Retail'), 'Automation & Controls')
+  assert.equal(mapCategory('Industrial supply', 'Retail'), 'Industrial Supply')
+  assert.equal(mapCategory('Bearings & Fasteners Co', 'Retail'), 'Industrial Supply')
+  assert.equal(titleCaseName('BELTRAN ELECTRICAL CONTRACTORS, INC.'), 'Beltran Electrical Contractors, INC.')
+  assert.equal(titleCaseName('PEREZ, MARIO'), 'Mario Perez')
+  assert.equal(titleCaseName('Already Cased LLC'), 'Already Cased LLC')
+  assert.equal(titleCaseName("O'BRIEN ELECTRIC"), "O'Brien Electric")
+})
+
+test('toCandidate keeps a real Google place id as the doc id and coordinates', () => {
+  const c = toCandidate(
+    { name: 'Grainger', address: '11 Industrial Ave', city: 'El Paso', state: 'TX', google_place_id: 'ChIJN1t_tDeuEmsRUsoyG83frY4', latitude: 31.8, longitude: -106.4 },
+    { defaultCategory: 'Industrial Supply', sourceUrl: null }
+  )!
+  assert.equal(c.google_place_id, 'ChIJN1t_tDeuEmsRUsoyG83frY4')
+  assert.equal(c.latitude, 31.8)
+  assert.equal(c.longitude, -106.4)
+  const d = toCandidate({ name: 'Xy Co', google_place_id: 'bad id!' }, { defaultCategory: 'Retail', sourceUrl: null })!
+  assert.ok(d.google_place_id.startsWith('sf:'))
+})
+
+test('definition accepts FETCH_JSON / SEARCH_GOOGLE_PLACES entry points', () => {
+  assert.equal(validateDefinition({ nodes: [{ id: 'a', type: 'FETCH_JSON', inputs: { URL: 'https://x' } }] }).ok, true)
+  assert.equal(validateDefinition({ nodes: [{ id: 'a', type: 'SEARCH_GOOGLE_PLACES', inputs: { Queries: '["x"]' } }] }).ok, true)
+  assert.equal(
+    validateDefinition({ nodes: [{ id: 'a', type: 'FETCH_JSON', inputs: { URL: 'https://x' } }, { id: 'b', type: 'LAUNCH_BROWSER', inputs: { 'Website URL': 'https://y' } }] }).ok,
+    false
+  )
 })
 
 test('looksLikeSameBusiness compares phone, then street number', () => {

@@ -25,6 +25,9 @@ export enum TaskType {
   DELIVER_TO_DIRECTORY = 'DELIVER_TO_DIRECTORY',
   DELIVER_VIA_WEBHOOK = 'DELIVER_VIA_WEBHOOK',
   WAIT = 'WAIT',
+  FETCH_JSON = 'FETCH_JSON',
+  MAP_JSON_TO_LISTINGS = 'MAP_JSON_TO_LISTINGS',
+  SEARCH_GOOGLE_PLACES = 'SEARCH_GOOGLE_PLACES',
 }
 
 export type TaskParamType = 'STRING' | 'NUMBER' | 'BOOLEAN' | 'SELECT' | 'BROWSER_INSTANCE' | 'JSON' | 'LONG_TEXT'
@@ -95,6 +98,7 @@ export interface RunSummary {
   skipped_existing: number
   skipped_invalid: number
   pages_crawled: number
+  consolidated_groups?: number
 }
 
 export interface WorkflowRunResult {
@@ -146,4 +150,8 @@ export interface ExtractedListing {
   email?: string | null
   description?: string | null
   source_url?: string | null
+  /** Real Google place id (from SEARCH_GOOGLE_PLACES) — used as the doc id so enrichment/dedupe line up. */
+  google_place_id?: string | null
+  latitude?: number | null
+  longitude?: number | null
 }

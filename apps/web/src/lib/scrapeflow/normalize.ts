@@ -90,6 +90,10 @@ export function normalizeEmail(raw: string | null | undefined): string | null {
 }
 
 const CATEGORY_KEYWORDS: Array<[RegExp, string]> = [
+  // Industrial / trades verticals first — their names often also contain generic words.
+  [/automation|control ?systems?|systems? integrat|integrator|\bplc\b|scada|instrumentation|robotic|mechatronic|process control|motion control/i, 'Automation & Controls'],
+  [/industrial (supply|supplies|equipment|distribut|products|parts|tool)|electrical (supply|supplies|wholesale|distributor)|bearing|fastener|\bmro\b|hydraulic|pneumatic|welding supply|safety supply|abrasive|conveyor|valve|pump supply|mill supply|wire ?& ?cable|industrial hardware/i, 'Industrial Supply'],
+  [/electric(al|ian)s?\b|electrical contract|lighting contractor|low voltage|\bwiring\b|solar (install|electric)|generator install/i, 'Electrical Contractors'],
   [/attorney|lawyer|law (firm|office)|legal/i, 'Attorneys'],
   [/real ?estate|realt|broker|property management|apartments?/i, 'Real Estate'],
   [/title|notary|escrow/i, 'Title & Notary'],
@@ -167,7 +171,13 @@ export function toCandidate(
   const address = formatAddress(listing)
   const phone = normalizePhone(listing.phone)
   const key = listingKey(name, address, phone)
-  const id = `sf:${createHash('sha1').update(key).digest('hex').slice(0, 24)}`
+  // A real Google place id (from SEARCH_GOOGLE_PLACES) becomes the doc id so it
+  // lines up with Google-sourced rows and the Places-based enrichment cron.
+  const placeId = typeof listing.google_place_id === 'string' && /^[A-Za-z0-9_-]{10,}$/.test(listing.google_place_id) ? listing.google_place_id : null
+  const id = placeId || `sf:${createHash('sha1').update(key).digest('hex').slice(0, 24)}`
+  const lat = Number(listing.latitude)
+  const lng = Number(listing.longitude)
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0
   return {
     google_place_id: id,
     name,
@@ -176,13 +186,37 @@ export function toCandidate(
     phone,
     website: normalizeWebsite(listing.website, listing.source_url || opts.sourceUrl),
     email: normalizeEmail(listing.email),
-    latitude: null,
-    longitude: null,
+    latitude: hasCoords ? lat : null,
+    longitude: hasCoords ? lng : null,
     description: listing.description ? String(listing.description).trim().slice(0, 600) || null : null,
     hours: {},
     source: 'scrapeflow',
     source_url: listing.source_url || opts.sourceUrl,
   }
+}
+
+const KEEP_UPPER = new Set(['LLC', 'INC', 'CO', 'CORP', 'LTD', 'LP', 'LLP', 'PC', 'PLLC', 'USA', 'HVAC', 'AC', 'A/C', 'DBA', 'II', 'III', 'IV', 'TX', 'NM', 'EP', 'RV', 'IT', 'AV', 'PLC', 'LED', 'UV', 'CNC', 'MRO', 'DC'])
+
+/** Fix ALL-CAPS government data: "BELTRAN ELECTRICAL CONTRACTORS, INC." → "Beltran Electrical Contractors, Inc."; "PEREZ, MARIO" → "Mario Perez". */
+export function titleCaseName(raw: string): string {
+  let name = String(raw || '').replace(/\s+/g, ' ').trim()
+  if (!name) return name
+  const isUpper = name === name.toUpperCase() && /[A-Z]/.test(name)
+  if (!isUpper) return name
+  // "LAST, FIRST [MIDDLE]" (sole proprietor license holders) → "First Middle Last"
+  const person = name.match(/^([A-Z'\- ]{2,}), ([A-Z'\- .]{2,})$/)
+  if (person && !/\b(LLC|INC|CORP|CO|LTD|LP|DBA|ELECTRIC|SERVICE|CONTRACT)/.test(name)) {
+    name = `${person[2]} ${person[1]}`
+  }
+  return name
+    .toLowerCase()
+    .split(' ')
+    .map((w) => {
+      const bare = w.replace(/[.,()]/g, '').toUpperCase()
+      if (KEEP_UPPER.has(bare)) return w.toUpperCase()
+      return w.replace(/(^|[-'/(])([a-z])/g, (_m, p, c) => p + c.toUpperCase())
+    })
+    .join(' ')
 }
 
 function streetNumber(address: string | null | undefined): string | null {

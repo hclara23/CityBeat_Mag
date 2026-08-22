@@ -14,7 +14,92 @@ export interface WorkflowTemplate {
   definition: WorkflowDefinition
 }
 
+const EP_AREAS = ['El Paso, TX', 'East El Paso, TX', 'West El Paso, TX', 'Northeast El Paso, TX', 'Horizon City, TX', 'Socorro, TX', 'Canutillo, TX', 'Anthony, TX', 'Las Cruces, NM', 'Santa Teresa, NM', 'Sunland Park, NM']
+const cross = (terms: string[], areas: string[]) => terms.flatMap((t) => areas.map((a) => `${t} in ${a}`))
+
+const ELECTRICAL_QUERIES = cross(
+  ['electrical contractor', 'residential electrician', 'commercial electrical contractor', 'industrial electrical contractor', 'electrician'],
+  EP_AREAS
+)
+const AUTOMATION_QUERIES = cross(
+  ['industrial automation company', 'control systems integrator', 'automation systems integrator', 'PLC programming services', 'SCADA integrator', 'industrial controls and instrumentation', 'robotics integrator', 'building automation systems'],
+  ['El Paso, TX', 'Las Cruces, NM', 'Santa Teresa, NM', 'Socorro, TX']
+)
+const INDUSTRIAL_SUPPLY_QUERIES = cross(
+  ['industrial supply', 'electrical supply store', 'industrial equipment supplier', 'bearings and power transmission supplier', 'fasteners supplier', 'welding supply', 'hydraulic and pneumatic supply', 'MRO supplies', 'industrial safety supply', 'wire and cable supplier', 'industrial tool supply'],
+  ['El Paso, TX', 'Las Cruces, NM', 'Santa Teresa, NM', 'Horizon City, TX']
+)
+
+const TDLR_BASE = 'https://data.texas.gov/resource/7358-krk7.json'
+const tdlrUrl = (licenseType: string) =>
+  `${TDLR_BASE}?$limit=5000&$where=${encodeURIComponent(`license_type='${licenseType}' AND business_county='EL PASO'`)}`
+const TDLR_FIELD_MAP = JSON.stringify({
+  name: 'business_name',
+  address: 'business_address_line1',
+  city_state_zip: 'business_city_state_zip',
+  phone: 'business_telephone',
+  longitude: 'business_mailing.coordinates.0',
+  latitude: 'business_mailing.coordinates.1',
+})
+
 export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
+  {
+    key: 'tdlr-electrical-contractors',
+    name: 'TDLR — licensed Electrical Contractors (El Paso County)',
+    description:
+      'Texas Dept. of Licensing & Regulation open-data license file (data.texas.gov 7358-krk7): every active Electrical Contractor licensed in El Paso County with business address, phone and coordinates — residential, commercial and industrial. Weekly refresh picks up newly licensed contractors. Multi-branch contractors are consolidated into one card.',
+    enabled: true,
+    interval_hours: 168,
+    definition: {
+      nodes: [
+        { id: 'fetch', type: TaskType.FETCH_JSON, inputs: { URL: tdlrUrl('Electrical Contractor'), 'Max items': '5000' } },
+        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': TDLR_FIELD_MAP, Category: 'Electrical Contractors', 'Title case names': 'true' } },
+        { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{map.Listings}}', 'Default category': 'Electrical Contractors', 'Region filter': 'true', Publish: 'true', Consolidate: 'true' } },
+      ],
+    },
+  },
+  {
+    key: 'places-electrical-contractors',
+    name: 'Google Places — electrical contractors (residential · commercial · industrial)',
+    description:
+      'Places text search across El Paso / Doña Ana sub-areas for electrical contractors, residential electricians, commercial and industrial electrical contractors. 55 queries, 10 per run (rotating), up to 60 results each; phone + website via Place Details; real place ids; multi-location brands consolidated.',
+    enabled: true,
+    interval_hours: 24,
+    definition: {
+      nodes: [
+        { id: 'search', type: TaskType.SEARCH_GOOGLE_PLACES, inputs: { Queries: JSON.stringify(ELECTRICAL_QUERIES), 'Max queries per run': '10', 'Pages per query': '3', Category: 'Electrical Contractors', 'Fetch details': 'true' } },
+        { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{search.Listings}}', 'Default category': 'Electrical Contractors', 'Region filter': 'true', Publish: 'true', Consolidate: 'true' } },
+      ],
+    },
+  },
+  {
+    key: 'places-automation-integrators',
+    name: 'Google Places — automation & control systems integrators',
+    description:
+      'Places text search for industrial automation companies, control/automation systems integrators, PLC/SCADA, instrumentation, robotics and building-automation firms in El Paso, Las Cruces and Santa Teresa. 32 queries, 8 per run (rotating).',
+    enabled: true,
+    interval_hours: 24,
+    definition: {
+      nodes: [
+        { id: 'search', type: TaskType.SEARCH_GOOGLE_PLACES, inputs: { Queries: JSON.stringify(AUTOMATION_QUERIES), 'Max queries per run': '8', 'Pages per query': '3', Category: 'Automation & Controls', 'Fetch details': 'true' } },
+        { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{search.Listings}}', 'Default category': 'Automation & Controls', 'Region filter': 'true', Publish: 'true', Consolidate: 'true' } },
+      ],
+    },
+  },
+  {
+    key: 'places-industrial-supply',
+    name: 'Google Places — industrial supply companies',
+    description:
+      'Places text search for industrial supply, electrical supply, industrial equipment, bearings/power transmission, fasteners, welding, hydraulic/pneumatic, MRO, safety, wire & cable and industrial tool suppliers. 44 queries, 8 per run (rotating).',
+    enabled: true,
+    interval_hours: 24,
+    definition: {
+      nodes: [
+        { id: 'search', type: TaskType.SEARCH_GOOGLE_PLACES, inputs: { Queries: JSON.stringify(INDUSTRIAL_SUPPLY_QUERIES), 'Max queries per run': '8', 'Pages per query': '3', Category: 'Industrial Supply', 'Fetch details': 'true' } },
+        { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{search.Listings}}', 'Default category': 'Industrial Supply', 'Region filter': 'true', Publish: 'true', Consolidate: 'true' } },
+      ],
+    },
+  },
   {
     key: 'ephcc-growthzone',
     name: 'El Paso Hispanic Chamber — member directory',

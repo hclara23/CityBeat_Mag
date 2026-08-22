@@ -25,6 +25,9 @@ export const DIRECTORY_CATEGORIES = [
   'Financial',
   'Marketing',
   'Web Development',
+  'Electrical Contractors',
+  'Automation & Controls',
+  'Industrial Supply',
 ] as const
 
 const ES_LABELS: Record<string, string> = {
@@ -49,6 +52,9 @@ const ES_LABELS: Record<string, string> = {
   Financial: 'Servicios Financieros',
   Marketing: 'Marketing',
   'Web Development': 'Desarrollo Web',
+  'Electrical Contractors': 'Contratistas Eléctricos',
+  'Automation & Controls': 'Automatización y Control',
+  'Industrial Supply': 'Suministros Industriales',
 }
 
 // Localized display label. Value stays English everywhere else.

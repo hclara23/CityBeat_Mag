@@ -75,6 +75,10 @@ export const CATEGORY_QUERIES = [
   { category: 'Title & Notary', selector: '["office"="notary"]' },
   { category: 'Insurance', selector: '["office"="insurance"]' },
   { category: 'Financial', selector: '["office"~"^(financial|accountant|tax_advisor|financial_advisor)$"]' },
+  // Industrial / trades verticals (also fed by ScrapeFlow: TDLR licenses + Google Places).
+  { category: 'Electrical Contractors', selector: '["craft"~"^(electrician|electrical)$"]' },
+  { category: 'Industrial Supply', selector: '["shop"~"^(electrical|trade|industrial)$"]' },
+  { category: 'Automation & Controls', selector: '["office"~"^(engineer|engineering|company)$"]["name"~"automation|control|integrat",i]' },
 ]
 
 function buildOverpassQuery(selector: string): string {
@@ -124,6 +128,9 @@ const SHOP_CATEGORY: Record<string, string> = {
   car_repair: 'Auto Repair',
   car_parts: 'Auto Repair',
   tyres: 'Auto Repair',
+  electrical: 'Industrial Supply',
+  trade: 'Industrial Supply',
+  industrial: 'Industrial Supply',
 }
 
 function getCategory(tags: Record<string, string> | undefined, fallback: string): string {
@@ -134,6 +141,8 @@ function getCategory(tags: Record<string, string> | undefined, fallback: string)
   // Specific office/shop subtypes win over the generic buckets below.
   if (tags.office && OFFICE_CATEGORY[tags.office]) return OFFICE_CATEGORY[tags.office]
   if (tags.shop && SHOP_CATEGORY[tags.shop]) return SHOP_CATEGORY[tags.shop]
+  if (tags.craft === 'electrician' || tags.craft === 'electrical') return 'Electrical Contractors'
+  if (tags.office && /automation|control|integrat/i.test(tags.name || '')) return 'Automation & Controls'
   if (tags.craft) return 'Home Services'
   if (tags.shop) return 'Retail'
   if (tags.office) return 'Professional Services'

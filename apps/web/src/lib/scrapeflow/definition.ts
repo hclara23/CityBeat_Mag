@@ -17,8 +17,8 @@ export function validateDefinition(def: unknown): { ok: true; definition: Workfl
     ids.add(id)
     const task = getTask(String(raw.type || ''))
     if (!task) return { ok: false, error: `Node "${id}": unknown task type "${raw.type}"` }
-    if (i === 0 && !task.isEntryPoint) return { ok: false, error: `First node must be LAUNCH_BROWSER (got ${task.type})` }
-    if (i > 0 && task.isEntryPoint) return { ok: false, error: `Node "${id}": LAUNCH_BROWSER must be the first node` }
+    if (i === 0 && !task.isEntryPoint) return { ok: false, error: `First node must be an entry point — LAUNCH_BROWSER, FETCH_JSON or SEARCH_GOOGLE_PLACES (got ${task.type})` }
+    if (i > 0 && task.type === 'LAUNCH_BROWSER') return { ok: false, error: `Node "${id}": LAUNCH_BROWSER must be the first node` }
     const inputs: Record<string, string> = {}
     const rawInputs = raw.inputs && typeof raw.inputs === 'object' ? raw.inputs : {}
     for (const [k, v] of Object.entries(rawInputs)) {

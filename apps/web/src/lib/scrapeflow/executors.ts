@@ -16,6 +16,8 @@ import {
   type PageSession,
 } from './browser'
 import { deliverToDirectory } from './directory-sink'
+import { titleCaseName } from './normalize'
+import { searchPlacesAsListings } from './places'
 import { TaskType, type ExtractedListing, type LogLevel, type RunSummary } from './types'
 import * as cheerio from 'cheerio'
 
@@ -310,6 +312,7 @@ const deliverToDirectoryExec: ExecutorFn = async (env) => {
       defaultCategory: env.getInput('Default category') || 'Professional Services',
       regionFilter: bool(env.getInput('Region filter'), true),
       publish: bool(env.getInput('Publish'), true),
+      consolidate: bool(env.getInput('Consolidate'), true),
       dryRun: env.ctx.dryRun,
       sourceUrl: env.getSession()?.current?.finalUrl || null,
       workflowId: env.ctx.workflowId,
@@ -319,6 +322,7 @@ const deliverToDirectoryExec: ExecutorFn = async (env) => {
     env.ctx.summary.inserted += result.inserted
     env.ctx.summary.skipped_existing += result.skipped_existing
     env.ctx.summary.skipped_invalid += result.skipped_invalid
+    env.ctx.summary.consolidated_groups = (env.ctx.summary.consolidated_groups || 0) + (result.consolidated_groups || 0)
     const { sample, inserted_ids, ...counts } = result
     env.setOutput('Result', JSON.stringify({ ...counts, would_insert: env.ctx.dryRun ? inserted_ids.length : undefined, sample }))
     return true
@@ -355,6 +359,137 @@ const deliverViaWebhook: ExecutorFn = async (env) => {
   }
 }
 
+const fetchJson: ExecutorFn = async (env) => {
+  const url = env.getInput('URL')
+  if (!/^https?:\/\//i.test(url)) {
+    env.log.error('URL is required (http/https)')
+    return false
+  }
+  const max = Math.max(1, Math.floor(num(env.getInput('Max items'), 5000)))
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': 'CityBeatBot/1.0 ScrapeFlow (+https://citybeatmag.co)' },
+      signal: AbortSignal.timeout(60_000),
+    })
+    if (!res.ok) {
+      env.log.error(`HTTP ${res.status} from ${url}`)
+      return false
+    }
+    const data: any = await res.json()
+    const rows: any[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : Array.isArray(data?.data) ? data.data : data ? [data] : []
+    const kept = rows.slice(0, max)
+    env.ctx.summary.pages_crawled++
+    env.setOutput('JSON', JSON.stringify(kept))
+    env.log.info(`Fetched ${rows.length} rows${kept.length < rows.length ? ` (kept ${kept.length})` : ''}`)
+    return true
+  } catch (e: any) {
+    env.log.error(`Fetch failed: ${e?.message || e}`)
+    return false
+  }
+}
+
+const getPath = (obj: any, path: string): any =>
+  String(path)
+    .split('.')
+    .filter(Boolean)
+    .reduce((acc, key) => (acc === null || acc === undefined ? undefined : acc[key]), obj)
+
+const mapJsonToListings: ExecutorFn = async (env) => {
+  const rows = parseJsonArray(env.getInput('JSON'))
+  let map: Record<string, string>
+  try {
+    map = JSON.parse(env.getInput('Field map') || '{}')
+  } catch {
+    env.log.error('Field map is not valid JSON')
+    return false
+  }
+  if (!map.name) {
+    env.log.error('Field map needs at least "name"')
+    return false
+  }
+  const category = env.getInput('Category') || null
+  const titleCase = bool(env.getInput('Title case names'), true)
+  const listings: ExtractedListing[] = []
+  for (const row of rows) {
+    const get = (k: string) => {
+      const v = map[k] ? getPath(row, map[k]) : undefined
+      return v === undefined || v === null || v === '' ? null : v
+    }
+    const rawName = get('name')
+    if (!rawName) continue
+    const name = titleCase ? titleCaseName(String(rawName)) : String(rawName)
+    let city = get('city') ? String(get('city')) : null
+    let state = get('state') ? String(get('state')) : null
+    let zip = get('zip') ? String(get('zip')) : null
+    const csz = get('city_state_zip')
+    if (csz) {
+      // "EL PASO TX 79907" / "El Paso, TX 79907-2724"
+      const m = String(csz).match(/^(.*?)[, ]+([A-Za-z]{2})\s+(\d{5})(?:-\d{4})?$/)
+      if (m) {
+        city = city || titleCaseName(m[1].trim())
+        state = state || m[2].toUpperCase()
+        zip = zip || m[3]
+      } else city = city || String(csz)
+    }
+    const addrRaw = get('address')
+    listings.push({
+      name,
+      category: category || (get('category') ? String(get('category')) : null),
+      address: addrRaw ? (titleCase ? titleCaseName(String(addrRaw)) : String(addrRaw)) : null,
+      city,
+      state,
+      zip,
+      phone: get('phone') ? String(get('phone')) : null,
+      website: get('website') ? String(get('website')) : null,
+      email: get('email') ? String(get('email')) : null,
+      description: get('description') ? String(get('description')) : null,
+      latitude: get('latitude') !== null ? Number(get('latitude')) : null,
+      longitude: get('longitude') !== null ? Number(get('longitude')) : null,
+      source_url: env.getSession()?.current?.finalUrl || null,
+    })
+  }
+  env.setOutput('Listings', JSON.stringify(listings))
+  env.log.info(`Mapped ${listings.length} of ${rows.length} rows to listings`)
+  return listings.length > 0
+}
+
+const searchGooglePlaces: ExecutorFn = async (env) => {
+  const all = parseJsonArray(env.getInput('Queries')).map(String).map((s) => s.trim()).filter(Boolean)
+  if (!all.length) {
+    env.log.error('Queries is required')
+    return false
+  }
+  if (!process.env.GOOGLE_PLACES_API_KEY) {
+    env.log.error('GOOGLE_PLACES_API_KEY is not set')
+    return false
+  }
+  const perRun = Math.max(1, Math.floor(num(env.getInput('Max queries per run'), 8)))
+  const pages = Math.min(3, Math.max(1, Math.floor(num(env.getInput('Pages per query'), 3))))
+  let queries = all
+  if (all.length > perRun) {
+    const windows = Math.ceil(all.length / perRun)
+    const start = (env.ctx.runIndex % windows) * perRun
+    queries = all.slice(start, start + perRun)
+    env.log.info(`Rotation window ${(env.ctx.runIndex % windows) + 1}/${windows}: queries ${start + 1}-${start + queries.length} of ${all.length}`)
+  }
+  try {
+    const listings = await searchPlacesAsListings(queries, {
+      pages,
+      category: env.getInput('Category') || null,
+      fetchDetails: bool(env.getInput('Fetch details'), true),
+      log: (m) => env.log.info(m),
+      deadline: env.ctx.deadline - 20_000,
+    })
+    env.ctx.summary.pages_crawled += queries.length
+    env.setOutput('Listings', JSON.stringify(listings))
+    env.log.info(`Total ${listings.length} unique places`)
+    return true
+  } catch (e: any) {
+    env.log.error(`Places search failed: ${e?.message || e}`)
+    return false
+  }
+}
+
 const wait: ExecutorFn = async (env) => {
   const ms = Math.min(60_000, Math.max(0, num(env.getInput('Milliseconds'), 1000)))
   await sleep(ms)
@@ -375,6 +510,9 @@ export const ExecutorRegistry: Record<TaskType, ExecutorFn> = {
   [TaskType.DELIVER_TO_DIRECTORY]: deliverToDirectoryExec,
   [TaskType.DELIVER_VIA_WEBHOOK]: deliverViaWebhook,
   [TaskType.WAIT]: wait,
+  [TaskType.FETCH_JSON]: fetchJson,
+  [TaskType.MAP_JSON_TO_LISTINGS]: mapJsonToListings,
+  [TaskType.SEARCH_GOOGLE_PLACES]: searchGooglePlaces,
 }
 
 export { closeSession }

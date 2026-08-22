@@ -16,6 +16,8 @@ export async function deliverToDirectory(
     defaultCategory: string
     regionFilter: boolean
     publish: boolean
+    /** After inserting, merge same-brand rows (multiple locations) into one card. */
+    consolidate?: boolean
     dryRun: boolean
     sourceUrl: string | null
     workflowId: string | null
@@ -23,7 +25,7 @@ export async function deliverToDirectory(
   }
 ): Promise<RunSummary & { inserted_ids: string[]; sample: DirectoryCandidate[] }> {
   const log = opts.log || (() => {})
-  const summary = { candidates: 0, inserted: 0, skipped_existing: 0, skipped_invalid: 0, pages_crawled: 0 }
+  const summary: RunSummary = { candidates: 0, inserted: 0, skipped_existing: 0, skipped_invalid: 0, pages_crawled: 0 }
   const inserted_ids: string[] = []
   const seen = new Set<string>()
   const candidates: DirectoryCandidate[] = []
@@ -100,5 +102,18 @@ export async function deliverToDirectory(
   }
   if (ops > 0) await batch.commit()
   log('info', `Inserted ${summary.inserted} listings (${summary.skipped_existing} existed, ${summary.skipped_invalid} out of region/invalid).`)
+
+  if (opts.consolidate !== false && toInsert.length) {
+    // Same-brand rows (chains, multi-branch contractors/suppliers) → one card
+    // with locations[]; siblings unpublished with merged_into (reversible).
+    try {
+      const { consolidateListings } = await import('@/lib/directory-consolidate')
+      const merged = await consolidateListings({ apply: true, names: toInsert.map((c) => c.name), log: (m) => log('info', m) })
+      summary.consolidated_groups = merged.groups_merged
+      if (merged.groups_merged) log('info', `Consolidated ${merged.groups_merged} multi-location brand(s) (${merged.siblings_unpublished} duplicate cards folded in).`)
+    } catch (e: any) {
+      log('warn', `Consolidation skipped: ${e?.message || e}`)
+    }
+  }
   return { ...summary, inserted_ids, sample: toInsert.slice(0, 25) }
 }
