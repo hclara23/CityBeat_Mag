@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasDeveloperAccess } from '@citybeat/lib/roles'
 import { getPayoutSettings, savePayoutSettings } from '@/lib/payouts'
+import { normalizeSplitOverrides } from '@/lib/payout-split'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +32,11 @@ export async function PATCH(request: NextRequest) {
   }
   if (body.user_overrides && typeof body.user_overrides === 'object') {
     patch.user_overrides = body.user_overrides
+  }
+  // Per-individual commission split overrides — sanitized server-side (valid
+  // UIDs, percents clamped 0–100). Full replace of the map.
+  if ('split_overrides' in body) {
+    patch.split_overrides = normalizeSplitOverrides(body.split_overrides)
   }
   if (body.commission_mode === 'one_time' || body.commission_mode === 'residual') {
     patch.commission_mode = body.commission_mode

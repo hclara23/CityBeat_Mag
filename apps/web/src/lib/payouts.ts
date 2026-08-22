@@ -1,6 +1,31 @@
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
+import {
+  allocateShareCents,
+  buildTransferRequest,
+  computeSplit,
+  ledgerDocId,
+  normalizeSplitOverrides,
+  type SplitOverrides,
+} from './payout-split'
+import { reportFailure, reportSuccess } from './alerts'
+
+export {
+  SPLIT_RATES,
+  allocateShareCents,
+  bucketForService,
+  buildTransferRequest,
+  computeSplit,
+  ledgerDocId,
+  normalizeSplitOverrides,
+  transferIdempotencyKey,
+  type SplitBucket,
+  type SplitChannel,
+  type SplitShare,
+  type SplitOverride,
+  type SplitOverrides,
+} from './payout-split'
 
 // Services that can pay out a share to a user (per the godmode config).
 export const PAYOUT_SERVICES = ['directory', 'ad_campaign', 'sponsored_post'] as const
@@ -16,6 +41,10 @@ export type PayoutSettings = {
   default_payout_percent: number
   service_payout_percent: Record<string, number>
   user_overrides: Record<string, Record<string, number>>
+  // Per-individual commission overrides for the multi-party split. Keyed by UID;
+  // each entry sets what that person earns (0–100) on a directory / ads sale
+  // where they are the editor or the selling rep. Overrides the SPLIT_RATES table.
+  split_overrides: SplitOverrides
   commission_mode: CommissionMode
   // The Editor stakeholder who earns a cut of every sale per the split table below.
   editor_user_id: string
@@ -33,51 +62,9 @@ const DEFAULTS: PayoutSettings = {
   default_payout_percent: 0,
   service_payout_percent: { directory: 0, ad_campaign: 0, sponsored_post: 0 },
   user_overrides: {},
+  split_overrides: {},
   commission_mode: 'one_time',
   editor_user_id: DEFAULT_EDITOR_UID,
-}
-
-// ── Multi-party commission split ────────────────────────────────────────────
-// Only the EDITOR and the SALES REP receive real Stripe transfers. "App" and
-// "Developer" are the platform's own cut and simply stay in the platform balance
-// (so every rule totals 100% with the platform keeping the remainder).
-//
-// Channel is derived from who sold it: editor (seller == editor), rep (seller is
-// someone else), or autonomous (no attributed seller — the AI agent or an organic
-// self-serve buyer).
-export type SplitBucket = 'directory' | 'ads'
-export type SplitChannel = 'editor' | 'rep' | 'autonomous'
-
-// { editor%, rep% } transferred out; platform (App + Developer) keeps the rest.
-export const SPLIT_RATES: Record<SplitBucket, Record<SplitChannel, { editor: number; rep: number }>> = {
-  directory: {
-    editor: { editor: 45, rep: 0 }, // editor sold: editor 45 · platform 55
-    rep: { editor: 25, rep: 40 }, //    rep sold: rep 40 · editor 25 · platform 35
-    autonomous: { editor: 40, rep: 0 }, // AI/organic: editor 40 · platform 60
-  },
-  ads: {
-    editor: { editor: 65, rep: 0 }, // editor sold: editor 65 · platform 35
-    rep: { editor: 20, rep: 50 }, //    rep sold: rep 50 · editor 20 · platform 30
-    autonomous: { editor: 0, rep: 0 }, // no rule given → platform keeps 100
-  },
-}
-
-// Directory is its own bucket; everything else (ad_campaign, sponsored_post, plus
-// jobs / event features / custom field sales) follows the ads split.
-export function bucketForService(service: string): SplitBucket {
-  return service === 'directory' ? 'directory' : 'ads'
-}
-
-export type SplitShare = { payeeUserId: string; role: 'editor' | 'rep'; percent: number }
-
-export function computeSplit(service: string, sellerUserId: string | null, editorUserId: string): SplitShare[] {
-  const bucket = bucketForService(service)
-  const channel: SplitChannel = !sellerUserId ? 'autonomous' : sellerUserId === editorUserId ? 'editor' : 'rep'
-  const rates = SPLIT_RATES[bucket][channel]
-  const shares: SplitShare[] = []
-  if (rates.editor > 0 && editorUserId) shares.push({ payeeUserId: editorUserId, role: 'editor', percent: rates.editor })
-  if (rates.rep > 0 && sellerUserId && sellerUserId !== editorUserId) shares.push({ payeeUserId: sellerUserId, role: 'rep', percent: rates.rep })
-  return shares
 }
 
 export async function getPayoutSettings(): Promise<PayoutSettings> {
@@ -88,6 +75,7 @@ export async function getPayoutSettings(): Promise<PayoutSettings> {
     default_payout_percent: data.default_payout_percent ?? 0,
     service_payout_percent: { ...DEFAULTS.service_payout_percent, ...(data.service_payout_percent || {}) },
     user_overrides: data.user_overrides || {},
+    split_overrides: normalizeSplitOverrides(data.split_overrides),
     commission_mode: data.commission_mode === 'residual' ? 'residual' : 'one_time',
     editor_user_id: data.editor_user_id || DEFAULT_EDITOR_UID,
     updated_at: data.updated_at,
@@ -111,10 +99,137 @@ export function resolvePayoutPercent(settings: PayoutSettings, service: string, 
   return settings.default_payout_percent || 0
 }
 
+// Creates the Stripe transfer and records it in the `transfers` ledger.
+// NON-THROWING: on a Stripe error it records a `failed` row (with everything the
+// reconcile pass needs to retry) and alerts ops — it never rethrows. That way a
+// rep's payout can never block the customer's fulfillment or wedge the Stripe
+// webhook into a 500 retry-storm. `existingRef`, when given, is updated in place
+// (a reconcile retry) instead of appending a new row.
+async function executeTransfer(input: {
+  stripe: Stripe
+  payeeUserId: string
+  destination: string
+  service: string
+  role?: string | null
+  percent: number
+  amount: number
+  currency: string
+  sourcePaymentId?: string | null
+  sourceTransaction?: string | null
+  // The single ledger document for this share (deterministic id) — every state
+  // (skipped → failed → paid) is written here with set/merge, so duplicate
+  // deliveries and retries never append duplicate rows.
+  ledgerRef: FirebaseFirestore.DocumentReference
+}): Promise<{ status: 'paid' | 'failed' | 'in_progress'; amount?: number; transferId?: string; error?: string }> {
+  const {
+    stripe, payeeUserId, destination, service, role = null, percent, amount, currency,
+    sourcePaymentId = null, sourceTransaction = null, ledgerRef,
+  } = input
+
+  // The stable key is the idempotency key on EVERY attempt, so Stripe collapses any
+  // concurrent create of this share into one transfer. transferGroup finds an
+  // already-created transfer when the key has expired.
+  const { params, idempotencyKey, transferGroup } = buildTransferRequest({
+    amount, currency, destination, service, payeeUserId, sourcePaymentId, sourceTransaction,
+  })
+
+  const recordPaid = async (transferId: string, actualAmount: number) => {
+    await ledgerRef.set(
+      {
+        payee_user_id: payeeUserId,
+        service,
+        role,
+        percent,
+        amount: actualAmount,
+        currency,
+        source_payment: sourcePaymentId,
+        source_transaction: sourceTransaction,
+        stripe_transfer_id: transferId,
+        stripe_destination: destination,
+        status: 'paid',
+        error_code: null,
+        error_message: null,
+        paid_at: FieldValue.serverTimestamp(),
+        attempts: FieldValue.increment(1),
+      },
+      { merge: true }
+    )
+  }
+
+  // Anti-double-pay backstop: if a transfer for this exact share already exists on
+  // Stripe — a prior attempt committed but its ledger row was lost, or the
+  // idempotency key has since expired (>24h) — adopt it instead of creating a
+  // second transfer. The lookup result is captured here and acted on OUTSIDE the
+  // try so a transient recordPaid error can never fall through to a second create.
+  let adopted: { id: string; amount: number } | null = null
+  if (transferGroup) {
+    try {
+      const prior = await stripe.transfers.list({ transfer_group: transferGroup, limit: 1 })
+      const t = prior.data[0]
+      if (t) adopted = { id: t.id, amount: t.amount }
+    } catch {
+      /* lookup is best-effort; the shared idempotency key still guards the race */
+    }
+  }
+  if (adopted) {
+    await recordPaid(adopted.id, adopted.amount)
+    return { status: 'paid', amount: adopted.amount, transferId: adopted.id }
+  }
+
+  let transfer: Stripe.Transfer
+  try {
+    transfer = await stripe.transfers.create(
+      params as unknown as Stripe.TransferCreateParams,
+      idempotencyKey ? { idempotencyKey } : undefined
+    )
+  } catch (err: any) {
+    // Concurrency, not failure: Stripe returns HTTP 409 (idempotency_error) when
+    // another in-flight request already holds this key — i.e. a duplicate delivery
+    // or a reconcile run is creating this exact transfer right now. Don't overwrite
+    // the winner's row to 'failed' or fire a spurious alert; let that request (or
+    // the next reconcile's transfer_group adoption) record the outcome.
+    const errType = err?.type || err?.raw?.type
+    const errCode = err?.code || err?.raw?.code
+    const status = err?.statusCode ?? err?.raw?.statusCode
+    if (errType === 'idempotency_error' || errCode === 'idempotency_key_in_use' || status === 409) {
+      return { status: 'in_progress', error: 'idempotency_in_progress' }
+    }
+    await ledgerRef.set(
+      {
+        payee_user_id: payeeUserId,
+        service,
+        role,
+        percent,
+        amount,
+        currency,
+        source_payment: sourcePaymentId,
+        source_transaction: sourceTransaction,
+        stripe_destination: destination,
+        status: 'failed',
+        error_code: errCode || null,
+        error_message: String(err?.message || err).slice(0, 300),
+        attempts: FieldValue.increment(1),
+        last_attempt_at: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    )
+    // Best-effort ops alert (deduped 3/6h); a failed commission is worth knowing
+    // about but must not fail the caller.
+    await reportFailure('payout-transfer', err, {
+      service, payee_user_id: payeeUserId, source_payment: sourcePaymentId,
+    }).catch(() => {})
+    return { status: 'failed', error: (errCode || 'transfer_error') as string }
+  }
+
+  await recordPaid(transfer.id, amount)
+  return { status: 'paid', amount, transferId: transfer.id }
+}
+
 // Pays the configured share of a completed payment to a user's connected account
 // via a Stripe transfer, and records it in the `transfers` collection.
 // No-ops safely when: no payee, percent is 0, or the payee has no payouts-enabled
-// connected account.
+// connected account. A transfer that Stripe rejects is recorded `failed` (for the
+// reconcile pass) rather than thrown — see executeTransfer.
 export async function payoutToUser(params: {
   stripe: Stripe
   payeeUserId?: string | null
@@ -122,12 +237,22 @@ export async function payoutToUser(params: {
   amountTotal?: number | null
   currency?: string
   sourcePaymentId?: string | null
+  // The charge id behind this payment. Passing it lets Stripe accept the transfer
+  // against a still-`pending` charge (no available-balance requirement), which is
+  // what prevents the "insufficient funds" failure on fresh sales.
+  sourceTransaction?: string | null
+  // Explicit cents for this share (from payoutSplit's cent-exact allocation). When
+  // omitted, the amount is this share's own rounding of amountTotal * percent.
+  amountCents?: number
   // Split engine passes an explicit percent + role; otherwise it's resolved from
   // the single-payee settings (default / per-service / per-user override).
   percent?: number
   role?: 'editor' | 'rep' | string | null
 }): Promise<{ status: string; amount?: number; transferId?: string }> {
-  const { stripe, payeeUserId, service, amountTotal, currency = 'usd', sourcePaymentId, role = null } = params
+  const {
+    stripe, payeeUserId, service, amountTotal, currency = 'usd',
+    sourcePaymentId = null, sourceTransaction = null, role = null,
+  } = params
   if (!payeeUserId || !amountTotal || amountTotal <= 0) return { status: 'skipped:no_payee_or_amount' }
 
   let percent = params.percent
@@ -137,29 +262,54 @@ export async function payoutToUser(params: {
   }
   if (percent <= 0) return { status: 'skipped:zero_percent' }
 
-  const acctDoc = await adminDb.collection('stripe_connected_accounts').doc(payeeUserId).get()
-  const acct = acctDoc.exists ? (acctDoc.data() as any) : null
+  // Amount in cents: an explicit allocation (from payoutSplit) wins so multi-share
+  // rounding stays cent-exact and can't over-transfer; otherwise this share rounds
+  // its own slice.
+  const amount = typeof params.amountCents === 'number'
+    ? Math.max(0, Math.round(params.amountCents))
+    : Math.round((amountTotal * percent) / 100)
+  if (amount <= 0) return { status: 'skipped:zero_amount' }
+
+  // One deterministic ledger document per share, so skip/fail/retry/duplicate all
+  // land on the same row (no duplicate 'paid' rows to double-count in finance).
+  const docId = ledgerDocId(service, payeeUserId, sourcePaymentId)
+  const ledgerRef = docId
+    ? adminDb.collection('transfers').doc(docId)
+    : adminDb.collection('transfers').doc()
+
+  // The account read is wrapped so a transient error records a reconcilable skip
+  // rather than aborting a multi-share split mid-loop.
+  const acctDoc = await adminDb
+    .collection('stripe_connected_accounts')
+    .doc(payeeUserId)
+    .get()
+    .catch(() => null)
+  const acct = acctDoc?.exists ? (acctDoc.data() as any) : null
   if (!acct?.stripe_account_id || !acct.payouts_enabled) {
-    await adminDb.collection('transfers').add({
-      payee_user_id: payeeUserId,
-      service,
-      role,
-      percent,
-      amount: 0,
-      source_payment: sourcePaymentId || null,
-      status: 'skipped_no_connected_account',
-      created_at: FieldValue.serverTimestamp(),
-    })
+    // Record the FULL context (intended amount + charge) so the reconcile pass can
+    // complete this share once the payee finishes connecting a bank.
+    await ledgerRef.set(
+      {
+        payee_user_id: payeeUserId,
+        service,
+        role,
+        percent,
+        amount,
+        currency,
+        source_payment: sourcePaymentId,
+        source_transaction: sourceTransaction,
+        status: 'skipped_no_connected_account',
+        created_at: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    )
     return { status: 'skipped:no_connected_account' }
   }
 
-  const amount = Math.round((amountTotal * percent) / 100)
-  if (amount <= 0) return { status: 'skipped:zero_amount' }
-
-  // Idempotency: Stripe delivers webhooks at-least-once. Without this, a retried
-  // event would create a SECOND transfer (double-paying the rep). Guard two ways:
-  // (a) a Firestore ledger check, and (b) a Stripe idempotency key so even a race
-  // can't create a duplicate transfer.
+  // Idempotency: Stripe delivers webhooks at-least-once. Guard three ways so a
+  // retried event never double-pays: (a) this ledger check for an already-`paid`
+  // share, (b) the stable Stripe idempotency key, and (c) the transfer_group
+  // backstop — all inside/around executeTransfer.
   if (sourcePaymentId) {
     const existing = await adminDb
       .collection('transfers')
@@ -173,31 +323,19 @@ export async function payoutToUser(params: {
     if (!existing.empty) return { status: 'skipped:already_paid' }
   }
 
-  const transfer = await stripe.transfers.create(
-    {
-      amount,
-      currency,
-      destination: acct.stripe_account_id,
-      metadata: { service, payee_user_id: payeeUserId, source_payment: sourcePaymentId || '' },
-    },
-    sourcePaymentId ? { idempotencyKey: `payout:${service}:${payeeUserId}:${sourcePaymentId}` } : undefined
-  )
-
-  await adminDb.collection('transfers').add({
-    payee_user_id: payeeUserId,
+  return executeTransfer({
+    stripe,
+    payeeUserId,
+    destination: acct.stripe_account_id,
     service,
     role,
     percent,
     amount,
     currency,
-    source_payment: sourcePaymentId || null,
-    stripe_transfer_id: transfer.id,
-    stripe_destination: acct.stripe_account_id,
-    status: 'paid',
-    created_at: FieldValue.serverTimestamp(),
+    sourcePaymentId,
+    sourceTransaction,
+    ledgerRef,
   })
-
-  return { status: 'paid', amount, transferId: transfer.id }
 }
 
 // Multi-party split for a completed payment. Issues a transfer to the Editor and
@@ -211,16 +349,41 @@ export async function payoutSplit(params: {
   amountTotal?: number | null
   currency?: string
   sourcePaymentId?: string | null
+  // The charge id behind this payment (see payoutToUser) — threaded to every share
+  // so each transfer draws from the charge even while its funds are still pending.
+  sourceTransaction?: string | null
 }): Promise<{ shares: number; results: Array<{ role: string; payeeUserId: string; status: string; amount?: number }> }> {
-  const { stripe, sellerUserId, service, amountTotal, currency = 'usd', sourcePaymentId } = params
+  const {
+    stripe, sellerUserId, service, amountTotal, currency = 'usd',
+    sourcePaymentId = null, sourceTransaction = null,
+  } = params
   if (!amountTotal || amountTotal <= 0) return { shares: 0, results: [] }
 
   const settings = await getPayoutSettings()
   const editorUid = settings.editor_user_id || DEFAULT_EDITOR_UID
-  const split = computeSplit(service, sellerUserId || null, editorUid)
+  const split = computeSplit(service, sellerUserId || null, editorUid, settings.split_overrides)
+  if (!split.length) return { shares: 0, results: [] }
 
+  // A transfer tied to a charge (source_transaction) can draw at most that charge's
+  // net-of-fees contribution to the balance. Cap the cumulative payout at that net
+  // so a near-100% split never fails its last transfer; fall back to gross when the
+  // charge/fee can't be read (allocateShareCents still bounds the total to gross).
+  let transferableBase = amountTotal
+  if (sourceTransaction) {
+    try {
+      const charge = await stripe.charges.retrieve(sourceTransaction, { expand: ['balance_transaction'] })
+      const bt: any = (charge as any).balance_transaction
+      if (bt && typeof bt === 'object' && typeof bt.net === 'number' && bt.net > 0) {
+        transferableBase = Math.min(amountTotal, bt.net)
+      }
+    } catch {
+      /* keep gross base */
+    }
+  }
+
+  const allocated = allocateShareCents(split, amountTotal, transferableBase)
   const results: Array<{ role: string; payeeUserId: string; status: string; amount?: number }> = []
-  for (const share of split) {
+  for (const share of allocated) {
     const r = await payoutToUser({
       stripe,
       payeeUserId: share.payeeUserId,
@@ -228,12 +391,131 @@ export async function payoutSplit(params: {
       amountTotal,
       currency,
       sourcePaymentId,
+      sourceTransaction,
+      amountCents: share.amountCents,
       percent: share.percent,
       role: share.role,
     })
     results.push({ role: share.role, payeeUserId: share.payeeUserId, status: r.status, amount: r.amount })
   }
-  return { shares: split.length, results }
+  return { shares: allocated.length, results }
+}
+
+// Completes payouts that didn't go through at webhook time — either `failed`
+// (e.g. a fresh charge's funds hadn't settled, or Stripe was rate-limited) or
+// `skipped_no_connected_account` (the payee hadn't connected a bank yet; they may
+// have since). Safe to run repeatedly and concurrently with the webhook: a share
+// already `paid` is skipped (ledger check + transfer_group backstop), the shared
+// idempotency key means Stripe collapses any race to one transfer, and the backstop
+// adopts an already-created one — so it can never double-pay. Returns a run summary.
+export async function reconcileFailedTransfers(params: {
+  stripe: Stripe
+  limit?: number
+  dryRun?: boolean
+}): Promise<{ scanned: number; paid: number; still_failing: number; superseded: number; skipped: number }> {
+  const { stripe, limit = 50, dryRun = false } = params
+  // Query the two statuses SEPARATELY (each single-equality, no composite index) so
+  // a backlog of never-connecting `skipped` rows can never starve the scan window
+  // and hide a recoverable `failed` row — each status gets its own `limit` budget.
+  const [failedSnap, skippedSnap] = await Promise.all([
+    adminDb
+      .collection('transfers')
+      .where('status', '==', 'failed')
+      .limit(limit)
+      .get()
+      .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] })),
+    adminDb
+      .collection('transfers')
+      .where('status', '==', 'skipped_no_connected_account')
+      .limit(limit)
+      .get()
+      .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] })),
+  ])
+  const snap = { docs: [...failedSnap.docs, ...skippedSnap.docs] }
+
+  let paid = 0
+  let stillFailing = 0
+  let superseded = 0
+  let skipped = 0
+
+  for (const doc of snap.docs) {
+    const t = doc.data() as any
+    const payeeUserId: string | undefined = t.payee_user_id
+    const service: string = t.service
+    const amount = Number(t.amount || 0)
+    const sourcePaymentId: string | null = t.source_payment || null
+
+    // Not enough on the row to retry safely (e.g. a legacy pre-fix
+    // skipped_no_connected_account row with amount:0). Retire it so it can't keep
+    // occupying the limited scan window and starve real failed/skipped rows.
+    if (!payeeUserId || !service || amount <= 0) {
+      if (!dryRun) {
+        await doc.ref.set({ status: 'skipped_invalid' }, { merge: true }).catch(() => {})
+      }
+      skipped++
+      continue
+    }
+
+    // Already settled by another path (webhook retry, prior reconcile)? Never re-pay.
+    if (sourcePaymentId) {
+      const already = await adminDb
+        .collection('transfers')
+        .where('source_payment', '==', sourcePaymentId)
+        .where('service', '==', service)
+        .where('payee_user_id', '==', payeeUserId)
+        .where('status', '==', 'paid')
+        .limit(1)
+        .get()
+        .catch(() => ({ empty: true } as any))
+      if (!already.empty) {
+        if (!dryRun) {
+          await doc.ref.set(
+            { status: 'superseded', superseded_at: FieldValue.serverTimestamp() },
+            { merge: true }
+          )
+        }
+        superseded++
+        continue
+      }
+    }
+
+    // The payee must have a payouts-enabled connected account now.
+    const acctDoc = await adminDb.collection('stripe_connected_accounts').doc(payeeUserId).get()
+    const acct = acctDoc.exists ? (acctDoc.data() as any) : null
+    if (!acct?.stripe_account_id || !acct.payouts_enabled) {
+      stillFailing++
+      continue
+    }
+
+    if (dryRun) {
+      stillFailing++
+      continue
+    }
+
+    const res = await executeTransfer({
+      stripe,
+      payeeUserId,
+      destination: acct.stripe_account_id,
+      service,
+      role: t.role || null,
+      percent: Number(t.percent || 0),
+      amount,
+      currency: t.currency || 'usd',
+      sourcePaymentId,
+      sourceTransaction: t.source_transaction || null,
+      ledgerRef: doc.ref,
+    })
+    if (res.status === 'paid') paid++
+    else if (res.status === 'in_progress') skipped++ // another request is creating it
+    else stillFailing++
+  }
+
+  // Clear the ops alert once nothing is left failing in this batch.
+  if (!dryRun && paid > 0 && stillFailing === 0) {
+    await reportSuccess('payout-transfer').catch(() => {})
+  }
+
+  return { scanned: snap.docs.length, paid, still_failing: stillFailing, superseded, skipped }
 }
 
 // Godmode "issue a payout now": transfers a FLAT amount (cents) to a user's

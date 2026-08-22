@@ -23,12 +23,20 @@ export default function PayoutSettingsDashboard() {
   const [payBusy, setPayBusy] = useState(false)
   // Platform settings (instant claim approval)
   const [autoApprove, setAutoApprove] = useState<boolean | null>(null)
+  // Per-person commission overrides
+  const [roleUsers, setRoleUsers] = useState<{ uid: string; name: string; email: string; role: string }[]>([])
+  const [ovUid, setOvUid] = useState('')
+  const [ovLabel, setOvLabel] = useState('')
+  const [ovDir, setOvDir] = useState('')
+  const [ovAds, setOvAds] = useState('')
 
   const load = useCallback(async () => {
     const res = await fetch('/api/admin/payout-settings', { cache: 'no-store' })
     if (res.ok) setSettings((await res.json()).settings)
     const ps = await fetch('/api/admin/platform-settings', { cache: 'no-store' })
     if (ps.ok) setAutoApprove(Boolean((await ps.json()).settings?.auto_approve_claims))
+    const us = await fetch('/api/admin/payout-settings/users', { cache: 'no-store' })
+    if (us.ok) setRoleUsers((await us.json()).users || [])
   }, [])
 
   const toggleAutoApprove = async (next: boolean) => {
@@ -74,6 +82,28 @@ export default function PayoutSettingsDashboard() {
 
   if (!ready || !settings) return null
 
+  const overrides: Record<string, { label?: string; directory?: number; ads?: number }> =
+    settings.split_overrides || {}
+
+  const addOverride = async () => {
+    const uid = ovUid.trim()
+    if (!uid) return setMsg('Pick a person or paste a UID.')
+    const entry: { label?: string; directory?: number; ads?: number } = {}
+    const picked = roleUsers.find((u) => u.uid === uid)
+    const label = ovLabel.trim() || picked?.name || picked?.email
+    if (label) entry.label = label
+    if (ovDir.trim() !== '' && Number.isFinite(Number(ovDir))) entry.directory = Number(ovDir)
+    if (ovAds.trim() !== '' && Number.isFinite(Number(ovAds))) entry.ads = Number(ovAds)
+    if (entry.directory == null && entry.ads == null) return setMsg('Set a directory or ads %.')
+    await save({ split_overrides: { ...overrides, [uid]: entry } })
+    setOvUid(''); setOvLabel(''); setOvDir(''); setOvAds('')
+  }
+
+  const removeOverride = async (uid: string) => {
+    const next = { ...overrides }
+    delete next[uid]
+    await save({ split_overrides: next })
+  }
 
   const issuePayout = async () => {
     const dollars = Number(payAmount)
@@ -148,8 +178,8 @@ export default function PayoutSettingsDashboard() {
             </table>
           </div>
           <p className="mt-3 text-[11px] text-white/35">
-            Jobs, featured events, and custom field sales use the Ads / sponsored split. These rates live in{' '}
-            <code className="text-white/50">lib/payouts.ts</code> (SPLIT_RATES) — tell the dev to change them.
+            Jobs, featured events, and custom field sales use the Ads / sponsored split. These are the
+            defaults; set a per-person override below to pay any individual a different rate.
           </p>
 
           <div className="mt-5 border-t border-white/10 pt-4">
@@ -171,6 +201,88 @@ export default function PayoutSettingsDashboard() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Per-person commission overrides — set exactly what each individual earns. */}
+        <div className="mt-8 rounded-xl border border-brand-neon/25 bg-brand-neon/[0.04] p-6">
+          <h2 className="text-lg font-bold text-white">Per-person commission</h2>
+          <p className="mt-1 text-sm text-white/55">
+            Set exactly what an individual earns, overriding the table above. It applies on sales where
+            they are the <strong className="text-white">Editor</strong> or the <strong className="text-white">selling rep</strong>.
+            The platform keeps the rest. Works for anyone with a role now or added later.
+          </p>
+
+          {Object.keys(overrides).length > 0 && (
+            <div className="mt-4 overflow-x-auto rounded-lg border border-white/10">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] font-black uppercase tracking-wider text-white/40">
+                    <th className="px-3 py-2">Person</th>
+                    <th className="px-3 py-2 text-center">Directory</th>
+                    <th className="px-3 py-2 text-center">Ads / sponsored</th>
+                    <th className="px-3 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody className="text-white/80">
+                  {Object.entries(overrides).map(([uid, o]) => {
+                    const u = roleUsers.find((x) => x.uid === uid)
+                    return (
+                      <tr key={uid} className="border-b border-white/5 last:border-0">
+                        <td className="px-3 py-2">
+                          <span className="font-bold text-white">{o.label || u?.name || u?.email || uid}</span>
+                          {u?.role && <span className="ml-2 text-[10px] uppercase tracking-wider text-white/40">{u.role}</span>}
+                          <span className="block font-mono text-[10px] text-white/30">{uid}</span>
+                        </td>
+                        <td className="px-3 py-2 text-center font-bold text-brand-neon">{o.directory != null ? `${o.directory}%` : '—'}</td>
+                        <td className="px-3 py-2 text-center font-bold text-brand-gold">{o.ads != null ? `${o.ads}%` : '—'}</td>
+                        <td className="px-3 py-2 text-right">
+                          <button onClick={() => removeOverride(uid)} className="text-[10px] font-black uppercase tracking-wider text-red-400/80 hover:text-red-300">
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
+            <select
+              value={ovUid}
+              onChange={(e) => {
+                setOvUid(e.target.value)
+                const u = roleUsers.find((x) => x.uid === e.target.value)
+                if (u) setOvLabel(u.name || u.email || '')
+              }}
+              className="rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white"
+            >
+              <option value="">Pick a person…</option>
+              {roleUsers.map((u) => (
+                <option key={u.uid} value={u.uid}>
+                  {(u.name || u.email || u.uid)} · {u.role}
+                </option>
+              ))}
+            </select>
+            <input value={ovDir} onChange={(e) => setOvDir(e.target.value)} type="number" min={0} max={100} placeholder="Dir %"
+              className="w-24 rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white" />
+            <input value={ovAds} onChange={(e) => setOvAds(e.target.value)} type="number" min={0} max={100} placeholder="Ads %"
+              className="w-24 rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white" />
+            <button onClick={addOverride} disabled={saving || !ovUid}
+              className="rounded-md bg-brand-neon px-4 py-2 text-sm font-black uppercase tracking-wider text-black hover:bg-cyan-300 disabled:opacity-50">
+              {saving ? '…' : 'Set'}
+            </button>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <input value={ovUid} onChange={(e) => setOvUid(e.target.value)} placeholder="…or paste a UID"
+              className="min-w-[240px] flex-1 rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-white/70" />
+            <input value={ovLabel} onChange={(e) => setOvLabel(e.target.value)} placeholder="label (optional)"
+              className="min-w-[160px] flex-1 rounded-md border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-white/70" />
+          </div>
+          <p className="mt-2 text-[11px] text-white/35">
+            Leave a % blank to keep the default for that product. 0% pays them nothing on that product.
+          </p>
         </div>
 
         <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-6">

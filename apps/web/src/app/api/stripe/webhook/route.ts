@@ -42,6 +42,38 @@ function stripeObjectId(value: any): string | null {
   return typeof value === 'string' ? value : value.id || null
 }
 
+// Resolve the charge id behind a completed checkout session so commission
+// transfers can draw from that specific charge (source_transaction) even while
+// its funds are still `pending` — which is what stops the "insufficient funds"
+// payout failure on fresh sales. Best-effort: returns null on any lookup failure,
+// in which case payouts fall back to requiring available balance.
+async function resolveSessionChargeId(session: any): Promise<string | null> {
+  try {
+    const piId = stripeObjectId(session.payment_intent)
+    if (piId) {
+      const pi = await stripe.paymentIntents.retrieve(piId)
+      const charge = stripeObjectId((pi as any).latest_charge)
+      if (charge) return charge
+    }
+    const invoiceId = stripeObjectId(session.invoice)
+    if (invoiceId) {
+      const inv = await stripe.invoices.retrieve(invoiceId)
+      const charge = stripeObjectId((inv as any).charge)
+      if (charge) return charge
+    }
+    const subId = stripeObjectId(session.subscription)
+    if (subId) {
+      const sub = await stripe.subscriptions.retrieve(subId, { expand: ['latest_invoice'] })
+      const inv: any = (sub as any).latest_invoice
+      const charge = inv && typeof inv === 'object' ? stripeObjectId(inv.charge) : null
+      if (charge) return charge
+    }
+  } catch {
+    /* fall back to balance-based transfer */
+  }
+  return null
+}
+
 async function setPaymentStatusByField(field: string, value: string, status: string) {
   if (!value) return
   const now = new Date().toISOString()
@@ -131,6 +163,10 @@ async function handleCheckoutCompleted(session: any) {
     },
   })
 
+  // The charge behind this sale, resolved once and passed to every payout below so
+  // transfers succeed against still-pending funds (see resolveSessionChargeId).
+  const sourceTransaction = await resolveSessionChargeId(session)
+
   // Canonical Sales Desk orders earn commission after confirmed payment, but
   // operational records are deferred until the paid product brief is complete.
   if (salesOrderSync) {
@@ -170,6 +206,7 @@ async function handleCheckoutCompleted(session: any) {
       amountTotal: session.amount_total,
       currency: session.currency || 'usd',
       sourcePaymentId: session.id,
+      sourceTransaction,
     })
     await recordSubscriptionAttribution(session.subscription, metadata.payout_user_id, payoutService)
     if (isDirectory && order.listing_preexisting && metadata.listing_id) {
@@ -301,6 +338,7 @@ async function handleCheckoutCompleted(session: any) {
       amountTotal: session.amount_total,
       currency: session.currency || 'usd',
       sourcePaymentId: session.id,
+      sourceTransaction,
     })
     // Remember the seller + service so renewals re-apply the split (residual mode).
     await recordSubscriptionAttribution(directorySubscriptionId, metadata.payout_user_id, 'directory')
@@ -369,6 +407,7 @@ async function handleCheckoutCompleted(session: any) {
     amountTotal: session.amount_total,
     currency: session.currency || 'usd',
     sourcePaymentId: session.id,
+    sourceTransaction,
   })
   await recordSubscriptionAttribution(
     session.subscription,
@@ -402,7 +441,11 @@ async function recordSubscriptionAttribution(subscriptionId: any, payeeUserId: a
 
 // Residual commission: on a subscription RENEWAL (not the first invoice, which
 // checkout.session.completed already paid), pay the attributed rep again — but
-// only when godmode has commission_mode = 'residual'. Idempotent per invoice.
+// only when godmode has commission_mode = 'residual'. Dedup is PER-SHARE inside
+// payoutSplit (the ledger `paid` check + stable idempotency key), so re-running on
+// a webhook retry never double-pays AND always completes any share a prior attempt
+// left unpaid — unlike a coarse per-invoice guard, which would skip an unpaid
+// share once any other share for the invoice had a row.
 async function payResidualCommissionIfDue(invoice: any) {
   const subscriptionId = stripeObjectId(invoice.subscription)
   if (invoice.billing_reason !== 'subscription_cycle' || !subscriptionId) return
@@ -414,10 +457,6 @@ async function payResidualCommissionIfDue(invoice: any) {
   const sub = subDoc.exists ? (subDoc.data() as any) : null
   if (!sub?.payout_service) return
 
-  // Don't double-pay a renewal on webhook retries.
-  const existing = await adminDb.collection('transfers').where('source_payment', '==', invoice.id).limit(1).get()
-  if (!existing.empty) return
-
   await payoutSplit({
     stripe,
     sellerUserId: sub.payout_user_id || null,
@@ -425,6 +464,7 @@ async function payResidualCommissionIfDue(invoice: any) {
     amountTotal: invoice.amount_paid ?? invoice.amount_due ?? 0,
     currency: invoice.currency || 'usd',
     sourcePaymentId: invoice.id,
+    sourceTransaction: stripeObjectId(invoice.charge),
   })
 }
 
