@@ -263,7 +263,15 @@ export async function runWorkflow(
   }
   await runRef.set(base)
   const wfRef = adminDb.collection(WORKFLOWS_COLLECTION).doc(workflow.id)
-  await wfRef.update({ last_run_at: startedAt, last_run_id: runRef.id, last_run_status: 'RUNNING' }).catch(() => {})
+  // Dry runs are previews: they must not advance the schedule (`last_run_at`
+  // drives the cron's due check) — only real runs stamp it.
+  await wfRef
+    .update(
+      opts.dryRun
+        ? { last_run_id: runRef.id, last_run_status: 'RUNNING' }
+        : { last_run_at: startedAt, last_run_id: runRef.id, last_run_status: 'RUNNING' }
+    )
+    .catch(() => {})
 
   let result: WorkflowRunResult
   try {
