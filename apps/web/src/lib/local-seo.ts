@@ -28,6 +28,13 @@ export const LOCAL_CATEGORIES: LocalCategory[] = [
   { slug: 'auto-repair', value: 'Auto Repair', label: 'Auto Repair Shop', plural: 'Auto Repair Shops' },
   { slug: 'home-services', value: 'Home Services', label: 'Home Service', plural: 'Home Services & Contractors' },
   { slug: 'auto-dealers', value: 'Auto Dealer', label: 'Auto Dealer', plural: 'Auto Dealers' },
+  { slug: 'wedding-event-services', value: 'Event Services', label: 'Wedding & Event Service', plural: 'Wedding & Event Services' },
+  { slug: 'daycares-childcare', value: 'Childcare & Education', label: 'Daycare', plural: 'Daycares & Childcare' },
+  // Industrial / B2B verticals (border-economy specific — high commercial intent, low competition).
+  { slug: 'electrical-contractors', value: 'Electrical Contractors', label: 'Electrical Contractor', plural: 'Electrical Contractors' },
+  { slug: 'customs-brokers-freight', value: 'Logistics & Freight', label: 'Customs Broker', plural: 'Customs Brokers & Freight Forwarders' },
+  { slug: 'industrial-supply', value: 'Industrial Supply', label: 'Industrial Supplier', plural: 'Industrial Supply Companies' },
+  { slug: 'automation-controls', value: 'Automation & Controls', label: 'Automation Company', plural: 'Automation & Controls Integrators' },
   // Food & nightlife (high search volume).
   { slug: 'restaurants', value: 'Restaurant', label: 'Restaurant', plural: 'Restaurants' },
   { slug: 'cafes', value: 'Cafe', label: 'Cafe', plural: 'Cafes' },

@@ -7,6 +7,7 @@ import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
+import { DIRECTORY_CATEGORIES } from '@/lib/categories'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,15 +49,10 @@ const BLANK_FORM = {
   image_url: '',
 }
 
-const CATEGORIES = [
-  // High-value B2B first (the crawl focus).
-  'Real Estate', 'Attorneys', 'Title & Notary', 'Insurance', 'Financial',
-  'Marketing', 'Web Development',
-  // Consumer / other verticals.
-  'Restaurant', 'Cafe', 'Coffee Shop', 'Bar', 'Bakery', 'Food Truck',
-  'Beauty', 'Auto Repair', 'Auto Dealer', 'Health', 'Fitness', 'Home Services',
-  'Retail', 'Professional Services', 'Entertainment', 'Arts & Culture', 'Other',
-]
+// Mirrors the canonical list in lib/categories.ts (was hand-maintained here and
+// had silently drifted out of sync — missing every category added since,
+// while still offering three that no live listing actually uses).
+const CATEGORIES = [...DIRECTORY_CATEGORIES]
 const TIERS = ['basic', 'premium']
 const CLAIM_STATUSES = ['unclaimed', 'pending_approval', 'approved']
 

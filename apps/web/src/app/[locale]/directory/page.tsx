@@ -9,7 +9,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { useLocale } from '@/components/TranslationProvider'
 
 import { AdBanner } from '@/components/citybeat/AdBanner'
-import { categoryLabel } from '@/lib/categories'
+import { categoryLabel, DIRECTORY_CATEGORIES } from '@/lib/categories'
 
 const DirectoryMap = dynamic(() => import('@/components/DirectoryMap'), { ssr: false })
 
@@ -40,11 +40,14 @@ function LocationBadge({ count }: { count?: number | null }) {
 }
 
 // Value stays English (matches listing.category); label is localized on render.
-const CATEGORIES = [
-  'All', 'Restaurant', 'Cafe', 'Coffee Shop', 'Bar', 'Retail', 'Beauty', 'Health',
-  'Fitness', 'Auto Repair', 'Home Services', 'Real Estate', 'Attorneys', 'Insurance',
-  'Financial', 'Marketing',
-]
+// Derived from the canonical category list so a new ingest vertical (see
+// lib/categories.ts) is automatically browsable here — this used to be a
+// hand-maintained subset that silently excluded every category added after it
+// was written (Electrical Contractors, Automation & Controls, Industrial
+// Supply, Event Services, Childcare & Education, Logistics & Freight, plus
+// Auto Dealer/Entertainment/Arts & Culture/Professional Services/Title &
+// Notary/Web Development from even earlier).
+const CATEGORIES = ['All', ...DIRECTORY_CATEGORIES]
 
 const translations = {
   en: {
