@@ -9,11 +9,18 @@
 import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export function normBrandName(n: string | null | undefined): string {
-  return String(n || '')
-    .toLowerCase()
-    .replace(/[#\d].*$/, '')
+  let s = String(n || '').toLowerCase()
+  // Strip a trailing "#1234" or bare store-number suffix (e.g. "Whataburger
+  // #1234", "Store Name 1234") — but never a digit that starts the name
+  // itself. Trade businesses very commonly lead with a number ("1 A Electric",
+  // "828 Electric LLC", "50 Plus Electric", "24 Hour Plumbing"); the original
+  // `/[#\d].*$/` matched the FIRST digit anywhere and deleted everything from
+  // there on, so any digit-leading name collapsed to an empty string and was
+  // silently excluded from consolidation entirely.
+  s = s.replace(/\s*#\d+\s*$/, '').replace(/(?<=[a-z])\s+\d{2,6}\s*$/, '')
+  return s
     .replace(/\b(el paso|juarez|ciudad juarez|las cruces|tx|nm|inc|llc|co|corp|ltd)\b/g, '')
-    .replace(/[^a-z]/g, '')
+    .replace(/[^a-z0-9]/g, '')
     .trim()
 }
 

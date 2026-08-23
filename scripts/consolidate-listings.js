@@ -21,11 +21,16 @@ const db = getFirestore()
 const APPLY = process.argv.includes('--apply')
 
 function normName(n) {
-  return String(n || '')
+  // Strip a trailing "#1234"/"Store Name 1234" suffix, never a leading digit
+  // (trade businesses commonly lead with a number — "1 A Electric", "828
+  // Electric LLC" — the old first-digit-anywhere match nuked those to '').
+  let s = String(n || '')
     .toLowerCase()
-    .replace(/[#\d].*$/, '')
+    .replace(/\s*#\d+\s*$/, '')
+    .replace(/(?<=[a-z])\s+\d{2,6}\s*$/, '')
+  return s
     .replace(/\b(el paso|juarez|ciudad juarez|las cruces|tx|nm|inc|llc|co)\b/g, '')
-    .replace(/[^a-z]/g, '')
+    .replace(/[^a-z0-9]/g, '')
     .trim()
 }
 
