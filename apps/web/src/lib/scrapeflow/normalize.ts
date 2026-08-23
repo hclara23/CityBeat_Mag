@@ -94,6 +94,11 @@ const CATEGORY_KEYWORDS: Array<[RegExp, string]> = [
   [/automation|control ?systems?|systems? integrat|integrator|\bplc\b|scada|instrumentation|robotic|mechatronic|process control|motion control/i, 'Automation & Controls'],
   [/industrial (supply|supplies|equipment|distribut|products|parts|tool)|electrical (supply|supplies|wholesale|distributor)|bearing|fastener|\bmro\b|hydraulic|pneumatic|welding supply|safety supply|abrasive|conveyor|valve|pump supply|mill supply|wire ?& ?cable|industrial hardware/i, 'Industrial Supply'],
   [/electric(al|ian)s?\b|electrical contract|lighting contractor|low voltage|\bwiring\b|solar (install|electric)|generator install/i, 'Electrical Contractors'],
+  // Narrow verticals that would otherwise fall into a broader bucket below (Entertainment,
+  // Arts & Culture, Retail, Professional Services) — must be checked before those.
+  [/banquet hall|quincea[ñn]era|wedding (venue|planner|coordinator)|event (planner|venue|space|rental|production)|party rental|photo booth|\bdj service|bridal/i, 'Event Services'],
+  [/day ?care|child ?care|preschool|pre-?k\b|montessori|\btutor|driving school|music (school|lessons?)|dance (school|studio)|learning center|test prep|after-?school program/i, 'Childcare & Education'],
+  [/customs broker|freight forward|\b3pl\b|third-party logistics|warehousing|trucking company|freight carrier|cargo|cross-?dock|import.{0,3}export|maquila/i, 'Logistics & Freight'],
   [/attorney|lawyer|law (firm|office)|legal/i, 'Attorneys'],
   [/real ?estate|realt|broker|property management|apartments?/i, 'Real Estate'],
   [/title|notary|escrow/i, 'Title & Notary'],
@@ -214,7 +219,10 @@ export function titleCaseName(raw: string): string {
     .map((w) => {
       const bare = w.replace(/[.,()]/g, '').toUpperCase()
       if (KEEP_UPPER.has(bare)) return w.toUpperCase()
-      return w.replace(/(^|[-'/(&.])([a-z])/g, (_m, p, c) => p + c.toUpperCase())
+      const cased = w.replace(/(^|[-'/(&.])([a-z])/g, (_m, p, c) => p + c.toUpperCase())
+      // Possessive "'s" at the end of a word (Marti's, Denny's) is not an
+      // initial — the apostrophe-triggered capitalization above over-fires on it.
+      return cased.replace(/'S$/, "'s")
     })
     .join(' ')
 }

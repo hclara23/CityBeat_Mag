@@ -15,7 +15,9 @@ import {
   sleep,
   type PageSession,
 } from './browser'
+import { parseCsv } from './csv'
 import { deliverToDirectory } from './directory-sink'
+import { getMappedValue, matchesRowFilter } from './mapping'
 import { titleCaseName } from './normalize'
 import { searchPlacesAsListings } from './places'
 import { TaskType, type ExtractedListing, type LogLevel, type RunSummary } from './types'
@@ -366,33 +368,37 @@ const fetchJson: ExecutorFn = async (env) => {
     return false
   }
   const max = Math.max(1, Math.floor(num(env.getInput('Max items'), 5000)))
+  const formatInput = (env.getInput('Format') || 'auto').toLowerCase()
   try {
     const res = await fetch(url, {
-      headers: { Accept: 'application/json', 'User-Agent': 'CityBeatBot/1.0 ScrapeFlow (+https://citybeatmag.co)' },
-      signal: AbortSignal.timeout(60_000),
+      headers: { Accept: 'application/json, text/csv, */*', 'User-Agent': 'CityBeatBot/1.0 ScrapeFlow (+https://citybeatmag.co)' },
+      signal: AbortSignal.timeout(90_000),
     })
     if (!res.ok) {
       env.log.error(`HTTP ${res.status} from ${url}`)
       return false
     }
-    const data: any = await res.json()
-    const rows: any[] = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : Array.isArray(data?.data) ? data.data : data ? [data] : []
+    const contentType = res.headers.get('content-type') || ''
+    const isCsv = formatInput === 'csv' || (formatInput === 'auto' && (/csv/i.test(contentType) || /\.csv(\?|$)/i.test(url)))
+    let rows: any[]
+    if (isCsv) {
+      const text = await res.text()
+      rows = parseCsv(text)
+      env.log.info(`Parsed CSV: ${rows.length} rows, ${rows[0] ? Object.keys(rows[0]).length : 0} columns`)
+    } else {
+      const data: any = await res.json()
+      rows = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : Array.isArray(data?.data) ? data.data : data ? [data] : []
+    }
     const kept = rows.slice(0, max)
     env.ctx.summary.pages_crawled++
     env.setOutput('JSON', JSON.stringify(kept))
-    env.log.info(`Fetched ${rows.length} rows${kept.length < rows.length ? ` (kept ${kept.length})` : ''}`)
+    env.log.info(`Fetched ${rows.length} rows${kept.length < rows.length ? ` (kept ${kept.length} — raise Max items to avoid truncating before Row filter)` : ''}`)
     return true
   } catch (e: any) {
     env.log.error(`Fetch failed: ${e?.message || e}`)
     return false
   }
 }
-
-const getPath = (obj: any, path: string): any =>
-  String(path)
-    .split('.')
-    .filter(Boolean)
-    .reduce((acc, key) => (acc === null || acc === undefined ? undefined : acc[key]), obj)
 
 const mapJsonToListings: ExecutorFn = async (env) => {
   const rows = parseJsonArray(env.getInput('JSON'))
@@ -407,49 +413,61 @@ const mapJsonToListings: ExecutorFn = async (env) => {
     env.log.error('Field map needs at least "name"')
     return false
   }
+  let rowFilter: Record<string, unknown> | null = null
+  const rowFilterRaw = env.getInput('Row filter')
+  if (rowFilterRaw) {
+    try {
+      rowFilter = JSON.parse(rowFilterRaw)
+    } catch {
+      env.log.error('Row filter is not valid JSON')
+      return false
+    }
+  }
   const category = env.getInput('Category') || null
   const titleCase = bool(env.getInput('Title case names'), true)
   const listings: ExtractedListing[] = []
+  let filteredOut = 0
   for (const row of rows) {
-    const get = (k: string) => {
-      const v = map[k] ? getPath(row, map[k]) : undefined
-      return v === undefined || v === null || v === '' ? null : v
+    if (!matchesRowFilter(row, rowFilter)) {
+      filteredOut++
+      continue
     }
+    const get = (k: string) => getMappedValue(row, map[k])
     const rawName = get('name')
     if (!rawName) continue
-    const name = titleCase ? titleCaseName(String(rawName)) : String(rawName)
-    let city = get('city') ? String(get('city')) : null
-    let state = get('state') ? String(get('state')) : null
-    let zip = get('zip') ? String(get('zip')) : null
+    const name = titleCase ? titleCaseName(rawName) : rawName
+    let city = get('city')
+    let state = get('state')
+    let zip = get('zip')
     const csz = get('city_state_zip')
     if (csz) {
       // "EL PASO TX 79907" / "El Paso, TX 79907-2724"
-      const m = String(csz).match(/^(.*?)[, ]+([A-Za-z]{2})\s+(\d{5})(?:-\d{4})?$/)
+      const m = csz.match(/^(.*?)[, ]+([A-Za-z]{2})\s+(\d{5})(?:-\d{4})?$/)
       if (m) {
         city = city || titleCaseName(m[1].trim())
         state = state || m[2].toUpperCase()
         zip = zip || m[3]
-      } else city = city || String(csz)
+      } else city = city || csz
     }
     const addrRaw = get('address')
     listings.push({
       name,
-      category: category || (get('category') ? String(get('category')) : null),
-      address: addrRaw ? (titleCase ? titleCaseName(String(addrRaw)) : String(addrRaw)) : null,
+      category: category || get('category'),
+      address: addrRaw ? (titleCase ? titleCaseName(addrRaw) : addrRaw) : null,
       city,
       state,
       zip,
-      phone: get('phone') ? String(get('phone')) : null,
-      website: get('website') ? String(get('website')) : null,
-      email: get('email') ? String(get('email')) : null,
-      description: get('description') ? String(get('description')) : null,
+      phone: get('phone'),
+      website: get('website'),
+      email: get('email'),
+      description: get('description'),
       latitude: get('latitude') !== null ? Number(get('latitude')) : null,
       longitude: get('longitude') !== null ? Number(get('longitude')) : null,
       source_url: env.getSession()?.current?.finalUrl || null,
     })
   }
   env.setOutput('Listings', JSON.stringify(listings))
-  env.log.info(`Mapped ${listings.length} of ${rows.length} rows to listings`)
+  env.log.info(`Mapped ${listings.length} of ${rows.length} rows to listings${rowFilter ? ` (${filteredOut} excluded by Row filter)` : ''}`)
   return listings.length > 0
 }
 

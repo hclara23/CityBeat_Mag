@@ -147,18 +147,19 @@ export const TaskRegistry: Record<TaskType, WorkflowTask> = {
     type: TaskType.FETCH_JSON,
     label: 'Fetch JSON',
     isEntryPoint: true,
-    description: 'GETs a JSON API / open-data endpoint (e.g. a Socrata dataset) and outputs the body.',
+    description: 'GETs a JSON or CSV open-data endpoint (Socrata dataset, or a flat government CSV dump) and outputs a JSON array of rows.',
     credits: 2,
     inputs: [
-      { name: 'URL', type: 'STRING', required: true, helperText: 'https://data.texas.gov/resource/<id>.json?$where=...' },
-      { name: 'Max items', type: 'NUMBER', defaultValue: '5000' },
+      { name: 'URL', type: 'STRING', required: true, helperText: 'https://data.texas.gov/resource/<id>.json?$where=... or a .csv bulk-download URL' },
+      { name: 'Format', type: 'SELECT', options: ['auto', 'json', 'csv'], defaultValue: 'auto', helperText: 'auto detects by content-type / .csv extension' },
+      { name: 'Max items', type: 'NUMBER', defaultValue: '5000', helperText: 'Set high for an unfiltered CSV dump (filter afterward with Map JSON rows → Row filter) so rows past the cap aren’t silently dropped before filtering' },
     ],
     outputs: [{ name: 'JSON', type: 'JSON' }],
   },
   [TaskType.MAP_JSON_TO_LISTINGS]: {
     type: TaskType.MAP_JSON_TO_LISTINGS,
     label: 'Map JSON rows to listings',
-    description: 'Deterministically maps each JSON row to a business listing via a field map (no AI).',
+    description: 'Deterministically filters and maps each JSON row to a business listing via a field map (no AI).',
     credits: 1,
     inputs: [
       { name: 'JSON', type: 'JSON', required: true },
@@ -167,7 +168,12 @@ export const TaskRegistry: Record<TaskType, WorkflowTask> = {
         type: 'JSON',
         required: true,
         helperText:
-          'Listing field → source path. Keys: name, address, city, state, zip, city_state_zip, phone, website, email, description, category, latitude, longitude. Paths use dots/indexes, e.g. "business_mailing.coordinates.1"',
+          'Listing field → source path. Keys: name, address, city, state, zip, city_state_zip, phone, website, email, description, category, latitude, longitude. A path is dotted/indexed (e.g. "business_mailing.coordinates.1"); "A+B" joins two fields with a space (e.g. "FIRST_NME+LAST_NME"); a value starting with "=" is a literal (e.g. "=Licensed Dentist").',
+      },
+      {
+        name: 'Row filter',
+        type: 'JSON',
+        helperText: 'Optional {field: value | [values]} — case-insensitive equality AND across keys, applied before mapping. e.g. {"COUNTY":"EL PASO","STATE":"TX","LIC_STA_DESC":"Active"}',
       },
       { name: 'Category', type: 'STRING', helperText: 'Category for every row (overrides map)' },
       { name: 'Title case names', type: 'BOOLEAN', defaultValue: 'true', helperText: 'Fix ALL-CAPS government data; "LAST, FIRST" → "First Last"' },

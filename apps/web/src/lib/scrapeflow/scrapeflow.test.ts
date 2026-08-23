@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { parseJsonLoose, resolveInputs, validateDefinition } from './definition'
 import { absolutizeLinks, htmlToText } from './browser'
+import { parseCsv } from './csv'
+import { getMappedValue, getPath, matchesRowFilter } from './mapping'
 import {
   formatAddress,
   inRegion,
@@ -15,6 +17,7 @@ import {
 } from './normalize'
 import { WORKFLOW_TEMPLATES } from './templates'
 import { TaskType } from './types'
+import { DIRECTORY_CATEGORIES } from '@/lib/categories'
 
 test('every bundled template validates', () => {
   for (const tpl of WORKFLOW_TEMPLATES) {
@@ -144,6 +147,9 @@ test('industrial verticals map to the new categories and TDLR names are title-ca
   assert.equal(titleCaseName("O'BRIEN ELECTRIC"), "O'Brien Electric")
   assert.equal(titleCaseName('A&D ELECTRIC'), 'A&D Electric')
   assert.equal(titleCaseName('J.R. ELECTRIC LLC'), 'J.R. Electric LLC')
+  assert.equal(titleCaseName("MARTI'S SALON"), "Marti's Salon")
+  assert.equal(titleCaseName("DENNY'S RESTAURANT"), "Denny's Restaurant")
+  assert.equal(titleCaseName("O'SULLIVAN'S PUB"), "O'Sullivan's Pub")
 })
 
 test('toCandidate keeps a real Google place id as the doc id and coordinates', () => {
@@ -165,6 +171,61 @@ test('definition accepts FETCH_JSON / SEARCH_GOOGLE_PLACES entry points', () => 
     validateDefinition({ nodes: [{ id: 'a', type: 'FETCH_JSON', inputs: { URL: 'https://x' } }, { id: 'b', type: 'LAUNCH_BROWSER', inputs: { 'Website URL': 'https://y' } }] }).ok,
     false
   )
+})
+
+test('every bundled template uses a category that exists in DIRECTORY_CATEGORIES', () => {
+  const allowed = new Set(DIRECTORY_CATEGORIES as readonly string[])
+  for (const tpl of WORKFLOW_TEMPLATES) {
+    for (const node of tpl.definition.nodes) {
+      const cat = node.inputs?.['Default category'] || node.inputs?.Category
+      if (cat) assert.ok(allowed.has(cat), `${tpl.key}: "${cat}" is not in DIRECTORY_CATEGORIES`)
+    }
+  }
+})
+
+test('new verticals map to their categories via keywords', () => {
+  assert.equal(mapCategory('El Paso Wedding Venue', 'Retail'), 'Event Services')
+  assert.equal(mapCategory('Sunrise Quinceañera Hall', 'Retail'), 'Event Services')
+  assert.equal(mapCategory('Little Stars Daycare', 'Retail'), 'Childcare & Education')
+  assert.equal(mapCategory('Border Freight Forwarders LLC', 'Retail'), 'Logistics & Freight')
+  assert.equal(mapCategory('ABC Customs Broker Inc', 'Retail'), 'Logistics & Freight')
+})
+
+test('parseCsv handles quoted fields, embedded commas, and escaped quotes', () => {
+  const csv = 'A,B,C\n1,"two, three",4\n"say ""hi""",5,6\n'
+  const rows = parseCsv(csv)
+  assert.deepEqual(rows, [
+    { A: '1', B: 'two, three', C: '4' },
+    { A: 'say "hi"', B: '5', C: '6' },
+  ])
+})
+
+test('parseCsv handles a multi-line quoted field and trailing blank line', () => {
+  const csv = 'Name,Note\n"Acme","Line1\nLine2"\nBeta,ok\n'
+  const rows = parseCsv(csv)
+  assert.deepEqual(rows, [
+    { Name: 'Acme', Note: 'Line1\nLine2' },
+    { Name: 'Beta', Note: 'ok' },
+  ])
+})
+
+test('parseCsv on empty/header-only input', () => {
+  assert.deepEqual(parseCsv(''), [])
+  assert.deepEqual(parseCsv('A,B\n'), [])
+})
+
+test('mapping: getPath, getMappedValue composite/literal, matchesRowFilter', () => {
+  const row = { FIRST_NME: 'Iven', LAST_NME: 'Gonzalez', COUNTY: 'EL PASO', STATE: 'TX', geo: { coordinates: [-106.4, 31.7] } }
+  assert.equal(getPath(row, 'geo.coordinates.1'), 31.7)
+  assert.equal(getMappedValue(row, 'FIRST_NME+LAST_NME'), 'Iven Gonzalez')
+  assert.equal(getMappedValue(row, '=Licensed Dentist'), 'Licensed Dentist')
+  assert.equal(getMappedValue(row, 'COUNTY'), 'EL PASO')
+  assert.equal(getMappedValue(row, undefined), null)
+  assert.equal(getMappedValue({ FIRST_NME: '', LAST_NME: 'Only' }, 'FIRST_NME+LAST_NME'), 'Only', 'blank parts are dropped')
+  assert.equal(matchesRowFilter(row, { COUNTY: 'el paso', STATE: 'TX' }), true, 'case-insensitive')
+  assert.equal(matchesRowFilter(row, { COUNTY: 'BELL' }), false)
+  assert.equal(matchesRowFilter(row, { COUNTY: ['BELL', 'EL PASO'] }), true, 'array membership')
+  assert.equal(matchesRowFilter(row, null), true)
 })
 
 test('looksLikeSameBusiness compares phone, then street number', () => {
