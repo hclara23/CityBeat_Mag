@@ -33,6 +33,7 @@ import {
 import {
   buildSalesDirectoryListingRecord,
   directoryClaimPendingTier,
+  directoryOrderPaymentPatch,
   isSalesCreatedDirectoryListing,
   salesDirectoryCheckoutIsManaged,
   salesDirectoryClaimStatus,
@@ -661,6 +662,51 @@ test('directory fulfillment enriches the paid listing without hiding its claimab
   assert.equal(record.stripe_subscription_id, 'sub_123')
   assert.equal(record.address, '100 Mesa St, El Paso, TX, 79901')
   assert.deepEqual(record.gallery_urls, ['https://storage.example/one.webp'])
+})
+
+test('directory order payment patch unlocks tier immediately for a net-new rep sale, but queues admin review for a claim on an existing listing', () => {
+  // Net-new listing (the rep created it for this sale) — payment alone is
+  // sufficient trust; no admin approval gate, tier applies right away.
+  const netNew = directoryOrderPaymentPatch({
+    metadata: { tier: 'premium', plan: 'founding', founding: 'true', sold_by: 'rep_123' },
+    order: { listing_preexisting: false, directory_plan_id: 'founding', founding: true },
+    currentListing: {},
+    subscriptionId: 'sub_123',
+    customerId: 'cus_123',
+    now: new Date('2026-08-22T00:26:51.000Z'),
+  })
+  assert.equal(netNew.tier, 'premium')
+  assert.equal(netNew.pending_tier, null)
+  assert.equal(netNew.claim_status, undefined, 'claim_status untouched — stays whatever it already was (unclaimed)')
+  assert.equal(netNew.founding_member, true)
+  assert.equal(netNew.plan, 'founding')
+  assert.equal(netNew.stripe_subscription_id, 'sub_123')
+  assert.equal(netNew.stripe_customer_id, 'cus_123')
+
+  // Claiming a pre-existing listing — real dispute risk (is this payer
+  // actually the owner?), so it queues for the Claims Queue instead.
+  const existingClaim = directoryOrderPaymentPatch({
+    metadata: { tier: 'premium', sold_by: 'rep_123' },
+    order: { listing_preexisting: true },
+    currentListing: { tier: 'basic' },
+    subscriptionId: 'sub_456',
+    customerId: 'cus_456',
+    now: new Date('2026-08-22T00:26:51.000Z'),
+  })
+  assert.equal(existingClaim.claim_status, 'pending_approval')
+  assert.equal(existingClaim.pending_tier, 'premium')
+  assert.equal(existingClaim.tier, undefined, 'tier untouched until an admin approves')
+  assert.equal(existingClaim.claimed_at, '2026-08-22T00:26:51.000Z')
+
+  // Featured plan resolves pending_tier/tier to 'featured', not 'premium'.
+  const featured = directoryOrderPaymentPatch({
+    metadata: { tier: 'featured', sold_by: 'rep_123' },
+    order: { listing_preexisting: false },
+    currentListing: {},
+    subscriptionId: null,
+    customerId: null,
+  })
+  assert.equal(featured.tier, 'featured')
 })
 
 test('catalog cadence is explicit for every fixed and custom product', () => {

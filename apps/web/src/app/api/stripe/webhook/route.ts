@@ -18,7 +18,7 @@ import {
   referralCouponFromInvoice,
   referralDiscountAmount,
 } from '@/lib/referrals'
-import { salesDirectoryClaimStatus } from '@/lib/sales-directory'
+import { directoryOrderPaymentPatch, salesDirectoryClaimStatus } from '@/lib/sales-directory'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -211,6 +211,36 @@ async function handleCheckoutCompleted(session: any) {
     await recordSubscriptionAttribution(session.subscription, metadata.payout_user_id, payoutService)
     if (isDirectory && order.listing_preexisting && metadata.listing_id) {
       await markOutreachConverted(metadata.listing_id)
+    }
+
+    // Tier/claim-status/Stripe linkage for a Sales Desk directory order. This
+    // used to be entirely skipped for canonical (sales_order_id) checkouts —
+    // only the content brief (name/address/photos) gets written later, when
+    // the customer finishes /fulfill/{orderId}; nothing ever ran the same
+    // premium-claim logic self-serve/legacy checkouts get above. Run it at
+    // payment time, independent of intake completion — see
+    // directoryOrderPaymentPatch for why.
+    if (isDirectory && metadata.listing_id) {
+      const directorySubscriptionId = stripeObjectId(session.subscription)
+      const directoryCustomerId = stripeObjectId(session.customer)
+      const currentListingDoc = await adminDb.collection('directory_listings').doc(metadata.listing_id).get()
+      const currentListing = currentListingDoc.exists ? (currentListingDoc.data() as Record<string, any>) : {}
+      const listingPatch = directoryOrderPaymentPatch({
+        metadata,
+        order,
+        currentListing,
+        subscriptionId: directorySubscriptionId,
+        customerId: directoryCustomerId,
+      })
+      await adminDb.collection('directory_listings').doc(metadata.listing_id).set(listingPatch, { merge: true })
+      await linkDirectorySubscription({
+        subscriptionId: directorySubscriptionId,
+        customerId: directoryCustomerId,
+        listingId: metadata.listing_id,
+        ownerId: currentListing.owner_id || null,
+        plan: metadata.plan || null,
+        billingCycle: metadata.billing_cycle || order.billing_interval || null,
+      })
     }
     return
   }
