@@ -199,7 +199,7 @@ export default function DirectoryPage() {
                 className="w-full pl-12 pr-4 py-4 rounded-full border border-white/15 bg-black/60 text-white font-medium focus:outline-none focus:border-brand-neon focus:ring-1 focus:ring-brand-neon transition"
               />
               <svg
-                className="absolute left-4 top-4.5 h-6 w-6 text-white/40"
+                className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-white/40"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
