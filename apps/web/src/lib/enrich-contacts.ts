@@ -1,4 +1,5 @@
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { getCronCursor, setCronCursor } from './cron-cursor'
 
 // Backfills contact data for directory listings so the sales agent can reach them.
 // Strategy: Google Places Details (place_id → website + phone) when GOOGLE_PLACES_API_KEY
@@ -133,16 +134,32 @@ export async function runContactEnrichment(opts: { limit?: number; categories?: 
   // recently. Without the attempted-marker skip, every run re-scanned the same
   // first page of unenrichable docs and the backlog never advanced. An optional
   // category filter lets a run target a specific vertical (e.g. new B2B inventory
-  // buried behind thousands of older listings) instead of grinding in order.
+  // buried behind thousands of older listings) instead of grinding in order —
+  // it's applied in memory (not a query filter), so the traversal itself is the
+  // same regardless of whether it's set, which is why one shared cursor works
+  // for both a scoped and an unscoped run.
+  //
+  // The starting point is a cursor PERSISTED ACROSS RUNS, not just within one
+  // (see cron-cursor.ts) — without it, every run restarted from the front of
+  // Firestore's default doc-ID order and never advanced past the first ~4,000
+  // docs, so a whole day's worth of newly-scraped listings (higher-sorting doc
+  // ids) could never be reached no matter how many times this ran.
+  const cursorName = 'enrich_contacts'
+  const startValue = await getCronCursor(cursorName)
   const candidates: FirebaseFirestore.QueryDocumentSnapshot[] = []
-  let cursor: FirebaseFirestore.QueryDocumentSnapshot | null = null
+  let cursor: string | null = startValue
+  let reachedEnd = false
   const maxPages = catFilter ? 30 : 8 // scan deeper when hunting a specific vertical
   for (let page = 0; page < maxPages && candidates.length < limit * 3; page++) {
-    let q = adminDb.collection('directory_listings').where('claim_status', '==', 'unclaimed').limit(500)
+    let q = adminDb.collection('directory_listings').where('claim_status', '==', 'unclaimed').orderBy('created_at', 'asc').limit(500)
     if (cursor) q = q.startAfter(cursor)
     const snap = await q.get()
-    if (snap.empty) break
-    cursor = snap.docs[snap.docs.length - 1]
+    if (snap.empty) {
+      reachedEnd = true
+      break
+    }
+    const lastDoc = snap.docs[snap.docs.length - 1]
+    cursor = (lastDoc.data() as any)?.created_at || null
     for (const d of snap.docs) {
       const l = d.data() as any
       if (catFilter && !catFilter.has(l.category)) continue
@@ -152,8 +169,12 @@ export async function runContactEnrichment(opts: { limit?: number; categories?: 
       candidates.push(d)
       if (candidates.length >= limit * 3) break
     }
-    if (snap.size < 500) break
+    if (snap.size < 500) {
+      reachedEnd = true
+      break
+    }
   }
+  await setCronCursor(cursorName, reachedEnd ? null : cursor)
 
   for (const doc of candidates) {
     if (stats.updated >= limit) break

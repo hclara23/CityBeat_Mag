@@ -3,6 +3,7 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { sendEmail as sendEmailViaProvider } from './email'
 import { isSuppressed } from './suppression'
 import { traceClaude } from '@/lib/observability'
+import { getCronCursor, setCronCursor } from './cron-cursor'
 
 // Automated outbound sales agent: contacts unclaimed directory businesses and
 // pitches the free claim + $19/mo Premium upgrade, with a one-click deep link
@@ -419,11 +420,24 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
   }
 
   // 2) New contacts: unclaimed listings with an email, not yet in sales_outreach.
-  const listingsSnap = await adminDb
+  // Ordered + cursored across INVOCATIONS (not just within one run) — an
+  // unordered, un-cursored query here used to reprocess the same lowest-doc-ID
+  // ~80 listings forever, permanently missing everything scraped in after the
+  // original backlog (new listings sort after old ones under any doc-ID-based
+  // default ordering). See cron-cursor.ts.
+  const cursorName = 'sales_agent_new_contacts'
+  const cursorValue = await getCronCursor(cursorName)
+  const batchSize = limit * 4
+  let listingsQuery: FirebaseFirestore.Query = adminDb
     .collection('directory_listings')
     .where('claim_status', '==', 'unclaimed')
-    .limit(limit * 4)
-    .get()
+    .orderBy('created_at', 'asc')
+    .limit(batchSize)
+  if (cursorValue) listingsQuery = listingsQuery.startAfter(cursorValue)
+  const listingsSnap = await listingsQuery.get()
+  const lastDoc = listingsSnap.docs[listingsSnap.docs.length - 1]
+  const reachedEnd = listingsSnap.docs.length < batchSize
+  await setCronCursor(cursorName, reachedEnd ? null : (lastDoc?.data() as any)?.created_at || null)
 
   for (const lDoc of listingsSnap.docs) {
     if (results.contacted >= limit) break

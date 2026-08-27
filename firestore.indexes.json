@@ -17,6 +17,38 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "directory_listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "claim_status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "directory_listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "is_published",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tier",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rating",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

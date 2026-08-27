@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
   const businessName = typeof body.businessName === 'string' ? body.businessName.trim().slice(0, 140) : ''
   const contactEmail = normalizeSalesEmail(body.contactEmail)
   const contactPhone = typeof body.phone === 'string' ? body.phone.trim().slice(0, 40) : ''
+  const referralCode = typeof body.referralCode === 'string' ? body.referralCode.trim().slice(0, 40) : ''
   const locale = body.locale === 'es' ? 'es' : 'en'
   const appOrigin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
   const amount = salesProductAmount(product, body.amount)
@@ -359,6 +360,7 @@ export async function POST(request: NextRequest) {
             billing_cycle: directoryPlan.interval,
             directory_category: directoryCategory,
             listing_preexisting: listingPreexisting ? 'true' : 'false',
+            ...(referralCode ? { referral_code: referralCode } : {}),
           }
         : {
             adType: product.intakeKind,

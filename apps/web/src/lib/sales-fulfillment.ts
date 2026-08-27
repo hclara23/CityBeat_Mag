@@ -156,6 +156,8 @@ export function buildSalesFulfillmentRecord(input: {
         priority: 0,
         is_active: false,
         status: 'pending_review',
+        stripe_subscription_id: order.stripe_subscription_id || null,
+        stripe_customer_id: order.stripe_customer_id || null,
         created_at: now,
       }
     case 'newsletter_sponsorship':
@@ -174,6 +176,7 @@ export function buildSalesFulfillmentRecord(input: {
         creative_url: text(values, 'creative_url'),
         brand_notes: text(values, 'brand_notes') || null,
         stripe_subscription_id: order.stripe_subscription_id || null,
+        stripe_customer_id: order.stripe_customer_id || null,
         status: 'pending_review',
         is_active: false,
         created_at: now,

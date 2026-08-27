@@ -43,6 +43,7 @@ export default function SalesDesk() {
   const [businessName, setBusinessName] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [referralCode, setReferralCode] = useState('')
   const [listingId, setListingId] = useState('')
   const [directoryCategory, setDirectoryCategory] = useState('')
   const [amount, setAmount] = useState('')
@@ -232,6 +233,7 @@ export default function SalesDesk() {
           contactEmail: email,
           phone: phone.trim() || undefined,
           listingId: listingId || undefined,
+          referralCode: listingId ? referralCode.trim() || undefined : undefined,
           directoryCategory:
             product.family === 'directory' ? directoryCategory.trim() : undefined,
           locale,
@@ -480,6 +482,12 @@ export default function SalesDesk() {
               <a href={withLocale(locale, '/guide')} className="border border-white/20 px-4 py-2 text-white/70 hover:text-white">
                 {isEs ? 'Guía del usuario' : 'User guide'}
               </a>
+              <a href={withLocale(locale, '/admin/jobs')} className="border border-white/20 px-4 py-2 text-white/70 hover:border-brand-neon/60 hover:text-brand-neon">
+                {isEs ? 'Ofertas de empleo' : 'Job postings'}
+              </a>
+              <a href={withLocale(locale, '/admin/campaigns')} className="border border-white/20 px-4 py-2 text-white/70 hover:border-brand-neon/60 hover:text-brand-neon">
+                {isEs ? 'Patrocinios de boletín' : 'Newsletter sponsorships'}
+              </a>
             </div>
           </div>
         </header>
@@ -700,10 +708,18 @@ export default function SalesDesk() {
                 </label>
               </div>
 
-              <label className="block text-xs font-black uppercase tracking-[0.14em] text-white/60 sm:max-w-[calc(50%-0.5rem)]">
-                Phone <span className="font-normal normal-case tracking-normal text-white/30">optional, for text handoff</span>
-                <input disabled={handoffReady} className={`mt-1.5 ${inputClass} disabled:cursor-not-allowed disabled:opacity-55`} type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" placeholder="+1 915 555 0100" />
-              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-xs font-black uppercase tracking-[0.14em] text-white/60">
+                  Phone <span className="font-normal normal-case tracking-normal text-white/30">optional, for text handoff</span>
+                  <input disabled={handoffReady} className={`mt-1.5 ${inputClass} disabled:cursor-not-allowed disabled:opacity-55`} type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} autoComplete="tel" placeholder="+1 915 555 0100" />
+                </label>
+                {listingId && (
+                  <label className="block text-xs font-black uppercase tracking-[0.14em] text-white/60">
+                    Referral code <span className="font-normal normal-case tracking-normal text-white/30">optional — ask if a customer referred them</span>
+                    <input disabled={handoffReady} className={`mt-1.5 ${inputClass} disabled:cursor-not-allowed disabled:opacity-55`} value={referralCode} onChange={(event) => setReferralCode(event.target.value)} placeholder="e.g. VARSITY4F2A" />
+                  </label>
+                )}
+              </div>
 
               {product.id === 'custom_one_time' && (
                 <div className="grid gap-4 sm:grid-cols-[180px_1fr]">

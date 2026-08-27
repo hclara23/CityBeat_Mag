@@ -241,6 +241,35 @@ async function handleCheckoutCompleted(session: any) {
         plan: metadata.plan || null,
         billingCycle: metadata.billing_cycle || order.billing_interval || null,
       })
+
+      // Referral capture for a Sales Desk order. A rep-run checkout has no
+      // signed-in customer session, so there's no browser cookie to read the
+      // way self-serve checkout does — a rep instead types in the code the
+      // client mentions (see the "Referral code" field on /admin/sales/me,
+      // metadata.referral_code). Attribution only makes sense when the listing
+      // already had an owner BEFORE this order (an existing self-serve
+      // customer a rep is now upselling/upgrading) — a brand-new rep-sold
+      // listing has no owner yet to credit until an admin attaches one later,
+      // so there is nothing to attribute at payment time.
+      if (currentListing.owner_id && directorySubscriptionId) {
+        await ensureReferralProgram({
+          listingId: metadata.listing_id,
+          ownerId: currentListing.owner_id,
+          subscriptionId: directorySubscriptionId,
+        })
+        if (metadata.referral_code) {
+          await recordReferralAttribution({
+            code: metadata.referral_code,
+            referredListingId: metadata.listing_id,
+            referredOwnerId: currentListing.owner_id,
+            referredSubscriptionId: directorySubscriptionId,
+            referredCustomerId: directoryCustomerId,
+            referredEmail: session.customer_details?.email || session.customer_email || null,
+            referredPlan: metadata.plan || null,
+            checkoutCreated: session.created || null,
+          })
+        }
+      }
     }
     return
   }
@@ -590,6 +619,32 @@ async function handleChargeRefunded(charge: any) {
   }
 }
 
+// A chargeback (charge.dispute.created) is the customer contesting the charge
+// directly with their bank — a stronger signal than a refund and one Stripe
+// freezes funds against immediately. Refunds already trigger the downgrade
+// path below (tier reset, sponsorship pulled, pending referral disqualified,
+// ad campaign/banner paused); a dispute deserves the identical protection and
+// previously got none at all, leaving a disputed listing/campaign fully live
+// indefinitely while the dispute was contested. Restoring service if the
+// dispute is later won is intentionally NOT automated here — that is an
+// admin judgment call (see the ops alert below), not a safe webhook action.
+async function handleChargeDisputeCreated(dispute: any) {
+  const chargeId = stripeObjectId(dispute.charge)
+  if (!chargeId) return
+  let charge: any
+  try {
+    charge = await stripe.charges.retrieve(chargeId)
+  } catch {
+    return
+  }
+  await handleChargeRefunded({ ...charge, refunded: true, amount_refunded: charge.amount })
+  await reportFailure(
+    'stripe-webhook-dispute',
+    new Error(`Chargeback opened (${dispute.reason || 'unknown reason'}) — listing/campaign downgraded, respond to the dispute in Stripe`),
+    { dispute_id: dispute.id, charge_id: chargeId, amount: dispute.amount, reason: dispute.reason }
+  )
+}
+
 async function recordPayment(invoice: any) {
   const subscriptionId = stripeObjectId(invoice.subscription)
   const subscriptionDoc = subscriptionId
@@ -695,14 +750,24 @@ async function handleInvoicePaymentFailed(invoice: any) {
   await sendDunningEmail(invoice)
 }
 
-// Updates any ads-portal campaigns tied to a Stripe subscription (separate
-// `ad_campaigns` collection owned by the ads app). Keeps recurring ad placements
-// in sync when a subscription renews-fails or is cancelled.
+// Updates any ads-portal campaigns AND category banners tied to a Stripe
+// subscription. Two separate collections (`ad_campaigns` for newsletter
+// sponsorships, `ad_banners` for category banners) both hold recurring ad
+// products, and both need to stop showing when the subscription renews-fails
+// or is cancelled — a category banner used to be invisible to this check
+// entirely (only ad_campaigns was queried), so a cancelled banner subscriber
+// kept the placement forever.
 async function setAdCampaignsBySubscription(subscriptionId: string, patch: Record<string, any>) {
   if (!subscriptionId) return
-  const snap = await adminDb.collection('ad_campaigns').where('stripe_subscription_id', '==', subscriptionId).get()
   const now = new Date().toISOString()
-  await Promise.all(snap.docs.map((d) => d.ref.set({ ...patch, updated_at: now }, { merge: true })))
+  const [campaignsSnap, bannersSnap] = await Promise.all([
+    adminDb.collection('ad_campaigns').where('stripe_subscription_id', '==', subscriptionId).get(),
+    adminDb.collection('ad_banners').where('stripe_subscription_id', '==', subscriptionId).get(),
+  ])
+  await Promise.all([
+    ...campaignsSnap.docs.map((d) => d.ref.set({ ...patch, updated_at: now }, { merge: true })),
+    ...bannersSnap.docs.map((d) => d.ref.set({ ...patch, updated_at: now }, { merge: true })),
+  ])
 }
 
 async function upsertSubscription(subscription: any, status?: string) {
@@ -813,6 +878,9 @@ export async function POST(req: NextRequest) {
         break
       case 'charge.refunded':
         await handleChargeRefunded(obj)
+        break
+      case 'charge.dispute.created':
+        await handleChargeDisputeCreated(obj)
         break
       case 'invoice.payment_succeeded':
         await handleInvoicePaymentSucceeded(obj)
