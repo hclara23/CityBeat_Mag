@@ -1,12 +1,19 @@
 import { redirect } from 'next/navigation'
-import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
-import { hasAdminAccess } from '@citybeat/lib/roles'
+import { getServerUser } from '@citybeat/lib/firebase/server'
 
 export const dynamic = 'force-dynamic'
 
-// Server-side gate for every /admin/* page. Authorization is enforced HERE (not
-// in client components) so the admin UI is never delivered to non-admins, and
-// admins are forced to enroll 2FA before reaching any admin tooling.
+// Only "is anyone signed in" is enforced here. The actual role gate is split
+// across the two route groups this layout wraps: (protected) requires
+// hasAdminAccess (editorial/admin tooling — claims, directory manager, events,
+// finance, review queue, scrapeflow, the godmode sales agent), and (sales)
+// requires the broader hasSalesAccess (Sales Desk + the paid job/newsletter
+// approval queues a rep's own sales feed into) — see each group's layout.tsx.
+// A single shared hasAdminAccess check here used to gate the ENTIRE /admin/*
+// tree, which silently locked plain sales reps out of the Sales Desk itself
+// (login even redirects a sales-only account to /admin/sales/me, straight
+// into that bounce) — splitting the gate by route group is what makes "sales
+// rep access" actually possible without loosening the editorial-only pages.
 export default async function AdminLayout({
   children,
   params,
@@ -18,16 +25,6 @@ export default async function AdminLayout({
   const user = await getServerUser()
   if (!user) {
     redirect(`/${locale}/login?redirectTo=/admin`)
-  }
-
-  const profile = await getServerUserProfile(user.id)
-  if (!hasAdminAccess(profile)) {
-    redirect(`/${locale}/`)
-  }
-
-  // 2FA is mandatory for privileged accounts.
-  if (!profile?.mfa_enabled) {
-    redirect(`/${locale}/account/security?required=1`)
   }
 
   return <>{children}</>
