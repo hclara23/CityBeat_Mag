@@ -14,7 +14,7 @@ async function requireDeveloper() {
   return { user }
 }
 
-const PLACEMENTS = ['home_top', 'directory', 'sidebar']
+const PLACEMENTS = ['home_top', 'directory', 'sidebar', 'newsletter']
 const EDITABLE = ['sponsor_name', 'title', 'description', 'image_url', 'link_url', 'is_active']
 
 // PATCH — update a banner

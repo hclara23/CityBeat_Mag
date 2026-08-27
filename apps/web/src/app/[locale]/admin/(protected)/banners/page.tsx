@@ -13,7 +13,7 @@ interface Banner {
   description: string | null
   image_url: string | null
   link_url: string | null
-  placement: 'home_top' | 'directory' | 'sidebar'
+  placement: 'home_top' | 'directory' | 'sidebar' | 'newsletter'
   locale: 'all' | 'en' | 'es'
   priority: number
   is_active: boolean
@@ -31,11 +31,12 @@ const BLANK = {
   is_active: true,
 }
 
-const PLACEMENTS: Banner['placement'][] = ['home_top', 'directory', 'sidebar']
+const PLACEMENTS: Banner['placement'][] = ['home_top', 'directory', 'sidebar', 'newsletter']
 const PLACEMENT_LABEL: Record<Banner['placement'], string> = {
   home_top: 'Homepage (top)',
   directory: 'Directory page',
   sidebar: 'Sidebar',
+  newsletter: 'Newsletter (Sponsored by)',
 }
 
 export default function AdminBannersPage() {

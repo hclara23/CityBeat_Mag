@@ -44,18 +44,32 @@ export async function POST(req: NextRequest) {
     const base = sameOriginReturn(returnUrl, origin, '/en/ads/success')
     const sep = base.includes('?') ? '&' : '?'
 
+    // Fulfillment metadata MUST reach the webhook. It previously lived ONLY on
+    // `product_data.metadata` — which Stripe stores on the PRODUCT — while the
+    // webhook reads `session.metadata` and falls back to
+    // `line_items[0].price.metadata`. Neither ever contained it, so the
+    // provisioning branch never fired: a paid $50 job posting stayed an
+    // unpublished draft forever. Stripe's inline price_data has no metadata
+    // field, so the session is the reliable carrier; product_data.metadata is
+    // kept as a human-readable breadcrumb in the Stripe dashboard.
+    const provisionMetadata = {
+      productId: String(productId ?? ''),
+      type: String(type ?? ''),
+    }
+
     const session = await stripe.checkout.sessions.create({
       line_items: [
         {
           price_data: {
             currency: 'usd',
-            product_data: { name, metadata: { productId: String(productId ?? ''), type: String(type ?? '') } },
+            product_data: { name, metadata: provisionMetadata },
             unit_amount: unitAmount,
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
+      metadata: provisionMetadata,
       success_url: `${base}${sep}success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${base}${sep}canceled=true`,
     })

@@ -20,7 +20,11 @@ async function requireDeveloper() {
   return { user }
 }
 
-const PLACEMENTS = ['home_top', 'directory', 'sidebar']
+// 'newsletter' backs the sellable "Sponsored by" slot in the weekly digest
+// (cron/newsletter-digest reads ad_banners where placement == 'newsletter').
+// It was missing here, so that paid slot was unreachable by any in-product
+// action — every attempt silently fell back to 'home_top'.
+const PLACEMENTS = ['home_top', 'directory', 'sidebar', 'newsletter']
 
 // GET — list all banners
 export async function GET() {
