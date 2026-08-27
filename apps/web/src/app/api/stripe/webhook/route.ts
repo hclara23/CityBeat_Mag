@@ -440,6 +440,39 @@ async function handleCheckoutCompleted(session: any) {
         { is_active: true, status: 'running', payment_status: 'paid', published_at: now }, { merge: true }
       )
     }
+
+    // This branch returns early, so it must record revenue and commission
+    // ITSELF — otherwise the sale never reaches the ledger below. Until the
+    // metadata routing was fixed, this branch could never fire and these
+    // purchases fell through to the generic handler, which did record them; so
+    // making provisioning work would otherwise have silently traded a
+    // never-published product for unrecorded revenue and unpaid commission.
+    const provisionService = provisionMeta.type === 'job' ? 'job' : 'ad_campaign'
+    await adminDb.collection('ad_purchases').doc(session.id).set(
+      {
+        session_id: session.id,
+        product_id: provisionMeta.productId,
+        advertiser_email: session.customer_email || session.customer_details?.email || null,
+        ad_type: provisionMeta.type,
+        amount_total: session.amount_total || 0,
+        currency: session.currency || 'usd',
+        payment_status: 'completed',
+        stripe_customer_id: stripeObjectId(session.customer),
+        stripe_payment_intent_id: stripeObjectId(session.payment_intent),
+        created_at: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    )
+    await payoutSplit({
+      stripe,
+      sellerUserId: metadata.payout_user_id || null,
+      service: provisionService,
+      amountTotal: session.amount_total,
+      currency: session.currency || 'usd',
+      sourcePaymentId: session.id,
+      sourceTransaction,
+      saleAt: session.created ? new Date(session.created * 1000) : null,
+    })
     return
   }
 
