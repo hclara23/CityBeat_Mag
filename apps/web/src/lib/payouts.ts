@@ -230,11 +230,19 @@ async function executeTransfer(input: {
   return { status: 'paid', amount, transferId: transfer.id }
 }
 
-// Pays the configured share of a completed payment to a user's connected account
-// via a Stripe transfer, and records it in the `transfers` collection.
-// No-ops safely when: no payee, percent is 0, or the payee has no payouts-enabled
-// connected account. A transfer that Stripe rejects is recorded `failed` (for the
-// reconcile pass) rather than thrown — see executeTransfer.
+// DEPRECATED — DO NOT USE FOR COMMISSION.
+//
+// Pays a share IMMEDIATELY, bypassing the 7-day refund hold and the 1st/15th
+// payout cycle. Commission must go through payoutSplit (accrue as `held`) and
+// runPayoutCycle instead; paying instantly is exactly the behaviour the accrual
+// model replaced, because a next-day refund then means chasing money that has
+// already left the platform.
+//
+// Kept only because it is the shared implementation path that executeTransfer
+// and the reconcile pass are built around, and removing it now would be a
+// larger refactor of money-critical code than this change warrants. It has no
+// callers. Godmode's deliberate one-off payout uses manualPayout() instead,
+// which is intentionally immediate.
 export async function payoutToUser(params: {
   stripe: Stripe
   payeeUserId?: string | null
@@ -414,11 +422,20 @@ export async function payoutSplit(params: {
     // Never reopen a share that already settled or was reversed — a duplicate
     // webhook delivery must not resurrect a clawed-back commission.
     const existing = await ledgerRef.get().catch(() => null)
-    const existingStatus = existing?.exists ? (existing.data() as any)?.status : null
+    const existingData = existing?.exists ? (existing.data() as any) : null
+    const existingStatus = existingData?.status ?? null
     if (existingStatus && existingStatus !== 'held') {
       results.push({ role: share.role, payeeUserId: share.payeeUserId, status: `skipped:${existingStatus}` })
       continue
     }
+
+    // Stripe delivers at-least-once, and a redelivery can arrive days later. The
+    // hold must run from the ORIGINAL sale, so an existing row keeps its own
+    // sale_at/eligible_at — recomputing them here would silently push the rep's
+    // payout back by another full hold window on every retry.
+    const firstSaleAt = typeof existingData?.sale_at === 'string' ? existingData.sale_at : saleAtIso
+    const firstEligibleAt =
+      typeof existingData?.eligible_at === 'string' ? existingData.eligible_at : eligibleAt
 
     await ledgerRef.set(
       {
@@ -431,8 +448,8 @@ export async function payoutSplit(params: {
         source_payment: sourcePaymentId,
         source_transaction: sourceTransaction,
         status: 'held',
-        sale_at: saleAtIso,
-        eligible_at: eligibleAt,
+        sale_at: firstSaleAt,
+        eligible_at: firstEligibleAt,
         accrued_at: FieldValue.serverTimestamp(),
       },
       { merge: true }

@@ -656,8 +656,13 @@ test('directory fulfillment enriches the paid listing without hiding its claimab
   })
   assert.equal(record.claim_status, undefined)
   assert.equal(record.is_published, undefined)
-  assert.equal(record.tier, 'basic')
-  assert.equal(record.pending_tier, 'premium')
+  // The content brief must NEVER write tier or pending_tier. Payment already
+  // granted the paid tier (directoryOrderPaymentPatch); this record is merged
+  // onto that same listing doc, so writing `tier: 'basic'` here downgraded a
+  // customer the moment they completed the brief they were told to complete.
+  assert.equal(record.tier, undefined, 'the brief must not set tier — payment owns it')
+  assert.equal(record.pending_tier, undefined, 'the brief must not set pending_tier — payment owns it')
+  assert.equal(record.created_at, undefined, 'created_at is set only for a genuinely new doc, in provisionSalesOrder')
   assert.equal(record.plan, 'premium_monthly')
   assert.equal(record.stripe_subscription_id, 'sub_123')
   assert.equal(record.address, '100 Mesa St, El Paso, TX, 79901')

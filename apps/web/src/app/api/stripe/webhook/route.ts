@@ -207,6 +207,9 @@ async function handleCheckoutCompleted(session: any) {
       currency: session.currency || 'usd',
       sourcePaymentId: session.id,
       sourceTransaction,
+      // Hold the commission from the moment the customer actually paid, not from
+      // whenever this webhook happened to be processed (a redelivery can land days later).
+      saleAt: session.created ? new Date(session.created * 1000) : null,
     })
     await recordSubscriptionAttribution(session.subscription, metadata.payout_user_id, payoutService)
     if (isDirectory && order.listing_preexisting && metadata.listing_id) {
@@ -406,6 +409,9 @@ async function handleCheckoutCompleted(session: any) {
       currency: session.currency || 'usd',
       sourcePaymentId: session.id,
       sourceTransaction,
+      // Hold the commission from the moment the customer actually paid, not from
+      // whenever this webhook happened to be processed (a redelivery can land days later).
+      saleAt: session.created ? new Date(session.created * 1000) : null,
     })
     // Remember the seller + service so renewals re-apply the split (residual mode).
     await recordSubscriptionAttribution(directorySubscriptionId, metadata.payout_user_id, 'directory')
@@ -475,6 +481,7 @@ async function handleCheckoutCompleted(session: any) {
     currency: session.currency || 'usd',
     sourcePaymentId: session.id,
     sourceTransaction,
+    saleAt: session.created ? new Date(session.created * 1000) : null,
   })
   await recordSubscriptionAttribution(
     session.subscription,
@@ -532,6 +539,7 @@ async function payResidualCommissionIfDue(invoice: any) {
     currency: invoice.currency || 'usd',
     sourcePaymentId: invoice.id,
     sourceTransaction: stripeObjectId(invoice.charge),
+    saleAt: invoice.created ? new Date(invoice.created * 1000) : null,
   })
 }
 

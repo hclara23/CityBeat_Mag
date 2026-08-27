@@ -22,6 +22,9 @@ export async function provisionSalesOrder(input: {
         claim_status: 'unclaimed',
         ownership_verified: false,
         is_published: true,
+        // Only a genuinely new doc gets a creation date — a re-submitted brief
+        // must not reset the age of an existing listing.
+        created_at: new Date().toISOString(),
       })
     }
   }

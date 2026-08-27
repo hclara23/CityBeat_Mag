@@ -77,13 +77,21 @@ export function buildSalesFulfillmentRecord(input: {
         customer_notes: text(values, 'customer_notes') || null,
         plan: order.directory_plan_id || null,
         billing_cycle: order.billing_interval || null,
-        pending_tier: order.product_id === 'directory_featured_monthly' ? 'featured' : 'premium',
         founding_member: Boolean(order.founding),
         stripe_subscription_id: order.stripe_subscription_id || null,
         stripe_customer_id: order.stripe_customer_id || null,
         sold_by_rep: order.sold_by || null,
         source: 'sales_rep',
-        ...(!order.listing_preexisting ? { tier: 'basic', created_at: now } : {}),
+        // NOTHING here touches `tier` or `pending_tier`. PAYMENT decides what a
+        // listing is entitled to (directoryOrderPaymentPatch, run by the Stripe
+        // webhook); this brief only carries CONTENT. Writing a tier here used to
+        // overwrite the webhook's grant: for a net-new rep sale the webhook sets
+        // tier=premium/featured, and then the customer completing this very brief
+        // merged `tier: 'basic'` back over it — silently downgrading a listing the
+        // customer had just paid for, with no admin queue showing it (the listing
+        // stays `unclaimed`, so the Claims Queue never lists it either).
+        // `created_at` is set in provisionSalesOrder only when the doc is new, so
+        // re-submitting a brief can't reset the listing's age.
       }
     case 'job':
       return {
