@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasSalesAccess } from '@citybeat/lib/roles'
+import { checkoutLinkState } from '@/lib/checkout-recovery'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 
 export const dynamic = 'force-dynamic'
@@ -39,6 +40,7 @@ export async function GET() {
       )
     }
 
+    const now = new Date()
     const orders = (ordersSnapshot.docs as any[])
       .map((document) => {
         const data = document.data()
@@ -58,6 +60,12 @@ export async function GET() {
           fulfillment_status: data.fulfillment_status || 'awaiting_payment',
           contact_email: data.contact_email || null,
           commission_amount: commissionBySource.get(data.stripe_checkout_session_id) || 0,
+          // Derived from the clock, not from the stored status. Nothing ever
+          // moved `checkout_status` off 'ready', so the desk was showing reps a
+          // list of live payment links that Stripe had already expired.
+          checkout_state: checkoutLinkState(data, now),
+          checkout_expires_at: data.checkout_expires_at || null,
+          recovery_emailed_at: data.recovery_emailed_at || null,
           created_at: toMs(data.paid_at || data.created_at),
           legacy: false,
         }
@@ -122,6 +130,10 @@ export async function GET() {
         discounts_granted: orders.reduce((total, order) => total + order.discount_amount, 0),
         awaiting_customer: orders.filter((order) => order.payment_status === 'paid' && order.intake_status !== 'submitted').length,
         in_fulfillment: orders.filter((order) => ['provisioning', 'in_review', 'needs_attention'].includes(order.fulfillment_status)).length,
+        // Sent a link, never paid, link now dead. These are earned prospects
+        // sitting unworked — the largest revenue leak the audit found.
+        live_links: orders.filter((order) => order.checkout_state === 'ready').length,
+        dead_links: orders.filter((order) => order.checkout_state === 'expired').length,
         currency: 'usd',
       },
       deals: deals.slice(0, 100),

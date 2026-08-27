@@ -886,6 +886,19 @@ export default function SalesDesk() {
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.1em]">
                     <span className={`border px-2 py-1 ${deal.payment_status === 'paid' ? 'border-brand-neon/30 text-brand-neon' : 'border-white/15 text-white/45'}`}>Payment: {deal.payment_status}</span>
+                    {/* The truth about the payment link. Every unpaid order used
+                        to read "ready" forever, so a rep believed dead links were
+                        live and never followed up. */}
+                    {deal.checkout_state === 'expired' && (
+                      <span className="border border-amber-400/40 px-2 py-1 font-bold text-amber-300">
+                        {isEs ? 'Enlace vencido — dar seguimiento' : 'Link expired — follow up'}
+                      </span>
+                    )}
+                    {deal.checkout_state === 'ready' && (
+                      <span className="border border-white/15 px-2 py-1 text-white/45">
+                        {isEs ? 'Enlace activo' : 'Link live'}
+                      </span>
+                    )}
                     {deal.billing_type === 'subscription' && <span className={`border px-2 py-1 ${deal.billing_status === 'past_due' ? 'border-red-400/40 text-red-300' : 'border-white/15 text-white/45'}`}>Billing: {String(deal.billing_status).replace(/_/g, ' ')}</span>}
                     {deal.billing_type !== 'free' && <span className="border border-white/15 px-2 py-1 text-white/45">Brief: {deal.intake_status}{deal.intake_status !== 'submitted' ? ` ${deal.intake_completion || 0}%` : ''}</span>}
                     <span className={`border px-2 py-1 ${deal.fulfillment_status === 'needs_attention' ? 'border-red-400/40 text-red-300' : 'border-white/15 text-white/45'}`}>Fulfillment: {String(deal.fulfillment_status).replace(/_/g, ' ')}</span>
