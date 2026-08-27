@@ -6,7 +6,7 @@ import { SALES_PRODUCTS, SALES_PRODUCT_ORDER } from "./sales-products";
 test("publishes every CityBeat Sales Desk product to partners", () => {
   const products = partnerSalesProducts();
 
-  assert.equal(products.length, 12);
+  assert.equal(products.length, 13);
   assert.deepEqual(
     products.map((product) => product.id),
     SALES_PRODUCT_ORDER,

@@ -7,6 +7,7 @@ export type SalesProductId =
   | 'directory_premium_annual'
   | 'directory_premium_monthly'
   | 'directory_featured_monthly'
+  | 'directory_sponsored_monthly'
   | 'ad_newsletter_sponsorship'
   | 'ad_sponsored_story'
   | 'ad_category_banner'
@@ -39,6 +40,7 @@ export interface SalesProduct {
   priceLabel: string
   directoryPlanId?: PlanId
   founding?: boolean
+  sponsored?: boolean
 }
 
 function directoryProduct(
@@ -62,6 +64,7 @@ function directoryProduct(
     priceLabel: plan.priceLabel,
     directoryPlanId: planId,
     founding: Boolean(plan.founding),
+    sponsored: Boolean(plan.sponsored),
   }
 }
 
@@ -108,6 +111,12 @@ export const SALES_PRODUCTS: Record<SalesProductId, SalesProduct> = {
     'featured_monthly',
     'Featured Monthly',
     'Top-of-category visibility for businesses that need to stand out immediately.'
+  ),
+  directory_sponsored_monthly: directoryProduct(
+    'directory_sponsored_monthly',
+    'sponsored_monthly',
+    'Sponsored',
+    'The most prominent placement on the site — a rotating spot in the Sponsored Listings grid at the top of the whole directory.'
   ),
   ad_newsletter_sponsorship: {
     id: 'ad_newsletter_sponsorship',
@@ -196,6 +205,7 @@ export const SALES_PRODUCT_ORDER: SalesProductId[] = [
   'directory_premium_annual',
   'directory_premium_monthly',
   'directory_featured_monthly',
+  'directory_sponsored_monthly',
   'ad_newsletter_sponsorship',
   'ad_sponsored_story',
   'ad_category_banner',

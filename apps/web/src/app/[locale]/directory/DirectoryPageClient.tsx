@@ -169,10 +169,9 @@ export default function DirectoryPageClient() {
     return <div className="flex items-center gap-0.5">{stars}</div>
   }
 
-  // Top-of-directory placement is scarce by design — cap the grid to 3 and,
-  // once more than 3 businesses are sponsored, rotate which 3 show (a fixed
-  // daily window; see selectSponsoredWindow) so no single sponsor permanently
-  // occupies every slot.
+  // The grid shows at most 3 cards; any number of listings can be sponsored
+  // at once, so once more than 3 qualify, a random 3 (in random order) show
+  // per view — see selectSponsoredWindow.
   const sponsoredListings = selectSponsoredWindow(listings.filter((l) => l.is_sponsored))
   // Featured and Premium both appear in the premium section; Featured ranks first.
   const premiumListings = listings

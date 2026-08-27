@@ -15,6 +15,7 @@ export type PlanId =
   | 'premium_annual'
   | 'premium_monthly'
   | 'featured_monthly'
+  | 'sponsored_monthly'
 
 export interface DirectoryPlan {
   id: PlanId
@@ -25,6 +26,11 @@ export interface DirectoryPlan {
   priceLabel: string
   description: string
   founding?: boolean
+  // Grants directory_listings.is_sponsored — the gold "Sponsored Listings"
+  // grid at the top of /directory (see lib/sponsored-rotation.ts). Not a
+  // tier: any number of listings can hold it at once, since the grid caps
+  // display to 3 and picks a random 3 per view once more than 3 qualify.
+  sponsored?: boolean
   badge?: string // e.g. "Best value" — highlighted in the plan picker
   savingsLabel?: string // e.g. "2 months free vs monthly"
   effectiveMonthly?: string // annual plans: the per-month equivalent, for anchoring
@@ -92,6 +98,18 @@ export const DIRECTORY_PLANS: Record<PlanId, DirectoryPlan> = {
     badge: 'Top spot',
     description:
       'Everything in Premium plus top-of-category Featured placement, a Featured badge, and homepage rotation for maximum visibility.',
+  },
+  sponsored_monthly: {
+    id: 'sponsored_monthly',
+    tier: 'premium',
+    interval: 'month',
+    unitAmount: 9900,
+    label: 'Sponsored',
+    priceLabel: '$99 / mo',
+    badge: 'Directory homepage',
+    description:
+      'Everything in Premium plus a spot in the Sponsored Listings grid at the top of the CityBeat Directory homepage — the most prominent placement on the site. Only 3 sponsors show at a time, randomly rotated among everyone sponsored, so every sponsor gets exposure.',
+    sponsored: true,
   },
 }
 

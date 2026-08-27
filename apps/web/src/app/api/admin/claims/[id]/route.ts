@@ -44,6 +44,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             // premium/featured for paid). Falls back to premium for legacy claims.
             tier: data?.pending_tier || data?.tier || 'premium',
             pending_tier: null,
+            // Same promotion for a purchased Sponsored placement — held back
+            // pending this exact review so a fraudulent claim couldn't light
+            // up the directory homepage before an admin confirmed it.
+            ...(data?.pending_sponsored
+              ? { is_sponsored: true, sponsored_since: data?.sponsored_since || now }
+              : {}),
+            pending_sponsored: null,
             claimed_at: data?.claimed_at || now,
             updated_at: now,
           }
@@ -51,6 +58,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             claim_status: 'unclaimed',
             owner_id: null,
             pending_tier: null,
+            pending_sponsored: null,
+            // A rejected claim never gets to keep a placement it paid for
+            // fraudulently — reset rather than merely leaving it pending.
+            is_sponsored: false,
             verified_at: null,
             stripe_subscription_id: null,
             claimed_at: null,

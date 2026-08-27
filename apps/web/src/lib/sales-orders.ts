@@ -78,6 +78,7 @@ export function buildSalesOrderRecord(input: {
       input.product.family === 'directory' ? input.directoryCategory || null : null,
     directory_plan_id: input.product.directoryPlanId || null,
     founding: Boolean(input.product.founding),
+    sponsored: Boolean(input.product.sponsored),
     custom_description: input.customDescription || null,
     payment_status: 'pending' as SalesPaymentStatus,
     billing_status: 'pending',

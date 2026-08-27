@@ -281,7 +281,7 @@ test('Stripe session defaults separate automatic renewals from one-time card cha
 })
 
 test('sales catalog exposes every approved product with server-owned prices', () => {
-  assert.equal(SALES_PRODUCT_ORDER.length, 12)
+  assert.equal(SALES_PRODUCT_ORDER.length, 13)
   assert.equal(new Set(SALES_PRODUCT_ORDER).size, SALES_PRODUCT_ORDER.length)
   assert.equal(SALES_PRODUCTS.directory_basic_free.unitAmount, 0)
   assert.equal(SALES_PRODUCTS.directory_basic_free.billing, 'free')
@@ -709,6 +709,44 @@ test('directory order payment patch unlocks tier immediately for a net-new rep s
   assert.equal(featured.tier, 'featured')
 })
 
+test('directory order payment patch gates a purchased Sponsored placement behind the same fraud review as tier', () => {
+  // Net-new listing + Sponsored plan — no dispute possible, is_sponsored applies immediately.
+  const netNewSponsored = directoryOrderPaymentPatch({
+    metadata: { tier: 'premium', plan: 'sponsored_monthly', sponsored: 'true', sold_by: 'rep_123' },
+    order: { listing_preexisting: false },
+    currentListing: {},
+    subscriptionId: 'sub_1',
+    customerId: 'cus_1',
+    now: new Date('2026-08-27T00:00:00.000Z'),
+  })
+  assert.equal(netNewSponsored.is_sponsored, true)
+  assert.equal(netNewSponsored.sponsored_since, '2026-08-27T00:00:00.000Z')
+  assert.equal(netNewSponsored.pending_sponsored, undefined)
+
+  // Claiming a pre-existing listing + Sponsored plan — held pending admin
+  // review, same as pending_tier; is_sponsored is NOT set directly.
+  const existingClaimSponsored = directoryOrderPaymentPatch({
+    metadata: { tier: 'premium', sponsored: 'true', sold_by: 'rep_123' },
+    order: { listing_preexisting: true },
+    currentListing: {},
+    subscriptionId: 'sub_2',
+    customerId: 'cus_2',
+  })
+  assert.equal(existingClaimSponsored.is_sponsored, undefined, 'never set directly for a disputed claim')
+  assert.equal(existingClaimSponsored.pending_sponsored, true)
+
+  // Not a Sponsored plan at all — no sponsored fields touched either way.
+  const notSponsored = directoryOrderPaymentPatch({
+    metadata: { tier: 'premium', sold_by: 'rep_123' },
+    order: { listing_preexisting: false },
+    currentListing: {},
+    subscriptionId: null,
+    customerId: null,
+  })
+  assert.equal(notSponsored.is_sponsored, undefined)
+  assert.equal(notSponsored.sponsored_since, undefined)
+})
+
 test('catalog cadence is explicit for every fixed and custom product', () => {
   const free = SALES_PRODUCT_ORDER.filter((id) => SALES_PRODUCTS[id].billing === 'free')
   const recurring = SALES_PRODUCT_ORDER.filter((id) => SALES_PRODUCTS[id].billing === 'subscription')
@@ -720,6 +758,7 @@ test('catalog cadence is explicit for every fixed and custom product', () => {
     'directory_premium_annual',
     'directory_premium_monthly',
     'directory_featured_monthly',
+    'directory_sponsored_monthly',
     'ad_newsletter_sponsorship',
     'ad_category_banner',
   ])

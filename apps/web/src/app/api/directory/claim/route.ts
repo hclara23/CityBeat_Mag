@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
       plan: plan.id,
       tier: plan.tier,
       founding: plan.founding ? 'true' : 'false',
+      sponsored: plan.sponsored ? 'true' : 'false',
       location_count: String(locationCount),
       billing_cycle: plan.interval,
       ...(payoutUserId ? { payout_user_id: payoutUserId } : {}),

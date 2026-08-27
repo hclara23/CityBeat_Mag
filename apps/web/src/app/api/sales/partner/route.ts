@@ -347,6 +347,7 @@ async function partnerCheckout(
             tier: directoryPlan.tier,
             plan: directoryPlan.id,
             founding: directoryPlan.founding ? "true" : "false",
+            sponsored: directoryPlan.sponsored ? "true" : "false",
             billing_cycle: directoryPlan.interval,
             directory_category: directoryCategory,
             listing_preexisting: "false",

@@ -280,6 +280,9 @@ async function handleCheckoutCompleted(session: any) {
     const listingPatch: Record<string, any> = {
       claim_status: claimStatus,
       pending_tier: pendingTier,
+      // Same fraud gate as tier: a pending (unverified/rep) claim must not
+      // light up the directory homepage before an admin confirms it.
+      pending_sponsored: metadata.sponsored === 'true',
       plan: metadata.plan || 'premium_monthly',
       founding_member: metadata.founding === 'true',
       stripe_subscription_id: directorySubscriptionId,
@@ -320,6 +323,11 @@ async function handleCheckoutCompleted(session: any) {
       listingPatch.tier = pendingTier
       listingPatch.pending_tier = null
       listingPatch.is_advertiser = true
+      if (metadata.sponsored === 'true') {
+        listingPatch.is_sponsored = true
+        listingPatch.sponsored_since = new Date().toISOString()
+      }
+      listingPatch.pending_sponsored = null
     }
 
     await adminDb.collection('directory_listings').doc(metadata.listing_id).set(listingPatch, { merge: true })
@@ -745,10 +753,15 @@ async function handleSubscriptionDeleted(subscription: any) {
     { merge: true }
   )
   await setPaymentStatusByField('stripe_subscription_id', subscription.id, 'cancelled')
-  // Downgrade any directory listing tied to this subscription.
+  // Downgrade any directory listing tied to this subscription — including
+  // dropping it from the Sponsored Listings grid, so a canceled Sponsored
+  // subscriber doesn't keep the most visible placement on the site for free.
   const listing = await findOne('directory_listings', 'stripe_subscription_id', subscription.id)
   if (listing) {
-    await listing.ref.set({ tier: 'basic', updated_at: new Date().toISOString() }, { merge: true })
+    await listing.ref.set(
+      { tier: 'basic', is_sponsored: false, pending_sponsored: null, updated_at: new Date().toISOString() },
+      { merge: true }
+    )
     await disqualifyPendingReferralForListing(listing.id, 'canceled')
   }
   // Stop any ads-portal campaigns tied to this subscription.

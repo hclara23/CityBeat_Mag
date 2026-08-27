@@ -2,39 +2,46 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { selectSponsoredWindow, sponsorshipExpired, SPONSORED_SLOTS } from './sponsored-rotation'
 
-const at = (id: string, iso: string) => ({ id, sponsored_since: iso })
+const id = (v: string) => ({ id: v })
 
-test('3 or fewer sponsors always all show, every day, in stable order', () => {
-  const two = [at('b', '2026-02-01'), at('a', '2026-01-01')]
-  const day1 = selectSponsoredWindow(two, new Date('2026-08-01'))
-  const day2 = selectSponsoredWindow(two, new Date('2026-08-02'))
-  assert.deepEqual(day1.map((x) => x.id), ['a', 'b'])
-  assert.deepEqual(day2.map((x) => x.id), ['a', 'b'], 'no rotation needed at or under the slot count')
-})
-
-test('more than 3 sponsors rotate through fixed daily windows without a partial row', () => {
-  const five = ['a', 'b', 'c', 'd', 'e'].map((id, i) => at(id, `2026-01-0${i + 1}`))
-  // groups = ceil(5/3) = 2 → day 0 → window [0..2] = a,b,c ; day 1 → window [3,4,0] = d,e,a (wraps, still 3)
-  const day0 = selectSponsoredWindow(five, new Date(0))
-  const day1 = selectSponsoredWindow(five, new Date(86_400_000))
-  const day2 = selectSponsoredWindow(five, new Date(86_400_000 * 2))
-  assert.equal(day0.length, SPONSORED_SLOTS)
-  assert.equal(day1.length, SPONSORED_SLOTS)
-  assert.deepEqual(day0.map((x) => x.id), ['a', 'b', 'c'])
-  assert.deepEqual(day1.map((x) => x.id), ['d', 'e', 'a'], 'wraps around instead of showing a partial 2-card row')
-  assert.deepEqual(day2.map((x) => x.id), day0.map((x) => x.id), 'cycle repeats after `groups` days')
-})
-
-test('every sponsor gets equal exposure over a full cycle', () => {
-  const seven = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id, i) => at(id, `2026-01-${String(i + 1).padStart(2, '0')}`))
-  const groups = Math.ceil(seven.length / SPONSORED_SLOTS)
-  const seen = new Map<string, number>()
-  for (let d = 0; d < groups; d++) {
-    for (const item of selectSponsoredWindow(seven, new Date(d * 86_400_000))) {
-      seen.set(item.id, (seen.get(item.id) || 0) + 1)
-    }
+/** Deterministic fake PRNG for reproducible shuffle assertions. */
+function seededRandom(seed: number): () => number {
+  let s = seed
+  return () => {
+    s = (s * 1103515245 + 12345) & 0x7fffffff
+    return s / 0x7fffffff
   }
-  for (const id of ['a', 'b', 'c', 'd', 'e', 'f', 'g']) assert.ok((seen.get(id) || 0) >= 1, `${id} should appear at least once per cycle`)
+}
+
+test('3 or fewer candidates: everyone shows (order may vary)', () => {
+  const two = [id('a'), id('b')]
+  const result = selectSponsoredWindow(two, SPONSORED_SLOTS, seededRandom(1))
+  assert.equal(result.length, 2)
+  assert.deepEqual(new Set(result.map((x) => x.id)), new Set(['a', 'b']))
+})
+
+test('more than 3 candidates: exactly SPONSORED_SLOTS are chosen, no duplicates', () => {
+  const seven = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(id)
+  const result = selectSponsoredWindow(seven, SPONSORED_SLOTS, seededRandom(42))
+  assert.equal(result.length, SPONSORED_SLOTS)
+  assert.equal(new Set(result.map((x) => x.id)).size, SPONSORED_SLOTS, 'no repeats within one selection')
+  for (const r of result) assert.ok(seven.some((c) => c.id === r.id), 'every pick came from the real candidate pool')
+})
+
+test('different random sources produce different windows over many draws (true rotation, not a fixed order)', () => {
+  const ten = Array.from({ length: 10 }, (_, i) => id(`c${i}`))
+  const seen = new Set<string>()
+  for (let seed = 0; seed < 30; seed++) {
+    for (const item of selectSponsoredWindow(ten, SPONSORED_SLOTS, seededRandom(seed * 7919 + 1))) seen.add(item.id)
+  }
+  assert.ok(seen.size > SPONSORED_SLOTS, 'across many views, more than just one fixed set of 3 ever appears')
+})
+
+test('a default call (real Math.random) still returns a valid-sized, deduped window', () => {
+  const five = ['a', 'b', 'c', 'd', 'e'].map(id)
+  const result = selectSponsoredWindow(five)
+  assert.equal(result.length, SPONSORED_SLOTS)
+  assert.equal(new Set(result.map((x) => x.id)).size, SPONSORED_SLOTS)
 })
 
 test('sponsorshipExpired: null/absent never expires; a past date does; a future date does not', () => {

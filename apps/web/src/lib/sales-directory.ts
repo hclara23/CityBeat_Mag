@@ -117,6 +117,7 @@ export function directoryOrderPaymentPatch(input: {
     soldBy: input.metadata.sold_by,
     listingPreexisting: input.order.listing_preexisting,
   })
+  const sponsored = input.metadata.sponsored === 'true' || Boolean(input.order.sponsored)
   const patch: Record<string, any> = {
     plan: input.metadata.plan || input.order.directory_plan_id || 'premium_monthly',
     founding_member: input.metadata.founding === 'true' || Boolean(input.order.founding),
@@ -127,17 +128,26 @@ export function directoryOrderPaymentPatch(input: {
   if (claimStatus === 'pending_approval') {
     // Claiming a pre-existing listing (fraud-review risk) → queue for admin
     // approval; tier stays basic until they promote pending_tier via the
-    // Claims Queue's existing approve action.
+    // Claims Queue's existing approve action. Sponsored placement is the
+    // MOST visible perk on the site, so it gets the same fraud gate as tier
+    // — a paid claim on someone else's real business must not light up the
+    // directory homepage before an admin has confirmed it.
     patch.claim_status = 'pending_approval'
     patch.pending_tier = pendingTier
+    patch.pending_sponsored = sponsored
     patch.claimed_at = now
   } else {
     // A brand-new listing the rep created for this sale — no ownership
-    // dispute is possible, so the paid tier applies immediately. Stays
-    // "unclaimed" per salesDirectoryClaimStatus (self-serve claimable later
-    // via the verified email-code flow), independent of the tier unlock.
+    // dispute is possible, so the paid tier (and sponsored placement, if
+    // purchased) applies immediately. Stays "unclaimed" per
+    // salesDirectoryClaimStatus (self-serve claimable later via the verified
+    // email-code flow), independent of the tier/sponsorship unlock.
     patch.tier = pendingTier
     patch.pending_tier = null
+    if (sponsored) {
+      patch.is_sponsored = true
+      patch.sponsored_since = now
+    }
   }
   return patch
 }
