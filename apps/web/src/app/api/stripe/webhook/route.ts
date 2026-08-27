@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
-import { payoutSplit, getPayoutSettings } from '@/lib/payouts'
+import { payoutSplit, getPayoutSettings, clawbackCommission } from '@/lib/payouts'
 import { notify, NOTIFY_WORKFLOWS } from '@/lib/notify'
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
@@ -617,6 +617,28 @@ async function handleChargeRefunded(charge: any) {
       await disqualifyPendingReferralForListing(listing.id, 'refunded')
     }
   }
+
+  // Reverse the rep/editor commission for this sale. Inside the 7-day hold the
+  // share is still `held`, so this costs nothing — nothing was ever sent. If a
+  // payout cycle already paid it, it becomes a recorded debt and ops is alerted
+  // (clawbackCommission). Commission is keyed by the ORIGINATING payment id
+  // (the checkout session), which is what payoutSplit stored as source_payment —
+  // recover it from the matched sales orders, since a charge/invoice id will not
+  // match. Best-effort: a clawback failure must never wedge the refund handler.
+  if (fullyRefunded) {
+    // Match on the charge id (stored on every share as source_transaction) so
+    // self-serve sales — which have no sales_orders row — are covered too, plus
+    // the session id from any matched Sales Desk order.
+    const sessionIds = new Set<string>()
+    for (const orderDocument of orders) {
+      const order = orderDocument.data() as Record<string, any>
+      if (order.stripe_checkout_session_id) sessionIds.add(String(order.stripe_checkout_session_id))
+    }
+    await clawbackCommission({ sourceTransaction: charge.id, reason: 'refund' }).catch(() => {})
+    for (const sourcePaymentId of sessionIds) {
+      await clawbackCommission({ sourcePaymentId, reason: 'refund' }).catch(() => {})
+    }
+  }
 }
 
 // A chargeback (charge.dispute.created) is the customer contesting the charge
@@ -638,6 +660,9 @@ async function handleChargeDisputeCreated(dispute: any) {
     return
   }
   await handleChargeRefunded({ ...charge, refunded: true, amount_refunded: charge.amount })
+  // handleChargeRefunded already reversed the commission, but label it as the
+  // dispute it actually was so the ledger reads truthfully.
+  await clawbackCommission({ sourceTransaction: chargeId, reason: 'dispute' }).catch(() => {})
   await reportFailure(
     'stripe-webhook-dispute',
     new Error(`Chargeback opened (${dispute.reason || 'unknown reason'}) — listing/campaign downgraded, respond to the dispute in Stripe`),
@@ -831,6 +856,28 @@ async function handleSubscriptionDeleted(subscription: any) {
   }
   // Stop any ads-portal campaigns tied to this subscription.
   await setAdCampaignsBySubscription(subscription.id, { status: 'cancelled', is_active: false })
+
+  // Reverse commission that is STILL INSIDE its 7-day hold — i.e. the customer
+  // signed up and backed out almost immediately, so the sale never really stuck.
+  // Deliberately does NOT claw back commission already paid on earlier billing
+  // periods: the customer received those months of service, so the rep earned
+  // them. Money actually returned to a customer is handled by the refund/dispute
+  // path instead, which reverses paid shares too.
+  const cancelOrders = await adminDb
+    .collection('sales_orders')
+    .where('stripe_subscription_id', '==', subscription.id)
+    .get()
+    .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+  for (const orderDocument of cancelOrders.docs) {
+    const sessionId = (orderDocument.data() as any)?.stripe_checkout_session_id
+    if (sessionId) {
+      await clawbackCommission({
+        sourcePaymentId: String(sessionId),
+        reason: 'canceled',
+        heldOnly: true,
+      }).catch(() => {})
+    }
+  }
 }
 
 // ---- entry point ------------------------------------------------------------

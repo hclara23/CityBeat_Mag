@@ -9,6 +9,11 @@ import {
   normalizeSplitOverrides,
   type SplitOverrides,
 } from './payout-split'
+import {
+  clawbackTransition,
+  commissionEligibleAt,
+  isCommissionDue,
+} from './commission-schedule'
 import { reportFailure, reportSuccess } from './alerts'
 
 export {
@@ -338,10 +343,21 @@ export async function payoutToUser(params: {
   })
 }
 
-// Multi-party split for a completed payment. Issues a transfer to the Editor and
-// (when a different rep sold it) to the Sales rep, per SPLIT_RATES. The platform
-// keeps the remainder (App + Developer). Reuses payoutToUser's idempotency +
-// ledger, so a webhook retry never double-pays. No-ops safely with 0 shares.
+// Multi-party split for a completed payment. ACCRUES the Editor's and (when a
+// different rep sold it) the Sales rep's share per SPLIT_RATES; the platform
+// keeps the remainder (App + Developer). No money moves here.
+//
+// Shares are written to the `transfers` ledger as `held` with an `eligible_at`
+// COMMISSION_HOLD_DAYS after the sale. runPayoutCycle() pays them out on the
+// 1st and the 15th, once that refund window has closed. This exists so a
+// customer who refunds or changes their mind inside the window costs the
+// business nothing: the commission is simply reversed before it was ever sent
+// (see clawbackCommission). Before this, every share transferred instantly at
+// webhook time and a next-day refund meant chasing money already paid out.
+//
+// Still idempotent: the deterministic ledger id means a duplicate webhook
+// delivery re-writes the same row instead of accruing a second share, and an
+// already-`paid` share is never reopened.
 export async function payoutSplit(params: {
   stripe: Stripe
   sellerUserId?: string | null
@@ -349,9 +365,11 @@ export async function payoutSplit(params: {
   amountTotal?: number | null
   currency?: string
   sourcePaymentId?: string | null
-  // The charge id behind this payment (see payoutToUser) — threaded to every share
-  // so each transfer draws from the charge even while its funds are still pending.
+  // The charge id behind this payment — stored now and used at payout time so the
+  // transfer can draw against that charge (see payoutToUser).
   sourceTransaction?: string | null
+  // Sale timestamp; the hold window is measured from here. Defaults to now.
+  saleAt?: Date | string | null
 }): Promise<{ shares: number; results: Array<{ role: string; payeeUserId: string; status: string; amount?: number }> }> {
   const {
     stripe, sellerUserId, service, amountTotal, currency = 'usd',
@@ -381,24 +399,226 @@ export async function payoutSplit(params: {
     }
   }
 
+  const saleAt = params.saleAt ? new Date(params.saleAt) : new Date()
+  const saleAtIso = Number.isFinite(saleAt.getTime()) ? saleAt.toISOString() : new Date().toISOString()
+  const eligibleAt = commissionEligibleAt(saleAtIso)
+
   const allocated = allocateShareCents(split, amountTotal, transferableBase)
   const results: Array<{ role: string; payeeUserId: string; status: string; amount?: number }> = []
   for (const share of allocated) {
-    const r = await payoutToUser({
-      stripe,
-      payeeUserId: share.payeeUserId,
-      service,
-      amountTotal,
-      currency,
-      sourcePaymentId,
-      sourceTransaction,
-      amountCents: share.amountCents,
-      percent: share.percent,
+    const docId = ledgerDocId(service, share.payeeUserId, sourcePaymentId)
+    const ledgerRef = docId
+      ? adminDb.collection('transfers').doc(docId)
+      : adminDb.collection('transfers').doc()
+
+    // Never reopen a share that already settled or was reversed — a duplicate
+    // webhook delivery must not resurrect a clawed-back commission.
+    const existing = await ledgerRef.get().catch(() => null)
+    const existingStatus = existing?.exists ? (existing.data() as any)?.status : null
+    if (existingStatus && existingStatus !== 'held') {
+      results.push({ role: share.role, payeeUserId: share.payeeUserId, status: `skipped:${existingStatus}` })
+      continue
+    }
+
+    await ledgerRef.set(
+      {
+        payee_user_id: share.payeeUserId,
+        service,
+        role: share.role,
+        percent: share.percent,
+        amount: share.amountCents,
+        currency,
+        source_payment: sourcePaymentId,
+        source_transaction: sourceTransaction,
+        status: 'held',
+        sale_at: saleAtIso,
+        eligible_at: eligibleAt,
+        accrued_at: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    )
+    results.push({
       role: share.role,
+      payeeUserId: share.payeeUserId,
+      status: 'held',
+      amount: share.amountCents,
     })
-    results.push({ role: share.role, payeeUserId: share.payeeUserId, status: r.status, amount: r.amount })
   }
   return { shares: allocated.length, results }
+}
+
+// Pays every commission whose refund window has closed. Scheduled on the 1st and
+// the 15th (citybeat-payout-cycle). Only touches `held` rows that are past
+// `eligible_at`, so it can never race reconcileFailedTransfers (which only
+// touches `failed` / `skipped_no_connected_account`). Each payment still goes
+// through executeTransfer, keeping the ledger + idempotency + transfer_group
+// guarantees that make double-paying impossible.
+export async function runPayoutCycle(params: {
+  stripe: Stripe
+  limit?: number
+  dryRun?: boolean
+  now?: Date | string
+}): Promise<{
+  scanned: number
+  due: number
+  paid: number
+  failed: number
+  no_bank: number
+  amount_paid: number
+}> {
+  const { stripe, limit = 200, dryRun = false } = params
+  const now = params.now ? new Date(params.now) : new Date()
+
+  const snap = await adminDb
+    .collection('transfers')
+    .where('status', '==', 'held')
+    .limit(limit)
+    .get()
+    .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+
+  const summary = { scanned: snap.docs.length, due: 0, paid: 0, failed: 0, no_bank: 0, amount_paid: 0 }
+
+  for (const doc of snap.docs) {
+    const row = doc.data() as any
+    if (!isCommissionDue(row, now)) continue
+    summary.due++
+
+    const payeeUserId: string | undefined = row.payee_user_id
+    const service: string = row.service
+    const amount = Math.max(0, Math.round(Number(row.amount) || 0))
+    if (!payeeUserId || !service || amount <= 0) continue
+    if (dryRun) continue
+
+    const acctDoc = await adminDb.collection('stripe_connected_accounts').doc(payeeUserId).get().catch(() => null)
+    const acct = acctDoc?.exists ? (acctDoc.data() as any) : null
+    if (!acct?.stripe_account_id || !acct.payouts_enabled) {
+      // Keep the full context so reconcileFailedTransfers completes this the day
+      // the rep finishes connecting a bank.
+      await doc.ref.set({ status: 'skipped_no_connected_account' }, { merge: true })
+      summary.no_bank++
+      continue
+    }
+
+    const result = await executeTransfer({
+      stripe,
+      payeeUserId,
+      destination: acct.stripe_account_id,
+      service,
+      role: row.role || null,
+      percent: Number(row.percent) || 0,
+      amount,
+      currency: row.currency || 'usd',
+      sourcePaymentId: row.source_payment || null,
+      sourceTransaction: row.source_transaction || null,
+      ledgerRef: doc.ref,
+    })
+    if (result.status === 'paid') {
+      summary.paid++
+      summary.amount_paid += result.amount || amount
+    } else if (result.status === 'failed') {
+      summary.failed++
+    }
+  }
+
+  return summary
+}
+
+// Reverses commission when a customer refunds, cancels, or disputes.
+// Inside the hold window the share is still `held`, so this costs nothing —
+// it flips to `reversed` and no money ever leaves. If the cycle already paid
+// it, the share becomes `clawback_owed`: a debt recorded against the rep that
+// nets off their next payout. Idempotent — re-running on an already-reversed
+// share is a no-op (see clawbackTransition).
+export async function clawbackCommission(params: {
+  // The checkout session id the commission was accrued against.
+  sourcePaymentId?: string | null
+  // The charge id. Every accrued share stores this as `source_transaction`, which
+  // is the only handle that works for SELF-SERVE sales — those have no
+  // sales_orders row to recover a session id from, so matching on the charge is
+  // what makes a self-serve refund actually reverse its commission.
+  sourceTransaction?: string | null
+  reason: 'refund' | 'dispute' | 'canceled'
+  // When true, only reverse shares still inside the hold window and leave
+  // already-paid ones alone. Used for a plain subscription cancellation: the
+  // customer received the months they paid for, so the rep keeps that
+  // commission. A refund or dispute — where money actually went back to the
+  // customer — passes false and reverses paid shares into a debt.
+  heldOnly?: boolean
+}): Promise<{ reversed: number; owed: number; amount_owed: number; kept_paid: number }> {
+  const { sourcePaymentId, sourceTransaction, reason, heldOnly = false } = params
+  const summary = { reversed: 0, owed: 0, amount_owed: 0, kept_paid: 0 }
+  if (!sourcePaymentId && !sourceTransaction) return summary
+
+  const queries: Promise<FirebaseFirestore.QuerySnapshot | { docs: FirebaseFirestore.QueryDocumentSnapshot[] }>[] = []
+  if (sourcePaymentId) {
+    queries.push(
+      adminDb
+        .collection('transfers')
+        .where('source_payment', '==', sourcePaymentId)
+        .get()
+        .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+    )
+  }
+  if (sourceTransaction) {
+    queries.push(
+      adminDb
+        .collection('transfers')
+        .where('source_transaction', '==', sourceTransaction)
+        .get()
+        .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+    )
+  }
+  const snaps = await Promise.all(queries)
+  // The two lookups can return the same row; dedupe by document path.
+  const byPath = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>()
+  for (const snap of snaps) {
+    for (const doc of snap.docs) byPath.set(doc.ref.path, doc)
+  }
+
+  const now = new Date().toISOString()
+  for (const doc of byPath.values()) {
+    const row = doc.data() as any
+    const transition = clawbackTransition(row.status)
+    if (!transition) continue
+
+    // A plain cancellation never reaches back for money the rep has already been
+    // paid — that service was delivered and earned.
+    if (heldOnly && transition.alreadyPaid) {
+      summary.kept_paid++
+      continue
+    }
+
+    await doc.ref.set(
+      {
+        status: transition.next,
+        clawback_reason: reason,
+        clawback_at: now,
+      },
+      { merge: true }
+    )
+
+    if (transition.alreadyPaid) {
+      summary.owed++
+      summary.amount_owed += Math.max(0, Math.round(Number(row.amount) || 0))
+    } else {
+      summary.reversed++
+    }
+  }
+
+  // A commission already paid out cannot be pulled back from the rep's bank
+  // automatically — that is a real debt an operator has to net off or collect,
+  // so make sure a human is told rather than leaving it buried in the ledger.
+  if (summary.owed > 0) {
+    await reportFailure(
+      'commission-clawback',
+      new Error(
+        `${summary.owed} already-paid commission share(s) totalling $${(summary.amount_owed / 100).toFixed(2)} must be clawed back after a ${reason}`
+      ),
+      { source_payment: sourcePaymentId, source_transaction: sourceTransaction, reason }
+    ).catch(() => {})
+  }
+
+  return summary
 }
 
 // Completes payouts that didn't go through at webhook time — either `failed`
@@ -454,6 +674,19 @@ export async function reconcileFailedTransfers(params: {
       }
       skipped++
       continue
+    }
+
+    // Never pay before the refund window closes. `failed` / `skipped` rows
+    // normally reach this state only after the payout cycle already released
+    // them, so this is a belt-and-braces guard; rows predating the accrual model
+    // carry no eligible_at and stay immediately retryable, which is correct —
+    // they were earned under the old pay-immediately policy.
+    if (typeof t.eligible_at === 'string' && t.eligible_at) {
+      const eligible = new Date(t.eligible_at)
+      if (Number.isFinite(eligible.getTime()) && eligible.getTime() > Date.now()) {
+        skipped++
+        continue
+      }
     }
 
     // Already settled by another path (webhook retry, prior reconcile)? Never re-pay.

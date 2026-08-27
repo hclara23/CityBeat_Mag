@@ -15,6 +15,7 @@ import {
   type SalesProductId,
 } from '@/lib/sales-products'
 import { EngagementBoard } from '@/components/citybeat/EngagementBoard'
+import { MyEarnings } from '@/components/citybeat/MyEarnings'
 import { DIRECTORY_CATEGORIES } from '@/lib/categories'
 
 function money(cents: number) {
@@ -838,6 +839,10 @@ export default function SalesDesk() {
             </aside>
           </div>
         </div>
+
+        {/* A rep's own commission — held, due, paid, and the payout terms — lives
+            on the desk they actually work from, not only the admin dashboard. */}
+        <div className="mt-8"><MyEarnings /></div>
 
         <div className="mt-8"><EngagementBoard /></div>
 
