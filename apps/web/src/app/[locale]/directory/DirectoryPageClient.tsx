@@ -10,6 +10,7 @@ import { useLocale } from '@/components/TranslationProvider'
 
 import { AdBanner } from '@/components/citybeat/AdBanner'
 import { categoryLabel, DIRECTORY_CATEGORIES } from '@/lib/categories'
+import { selectSponsoredWindow } from '@/lib/sponsored-rotation'
 
 // `export const dynamic` (route segment config) only takes effect from a
 // Server Component — Next.js silently ignores it in a 'use client' module, so
@@ -31,6 +32,8 @@ interface Listing {
   claim_status: 'unclaimed' | 'pending_approval' | 'approved'
   image_url: string | null
   is_sponsored?: boolean
+  sponsored_since?: string | null
+  created_at?: string | null
   location_count?: number | null
 }
 
@@ -166,7 +169,11 @@ export default function DirectoryPageClient() {
     return <div className="flex items-center gap-0.5">{stars}</div>
   }
 
-  const sponsoredListings = listings.filter((l) => l.is_sponsored)
+  // Top-of-directory placement is scarce by design — cap the grid to 3 and,
+  // once more than 3 businesses are sponsored, rotate which 3 show (a fixed
+  // daily window; see selectSponsoredWindow) so no single sponsor permanently
+  // occupies every slot.
+  const sponsoredListings = selectSponsoredWindow(listings.filter((l) => l.is_sponsored))
   // Featured and Premium both appear in the premium section; Featured ranks first.
   const premiumListings = listings
     .filter((l) => (l.tier === 'premium' || l.tier === 'featured') && !l.is_sponsored)

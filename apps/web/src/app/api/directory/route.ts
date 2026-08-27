@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@citybeat/lib/firebase/admin';
 import { stripInternalListingFields } from '@/lib/listing-fields';
 import { activePosts, elPasoDayKey } from '@/lib/listing-content';
+import { sponsorshipExpired } from '@/lib/sponsored-rotation';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,14 @@ export async function GET(request: NextRequest) {
     const snapshot = await dbQuery.get();
     
     let results = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+
+    // A time-limited sponsorship (e.g. a promotional grant) self-expires here
+    // rather than needing a cron to unset it — the read-time check is what
+    // decides whether it still counts, so it can never go stale.
+    const now = new Date();
+    for (const item of results) {
+      if (item.is_sponsored && sponsorshipExpired(item.sponsored_until, now)) item.is_sponsored = false;
+    }
 
     if (query) {
       const q = query.toLowerCase();
