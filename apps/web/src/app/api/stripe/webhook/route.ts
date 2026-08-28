@@ -649,13 +649,20 @@ async function handleChargeRefunded(charge: any) {
           payment_status: fullyRefunded ? 'refunded' : 'partially_refunded',
           fulfillment_status: 'needs_attention',
           ...(target.collection === 'directory_listings'
-            // Clear the PENDING grants too, not just the live tier. Admin
-            // approval reads pending_tier/pending_sponsored and grants them with
-            // no check that the subscription still exists — so leaving them set
-            // after a refund meant a later approval handed the paid tier and the
-            // Sponsored slot to a customer who had already been given their
-            // money back, permanently and for free.
-            ? fullyRefunded
+            // Downgrade ONLY when the refunded charge is the originating sale.
+            // A goodwill refund of a single renewal must not strip the tier of a
+            // customer whose subscription is still live and still billing them:
+            // that left them paying full price for a Basic listing forever, with
+            // nothing to restore it — not the next successful payment, not even
+            // re-approving the claim. The isOriginatingCharge guard already
+            // existed for the commission clawback below; it was simply never
+            // applied to the downgrade.
+            // Clearing the PENDING grants matters too: admin approval reads
+            // pending_tier/pending_sponsored and grants them with no check that
+            // the subscription still exists, so leaving them set after a real
+            // refund handed the paid tier and the Sponsored slot to someone who
+            // had already been given their money back.
+            ? fullyRefunded && isOriginatingCharge
               ? { tier: 'basic', pending_tier: null, pending_sponsored: null, is_sponsored: false }
               : {}
             : { status: 'needs_attention', is_active: false }),
@@ -681,7 +688,7 @@ async function handleChargeRefunded(charge: any) {
   }
 
   // Legacy directory purchases predate sales_orders and are matched by customer.
-  if (fullyRefunded && !orders.length && charge.customer) {
+  if (fullyRefunded && isOriginatingCharge && !orders.length && charge.customer) {
     const listing = await findOne('directory_listings', 'stripe_customer_id', charge.customer)
     if (listing) {
       await listing.ref.set(
@@ -706,6 +713,22 @@ async function handleChargeRefunded(charge: any) {
   // (the checkout session), which is what payoutSplit stored as source_payment —
   // recover it from the matched sales orders, since a charge/invoice id will not
   // match. Best-effort: a clawback failure must never wedge the refund handler.
+  // A PARTIAL refund reversed nothing at all: the whole clawback lived inside
+  // `if (fullyRefunded)`. With split rates reaching 65-70% on rep-sold deals,
+  // refunding much more than a third of a sale made that transaction
+  // net-negative for the platform, silently. Proportional reduction of held
+  // shares is the proper fix; until then, make sure a human is told rather than
+  // letting it pass unnoticed.
+  if (!fullyRefunded && Number(charge.amount_refunded || 0) > 0) {
+    await reportFailure(
+      'commission-partial-refund',
+      new Error(
+        `Partial refund of $${(Number(charge.amount_refunded || 0) / 100).toFixed(2)} on a $${(Number(charge.amount || 0) / 100).toFixed(2)} charge — commission was NOT reduced and may now exceed the net revenue. Adjust the ledger manually.`
+      ),
+      { charge_id: charge.id, amount_refunded: charge.amount_refunded, amount: charge.amount }
+    ).catch(() => {})
+  }
+
   if (fullyRefunded) {
     // The charge id is stored on EVERY accrued share as source_transaction, so
     // this reverses exactly the payment that was refunded — including for
@@ -794,6 +817,26 @@ async function recordPayment(invoice: any) {
   )
 }
 
+// Re-enable only the placements a failed payment paused — never anything an
+// admin rejected or a reversal switched off. Covers both collections, since a
+// newsletter sponsorship lives in ad_campaigns and its rendered mirror in
+// ad_banners.
+async function reactivatePastDuePlacements(subscriptionId: string) {
+  if (!subscriptionId) return
+  const now = new Date().toISOString()
+  const [campaigns, banners] = await Promise.all([
+    adminDb.collection('ad_campaigns').where('stripe_subscription_id', '==', subscriptionId).get(),
+    adminDb.collection('ad_banners').where('stripe_subscription_id', '==', subscriptionId).get(),
+  ])
+  await Promise.all(
+    [...campaigns.docs, ...banners.docs]
+      .filter((d) => (d.data() as any)?.status === 'past_due')
+      .map((d) =>
+        d.ref.set({ status: 'running', is_active: true, reactivated_at: now, updated_at: now }, { merge: true })
+      )
+  )
+}
+
 async function handleInvoicePaymentSucceeded(invoice: any) {
   await recordPayment({ ...invoice, status: 'paid' })
   await setPaymentStatusByField('stripe_customer_id', invoice.customer || '', 'completed')
@@ -808,6 +851,17 @@ async function handleInvoicePaymentSucceeded(invoice: any) {
     await adminDb.collection('subscriptions').doc(subscriptionId).set(
       { status: 'active', stripe_customer_id: invoice.customer || null, updated_at: new Date().toISOString() }, { merge: true }
     )
+
+    // A declined card pauses the advertiser's placement
+    // (setAdCampaignsBySubscription in handleInvoicePaymentFailed) and the
+    // dunning email promises it resumes on payment — but nothing ever turned it
+    // back on. The advertiser paid $25-$50/month for an ad that never appeared
+    // again, and the sales order showed the deal as healthy. Routine card expiry
+    // triggers this, so every advertiser eventually hits it.
+    //
+    // Only revive rows the FAILURE paused (status 'past_due'). Anything an admin
+    // rejected, or a refund/cancellation killed, must stay off.
+    await reactivatePastDuePlacements(subscriptionId)
   }
   // Pay the rep their residual share on renewals, if godmode enabled it.
   await payResidualCommissionIfDue(invoice)
