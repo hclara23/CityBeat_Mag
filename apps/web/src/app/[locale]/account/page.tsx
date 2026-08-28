@@ -7,6 +7,7 @@ import { Navigation, Button, Input } from '@citybeat/ui'
 import { LocaleToggle } from '@/components/citybeat/LocaleToggle'
 import { getUser, getUserProfile, updateProfile, signOut } from '@citybeat/lib/firebase/auth-client'
 import { AuthError } from '@citybeat/ui/auth'
+import { levelForPoints, levelProgress } from '@/lib/points'
 
 interface UserProfile {
   id: string
@@ -159,36 +160,15 @@ export default function AccountPage() {
     }
   }
 
+  // Levels/points centralized in lib/points.ts (shared with the public
+  // leaderboard) so the ladder can never drift between the two surfaces.
   const points = profile?.review_points ?? 0
-  let levelBadge = '🥉 Bronze Reviewer'
-  let nextLevelPoints = 50
-  let currentLevelPoints = 0
-  let levelName = 'Level 1'
-
-  if (points >= 200) {
-    levelBadge = '👑 Elite Reviewer'
-    levelName = 'Level 4 (Max)'
-    nextLevelPoints = points
-  } else if (points >= 100) {
-    levelBadge = '🥇 Gold Reviewer'
-    levelName = 'Level 3'
-    currentLevelPoints = 100
-    nextLevelPoints = 200
-  } else if (points >= 50) {
-    levelBadge = '🥈 Silver Reviewer'
-    levelName = 'Level 2'
-    currentLevelPoints = 50
-    nextLevelPoints = 100
-  } else {
-    levelBadge = '🥉 Bronze Reviewer'
-    levelName = 'Level 1'
-    currentLevelPoints = 0
-    nextLevelPoints = 50
-  }
-
-  const progressPercent = nextLevelPoints === currentLevelPoints
-    ? 100
-    : Math.min(100, Math.max(0, ((points - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100))
+  const level = levelForPoints(points)
+  const levelBadge = `${level.badge} ${level.name} Reviewer`
+  const levelName = level.next === null ? `Level ${level.level} (Max)` : `Level ${level.level}`
+  const currentLevelPoints = level.floor
+  const nextLevelPoints = level.next ?? points
+  const progressPercent = levelProgress(points)
 
   if (isLoading) {
     return (

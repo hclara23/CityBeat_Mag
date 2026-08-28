@@ -13,6 +13,7 @@ import {
   sanitizeSalesIntakeValues,
 } from '@/lib/sales-intake'
 import { provisionSalesOrder } from '@/lib/sales-fulfillment-server'
+import { notifyUser } from '@/lib/user-notifications'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -173,6 +174,22 @@ export async function POST(request: NextRequest, { params }: { params: { orderId
         },
         { merge: true }
       )
+      try {
+        const repId = (result.order as any)?.sold_by
+        if (repId) {
+          await notifyUser({
+            userId: String(repId),
+            notificationId: `brief_submitted:${params.orderId}`,
+            type: 'brief_submitted',
+            title: `Brief completed: ${(result.order as any)?.business_name || 'your customer'}`,
+            title_es: `Brief completado: ${(result.order as any)?.business_name || 'tu cliente'}`,
+            body: 'Your customer finished their order details - it is now in fulfillment.',
+            body_es: 'Tu cliente completo los detalles de su pedido - ya esta en preparacion.',
+            link: '/admin/sales/me',
+            emailChannel: false,
+          })
+        }
+      } catch { /* best-effort */ }
       // Nothing told a human that paid work was waiting. That is survivable for
       // jobs and campaigns, which now have admin queues — but a Sponsored Story
       // ($30) and a Custom Quote (any amount, up to $100,000) provision into

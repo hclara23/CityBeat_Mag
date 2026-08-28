@@ -63,6 +63,20 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "listing_photos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "listing_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

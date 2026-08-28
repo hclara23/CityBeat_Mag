@@ -42,6 +42,15 @@ export const NOTIFICATION_TYPES = [
   'manager_added',
   'report',
   'article_submission',
+  // Owner-activity + rep + order lifecycle (added 2026-08-28).
+  'listing_photo',      // a member of the public added a photo to your listing
+  'listing_comment',    // a comment/question on your listing
+  'review_reply',       // someone replied to a review
+  'order_update',       // buyer: your order changed state (in review / live)
+  'sale_paid',          // rep: your sale was paid
+  'brief_submitted',    // rep: your customer completed their brief
+  'sale_approved',      // rep: your sale went live
+  'points_awarded',     // contributor: you earned points
 ] as const
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
 

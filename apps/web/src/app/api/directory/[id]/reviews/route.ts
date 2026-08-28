@@ -4,6 +4,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { sanitizePublicReview, shouldAwardReviewPoints } from '@/lib/directory-security'
 import { notifyUser } from '@/lib/user-notifications'
+import { awardPoints } from '@/lib/points-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -85,17 +86,21 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     })
     const newReview = { id: reviewRef.id, listing_id: id, user_id: user.id, rating: intRating, comment: comment || '', photo_urls: cleanPhotoUrls }
 
-    // Award review points to non-advertisers.
+    // Award points atomically + idempotently (ledger-backed): the review
+    // itself, plus a bonus for each photo the reviewer contributed. Advertisers
+    // earn nothing. A retry can never double-award (deterministic ledger id).
     const reviewerDoc = await adminDb.collection('profiles').doc(user.id).get()
     const reviewerProfile = reviewerDoc.exists ? (reviewerDoc.data() as any) : null
-    if (
-      reviewerProfile &&
-      shouldAwardReviewPoints({ isAdvertiser: Boolean(reviewerProfile.is_advertiser), hasExistingReview: false })
-    ) {
-      await adminDb
-        .collection('profiles')
-        .doc(user.id)
-        .set({ review_points: (reviewerProfile.review_points || 0) + 10 }, { merge: true })
+    const isAdvertiser = Boolean(reviewerProfile?.is_advertiser)
+    await awardPoints({ userId: user.id, event: 'review', sourceId: reviewRef.id, isAdvertiser })
+    if (cleanPhotoUrls.length > 0) {
+      await awardPoints({
+        userId: user.id,
+        event: 'review_photo',
+        sourceId: reviewRef.id,
+        isAdvertiser,
+        meta: { photos: cleanPhotoUrls.length },
+      })
     }
 
     // Recalculate listing rating aggregates.

@@ -15,7 +15,7 @@ interface Listing {
 }
 
 // Upgrade options offered in the dashboard — annual (best value) first.
-const BOOST_PLANS: PlanId[] = ['premium_annual', 'premium_monthly', 'featured_monthly']
+const BOOST_PLANS: PlanId[] = ['premium_annual', 'premium_monthly', 'featured_monthly', 'sponsored_monthly']
 
 const TIER_LABEL: Record<string, { en: string; es: string }> = {
   basic: { en: 'Basic', es: 'Básico' },

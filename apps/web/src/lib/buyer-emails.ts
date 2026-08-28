@@ -35,6 +35,7 @@ export function purchaseConfirmationEmail(input: {
   amountTotal?: unknown
   currency?: unknown
   locale?: unknown
+  statusUrl?: unknown
 }): { subject: string; html: string } {
   const product = String(input.productName || 'your CityBeat order').trim()
   const business = String(input.businessName || '').trim()
@@ -44,11 +45,13 @@ export function purchaseConfirmationEmail(input: {
   const en = `<p>Hi,</p>
 <p>We received your payment of <strong>${esc(price)}</strong> for <strong>${esc(product)}</strong>${business ? ` (${esc(business)})` : ''}. Thank you!</p>
 <p>Our team reviews every paid item before it goes live, and we will let you know the moment it does. If we sent you a link to finish your order details, completing it is the fastest way to get published.</p>
+${input.statusUrl ? `<p style="margin:16px 0"><a href="${esc(String(input.statusUrl))}" style="color:#0891b2;font-weight:700">Track your order &rarr;</a></p>` : ''}
 <p>Questions? Just reply to this email.</p>
 <p style="margin-top:20px">— CityBeat El Paso</p>`
   const es = `<p>Hola,</p>
 <p>Recibimos tu pago de <strong>${esc(price)}</strong> por <strong>${esc(product)}</strong>${business ? ` (${esc(business)})` : ''}. ¡Gracias!</p>
 <p>Nuestro equipo revisa cada compra antes de publicarla y te avisaremos en cuanto esté en línea. Si te enviamos un enlace para completar los detalles de tu pedido, terminarlo es la forma más rápida de publicar.</p>
+${input.statusUrl ? `<p style="margin:16px 0"><a href="${esc(String(input.statusUrl))}" style="color:#0891b2;font-weight:700">Ver el estado de tu pedido &rarr;</a></p>` : ''}
 <p>¿Preguntas? Responde a este correo.</p>
 <p style="margin-top:20px">— CityBeat El Paso</p>`
 

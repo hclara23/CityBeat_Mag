@@ -15,6 +15,44 @@ function stripeId(value: unknown): string | null {
   return null
 }
 
+// Token-authorized READ of an order's status, WITHOUT requiring payment — so a
+// customer can track an order that is still awaiting payment, in review, or
+// live. Same token gate as the paid-authorization path, but never throws
+// payment_required; returns a customer-safe projection (no internal ids).
+export async function authorizeSalesOrderStatus(input: {
+  orderId: string
+  accessToken: string
+}): Promise<Record<string, any>> {
+  if (!input.orderId || !input.accessToken) {
+    throw new SalesOrderAccessError('This order link is incomplete.', 401, 'missing_access')
+  }
+  const ref = adminDb.collection('sales_orders').doc(input.orderId)
+  const snapshot = await ref.get()
+  if (!snapshot.exists) throw new SalesOrderAccessError('Order not found.', 404, 'order_not_found')
+  const order = snapshot.data() as Record<string, any>
+  if (!salesOrderTokenMatches(input.accessToken, order.intake_token_hash)) {
+    throw new SalesOrderAccessError('This order link is not valid.', 403, 'invalid_access')
+  }
+  if (salesOrderAccessExpired(order.intake_expires_at)) {
+    throw new SalesOrderAccessError('This order link has expired. Contact CityBeat for a new link.', 410, 'access_expired')
+  }
+  return {
+    id: snapshot.id,
+    product_name: order.product_name || order.product_id || 'CityBeat order',
+    business_name: order.business_name || null,
+    amount: Number(order.amount_paid ?? order.amount ?? 0),
+    payment_status: order.payment_status || 'pending',
+    billing_status: order.billing_status || null,
+    intake_status: order.intake_status || 'not_started',
+    intake_completion: Number(order.intake_completion) || 0,
+    fulfillment_status: order.fulfillment_status || 'awaiting_payment',
+    listing_id: order.listing_id || null,
+    locale: order.locale === 'es' ? 'es' : 'en',
+    created_at: typeof order.created_at === 'string' ? order.created_at : null,
+    paid_at: typeof order.paid_at === 'string' ? order.paid_at : null,
+  }
+}
+
 export async function authorizePaidSalesOrder(input: {
   orderId: string
   accessToken: string

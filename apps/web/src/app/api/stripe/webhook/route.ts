@@ -21,6 +21,7 @@ import {
 import { directoryOrderPaymentPatch, salesDirectoryClaimStatus } from '@/lib/sales-directory'
 import { getSalesProduct } from '@/lib/sales-products'
 import { purchaseConfirmationEmail } from '@/lib/buyer-emails'
+import { notifyUser } from '@/lib/user-notifications'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -182,12 +183,16 @@ async function handleCheckoutCompleted(session: any) {
         metadata.adType ||
         (metadata.type === 'event_feature' ? 'Featured Event' : metadata.type) ||
         'CityBeat order'
+      const statusUrl = metadata.sales_order_id
+        ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'}/${orderRecord?.locale === 'es' ? 'es' : 'en'}/order/${metadata.sales_order_id}?session_id=${session.id}`
+        : undefined
       const { subject, html } = purchaseConfirmationEmail({
         productName,
         businessName: orderRecord?.business_name || metadata.companyName || null,
         amountTotal: session.amount_total,
         currency: session.currency || 'usd',
         locale: orderRecord?.locale,
+        statusUrl,
       })
       await sendEmail(String(buyerEmail), subject, html)
     }
@@ -237,6 +242,28 @@ async function handleCheckoutCompleted(session: any) {
         note: 'First month charged; the 3-free-months coupon did NOT attach — apply founders-3mo-free-100 to the subscription by hand.',
       }).catch(() => {})
     }
+  }
+
+  // Notify the selling REP that their sale was paid (rep learned this by
+  // polling before). Best-effort; the rep is metadata.payout_user_id/sold_by.
+  try {
+    const repId = metadata.payout_user_id || metadata.sold_by || (salesOrderSync?.order as any)?.sold_by
+    if (repId) {
+      const biz = (salesOrderSync?.order as any)?.business_name || metadata.companyName || 'a customer'
+      await notifyUser({
+        userId: String(repId),
+        notificationId: `sale_paid:${session.id}`,
+        type: 'sale_paid',
+        title: `Payment received: ${biz}`,
+        title_es: `Pago recibido: ${biz}`,
+        body: `Your sale to ${biz} was paid. Commission accrues and pays on the next cycle.`,
+        body_es: `Tu venta a ${biz} fue pagada. La comision se acumula y se paga en el proximo ciclo.`,
+        link: '/admin/sales/me',
+        emailChannel: false,
+      })
+    }
+  } catch {
+    /* never block fulfillment on a rep notification */
   }
 
   // The charge behind this sale, resolved once and passed to every payout below so
