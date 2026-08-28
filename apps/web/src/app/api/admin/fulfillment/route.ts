@@ -16,6 +16,9 @@ export const dynamic = 'force-dynamic'
 const QUEUES = {
   sponsored_story: 'sponsored_stories',
   custom: 'sales_fulfillment_briefs',
+  // Social Media Promotion briefs land in a write-only collection too — same
+  // "customer paid, nothing shows it" trap, so it belongs in this same queue.
+  social_promotion: 'social_promotions',
 } as const
 
 function toIso(v: any): string | null {
@@ -39,10 +42,12 @@ export async function GET() {
   const auth = await requireSalesAccess()
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   try {
-    const [storiesSnap, customSnap] = await Promise.all([
+    const [storiesSnap, customSnap, socialSnap] = await Promise.all([
       adminDb.collection(QUEUES.sponsored_story).orderBy('created_at', 'desc').limit(200).get()
         .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] })),
       adminDb.collection(QUEUES.custom).orderBy('created_at', 'desc').limit(200).get()
+        .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] })),
+      adminDb.collection(QUEUES.social_promotion).orderBy('created_at', 'desc').limit(200).get()
         .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] })),
     ])
     const shape = (kind: keyof typeof QUEUES) => (d: FirebaseFirestore.QueryDocumentSnapshot) => {
@@ -53,6 +58,7 @@ export async function GET() {
       briefs: [
         ...storiesSnap.docs.map(shape('sponsored_story')),
         ...customSnap.docs.map(shape('custom')),
+        ...socialSnap.docs.map(shape('social_promotion')),
       ].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))),
     })
   } catch (error: any) {
@@ -65,11 +71,12 @@ export async function PATCH(request: NextRequest) {
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   const body = await request.json().catch(() => ({}))
   const id = typeof body.id === 'string' ? body.id : ''
-  const kind = body.kind === 'custom' ? 'custom' : body.kind === 'sponsored_story' ? 'sponsored_story' : ''
+  const kind: keyof typeof QUEUES | '' =
+    body.kind === 'custom' || body.kind === 'sponsored_story' || body.kind === 'social_promotion' ? body.kind : ''
   const action =
     body.action === 'in_progress' ? 'in_progress' : body.action === 'delivered' ? 'delivered' : ''
   if (!id || !kind || !action) {
-    return NextResponse.json({ error: 'id, kind (sponsored_story|custom) and action (in_progress|delivered) required' }, { status: 400 })
+    return NextResponse.json({ error: 'id, kind (sponsored_story|custom|social_promotion) and action (in_progress|delivered) required' }, { status: 400 })
   }
   const now = new Date().toISOString()
   try {

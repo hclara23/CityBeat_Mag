@@ -16,7 +16,7 @@ import { getUser } from '@citybeat/lib/firebase/auth-client'
 
 interface Brief {
   id: string
-  kind: 'sponsored_story' | 'custom'
+  kind: 'sponsored_story' | 'custom' | 'social_promotion'
   sales_order_id: string | null
   contact_email: string | null
   status: string
@@ -33,6 +33,24 @@ interface Brief {
   approved_deliverable?: string
   goal?: string
   deadline?: string | null
+  // social_promotion fields
+  business_name?: string
+  caption?: string
+  target_url?: string
+  platforms?: string
+  preferred_start_date?: string | null
+}
+
+function kindLabel(kind: Brief['kind'], isEs: boolean): string {
+  if (kind === 'sponsored_story') return isEs ? 'Historia patrocinada' : 'Sponsored Story'
+  if (kind === 'social_promotion') return isEs ? 'Promoción social' : 'Social Promotion'
+  return isEs ? 'Pedido personalizado' : 'Custom Quote'
+}
+
+function briefSummary(b: Brief): string {
+  if (b.kind === 'sponsored_story') return b.story_goal || b.key_message || ''
+  if (b.kind === 'social_promotion') return b.caption || b.target_url || ''
+  return b.approved_deliverable || b.approved_description || b.goal || ''
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -114,8 +132,8 @@ export default function FulfillmentQueuePage() {
           </h1>
           <p className="mt-1 text-sm text-white/50">
             {isEs
-              ? 'Historias patrocinadas y pedidos personalizados pagados — trabajo que un humano entrega.'
-              : 'Paid Sponsored Stories and Custom Quotes — work a human delivers.'}
+              ? 'Historias patrocinadas, promociones sociales y pedidos personalizados pagados — trabajo que un humano entrega.'
+              : 'Paid Sponsored Stories, Social Promotions, and Custom Quotes — work a human delivers.'}
             {open.length > 0 && (
               <span className="ml-2 rounded bg-amber-400/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300">
                 {open.length} {isEs ? 'abiertos' : 'open'}
@@ -139,25 +157,21 @@ export default function FulfillmentQueuePage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <h3 className="text-xl font-bold">{b.sponsor_name || b.customer_name || '(unnamed)'}</h3>
+                        <h3 className="text-xl font-bold">{b.sponsor_name || b.customer_name || b.business_name || '(unnamed)'}</h3>
                         <span className="rounded bg-brand-magenta/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-brand-magenta">
-                          {b.kind === 'sponsored_story' ? (isEs ? 'Historia patrocinada' : 'Sponsored Story') : (isEs ? 'Pedido personalizado' : 'Custom Quote')}
+                          {kindLabel(b.kind, isEs)}
                         </span>
                         <span className={`rounded px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${STATUS_STYLE[status] || STATUS_STYLE.pending_review}`}>
                           {status.replace(/_/g, ' ')}
                         </span>
                       </div>
-                      <p className="text-sm text-white/60">
-                        {b.kind === 'sponsored_story'
-                          ? b.story_goal || b.key_message || ''
-                          : b.approved_deliverable || b.approved_description || b.goal || ''}
-                      </p>
+                      <p className="text-sm text-white/60">{briefSummary(b)}</p>
                     </div>
                     <div className="text-right text-xs text-white/40">
                       {b.created_at && <p>{new Date(b.created_at).toLocaleDateString(isEs ? 'es-MX' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>}
                       {b.contact_email && <p className="mt-1">{b.contact_email}</p>}
-                      {(b.desired_publish_date || b.deadline) && (
-                        <p className="mt-1 text-amber-300">{isEs ? 'Fecha objetivo' : 'Target'}: {b.desired_publish_date || b.deadline}</p>
+                      {(b.desired_publish_date || b.deadline || b.preferred_start_date) && (
+                        <p className="mt-1 text-amber-300">{isEs ? 'Fecha objetivo' : 'Target'}: {b.desired_publish_date || b.deadline || b.preferred_start_date}</p>
                       )}
                     </div>
                   </div>
