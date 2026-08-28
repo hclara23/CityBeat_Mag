@@ -54,7 +54,7 @@ export function publicSubmissionArticleId(submissionId: string): string {
   return `submission-${submissionId}`
 }
 
-function safeHttpUrl(value: unknown): string | null {
+export function safeHttpUrl(value: unknown): string | null {
   const candidate = text(value)
   if (!candidate) return null
   try {

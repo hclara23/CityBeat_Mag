@@ -19,6 +19,16 @@
 const TM_HOSTS = /(ticketmaster\.|ticketm\.net|livenation\.|ticketweb\.|universe\.com)/i
 
 export function affiliateTicketUrl(url?: string | null): string | null {
+  // Defense at render: stored events may predate submit-time validation, and a
+  // javascript:/data: href here would execute in the READER's browser.
+  if (url) {
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null
+    } catch {
+      return null
+    }
+  }
   if (!url || typeof url !== 'string') return url ?? null
   if (!TM_HOSTS.test(url)) return url
 

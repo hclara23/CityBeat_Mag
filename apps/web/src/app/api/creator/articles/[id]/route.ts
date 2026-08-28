@@ -167,6 +167,12 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     if (status === 'published' && !hasEditorAccess(profile)) {
       return NextResponse.json({ error: 'Editor access is required to publish' }, { status: 403 })
     }
+    if (status === 'published' && !profile?.mfa_enabled) {
+      return NextResponse.json(
+        { error: 'Two-factor authentication is required to publish. Enable it under Account → Security.' },
+        { status: 403 }
+      )
+    }
     updateData.status = status
     // Preserve the original publish date when re-saving an already-published
     // article (an edit shouldn't reset when it first went live).

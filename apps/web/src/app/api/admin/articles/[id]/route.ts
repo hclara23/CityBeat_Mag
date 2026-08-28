@@ -16,6 +16,9 @@ async function requireEditor() {
   const user = await getServerUser()
   const profile = user ? await getServerUserProfile(user.id) : null
   if (!user || !hasEditorAccess(profile)) return null
+  // Publishing is a privileged, public-facing action: the admin PAGES force
+  // 2FA enrollment, and this API must not accept a password-only session.
+  if (!profile?.mfa_enabled) return null
   return user
 }
 
@@ -44,12 +47,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   try {
     const ref = adminDb.collection('articles').doc(id)
-    await ref.set(updateData, { merge: true })
+    // Existence FIRST: set({merge}) creates the doc, so the old order wrote a
+    // ghost "Untitled" article from any mistyped/stale id and the 404 branch
+    // below it could never fire.
     const doc = await ref.get()
     if (!doc.exists) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
-    const data = doc.data() as any
+    await ref.set(updateData, { merge: true })
+    const data = { ...(doc.data() as any), ...updateData }
 
     if (data.source_submission_id) {
       await adminDb.collection('submissions').doc(data.source_submission_id).set(

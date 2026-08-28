@@ -55,7 +55,10 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/((?!studio).*)',
+        // Was '/((?!studio).*)' for the embedded Sanity Studio, which exempted
+        // EVERY path beginning with "studio" from the entire security-header
+        // set — and the /studio route was deleted in June 2026. Full coverage.
+        source: '/(.*)',
         headers: [
           {
             // Defense-in-depth against XSS/clickjacking. 'unsafe-inline' is required

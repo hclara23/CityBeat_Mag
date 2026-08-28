@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   const user = await getServerUser()
   const profile = user ? await getServerUserProfile(user.id) : null
   // Shared helper (vs raw flags) so editors granted via profile_roles also pass.
-  if (!user || !hasEditorAccess(profile)) {
+  if (!user || !hasEditorAccess(profile) || !profile?.mfa_enabled) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

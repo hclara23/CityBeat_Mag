@@ -107,15 +107,25 @@ export async function buildSpanishFields(article: {
   excerpt?: string
   content?: any
 }): Promise<SpanishFields | null> {
+  // Newsroom articles store content as a PLAIN STRING (markdown), not a
+  // TipTap doc. The leaf-walker finds zero text leaves in a string, so the
+  // "translated" content came back as the untouched English original — and on
+  // publish that English silently replaced the good Spanish body. Treat a
+  // string body as one big leaf.
+  const stringBody = typeof article.content === 'string' ? article.content : null
   const leaves: string[] = []
-  collectTextLeaves(article.content, leaves)
+  if (stringBody !== null) leaves.push(stringBody)
+  else collectTextLeaves(article.content, leaves)
 
   const inputs = [article.title || '', article.excerpt || '', ...leaves]
   const translated = await translateTexts(inputs)
   if (!translated) return null
 
   const [title_es, excerpt_es, ...contentLeaves] = translated
-  const content_es = applyTextLeaves(article.content, contentLeaves, { i: 0 })
+  const content_es =
+    stringBody !== null
+      ? contentLeaves[0] || stringBody
+      : applyTextLeaves(article.content, contentLeaves, { i: 0 })
   return {
     title_es: title_es || article.title || '',
     excerpt_es: excerpt_es || article.excerpt || '',
@@ -130,6 +140,13 @@ export async function translateArticleToEs(
   article: { title?: string; excerpt?: string; content?: any }
 ): Promise<void> {
   try {
+    // Never DESTROY Spanish that already exists (e.g. the newsroom's own
+    // Claude-written ES body). Publish must not degrade /es.
+    const existing = await docRef.get()
+    const current = existing.exists ? (existing.data() as any) : null
+    const hasEs = (v: any) => (typeof v === 'string' ? v.trim().length > 0 : Boolean(v))
+    if (hasEs(current?.content_es)) return
+
     const es = await buildSpanishFields(article)
     if (!es) return
     await docRef.update({

@@ -13,6 +13,9 @@ interface Article {
   id: string
   title: string
   content: any
+  title_es?: string
+  excerpt_es?: string
+  content_es?: any
   excerpt: string
   status: string
   image_url: string
@@ -179,6 +182,28 @@ export default function ReviewArticlePage({ params }: { params: { id: string } }
           <div className="text-lg leading-relaxed text-white/80">
             {renderContent(article.content)}
           </div>
+
+          {/* The Spanish version MUST be reviewable: publishing ships BOTH
+              languages, and until this panel existed no admin surface showed
+              the ES text at all — a Spanish-only payload (defamation, spam,
+              injected instructions) would pass human review completely unseen. */}
+          {(article.title_es || article.content_es) && (
+            <section className="mt-12 border-t border-white/10 pt-8">
+              <p className="mb-4 text-xs font-black uppercase tracking-[0.2em] text-brand-neon">
+                Versión en español — se publica junto con la de arriba
+              </p>
+              {article.title_es && <h2 className="text-3xl font-black mb-3">{article.title_es}</h2>}
+              {article.excerpt_es && <p className="text-lg text-white/60 font-medium italic mb-4">{article.excerpt_es}</p>}
+              <div className="text-lg leading-relaxed text-white/80">
+                {renderContent(article.content_es)}
+              </div>
+            </section>
+          )}
+          {!article.title_es && !article.content_es && (
+            <p className="mt-10 rounded border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200">
+              No Spanish version yet — it will be machine-translated after publish. Review the English carefully; the ES text will mirror it.
+            </p>
+          )}
         </article>
       </main>
     </div>

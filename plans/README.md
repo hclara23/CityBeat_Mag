@@ -117,3 +117,60 @@ roughly by value; any can be promoted to a plan on request.
 - *Billing-page cosmetic issues* (everything "Pending", cancelled subs under
   "Active") — display-only; fold into the billing-blindness work when that
   runs.
+
+
+## Content-stack audit backlog (2026-08-28)
+
+A second adversarially-verified audit covered the surfaces the money audit
+excluded: services/worker, Sanity, and the editorial/content pipeline
+(36 agents; 30 findings confirmed; full data in the operator's scratchpad
+`content-findings.json`). The gate's 7 FIX-NOW items were implemented and
+deployed the same day: Spanish-destroying publish bug, unreviewed/rejected
+articles served by direct URL, unescaped newsletter article HTML, javascript:
+ticket-link XSS (submit + both renders), newsroom prompt-injection hardening
+(system-slot rules + untrusted delimiters + strict publishable gate + the
+review screen now shows the Spanish version), MFA on the article moderation
+APIs + the ghost-article PATCH, and the /studio* security-header exemption for
+a route deleted in June. Worker secret check (#6) is with the operator
+(needs CLOUDFLARE_API_TOKEN): `cd services/worker && npx wrangler secret list`
+— delete STRIPE_* if present and rotate the live key in Stripe.
+
+FIX SOON (bounded today; trigger noted — promote to numbered plans on request):
+
+- Social cron burns the dedupe slot when every network errors (trigger: FB
+  token expiry silently halts distribution). Mirror the weekend-post fix.
+- Spanish-reliability cluster: model-omitted ES fields store English AS
+  Spanish; publish-time translation failures never retried/backfilled
+  (trigger: auto_publish on, or DeepL+Claude outage). Run
+  scripts/translate-articles.ts once to repair existing /es English.
+- Claude translation fallback: 40 listings share one prompt (tenant
+  isolation) and 4000-token cap truncates long articles (trigger: worker
+  outage activates the fallback).
+- Worker editor emails render raw NewsAPI HTML (phishing into the
+  admin-credentialed inbox) — add escapeHtml in worker emails.ts.
+- Worker swallows all failures to console.log; editors get emailed about
+  briefs whose SAVE failed (trigger: any one-sided INGEST_SECRET rotation).
+- Brief pipeline has zero dedupe (dup Claude spend, dup review items, up to
+  ~125 editor emails/day worst case) — reuse the processed_news pattern.
+- Worker cron drift: briefs actually run 01:00–13:00 local, not the
+  documented 07:00–19:00; fix wrangler.toml crons to 13,16,19,22,1 UTC or
+  fix the docs; the "handled in code" comment is false either way.
+- RSS source_url rendered as unvalidated href on public story pages
+  (trigger: outlet feed compromise) — same safeHttpUrl treatment.
+- Writers can set arbitrary bylines shown INSTEAD of their identity in
+  review — bind byline to the authenticated profile.
+- Exact-title dedupe republishes retitled stories; article+dedupe writes not
+  atomic (worse if auto-publish enabled).
+- Documentation truth: CLAUDE.md still documents Sanity CMS and a worker
+  pipeline (DeepL→Sanity→email) that no longer exist; three contradictory
+  cron/timezone stories in-repo; SETUP.md provisions dead Stripe secrets on
+  the worker. Rewrite the affected sections; revoke Sanity tokens/grants.
+- Newsletter blast has no per-run send journal (trigger: subscriber list
+  growth toward the 300s timeout, or scheduler retries → double sends).
+- /api/og is an open brand-image renderer (accepted: rate-limited concern;
+  revisit if abused).
+
+ACCEPTED by the gate: 2 items (see the audit output) — including the sitemap
+XML escaping (safe with current slug charset) and worker→rewrite injection
+fencing (armed only if a brief auto-publish path is ever added; hardening
+note left in lib/rewrite.ts's backlog entry above).

@@ -158,7 +158,7 @@ export default function AdminEventsPage() {
                   <div className="text-xs text-white/40 mb-4 font-mono">ID: {event.id}</div>
                   
                   <div className="flex gap-3">
-                    {event.ticket_url && (
+                    {event.ticket_url && /^https?:\/\//.test(event.ticket_url) && (
                       <a 
                         href={event.ticket_url} 
                         target="_blank" 

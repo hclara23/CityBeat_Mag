@@ -168,7 +168,12 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
     const snap = await adminDb.collection('articles').where('slug', '==', slug).limit(1).get()
     if (!snap.empty) {
       const d = snap.docs[0]
-      return normalizeFirestore(d.id, d.data(), catMap, authorMap)
+      const raw = d.data() as any
+      // The review gate must hold at RENDER time, not just in the lists:
+      // without this, anyone with the direct URL could read pending, draft,
+      // and even REJECTED articles in full. Missing status = legacy published.
+      if (raw.status && raw.status !== 'published') return null
+      return normalizeFirestore(d.id, raw, catMap, authorMap)
     }
   } catch (error) {
     console.error('getArticleBySlug error:', error)
@@ -183,7 +188,11 @@ export async function getArticleById(id: string): Promise<Article | null> {
   try {
     const { catMap, authorMap } = await loadLookups()
     const doc = await adminDb.collection('articles').doc(id).get()
-    if (doc.exists) return normalizeFirestore(doc.id, doc.data() as any, catMap, authorMap)
+    if (doc.exists) {
+      const raw = doc.data() as any
+      if (raw.status && raw.status !== 'published') return null
+      return normalizeFirestore(doc.id, raw, catMap, authorMap)
+    }
   } catch (error) {
     console.error('getArticleById error:', error)
   }

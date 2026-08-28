@@ -73,11 +73,14 @@ function digestHtml(articles: any[], email: string, locale: 'en' | 'es', sponsor
   const unsub = `${APP_URL}/api/newsletter/unsubscribe?u=${mintUnsubToken(normalizeNewsletterEmail(email))}&l=${locale}`
   const items = articles
     .map((a) => {
-      const title = isEs ? a.titleES || a.title : a.title
-      const excerpt = (isEs ? a.excerptES || a.excerpt : a.excerpt) || ''
-      const url = `${APP_URL}/${locale}/stories/${a.slug}`
-      const img = a.image
-        ? `<img src="${a.image}" alt="" width="560" style="width:100%;max-width:560px;border-radius:8px;display:block;margin-bottom:10px" />`
+      // Same escaping the sponsor slot already gets: titles/excerpts are
+      // written by signed-in users and re-reported from external outlets, and
+      // this HTML ships to the ENTIRE subscriber list from CityBeat's address.
+      const title = escapeHtml(isEs ? a.titleES || a.title : a.title)
+      const excerpt = escapeHtml((isEs ? a.excerptES || a.excerpt : a.excerpt) || '')
+      const url = `${APP_URL}/${locale}/stories/${encodeURIComponent(a.slug || '')}`
+      const img = a.image && /^https?:\/\//.test(String(a.image))
+        ? `<img src="${escapeHtml(a.image)}" alt="" width="560" style="width:100%;max-width:560px;border-radius:8px;display:block;margin-bottom:10px" />`
         : ''
       return `<tr><td style="padding:0 0 26px">
         ${img}

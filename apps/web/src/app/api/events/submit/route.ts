@@ -3,6 +3,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import Stripe from 'stripe'
+import { safeHttpUrl } from '@/lib/public-submissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,8 +48,11 @@ export async function POST(request: NextRequest) {
       meta_es: description,
       venue: venue || null,
       start_date: new Date(start_date).toISOString(),
-      ticket_url: ticket_url || null,
-      image_url: image_url || null,
+      // Scheme-validated: a public submitter could plant a javascript: link
+      // that the MODERATOR clicks while vetting — running attacker code inside
+      // the admin session. http(s) only, or nothing.
+      ticket_url: safeHttpUrl(ticket_url),
+      image_url: safeHttpUrl(image_url),
       status: 'pending',
       featured: false,
       source: 'community',
