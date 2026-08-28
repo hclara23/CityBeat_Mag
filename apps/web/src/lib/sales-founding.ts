@@ -21,13 +21,19 @@ import { FOUNDING_LIMIT } from "@/lib/pricing";
  */
 export async function foundingOfferAvailable(): Promise<boolean> {
   try {
-    const [listingCount, monthlyOrders, annualOrders] = await Promise.all([
+    // Read the founding listing IDS, not just a count. A paid Sales Desk
+    // founding sale gets `founding_member: true` on its listing at PAYMENT time
+    // (directoryOrderPaymentPatch), while `fulfillment_target` is only written
+    // when the customer later completes their content brief. Counting listings
+    // and paid-without-target orders as disjoint sets therefore counted every
+    // such sale TWICE — so the promo closed at roughly FIFTY real members, and
+    // the Sales Desk and the partner endpoint started refusing founding sales
+    // while self-serve carried on selling them.
+    const [foundingListings, monthlyOrders, annualOrders] = await Promise.all([
       adminDb
         .collection("directory_listings")
         .where("founding_member", "==", true)
-        .count()
-        .get()
-        .then((snapshot: any) => snapshot.data().count),
+        .get(),
       adminDb
         .collection("sales_orders")
         .where("product_id", "==", "directory_founding_monthly")
@@ -37,14 +43,17 @@ export async function foundingOfferAvailable(): Promise<boolean> {
         .where("product_id", "==", "directory_founding_annual")
         .get(),
     ]);
+    const countedListingIds = new Set(foundingListings.docs.map((d: any) => d.id));
     const paidAwaitingListing = [
       ...monthlyOrders.docs,
       ...annualOrders.docs,
     ].filter((document) => {
       const order = document.data();
-      return order.payment_status === "paid" && !order.fulfillment_target;
+      if (order.payment_status !== "paid" || order.fulfillment_target) return false;
+      // Already represented by its listing — counting it again is the double-count.
+      return !(order.listing_id && countedListingIds.has(String(order.listing_id)));
     }).length;
-    return listingCount + paidAwaitingListing < FOUNDING_LIMIT;
+    return countedListingIds.size + paidAwaitingListing < FOUNDING_LIMIT;
   } catch (error) {
     console.error("Could not confirm Founding availability:", error);
     return false;

@@ -43,13 +43,26 @@ async function sendResumeLinkOnce(input: {
   ref: FirebaseFirestore.DocumentReference
 }) {
   if (input.order.resume_email_sent_at || !input.order.contact_email) return
+  // This link was built from request.url — which is THIS API endpoint. The
+  // customer clicked "Continue my order" and landed on raw JSON, and since the
+  // email is marked sent exactly once and nothing chases unfinished orders,
+  // they had no second chance: for a job posting or sponsorship that means
+  // charged, and the product never created at all. Point at the wizard page,
+  // keeping the ?access= token the request already carries.
   const resumeUrl = new URL(input.request.url)
   resumeUrl.searchParams.delete('session_id')
+  const appOrigin = process.env.NEXT_PUBLIC_APP_URL || resumeUrl.origin
+  const resumeLocale = input.order.locale === 'es' ? 'es' : 'en'
+  const wizardUrl = new URL(
+    `${appOrigin}/${resumeLocale}/fulfill/${encodeURIComponent(input.order.id || input.ref.id)}`
+  )
+  const accessToken = resumeUrl.searchParams.get('access')
+  if (accessToken) wizardUrl.searchParams.set('access', accessToken)
   const html = `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#111">
     <h1 style="font-size:24px;margin-bottom:8px">Finish your CityBeat order</h1>
     <p>Your payment for <strong>${escapeHtml(input.order.product_name || 'your CityBeat order')}</strong> is complete.</p>
     <p>We saved your progress. Use this private link any time in the next 30 days to finish the information and assets our team needs.</p>
-    <p style="margin:24px 0"><a href="${escapeHtml(resumeUrl.toString())}" style="display:inline-block;background:#00e0d1;color:#04121a;padding:13px 20px;text-decoration:none;font-weight:800">Continue my order</a></p>
+    <p style="margin:24px 0"><a href="${escapeHtml(wizardUrl.toString())}" style="display:inline-block;background:#00e0d1;color:#04121a;padding:13px 20px;text-decoration:none;font-weight:800">Continue my order</a></p>
     <p style="font-size:12px;color:#666">Do not forward this link. It opens your private order brief.</p>
   </div>`
   const result = await sendEmail(
@@ -160,6 +173,24 @@ export async function POST(request: NextRequest, { params }: { params: { orderId
         },
         { merge: true }
       )
+      // Nothing told a human that paid work was waiting. That is survivable for
+      // jobs and campaigns, which now have admin queues — but a Sponsored Story
+      // ($30) and a Custom Quote (any amount, up to $100,000) provision into
+      // collections NOTHING in the repo reads, so those customers paid, filled
+      // in their brief, and no one was ever informed the order existed. One
+      // email closes the gap for all seven product types at once.
+      await sendEmail(
+        process.env.ALERT_EMAIL || '',
+        `CityBeat: paid brief submitted — ${result.order.product_name || result.order.product_id || 'order'}`,
+        `<div style="font-family:Arial,sans-serif;max-width:560px;color:#111">
+          <h1 style="font-size:20px">A paid customer just submitted their brief</h1>
+          <p><strong>${escapeHtml(result.order.business_name || 'Customer')}</strong> — ${escapeHtml(result.order.product_name || result.order.product_id || 'order')}</p>
+          <p>Order <code>${escapeHtml(params.orderId)}</code><br>
+          Contact: ${escapeHtml(result.order.contact_email || 'unknown')}</p>
+          <p>Filed to <code>${escapeHtml(target.collection)}</code> / <code>${escapeHtml(target.id)}</code> with status <strong>${escapeHtml(target.status)}</strong>.</p>
+        </div>`
+      ).catch(() => {})
+
       return NextResponse.json({ ok: true, fulfillmentStatus: target.status })
     } catch (fulfillmentError: any) {
       await result.ref.set(
