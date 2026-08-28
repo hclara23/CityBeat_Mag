@@ -6,6 +6,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale, type Locale } from '@/components/citybeat/content'
 import { getArticleBySlug } from '@/lib/articles'
 import { jsonLdSafe } from '@/lib/jsonld'
+import { breadcrumbJsonLd } from '@/lib/seo'
 import { ShareButtons } from '@/components/citybeat/ShareButtons'
 
 export const dynamic = 'force-dynamic'
@@ -55,6 +56,7 @@ export default async function StoryPage({ params }: Props) {
   const isEs = locale === 'es'
   const displayTitle = isEs ? article.titleES : article.title
 
+  const modified = (article as any).updatedAt || article.publishedAt
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
@@ -62,12 +64,26 @@ export default async function StoryPage({ params }: Props) {
     description: isEs ? article.excerptES : article.excerpt,
     image: article.image ? [article.image] : undefined,
     datePublished: article.publishedAt,
+    // Google uses dateModified for freshness ranking / Top Stories eligibility.
+    ...(modified ? { dateModified: modified } : {}),
     author: { '@type': 'Person', name: article.author },
-    publisher: { '@type': 'Organization', name: 'CityBeat Magazine' },
+    // publisher.logo is a HARD requirement for Article rich results.
+    publisher: {
+      '@type': 'Organization',
+      name: 'CityBeat',
+      logo: { '@type': 'ImageObject', url: `${BASE}/api/og`, width: 1200, height: 630 },
+    },
     inLanguage: locale,
     articleSection: article.category,
     mainEntityOfPage: `${BASE}/${locale}/stories/${article.slug}`,
   }
+
+  // BreadcrumbList (Home → Stories → headline) for the SERP breadcrumb trail.
+  const breadcrumb = breadcrumbJsonLd(locale, [
+    { name: locale === 'es' ? 'Inicio' : 'Home', path: '/' },
+    { name: locale === 'es' ? 'Noticias' : 'Stories', path: '/stories' },
+    { name: displayTitle },
+  ])
 
   const body = (locale === 'es' ? article.contentES : article.contentEN) || ''
   const paragraphs = body
@@ -85,6 +101,7 @@ export default async function StoryPage({ params }: Props) {
   return (
     <CityBeatShell locale={locale}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(breadcrumb) }} />
       <article className="container-wide max-w-3xl py-16">
         <Link
           href={withLocale(locale, '/stories')}
@@ -114,7 +131,7 @@ export default async function StoryPage({ params }: Props) {
             <div className="overflow-hidden rounded-md bg-white/5">
               <Image
                 src={article.image}
-                alt=""
+                alt={displayTitle}
                 width={1200}
                 height={800}
                 sizes="(max-width: 768px) 100vw, 768px"

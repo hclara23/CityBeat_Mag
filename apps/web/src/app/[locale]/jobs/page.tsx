@@ -1,8 +1,25 @@
 import Link from 'next/link'
 import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import type { Metadata } from 'next'
+import { localeAlternates } from '@/lib/seo'
+import { jsonLdSafe } from '@/lib/jsonld'
 
 export const dynamic = 'force-dynamic'
+
+export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+  const isEs = params.locale === 'es'
+  const title = isEs ? 'Empleos en El Paso · CityBeat' : 'Jobs in El Paso · CityBeat'
+  const description = isEs
+    ? 'Ofertas de empleo locales en El Paso y la región fronteriza. Publica una vacante o encuentra tu próximo trabajo en CityBeat.'
+    : 'Local job openings in El Paso and the border region. Post a job or find your next role on CityBeat.'
+  return {
+    title,
+    description,
+    alternates: localeAlternates(params.locale, '/jobs'),
+    openGraph: { title, description, type: 'website' },
+  }
+}
 
 interface Job {
   id: string
@@ -35,10 +52,37 @@ export default async function JobsPage({ params }: { params: { locale: string } 
     error = err
   }
 
+  // JobPosting structured data per active paid job → eligible for the Google
+  // Jobs experience. Bounded, and only emitted for jobs with the required fields.
+  const jobsLd = jobs
+    .filter((j) => j.title && j.description)
+    .map((j) => ({
+      '@context': 'https://schema.org',
+      '@type': 'JobPosting',
+      title: j.title,
+      description: j.description,
+      datePosted: j.created_at,
+      ...((j as any).expires_at ? { validThrough: (j as any).expires_at } : {}),
+      hiringOrganization: { '@type': 'Organization', name: j.company_name || 'Employer' },
+      jobLocation: {
+        '@type': 'Place',
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: j.location || 'El Paso',
+          addressRegion: 'TX',
+          addressCountry: 'US',
+        },
+      },
+      ...(j.apply_url ? { directApply: false } : {}),
+    }))
+
   return (
     <div className="min-h-screen bg-black text-white">
+      {jobsLd.map((ld, i) => (
+        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(ld) }} />
+      ))}
       <SiteHeader />
-      <main className="container-wide py-12">
+      <main id="main-content" className="container-wide py-12">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
           <div>
             <h1 className="text-4xl font-display font-black uppercase tracking-widest mb-2">

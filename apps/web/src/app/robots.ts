@@ -8,7 +8,20 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/admin', '/account', '/creator', '/dashboard', '/billing', '/studio'],
+        // Private surfaces + thin/transactional pages that add no search value
+        // and would only burn crawl budget or surface as thin results. Most live
+        // under a locale prefix (/en/..., /es/...), so the `/*/…` wildcard is
+        // required to actually match them; /api/ and /studio are not localized.
+        // The marketing page /ads stays crawlable — only its post-purchase
+        // /ads/success confirmation is blocked.
+        disallow: [
+          '/api/', '/studio',
+          '/*/admin', '/*/account', '/*/creator', '/*/dashboard', '/*/billing',
+          '/*/login', '/*/signup', '/*/reset-password', '/*/update-password',
+          '/*/order/', '/*/fulfill/', '/*/checkout', '/*/ads/success',
+          // Keep the bare forms too, in case any are reachable without a locale.
+          '/admin', '/account', '/creator', '/dashboard', '/billing',
+        ],
       },
     ],
     sitemap: `${BASE}/sitemap.xml`,

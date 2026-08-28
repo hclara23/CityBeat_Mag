@@ -15,7 +15,15 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   const description = isEs
     ? 'Descuentos y promociones de negocios locales en El Paso, Las Cruces y Ciudad Juárez.'
     : 'Discounts and coupons from local businesses across El Paso, Las Cruces & Ciudad Juárez.'
-  return { title, description, alternates: { canonical: `${BASE}/${params.locale}/deals` }, openGraph: { title, description, type: 'website' } }
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `${BASE}/${params.locale}/deals`,
+      languages: { en: `${BASE}/en/deals`, es: `${BASE}/es/deals`, 'x-default': `${BASE}/en/deals` },
+    },
+    openGraph: { title, description, type: 'website' },
+  }
 }
 
 async function activeDeals() {

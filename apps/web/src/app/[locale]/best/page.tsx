@@ -18,7 +18,10 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   return {
     title,
     description,
-    alternates: { canonical: `${BASE}/${params.locale}/best` },
+    alternates: {
+      canonical: `${BASE}/${params.locale}/best`,
+      languages: { en: `${BASE}/en/best`, es: `${BASE}/es/best`, 'x-default': `${BASE}/en/best` },
+    },
     openGraph: { title, description, type: 'website' },
   }
 }

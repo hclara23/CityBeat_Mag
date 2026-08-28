@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { jsonLdSafe } from '@/lib/jsonld'
+import { breadcrumbJsonLd } from '@/lib/seo'
 import { stripInternalListingFields } from '@/lib/listing-fields'
 import { activePosts, elPasoDayKey } from '@/lib/listing-content'
 import DirectoryDetailClient from './DirectoryDetailClient'
@@ -21,6 +22,62 @@ async function getListing(id: string): Promise<any | null> {
     return doc.exists ? { id: doc.id, ...(doc.data() as any) } : null
   } catch {
     return null
+  }
+}
+
+type FirstPartyReview = { rating: number; comment: string; author: string; datePublished: string | null }
+
+// First-party reviews for schema. We only ever mark up reviews CityBeat itself
+// collected (directory_reviews) — never the imported Google Places rating, which
+// is both a data mismatch (won't match on-page reviews) and a structured-data
+// manual-action risk. Bounded to the 15 most recent and their author names.
+async function getFirstPartyReviews(
+  id: string
+): Promise<{ reviews: FirstPartyReview[]; count: number; average: number }> {
+  try {
+    const snap = await adminDb.collection('directory_reviews').where('listing_id', '==', id).get()
+    const raw = snap.docs
+      .map((d) => d.data() as any)
+      .filter((r) => Number.isFinite(Number(r.rating)) && Number(r.rating) >= 1 && Number(r.rating) <= 5)
+    if (raw.length === 0) return { reviews: [], count: 0, average: 0 }
+
+    const count = raw.length
+    const average = Math.round((raw.reduce((s, r) => s + Number(r.rating), 0) / count) * 10) / 10
+
+    const recent = raw
+      .map((r) => ({
+        ...r,
+        _ts:
+          typeof r.created_at?.toDate === 'function'
+            ? r.created_at.toDate().getTime()
+            : Date.parse(r.created_at) || 0,
+      }))
+      .sort((a, b) => b._ts - a._ts)
+      .slice(0, 15)
+
+    // Resolve author names in one batched read.
+    const uids = Array.from(new Set(recent.map((r) => r.user_id).filter(Boolean)))
+    const nameByUid = new Map<string, string>()
+    if (uids.length) {
+      const refs = uids.map((u) => adminDb.collection('profiles').doc(String(u)))
+      const profiles = await adminDb.getAll(...refs)
+      profiles.forEach((p) => {
+        if (p.exists) nameByUid.set(p.id, (p.data() as any)?.full_name || 'CityBeat reader')
+      })
+    }
+
+    const reviews: FirstPartyReview[] = recent
+      .filter((r) => typeof r.comment === 'string' && r.comment.trim())
+      .map((r) => ({
+        rating: Number(r.rating),
+        comment: String(r.comment).slice(0, 500),
+        author: nameByUid.get(String(r.user_id)) || 'CityBeat reader',
+        datePublished: r._ts ? new Date(r._ts).toISOString() : null,
+      }))
+
+    return { reviews, count, average }
+  } catch {
+    return { reviews: [], count: 0, average: 0 }
   }
 }
 
@@ -102,11 +159,19 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   }
 }
 
-function buildSchema(listing: any, locale: string) {
+function buildSchema(
+  listing: any,
+  locale: string,
+  reviewData: { reviews: FirstPartyReview[]; count: number; average: number }
+) {
   const url = `${BASE}/${locale}/directory/${listing.id}`
   const social = listing.social_links || {}
   const sameAs = [social.facebook, social.instagram, social.twitter, listing.website].filter(Boolean)
   const schemaDesc = locale === 'es' ? listing.description_es || listing.description : listing.description
+  // Service areas (GMB parity) → schema areaServed.
+  const areaServed = Array.isArray(listing.service_areas)
+    ? listing.service_areas.filter((s: any) => typeof s === 'string' && s.trim()).slice(0, 20)
+    : []
 
   // hours: { Monday: "9:00 AM - 5:00 PM", ... } → schema openingHours strings.
   let openingHours: string[] | undefined
@@ -136,9 +201,33 @@ function buildSchema(listing: any, locale: string) {
       ? { geo: { '@type': 'GeoCoordinates', latitude: listing.latitude, longitude: listing.longitude } }
       : {}),
     ...(openingHours && openingHours.length ? { openingHours } : {}),
+    ...(areaServed.length ? { areaServed } : {}),
+    ...(listing.video_url ? { video: { '@type': 'VideoObject', name: listing.name, contentUrl: listing.video_url } } : {}),
     ...(sameAs.length ? { sameAs } : {}),
-    ...(listing.rating && listing.user_ratings_total
-      ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: listing.rating, reviewCount: listing.user_ratings_total } }
+    // Aggregate + individual reviews come ONLY from first-party reviews we
+    // actually collected and render on the page — never the imported Google
+    // Places numbers (mismatch + manual-action risk).
+    ...(reviewData.count > 0
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: reviewData.average,
+            reviewCount: reviewData.count,
+            bestRating: 5,
+            worstRating: 1,
+          },
+        }
+      : {}),
+    ...(reviewData.reviews.length
+      ? {
+          review: reviewData.reviews.map((r) => ({
+            '@type': 'Review',
+            reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5, worstRating: 1 },
+            author: { '@type': 'Person', name: r.author },
+            ...(r.datePublished ? { datePublished: r.datePublished } : {}),
+            reviewBody: r.comment,
+          })),
+        }
       : {}),
   }
 }
@@ -146,11 +235,31 @@ function buildSchema(listing: any, locale: string) {
 export default async function DirectoryDetailPage({ params }: { params: Params }) {
   const listing = await getListing(params.id)
   const locale = params.locale === 'es' ? 'es' : 'en'
+  const indexable = listing && listing.is_published !== false && !listing.merged_into
+  const reviewData = indexable
+    ? await getFirstPartyReviews(params.id)
+    : { reviews: [], count: 0, average: 0 }
+
+  const breadcrumb = listing
+    ? breadcrumbJsonLd(locale, [
+        { name: locale === 'es' ? 'Inicio' : 'Home', path: '/' },
+        { name: locale === 'es' ? 'Directorio' : 'Directory', path: '/directory' },
+        { name: listing.name || 'Business' },
+      ])
+    : null
 
   return (
     <>
-      {listing && listing.is_published !== false && !listing.merged_into && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(buildSchema(listing, locale)) }} />
+      {indexable && (
+        <>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: jsonLdSafe(buildSchema(listing, locale, reviewData)) }}
+          />
+          {breadcrumb && (
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(breadcrumb) }} />
+          )}
+        </>
       )}
       <DirectoryDetailClient initialListing={listing ? toPublicListing(listing) : null} />
     </>

@@ -13,13 +13,14 @@ function entry(path: string, lastModified?: Date): MetadataRoute.Sitemap[number]
   return {
     url: `${BASE}/en${path}`,
     lastModified: lastModified || new Date(),
-    alternates: { languages: { en: `${BASE}/en${path}`, es: `${BASE}/es${path}` } },
+    alternates: { languages: { en: `${BASE}/en${path}`, es: `${BASE}/es${path}`, 'x-default': `${BASE}/en${path}` } },
   }
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
     '', '/stories', '/directory', '/best', '/events', '/this-weekend', '/deals', '/jobs', '/ads', '/contribute', '/privacy', '/terms',
+    '/leaderboard', '/guide',
     '/topics/news', '/topics/business', '/topics/events', '/topics/culture',
   ]
   const urls: MetadataRoute.Sitemap = staticPaths.map((p) => entry(p))

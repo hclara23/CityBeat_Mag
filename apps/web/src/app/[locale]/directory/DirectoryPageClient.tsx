@@ -124,6 +124,10 @@ export default function DirectoryPageClient() {
         })
       )
     }
+    // Seed the search box from ?q= so Google's sitelinks search box (WebSite
+    // SearchAction) and any deep link land on a real filtered result set.
+    const q = searchParams.get('q')?.trim()
+    if (q) setSearchQuery(q.slice(0, 80))
   }, [])
 
   useEffect(() => {

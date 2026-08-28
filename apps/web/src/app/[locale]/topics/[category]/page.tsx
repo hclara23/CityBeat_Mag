@@ -4,6 +4,8 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { ArticleVisual } from '@/components/citybeat/ArticleVisual'
 import { withLocale, type Locale } from '@/components/citybeat/content'
 import { getPublishedArticles, CATEGORY_IDS } from '@/lib/articles'
+import type { Metadata } from 'next'
+import { localeAlternates } from '@/lib/seo'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +18,23 @@ const categoryLabels: Record<string, { en: string; es: string }> = {
   business: { en: 'Business', es: 'Negocios' },
   events: { en: 'Events', es: 'Eventos' },
   culture: { en: 'Culture', es: 'Cultura' },
+}
+
+export function generateMetadata({ params }: Props): Metadata {
+  const isEs = params.locale === 'es'
+  const label = categoryLabels[params.category]
+  if (!label) return {}
+  const name = isEs ? label.es : label.en
+  const title = isEs ? `${name} de El Paso · CityBeat` : `El Paso ${name} · CityBeat`
+  const description = isEs
+    ? `Cobertura de ${name.toLowerCase()} en El Paso, Las Cruces y la región fronteriza — en CityBeat.`
+    : `${name} coverage from El Paso, Las Cruces, and the border region — on CityBeat.`
+  return {
+    title,
+    description,
+    alternates: localeAlternates(params.locale, `/topics/${params.category}`),
+    openGraph: { title, description, type: 'website' },
+  }
 }
 
 export default async function TopicPage({ params }: Props) {

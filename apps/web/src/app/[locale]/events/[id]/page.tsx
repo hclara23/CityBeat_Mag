@@ -6,6 +6,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { getEventById } from '@/lib/events'
 import { jsonLdSafe } from '@/lib/jsonld'
+import { breadcrumbJsonLd } from '@/lib/seo'
 import { affiliateTicketUrl } from '@/lib/affiliate'
 
 export const dynamic = 'force-dynamic'
@@ -27,7 +28,14 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: {
+      canonical: url,
+      languages: {
+        en: `${BASE}/en/events/${e.id}`,
+        es: `${BASE}/es/events/${e.id}`,
+        'x-default': `${BASE}/en/events/${e.id}`,
+      },
+    },
     openGraph: { title, description, url, type: 'website', images: [{ url: ogImage }] },
     twitter: { card: 'summary_large_image', title, description, images: [ogImage] },
   }
@@ -47,19 +55,49 @@ export default async function EventDetail({ params }: { params: Params }) {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
       })
 
+  // Optional end time when the data model carries one (raw doc may have it even
+  // though the typed PublicEvent doesn't expose it).
+  const endDate = (e as any).end_date || (e as any).end_time || null
   const jsonLd = jsonLdSafe({
     '@context': 'https://schema.org',
     '@type': 'Event',
     name: title,
     startDate: e.start_date,
+    ...(endDate ? { endDate } : {}),
     eventStatus: 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    ...(e.venue ? { location: { '@type': 'Place', name: e.venue, address: e.venue } } : {}),
+    // Model the venue as a Place with a real PostalAddress (not the venue name
+    // reused as a full address string) so local relevance is preserved.
+    ...(e.venue
+      ? {
+          location: {
+            '@type': 'Place',
+            name: e.venue,
+            address: {
+              '@type': 'PostalAddress',
+              streetAddress: e.venue,
+              addressLocality: 'El Paso',
+              addressRegion: 'TX',
+              addressCountry: 'US',
+            },
+          },
+        }
+      : {}),
     ...(e.image_url ? { image: [e.image_url] } : {}),
     ...(desc ? { description: desc } : {}),
-    ...(e.ticket_url ? { offers: { '@type': 'Offer', url: affiliateTicketUrl(e.ticket_url) } } : {}),
+    // NOTE: `offers` is intentionally omitted — the event model has no price, and
+    // Google rejects an Offer without price/priceCurrency (an incomplete Offer is
+    // worse than none). The affiliate ticket link is still rendered on the page.
     organizer: { '@type': 'Organization', name: 'CityBeat', url: BASE },
   })
+
+  const breadcrumb = jsonLdSafe(
+    breadcrumbJsonLd(params.locale, [
+      { name: isEs ? 'Inicio' : 'Home', path: '/' },
+      { name: isEs ? 'Eventos' : 'Events', path: '/events' },
+      { name: title },
+    ])
+  )
 
   // Affiliate-tagged buy link (commission on ticket sales); passthrough until configured.
   const ticketHref = affiliateTicketUrl(e.ticket_url)
@@ -67,6 +105,7 @@ export default async function EventDetail({ params }: { params: Params }) {
   return (
     <CityBeatShell locale={params.locale}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumb }} />
       <article className="container-wide max-w-3xl py-14">
         <Link
           href={withLocale(params.locale, '/events')}
@@ -81,7 +120,7 @@ export default async function EventDetail({ params }: { params: Params }) {
 
         {e.image_url && (
           <div className="mt-8 overflow-hidden rounded-md bg-white/5">
-            <Image src={e.image_url} alt="" width={1200} height={675} className="aspect-video w-full object-cover" />
+            <Image src={e.image_url} alt={title} width={1200} height={675} className="aspect-video w-full object-cover" />
           </div>
         )}
 

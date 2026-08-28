@@ -3,12 +3,29 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { ArticleVisual } from '@/components/citybeat/ArticleVisual'
 import { withLocale, type Locale } from '@/components/citybeat/content'
 import { getPublishedArticles, CATEGORY_IDS } from '@/lib/articles'
+import type { Metadata } from 'next'
+import { localeAlternates } from '@/lib/seo'
 
 export const dynamic = 'force-dynamic'
 
 type Props = {
   params: { locale: string }
   searchParams: { category?: string }
+}
+
+export function generateMetadata({ params }: Props): Metadata {
+  const isEs = params.locale === 'es'
+  const title = isEs ? 'Noticias y reportajes de El Paso · CityBeat' : 'El Paso News & Stories · CityBeat'
+  const description = isEs
+    ? 'Las últimas noticias, negocios, cultura y eventos de El Paso, Las Cruces y la región fronteriza — en español e inglés.'
+    : 'The latest local news, business, culture, and events from El Paso, Las Cruces, and the border region — in English and Spanish.'
+  return {
+    title,
+    description,
+    // Self-canonical (no ?category=) so filtered variants consolidate here.
+    alternates: localeAlternates(params.locale, '/stories'),
+    openGraph: { title, description, type: 'website' },
+  }
 }
 
 const categoryLabels: Record<string, { en: string; es: string }> = {

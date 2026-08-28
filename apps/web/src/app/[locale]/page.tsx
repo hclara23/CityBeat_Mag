@@ -10,6 +10,8 @@ import { AdBanner } from '@/components/citybeat/AdBanner'
 import { ArticleVisual } from '@/components/citybeat/ArticleVisual'
 import { jsonLdSafe } from '@/lib/jsonld'
 import { affiliateTicketUrl } from '@/lib/affiliate'
+import type { Metadata } from 'next'
+import { localeAlternates } from '@/lib/seo'
 type HomePageProps = {
   params: {
     locale: string
@@ -17,6 +19,22 @@ type HomePageProps = {
 }
 
 export const dynamic = 'force-dynamic'
+
+export function generateMetadata({ params }: HomePageProps): Metadata {
+  const isEs = params.locale === 'es'
+  const title = isEs
+    ? 'CityBeat — Noticias locales, eventos y directorio de negocios de El Paso'
+    : 'CityBeat — El Paso Local News, Events & Business Directory'
+  const description = isEs
+    ? 'Noticias, eventos, ofertas y un directorio de negocios en español e inglés para el Condado de El Paso, Horizon, Socorro, Clint y Las Cruces.'
+    : 'Bilingual local news, events, deals, and a business directory for El Paso County, Horizon, Socorro, Clint, and Las Cruces.'
+  return {
+    title,
+    description,
+    alternates: localeAlternates(params.locale, '/'),
+    openGraph: { title, description, type: 'website' },
+  }
+}
 
 export default async function Home({ params }: HomePageProps) {
   const locale = (params.locale || 'en') as Locale
