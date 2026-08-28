@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { getAdProducts, getEvents, getTopStories, withLocale, type Locale } from '@/components/citybeat/content'
 import { getPublishedArticles } from '@/lib/articles'
@@ -203,14 +202,23 @@ export default async function Home({ params }: HomePageProps) {
               <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-neon">{localeCopy.happeningNow}</p>
               <h2 className="mt-3 text-4xl font-black text-white md:text-5xl">{localeCopy.eventsHeading}</h2>
             </div>
-            <Link href={withLocale(locale, '/#events')} className="text-sm font-black uppercase tracking-wider text-brand-neon hover:underline">
+            <Link href={withLocale(locale, '/events')} className="text-sm font-black uppercase tracking-wider text-brand-neon hover:underline">
               {localeCopy.fullCalendar}
             </Link>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             {events.map((event) => (
               <article key={event.title} className="group overflow-hidden glass-panel flex flex-col h-full">
-                <Image src={event.image} alt="" width={760} height={520} sizes="(max-width: 768px) 100vw, 33vw" className="aspect-[4/3] w-full object-cover opacity-80 transition duration-500 group-hover:scale-105" />
+                {/* ArticleVisual guards a null image_url (which crashed next/image
+                    here) with a branded fallback card, and matches the story cards. */}
+                <ArticleVisual
+                  identifier={event.title}
+                  title={event.title}
+                  category="events"
+                  image={event.image}
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="aspect-[4/3] w-full"
+                />
                 <div className="p-6 flex-grow flex flex-col">
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-gold">{event.meta}</p>
                   <h3 className="mt-3 text-2xl font-black text-white flex-grow">{event.title}</h3>

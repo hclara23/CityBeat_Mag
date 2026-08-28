@@ -88,10 +88,10 @@ export function AIAssistantPanel() {
             </div>
 
             {d.deal && (
-              <div className="mb-4 rounded-md border border-cyan-200 bg-cyan-50 p-4">
-                <p className="text-[10px] font-black uppercase tracking-wider text-cyan-700 mb-1">{isEs ? 'Oferta sugerida' : 'Suggested deal'}</p>
-                <p className="font-bold text-gray-900">{d.deal.title}</p>
-                {d.deal.description && <p className="text-sm text-gray-600 mt-1">{d.deal.description}</p>}
+              <div className="mb-4 rounded-md border border-brand-neon/30 bg-brand-neon/10 p-4">
+                <p className="text-[10px] font-black uppercase tracking-wider text-brand-neon mb-1">{isEs ? 'Oferta sugerida' : 'Suggested deal'}</p>
+                <p className="font-bold text-white">{d.deal.title}</p>
+                {d.deal.description && <p className="text-sm text-white/70 mt-1">{d.deal.description}</p>}
                 <button
                   onClick={() => act(d.id, 'approve_deal')}
                   disabled={busy === `${d.id}:approve_deal:`}

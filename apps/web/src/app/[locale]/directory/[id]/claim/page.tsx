@@ -647,7 +647,9 @@ function ClaimPageInner() {
                                     disabled={verifying}
                                     className="w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3 transition hover:bg-cyan-300 disabled:opacity-50"
                                   >
-                                    {verifying ? 'Verify Code' : 'Verify Code'}
+                                    {verifying
+                                      ? (locale === 'es' ? 'Verificando…' : 'Verifying…')
+                                      : (locale === 'es' ? 'Verificar código' : 'Verify Code')}
                                   </button>
                                   <button
                                     type="button"

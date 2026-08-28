@@ -52,16 +52,16 @@ export function LeadsPanel() {
         {leads.map((lead) => (
           <div
             key={lead.id}
-            className={`rounded-lg p-4 border ${lead.unlocked ? 'bg-gray-50 border-gray-200' : 'bg-amber-50 border-amber-200'}`}
+            className={`rounded-lg p-4 border ${lead.unlocked ? 'bg-white/5 border-white/10' : 'bg-amber-400/10 border-amber-400/30'}`}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <p className="text-sm font-bold text-gray-900">
+                <p className="text-sm font-bold text-white">
                   {lead.name}
-                  <span className="ml-2 font-medium text-gray-500">{lead.contact}</span>
+                  <span className="ml-2 font-medium text-white/60">{lead.contact}</span>
                 </p>
                 {lead.business_name && (
-                  <p className="text-xs text-gray-500 mt-0.5">{isEs ? 'para' : 'for'} {lead.business_name}</p>
+                  <p className="text-xs text-white/60 mt-0.5">{isEs ? 'para' : 'for'} {lead.business_name}</p>
                 )}
                 {lead.message && (
                   <p className={`text-sm mt-2 ${lead.unlocked ? 'text-gray-700' : 'text-amber-700 italic'}`}>{lead.message}</p>

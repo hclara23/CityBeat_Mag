@@ -404,7 +404,7 @@ export default function DirectoryPageClient() {
                         <div className="p-6 flex flex-col flex-grow">
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] font-black uppercase tracking-wider text-brand-neon bg-brand-neon/10 px-2 py-0.5 rounded">
-                              {listing.category}
+                              {categoryLabel(listing.category, locale)}
                             </span>
                           </div>
 
@@ -465,11 +465,15 @@ export default function DirectoryPageClient() {
                         <div>
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-[9px] font-bold uppercase tracking-wider text-white/40 bg-white/5 px-2 py-0.5 rounded">
-                              {listing.category}
+                              {categoryLabel(listing.category, locale)}
                             </span>
                             {listing.claim_status === 'unclaimed' ? (
                               <span className="text-[8px] font-bold uppercase tracking-widest text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded bg-brand-gold/5">
                                 {t.claimBadge}
+                              </span>
+                            ) : listing.claim_status === 'approved' ? (
+                              <span className="text-[8px] font-bold uppercase tracking-widest text-brand-neon border border-brand-neon/25 px-1.5 py-0.5 rounded bg-brand-neon/10">
+                                {t.approvedBadge}
                               </span>
                             ) : (
                               <span className="text-[8px] font-bold uppercase tracking-widest text-white/40 bg-white/5 px-1.5 py-0.5 rounded">

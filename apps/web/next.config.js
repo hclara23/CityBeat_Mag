@@ -46,6 +46,13 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'media.ticketmaster.com',
       },
+      {
+        // Stock fallback image for directory listings without a photo. Without
+        // this allowlist entry next/image returned 400 and rendered a broken
+        // image on every image-less listing (including the premium hero).
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
   },

@@ -109,7 +109,7 @@ export function MyListingsBoost() {
                       : ''}
                   </p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isFeatured ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-700'}`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isFeatured ? 'bg-brand-gold/15 text-brand-gold' : 'bg-white/10 text-white/70'}`}>
                   {listing.tier.toUpperCase()}
                 </span>
               </div>
