@@ -33,6 +33,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     /* ignore */
   }
 
+  // Active paid job detail pages (each is its own indexable JobPosting URL).
+  // Single-field filter + in-memory expiry check avoids a composite-index
+  // dependency; the try/catch keeps a failure from breaking the rest.
+  try {
+    const now = new Date().toISOString()
+    const snap = await adminDb.collection('jobs').where('is_paid', '==', true).get()
+    snap.forEach((d) => {
+      const exp = (d.data() as any).expires_at
+      if (!exp || exp > now) urls.push(entry(`/jobs/${d.id}`))
+    })
+  } catch {
+    /* ignore — still emit the rest */
+  }
+
   // Programmatic local-SEO pages: every (category × city) combo that has listings.
   try {
     const combos = await getNonEmptyCombos()
