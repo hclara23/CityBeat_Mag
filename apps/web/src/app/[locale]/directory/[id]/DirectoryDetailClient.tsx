@@ -646,10 +646,11 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     <h3 className="text-xs font-bold uppercase tracking-wider text-brand-neon mb-4">Basic Information</h3>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
+                    <label htmlFor="edit-biz-name" className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
                       Business Name
                     </label>
                     <input
+                      id="edit-biz-name"
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -658,10 +659,11 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
+                    <label htmlFor="edit-category" className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
                       Category
                     </label>
                     <select
+                      id="edit-category"
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       required
@@ -677,10 +679,11 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
+                    <label htmlFor="edit-address" className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
                       Address
                     </label>
                     <input
+                      id="edit-address"
                       type="text"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
@@ -689,10 +692,11 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
+                    <label htmlFor="edit-phone" className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
                       Phone Number
                     </label>
                     <input
+                      id="edit-phone"
                       type="text"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
@@ -701,10 +705,11 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
+                    <label htmlFor="edit-website" className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-2">
                       Website URL
                     </label>
                     <input
+                      id="edit-website"
                       type="text"
                       value={website}
                       onChange={(e) => setWebsite(e.target.value)}
@@ -718,7 +723,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 <div className="space-y-6">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
+                      <label htmlFor="edit-description" className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
                         {t.descriptionLabel}
                       </label>
                       {(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor && (
@@ -728,6 +733,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                       )}
                     </div>
                     <textarea
+                      id="edit-description"
                       rows={6}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
@@ -739,7 +745,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
+                      <label htmlFor="edit-image-url" className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
                         {t.imageUrlLabel}
                       </label>
                       {(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor && (
@@ -749,6 +755,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                       )}
                     </div>
                     <input
+                      id="edit-image-url"
                       type="text"
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
@@ -769,7 +776,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
+                      <label htmlFor="edit-gallery" className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
                         {t.galleryLabel}
                       </label>
                       {(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor && (
@@ -779,6 +786,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                       )}
                     </div>
                     <textarea
+                      id="edit-gallery"
                       rows={4}
                       value={galleryInput}
                       onChange={(e) => setGalleryInput(e.target.value)}
@@ -810,10 +818,11 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-[10px] uppercase font-bold text-white/50 mb-1">
+                        <label htmlFor="edit-social-fb" className="block text-[10px] uppercase font-bold text-white/50 mb-1">
                           {t.socialFb}
                         </label>
                         <input
+                          id="edit-social-fb"
                           type="text"
                           value={facebook}
                           onChange={(e) => setFacebook(e.target.value)}
@@ -823,10 +832,11 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] uppercase font-bold text-white/50 mb-1">
+                        <label htmlFor="edit-social-ig" className="block text-[10px] uppercase font-bold text-white/50 mb-1">
                           {t.socialIg}
                         </label>
                         <input
+                          id="edit-social-ig"
                           type="text"
                           value={instagram}
                           onChange={(e) => setInstagram(e.target.value)}
@@ -836,10 +846,11 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] uppercase font-bold text-white/50 mb-1">
+                        <label htmlFor="edit-social-tw" className="block text-[10px] uppercase font-bold text-white/50 mb-1">
                           {t.socialTw}
                         </label>
                         <input
+                          id="edit-social-tw"
                           type="text"
                           value={twitter}
                           onChange={(e) => setTwitter(e.target.value)}
