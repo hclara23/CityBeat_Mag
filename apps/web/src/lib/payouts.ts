@@ -139,26 +139,51 @@ async function executeTransfer(input: {
   })
 
   const recordPaid = async (transferId: string, actualAmount: number) => {
-    await ledgerRef.set(
-      {
-        payee_user_id: payeeUserId,
-        service,
-        role,
-        percent,
-        amount: actualAmount,
-        currency,
-        source_payment: sourcePaymentId,
-        source_transaction: sourceTransaction,
-        stripe_transfer_id: transferId,
-        stripe_destination: destination,
-        status: 'paid',
-        error_code: null,
-        error_message: null,
-        paid_at: FieldValue.serverTimestamp(),
-        attempts: FieldValue.increment(1),
-      },
-      { merge: true }
-    )
+    // A clawback can land between this run reading its snapshot and the transfer
+    // completing. Blindly writing status:'paid' would silently overwrite that
+    // reversal, leaving a refunded sale marked paid with no alert. Money HAS
+    // left the platform at this point, so the reversal is not undone — the row
+    // records the transfer and stays in its clawback state for a human.
+    const clobbered = await adminDb
+      .runTransaction(async (transaction) => {
+        const fresh = await transaction.get(ledgerRef)
+        const status = fresh.exists ? (fresh.data() as any)?.status : null
+        const reversedMidFlight = status === 'reversed' || status === 'clawback_owed'
+        transaction.set(
+          ledgerRef,
+          {
+            payee_user_id: payeeUserId,
+            service,
+            role,
+            percent,
+            amount: actualAmount,
+            currency,
+            source_payment: sourcePaymentId,
+            source_transaction: sourceTransaction,
+            stripe_transfer_id: transferId,
+            stripe_destination: destination,
+            // Keep the clawback status; never demote it back to 'paid'.
+            ...(reversedMidFlight
+              ? { paid_after_clawback: true, paid_after_clawback_at: new Date().toISOString() }
+              : { status: 'paid', error_code: null, error_message: null }),
+            paid_at: FieldValue.serverTimestamp(),
+            attempts: FieldValue.increment(1),
+          },
+          { merge: true }
+        )
+        return reversedMidFlight
+      })
+      .catch(() => false)
+
+    if (clobbered) {
+      await reportFailure(
+        'payout-clawback-race',
+        new Error(
+          `A commission transfer completed for a share that was clawed back mid-run — $${(actualAmount / 100).toFixed(2)} left the platform for a reversed sale`
+        ),
+        { service, payee_user_id: payeeUserId, source_payment: sourcePaymentId, transfer_id: transferId }
+      ).catch(() => {})
+    }
   }
 
   // Anti-double-pay backstop: if a transfer for this exact share already exists on
@@ -505,6 +530,12 @@ export async function runPayoutCycle(params: {
     const amount = Math.max(0, Math.round(Number(row.amount) || 0))
     if (!payeeUserId || !service || amount <= 0) continue
     if (dryRun) continue
+
+    // Re-read immediately before moving money: this loop walks a point-in-time
+    // snapshot, and a refund/cancellation clawback may have reversed the share
+    // since it was taken.
+    const fresh = await doc.ref.get().catch(() => null)
+    if (!fresh?.exists || (fresh.data() as any)?.status !== 'held') continue
 
     const acctDoc = await adminDb.collection('stripe_connected_accounts').doc(payeeUserId).get().catch(() => null)
     const acct = acctDoc?.exists ? (acctDoc.data() as any) : null

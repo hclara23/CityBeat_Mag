@@ -658,6 +658,17 @@ async function handleChargeRefunded(charge: any) {
       if (fullyRefunded && target.collection === 'directory_listings') {
         await disqualifyPendingReferralForListing(String(target.id), 'refunded')
       }
+      // A newsletter sponsorship is fulfilled into ad_campaigns, but the weekly
+      // digest renders the MIRROR at ad_banners/campaign:<id> (see
+      // /api/admin/campaigns). Patching only the fulfillment target would leave
+      // a refunded or disputed sponsor mailing to every subscriber every Friday.
+      if (fullyRefunded && target.collection === 'ad_campaigns') {
+        await adminDb
+          .collection('ad_banners')
+          .doc(`campaign:${target.id}`)
+          .set({ is_active: false, updated_at: now }, { merge: true })
+          .catch(() => {})
+      }
     }
   }
 

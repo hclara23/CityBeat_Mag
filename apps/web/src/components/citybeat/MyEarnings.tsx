@@ -125,7 +125,9 @@ export function MyEarnings() {
                         ? isEs ? 'Listo' : 'Ready'
                         : t.commission_state === 'failed'
                           ? isEs ? 'Reintentando' : 'Retrying'
-                          : isEs ? 'Retenido' : 'Held'}
+                          : t.commission_state === 'no_bank'
+                            ? isEs ? 'Conecta tu banco' : 'Connect your bank'
+                            : isEs ? 'Retenido' : 'Held'}
                     </span>
                   </td>
                   <td className="px-4 py-2.5 text-white/60">{fmtDay(t.payout_date) || '—'}</td>

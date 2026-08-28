@@ -45,7 +45,9 @@ export async function GET() {
   const commission = totalByState(ledger, now)
   const transfers = ledger.filter((t) => t.status === 'paid').slice(0, 20)
   const upcoming = ledger
-    .filter((t) => t.commission_state === 'held' || t.commission_state === 'due' || t.commission_state === 'failed')
+    .filter((t) =>
+      ['held', 'due', 'failed', 'no_bank'].includes(String(t.commission_state))
+    )
     .slice(0, 20)
 
   const acctDoc = await adminDb.collection('stripe_connected_accounts').doc(user.id).get()

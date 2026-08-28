@@ -176,7 +176,12 @@ export function totalByState(
     if (!cents) continue
     const { state } = commissionDisplayState(row, now)
     if (state === 'paid') totals.paid += cents
-    else if (state === 'due' || state === 'failed') totals.due += cents
+    // `no_bank` is money the rep has EARNED — it is only waiting on them to
+    // finish connecting a bank, and reconcileFailedTransfers pays it once they
+    // do. Omitting it made a share the rep had been watching as "On hold"
+    // vanish from their dashboard entirely the moment a payout cycle tried and
+    // found no account, leaving MyEarnings showing "No commissions yet".
+    else if (state === 'due' || state === 'failed' || state === 'no_bank') totals.due += cents
     else if (state === 'held') totals.held += cents
     else if (state === 'clawback_owed') totals.owed_back += cents
   }

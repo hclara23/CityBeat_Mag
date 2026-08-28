@@ -163,10 +163,14 @@ test('totals separate what is banked, coming, still held, and owed back', () => 
     { status: 'clawback_owed', amount: 125 },
     { status: 'reversed', amount: 999 }, // never counts toward anything
     { status: 'held', amount: 0, eligible_at: '2026-08-01T00:00:00.000Z' }, // zero ignored
+    // Earned, waiting only on the rep to connect a bank. This must stay VISIBLE:
+    // omitting it made a share vanish from the rep's dashboard the moment a
+    // payout cycle found no connected account.
+    { status: 'skipped_no_connected_account', amount: 75 },
   ]
   assert.deepEqual(totalByState(rows, now), {
     paid: 1000,
-    due: 650,
+    due: 725,
     held: 300,
     owed_back: 125,
   })
