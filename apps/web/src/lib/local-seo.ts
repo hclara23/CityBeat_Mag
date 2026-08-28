@@ -73,12 +73,14 @@ export type LocalListing = {
   is_sponsored?: boolean
 }
 
-function inCity(row: any, city: LocalCity): boolean {
+// Exported for unit testing (they decide which paying businesses rank on the
+// programmatic local-SEO pages).
+export function inCity(row: any, city: LocalCity): boolean {
   const hay = `${row.address || ''} ${typeof row.locations === 'object' ? JSON.stringify(row.locations) : ''}`.toLowerCase()
   return city.aliases.some((a) => hay.includes(a.toLowerCase()))
 }
 
-function rank(a: any, b: any): number {
+export function rank(a: any, b: any): number {
   if (Boolean(a.is_sponsored) !== Boolean(b.is_sponsored)) return a.is_sponsored ? -1 : 1
   const tierRank: Record<string, number> = { featured: 3, premium: 2, basic: 1 }
   const at = tierRank[a.tier] || 0
