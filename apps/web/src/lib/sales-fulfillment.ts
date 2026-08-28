@@ -24,6 +24,8 @@ export function salesFulfillmentTarget(input: {
       return { collection: 'sponsored_stories', id: input.orderId, status: 'in_review' }
     case 'newsletter_sponsorship':
       return { collection: 'ad_campaigns', id: input.orderId, status: 'in_review' }
+    case 'social_promotion':
+      return { collection: 'social_promotions', id: input.orderId, status: 'in_review' }
     case 'custom':
       return { collection: 'sales_fulfillment_briefs', id: input.orderId, status: 'in_review' }
   }
@@ -182,6 +184,24 @@ export function buildSalesFulfillmentRecord(input: {
         call_to_action: text(values, 'call_to_action'),
         logo_url: text(values, 'logo_url'),
         creative_url: text(values, 'creative_url'),
+        brand_notes: text(values, 'brand_notes') || null,
+        stripe_subscription_id: order.stripe_subscription_id || null,
+        stripe_customer_id: order.stripe_customer_id || null,
+        status: 'pending_review',
+        is_active: false,
+        created_at: now,
+      }
+    case 'social_promotion':
+      return {
+        ...shared,
+        sponsor_name: order.business_name,
+        business_name: text(values, 'business_name') || order.business_name,
+        target_url: text(values, 'target_url'),
+        preferred_start_date: text(values, 'preferred_start_date'),
+        platforms: text(values, 'platforms') || 'all',
+        caption: text(values, 'caption'),
+        hashtags: text(values, 'hashtags') || null,
+        image_url: text(values, 'image_url'),
         brand_notes: text(values, 'brand_notes') || null,
         stripe_subscription_id: order.stripe_subscription_id || null,
         stripe_customer_id: order.stripe_customer_id || null,

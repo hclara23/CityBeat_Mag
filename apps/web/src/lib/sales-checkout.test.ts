@@ -303,7 +303,7 @@ test('Stripe session defaults separate automatic renewals from one-time card cha
 })
 
 test('sales catalog exposes every approved product with server-owned prices', () => {
-  assert.equal(SALES_PRODUCT_ORDER.length, 13)
+  assert.equal(SALES_PRODUCT_ORDER.length, 14)
   assert.equal(new Set(SALES_PRODUCT_ORDER).size, SALES_PRODUCT_ORDER.length)
   assert.equal(SALES_PRODUCTS.directory_basic_free.unitAmount, 0)
   assert.equal(SALES_PRODUCTS.directory_basic_free.billing, 'free')
@@ -312,6 +312,7 @@ test('sales catalog exposes every approved product with server-owned prices', ()
   assert.equal(SALES_PRODUCTS.ad_newsletter_sponsorship.unitAmount, 5000)
   assert.equal(SALES_PRODUCTS.ad_sponsored_story.unitAmount, 3000)
   assert.equal(SALES_PRODUCTS.ad_category_banner.unitAmount, 2500)
+  assert.equal(SALES_PRODUCTS.ad_social_promotion.unitAmount, 4000)
   assert.equal(SALES_PRODUCTS.event_featured.unitAmount, 2500)
   assert.equal(SALES_PRODUCTS.job_posting_30_day.unitAmount, 5000)
   assert.equal(getSalesProduct('made_up_product'), null)
@@ -483,7 +484,7 @@ test('payment-link handoff is bound to the active order and signed-in seller', (
 })
 
 test('every product intake kind has a focused multi-section schema', () => {
-  for (const kind of ['directory', 'job', 'event', 'newsletter_sponsorship', 'category_banner', 'sponsored_story', 'custom']) {
+  for (const kind of ['directory', 'job', 'event', 'newsletter_sponsorship', 'category_banner', 'social_promotion', 'sponsored_story', 'custom']) {
     const schema = getSalesIntakeSchema(kind)
     assert.ok(schema, kind)
     assert.equal(schema.sections.length >= 2, true, kind)
@@ -788,6 +789,7 @@ test('catalog cadence is explicit for every fixed and custom product', () => {
     'directory_sponsored_monthly',
     'ad_newsletter_sponsorship',
     'ad_category_banner',
+    'ad_social_promotion',
   ])
   assert.deepEqual(oneTime, ['ad_sponsored_story', 'event_featured', 'job_posting_30_day', 'custom_one_time'])
   assert.equal(recurring.every((id) => SALES_PRODUCTS[id].interval === 'month' || SALES_PRODUCTS[id].interval === 'year'), true)
@@ -795,7 +797,7 @@ test('catalog cadence is explicit for every fixed and custom product', () => {
 })
 
 test('intake field identifiers are unique within every product brief', () => {
-  for (const kind of ['directory', 'job', 'event', 'newsletter_sponsorship', 'category_banner', 'sponsored_story', 'custom']) {
+  for (const kind of ['directory', 'job', 'event', 'newsletter_sponsorship', 'category_banner', 'social_promotion', 'sponsored_story', 'custom']) {
     const schema = getSalesIntakeSchema(kind)!
     const ids = schema.sections.flatMap((section) => section.fields.map((field) => field.id))
     assert.equal(new Set(ids).size, ids.length, kind)

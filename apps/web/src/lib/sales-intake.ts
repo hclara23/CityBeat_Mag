@@ -234,6 +234,26 @@ const SALES_INTAKE_SCHEMAS: Record<SalesIntakeKind, IntakeSchema> = {
       ] },
     ],
   },
+  social_promotion: {
+    title: 'Prepare your social media promotion', completionLabel: 'Send promotion for review', sections: [
+      { id: 'campaign', eyebrow: 'Step 1', title: 'What to promote', description: 'Tell CityBeat what to feature on its social channels.', fields: [
+        { id: 'business_name', label: 'Business name', type: 'text', required: true, maxLength: 140 },
+        { id: 'target_url', label: 'Link to promote', type: 'url', required: true, placeholder: 'https://', maxLength: 400 },
+        { id: 'preferred_start_date', label: 'Preferred start date', type: 'date', required: true },
+        { id: 'platforms', label: 'Preferred platforms', type: 'select', required: true, options: [
+          { value: 'all', label: 'All channels (recommended)' },
+          { value: 'facebook', label: 'Facebook only' },
+          { value: 'threads', label: 'Threads only' },
+        ] },
+      ] },
+      { id: 'creative', eyebrow: 'Step 2', title: 'Message and creative', description: 'Short, specific posts perform best.', fields: [
+        { id: 'caption', label: 'Post caption', type: 'textarea', required: true, placeholder: 'What should the post say?', maxLength: 600 },
+        { id: 'hashtags', label: 'Hashtags', type: 'text', placeholder: '#ElPaso #ShopLocal', maxLength: 200 },
+        { id: 'image_url', label: 'Image', type: 'image', required: true },
+        { id: 'brand_notes', label: 'Anything to avoid or include?', type: 'textarea', maxLength: 900 },
+      ] },
+    ],
+  },
   sponsored_story: {
     title: 'Brief your sponsored story', completionLabel: 'Send story brief', sections: [
       { id: 'story', eyebrow: 'Step 1', title: 'The story', description: 'Tell our team what readers should understand and remember.', fields: [

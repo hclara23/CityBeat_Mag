@@ -11,6 +11,7 @@ export type SalesProductId =
   | 'ad_newsletter_sponsorship'
   | 'ad_sponsored_story'
   | 'ad_category_banner'
+  | 'ad_social_promotion'
   | 'event_featured'
   | 'job_posting_30_day'
   | 'custom_one_time'
@@ -22,6 +23,7 @@ export type SalesIntakeKind =
   | 'newsletter_sponsorship'
   | 'sponsored_story'
   | 'category_banner'
+  | 'social_promotion'
   | 'event'
   | 'job'
   | 'custom'
@@ -157,6 +159,21 @@ export const SALES_PRODUCTS: Record<SalesProductId, SalesProduct> = {
     unitAmount: 2500,
     priceLabel: '$25 / mo',
   },
+  ad_social_promotion: {
+    id: 'ad_social_promotion',
+    family: 'advertising',
+    intakeKind: 'social_promotion',
+    name: 'Advertising - Social Media Promotion',
+    shortName: 'Social Promotion',
+    description:
+      "Recurring inclusion of the business in CityBeat's local social posts (Facebook and Threads) — a monthly feature to CityBeat's El Paso audience.",
+    salesAngle:
+      'Puts the business in front of an engaged local social following every month, on channels CityBeat already posts to daily.',
+    billing: 'subscription',
+    interval: 'month',
+    unitAmount: 4000,
+    priceLabel: '$40 / mo',
+  },
   event_featured: {
     id: 'event_featured',
     family: 'events',
@@ -209,6 +226,7 @@ export const SALES_PRODUCT_ORDER: SalesProductId[] = [
   'ad_newsletter_sponsorship',
   'ad_sponsored_story',
   'ad_category_banner',
+  'ad_social_promotion',
   'event_featured',
   'job_posting_30_day',
   'custom_one_time',
