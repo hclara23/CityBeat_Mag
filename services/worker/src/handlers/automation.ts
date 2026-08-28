@@ -16,14 +16,44 @@ export async function handleBriefAutomation(env: Env): Promise<void> {
     // Fetch briefs from sources
     const briefs = await fetchBriefs(env)
 
-    // Forward each brief to the web ingest endpoint, which rewrites it into an
-    // original draft (and translates to ES on publish). No translation here.
+    // In-run dedupe by URL (falling back to title): an article matching two
+    // keywords (e.g. "El Paso" + "border news") used to be pushed — and saved,
+    // and emailed — twice in the SAME run. Cross-run dedupe lives in the web
+    // ingest endpoint (processed_news), which returns {deduped:true}.
+    const seen = new Set<string>()
+    let saved = 0
+    let deduped = 0
+    let failed = 0
     for (const brief of briefs) {
-      await saveBriefToApp(brief, env)
-      await notifyEditor(brief, env)
+      const key = String(brief.url || brief.title || '').toLowerCase().trim()
+      if (!key || seen.has(key)) {
+        deduped++
+        continue
+      }
+      seen.add(key)
+      // The editor email goes out ONLY for a brief that actually saved — the
+      // old flow emailed editors about briefs whose save had just failed, so
+      // an ingest outage produced a stream of emails pointing at nothing.
+      const result = await saveBriefToApp(brief, env)
+      if (result === 'saved') {
+        saved++
+        await notifyEditor(brief, env)
+      } else if (result === 'deduped') {
+        deduped++
+      } else {
+        failed++
+      }
     }
 
-    console.log(`Processed ${briefs.length} briefs`)
+    // Loud, structured summary: this log line is the ONLY operational signal
+    // this worker emits, so failures must be unmissable in the dashboard.
+    if (failed > 0) {
+      console.error(
+        `BRIEF AUTOMATION DEGRADED: ${failed} of ${briefs.length} briefs FAILED to save (saved=${saved}, deduped=${deduped}). Check INGEST_SECRET and the /api/ingest/brief endpoint.`
+      )
+    } else {
+      console.log(`Processed ${briefs.length} briefs: saved=${saved}, deduped=${deduped}`)
+    }
   } catch (error) {
     console.error('Brief automation failed:', error)
   }
@@ -143,7 +173,7 @@ function categorizeArticle(title: string, description: string): string {
 
 // Post the translated brief to the web app's ingest endpoint, which writes it to
 // Firestore `articles` as `pending_review` for editors to publish.
-async function saveBriefToApp(brief: any, env: Env): Promise<void> {
+async function saveBriefToApp(brief: any, env: Env): Promise<'saved' | 'deduped' | 'failed'> {
   try {
     const url = `${env.INGEST_URL || 'https://citybeatmag.co'}/api/ingest/brief`
     const response = await fetch(url, {
@@ -164,11 +194,13 @@ async function saveBriefToApp(brief: any, env: Env): Promise<void> {
     if (!response.ok) {
       throw new Error(`Ingest API error: ${response.status} ${response.statusText}`)
     }
-
-    const result: any = await response.json().catch(() => ({}))
-    console.log('Brief ingested to Firestore:', result.id)
+    const body: any = await response.json().catch(() => ({}))
+    if (body && body.deduped) return 'deduped'
+    console.log('Brief ingested to Firestore:', body.id)
+    return 'saved'
   } catch (error) {
     console.error('Failed to ingest brief:', error)
+    return 'failed'
   }
 }
 

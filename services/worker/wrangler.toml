@@ -2,12 +2,17 @@ name = "citybeat-worker"
 main = "src/index.ts"
 compatibility_date = "2025-07-18"
 
-# Brief-automation cron schedule (America/Chihuahua offsets handled in code).
+# Brief-automation cron schedule. Cloudflare evaluates crons in UTC and there
+# is NO timezone code anywhere in this worker — the old values (07-19 UTC) ran
+# 01:00-13:00 America/Chihuahua, so afternoon/evening El Paso news was never
+# ingested same-day. Chihuahua is UTC-6 year-round (DST abolished Oct 2022):
+# these UTC times are 07:00, 10:00, 13:00, 16:00, 19:00 local, matching
+# CLAUDE.md.
 # NOTE: `crons` must be a flat array of strings — the [[triggers.crons]]
 # array-of-tables form serializes as {"cron":{"cron":...}} and the Cloudflare
 # schedules API rejects it with error 10026 ("Could not parse request body").
 [triggers]
-crons = ["0 7 * * *", "0 10 * * *", "0 13 * * *", "0 16 * * *", "0 19 * * *"]
+crons = ["0 13 * * *", "0 16 * * *", "0 19 * * *", "0 22 * * *", "0 1 * * *"]
 
 [vars]
 INGEST_URL = "https://citybeatmag.co"
@@ -21,4 +26,5 @@ INGEST_URL = "https://citybeatmag.co"
 # ]
 
 # Secrets are set via `wrangler secret put <NAME>` (never committed):
-#   INGEST_SECRET, STRIPE_SECRET_KEY, DEEPL_API_KEY, RESEND_API_KEY, NEWS_API_KEY
+#   INGEST_SECRET, RESEND_API_KEY, NEWS_API_KEY  (Stripe/DeepL secrets were
+#   removed 2026-08-28 — this worker no longer touches payments or translation)

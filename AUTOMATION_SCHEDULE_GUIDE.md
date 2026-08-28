@@ -1,3 +1,8 @@
+> **2026-08 correction:** Chihuahua ABOLISHED daylight saving in October 2022 —
+> it is UTC-6 year-round. Every CST/CDT conversion below is stale; use a flat
+> +6h offset. The worker crons were re-aligned on 2026-08-28 to fire at
+> 13,16,19,22,01 UTC = 07:00-19:00 local, matching CLAUDE.md.
+
 # Cloudflare Worker Automation Schedule Guide
 
 ## Overview

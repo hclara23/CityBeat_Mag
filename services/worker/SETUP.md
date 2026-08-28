@@ -1,3 +1,8 @@
+> **2026-08 note:** this worker NO LONGER touches Stripe or DeepL — payments are
+> handled exclusively by the web app's `/api/stripe/webhook`, and translation by
+> the web app's `lib/translate.ts`. The Stripe secrets were removed from the
+> worker on 2026-08-28. Do not re-provision them here.
+
 # Cloudflare Worker Setup Guide
 
 This guide explains how to set up and configure the CityBeat Cloudflare Worker for automation, webhooks, and scheduled tasks.
@@ -6,7 +11,6 @@ This guide explains how to set up and configure the CityBeat Cloudflare Worker f
 
 The worker handles:
 - **Scheduled Brief Automation**: Fetches news from APIs, translates content, and publishes to Sanity
-- **Stripe Webhooks**: Processes payment and subscription events
 - **Analytics Tracking**: Records ad impressions and clicks
 - **Email Notifications**: Sends alerts to editors about new briefs
 - **Daily/Weekly Reports**: Generates analytics summaries
@@ -23,8 +27,6 @@ SANITY_DATASET=development
 SANITY_WRITE_TOKEN=your_write_token
 DEEPL_API_KEY=your_deepl_api_key
 NEWS_API_KEY=your_newsapi_key
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
 RESEND_API_KEY=your_resend_api_key
 ```
 
@@ -40,11 +42,6 @@ RESEND_API_KEY=your_resend_api_key
 - Sign up for a free plan (500,000 characters/month)
 - Copy your authentication key
 
-**Stripe**
-- Dashboard: https://dashboard.stripe.com
-- API Keys section: https://dashboard.stripe.com/apikeys
-- Copy Secret Key (starts with `sk_test_` or `sk_live_`)
-- Webhook signing secret from: https://dashboard.stripe.com/webhooks
 
 **Firestore**
 - Project Settings: https://app.firestore.com/project/[project-id]/settings/api

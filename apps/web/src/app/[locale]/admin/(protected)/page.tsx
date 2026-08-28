@@ -8,6 +8,7 @@ import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
 import { MyEarnings } from '@/components/citybeat/MyEarnings'
+import { RecoveryLeadsBoard } from '@/components/citybeat/RecoveryLeadsBoard'
 
 interface PendingArticle {
   id: string
@@ -151,6 +152,10 @@ export default function AdminDashboard() {
 
         {/* Editor's commission payout table */}
         <MyEarnings />
+
+        {/* Warm leads nobody knew existed: businesses that got a payment link
+            and never completed it. */}
+        <RecoveryLeadsBoard />
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Main Column: Review Queue */}

@@ -147,7 +147,14 @@ export async function POST(request: NextRequest) {
 
   const contentValue = content || (bodyText ? textToContent(bodyText as string) : [])
   const categoryId = await getCategoryId(category)
-  const authorId = await getAuthorId(typeof body.authorName === 'string' ? body.authorName : user.email ?? '')
+  // Byline is BOUND to the authenticated identity for writers — a free-text
+  // authorName let anyone attribute stories to real journalists or wire
+  // services. Editors may still set an explicit byline (guest columns).
+  const requestedByline = typeof body.authorName === 'string' ? body.authorName.trim() : ''
+  const identityByline = String((profile as any)?.full_name || user.email || 'CityBeat Staff')
+  const authorId = await getAuthorId(
+    hasEditorAccess(profile) && requestedByline ? requestedByline : identityByline
+  )
   
   const articleData = {
     title: title.trim(),

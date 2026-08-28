@@ -103,7 +103,11 @@ function normalizeFirestore(
     contentES: textEs,
     status: a.status || 'published',
     sourceName: a.source_name || null,
-    sourceUrl: a.source_url || null,
+    // Scheme-checked at the data layer so EVERY render of the credit link is
+    // covered: the value arrives from external RSS, and a compromised feed
+    // could plant a javascript: href behind "Original reporting: KVIA".
+    sourceUrl:
+      typeof a.source_url === 'string' && /^https?:\/\//.test(a.source_url) ? a.source_url : null,
     imageCredit: a.image_credit || null,
     imageCreditUrl: a.image_credit_url || null,
     imageIllustrative: Boolean(a.image_illustrative),

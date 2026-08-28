@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { rewriteSourceArticle } from '@/lib/rewrite'
+import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,6 +85,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Dedupe: the worker fetches 5 keywords x 5 articles five times a day with
+    // no memory, so the same article re-ingested up to 5x/day — each duplicate
+    // burned a Claude rewrite, cluttered the review queue, and emailed the
+    // editors again. Same processed_news pattern the auto-articles cron uses.
+    const dedupeBasis = (sourceUrl || title || '').toLowerCase().trim()
+    const dedupeRef = adminDb
+      .collection('processed_news')
+      .doc('ingest' + crypto.createHash('sha1').update(dedupeBasis).digest('hex').slice(0, 24))
+    if ((await dedupeRef.get()).exists) {
+      return NextResponse.json({ ok: true, deduped: true })
+    }
+
     const docRef = await adminDb.collection('articles').add({
       title,
       slug: `${slugify(title)}-${Date.now().toString(36)}`,
@@ -101,6 +114,14 @@ export async function POST(request: NextRequest) {
       needs_rewrite: needsRewrite,
       created_at: FieldValue.serverTimestamp(),
     })
+
+    await dedupeRef.set({
+      source: 'worker_ingest',
+      title,
+      link: sourceUrl || null,
+      article_id: docRef.id,
+      at: new Date().toISOString(),
+    }).catch(() => {})
     return NextResponse.json({ ok: true, id: docRef.id, rewritten: Boolean(rewritten) }, { status: 201 })
   } catch (error) {
     console.error('brief ingest error:', error)

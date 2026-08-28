@@ -42,13 +42,24 @@ export async function GET(request: NextRequest) {
       if (!already.empty) continue
       const r = await postArticleToSocial(a)
       const didPost = r.some((x) => x.status === 'posted')
-      await adminDb.collection('social_posts').add({
-        slug: a.slug,
-        title: a.title,
-        results: r,
-        created_at: FieldValue.serverTimestamp(),
-      })
-      if (didPost) posted++
+      // Burn the story's dedupe slot ONLY when something actually posted —
+      // the weekend roundup below already works this way. Recording a row on
+      // total failure (e.g. an expired FB token) permanently silenced the
+      // story on every network while the cron kept reporting success.
+      if (didPost) {
+        await adminDb.collection('social_posts').add({
+          slug: a.slug,
+          title: a.title,
+          results: r,
+          created_at: FieldValue.serverTimestamp(),
+        })
+        posted++
+      } else if (r.length > 0) {
+        await reportFailure('cron:social-post', new Error(`All networks failed for "${a.title}" — slot NOT burned, will retry next run`), {
+          slug: a.slug,
+          networks: r.map((x: any) => `${x.network}:${x.status}`).join(','),
+        }).catch(() => {})
+      }
       results.push({ slug: a.slug, networks: r })
     }
 

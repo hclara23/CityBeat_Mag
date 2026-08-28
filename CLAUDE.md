@@ -18,15 +18,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │   └── ui/               # Shared UI components (shadcn/tailwind)
 ├── services/
 │   └── worker/           # Cloudflare Worker (brief automation, Stripe webhooks, tracking)
-├── sanity/               # Sanity CMS studio
 └── infra/
     └── config/           # sources.json, ad_slot_defs.json
 ```
 
+> **Removed architecture (June 2026):** Sanity CMS, the embedded `/studio`
+> route, and the worker's DeepL/Stripe roles are GONE from this codebase.
+> Firestore is the sole content store; the web app's `/api/stripe/webhook` is
+> the only payment processor; translation runs through `lib/translate.ts`
+> (DeepL-via-worker HTTP endpoint, falling back to Claude). If an instruction
+> below still references Sanity, it is stale — do not provision Sanity
+> credentials or deploy a studio.
+
 ### Key Services & Integrations
 
 - **Frontend**: Next.js 14 with next-intl for i18n routing
-- **CMS**: Sanity 3.x (content + brief management)
+- **Content storage**: Firestore `articles` collection (Sanity CMS was fully removed in June 2026 — see note below)
 - **Edge/Automation**: Cloudflare Workers + Pages (scheduled brief ingestion every 5 times/day: 07:00, 10:00, 13:00, 16:00, 19:00 America/Chihuahua)
 - **Database**: Firebase Firestore (content, directory, payments, analytics, audit logs)
 - **Payments**: Stripe (Newsletter, Sponsored Posts, Category Banners)
@@ -40,10 +47,11 @@ The core automation (services/worker) runs on a cron schedule and performs:
 
 1. Fetch articles from NewsAPI (keywords: El Paso, Ciudad Juárez, border news, New Mexico, Las Cruces)
 2. Categorize articles (business, events, culture, news)
-3. Translate English → Spanish via DeepL
-4. Save as draft to Sanity
-5. Send email notification to editors
-6. Log event to Firestore
+3. POST each to the web app's `/api/ingest/brief` (x-ingest-secret auth), which
+   dedupes via `processed_news` and stores a `pending_review` article in
+   Firestore for the /admin review queue (NO Sanity, NO DeepL in this path —
+   translation happens in the web app at publish time)
+4. Send email notification to editors (HTML-escaped; only for briefs that saved)
 
 **Key handlers**:
 
@@ -144,21 +152,6 @@ npm run deploy
 npm run type-check
 ```
 
-### Sanity Studio
-
-```bash
-cd sanity
-
-# Development
-npm run dev
-
-# Build
-npm run build
-
-# Deploy to production
-npm run deploy
-```
-
 ### Shared Packages
 
 ```bash
@@ -188,7 +181,7 @@ curl -X POST http://localhost:8787/api/test-automation \
 
 Before deployment, verify the automation pipeline end-to-end:
 
-1. **Sanity**: New briefs visible in studio (drafts)
+1. **Firestore**: New briefs visible as `pending_review` articles in /admin
 2. **Firestore**: Event logs recorded
 3. **Email**: Editor notifications sent
 4. **Cloudflare Logs**: Execution logged without errors
@@ -200,26 +193,18 @@ See `END_TO_END_TESTING_GUIDE.md` for detailed procedures.
 ### Worker Secrets (services/worker/.env.production)
 
 ```text
-SANITY_PROJECT_ID
-SANITY_DATASET (set to "production")
-SANITY_WRITE_TOKEN
-STRIPE_SECRET_KEY (live key)
-STRIPE_WEBHOOK_SECRET
-DEEPL_API_KEY
+INGEST_SECRET   # auths POSTs to the web app's /api/ingest/brief
 RESEND_API_KEY
 NEWS_API_KEY
+# (Stripe/DeepL/Sanity secrets were removed from the worker on 2026-08-28)
 ```
 
 ### Web App (apps/web/.env.local)
 
 ```text
-NEXT_PUBLIC_SANITY_PROJECT_ID
-NEXT_PUBLIC_SANITY_DATASET
 NEXT_PUBLIC_FIREBASE_API_KEY
 NEXT_PUBLIC_FIREBASE_PROJECT_ID
 NEXT_PUBLIC_APP_URL
-SANITY_API_TOKEN
-SANITY_EDITOR_TOKEN   # Required for embedded /studio route — set in Cloud Run env vars, never commit the real value
 ANALYTICS_EXCLUDED_IPS   # Optional, comma-separated IPs excluded from first-party page-view counts (signed-in staff are auto-excluded)
 ```
 
@@ -249,12 +234,6 @@ import { /* geo utilities */ } from '@citybeat/lib/geo'
 import { /* tracking */ } from '@citybeat/lib/tracking'
 ```
 
-### Sanity Integration
-
-- Web app uses `@sanity/client` for fetching published content
-- Worker uses Sanity write token for automation
-- Drafts created by automation are reviewed by editors before publishing
-
 ### Stripe Integration
 
 - Checkout uses Stripe hosted Checkout sessions (redirect to `session.url`)
@@ -282,7 +261,7 @@ The canonical (and only) webhook is the **web app** `apps/web/src/app/api/stripe
 1. Verify all environment variables set (see `apps/web/.env.example`)
 2. Run `npm run build && npm run type-check` to ensure clean build
 3. Test automation pipeline in staging
-4. Review brief content in Sanity before first production run
+4. Review brief content in the /admin review queue before first production run
 
 ### Production Deployment
 
@@ -290,7 +269,6 @@ Prod runs on **Google Cloud Run** in GCP project `kerstenblueprint` (region `us-
 
 - **Web** (`citybeat-web`): push to `main` runs `.github/workflows/deploy-web.yml` → builds & deploys to Cloud Run; live at [citybeatmag.co](https://citybeatmag.co). This is the single app — advertising, directory, admin, and sales all live here.
 - **Worker**: `cd services/worker && npm run deploy`
-- **Sanity Studio**: `cd sanity && npm run deploy`
 
 > Note: the session cookie MUST stay named `__session` — Firebase Hosting strips every other cookie before forwarding to Cloud Run. Symptom of a regression: auth works on the `*.run.app` URL but 401s on `citybeatmag.co`.
 
@@ -303,23 +281,6 @@ Monitor execution via Cloudflare Dashboard:
 1. Go to <https://dash.cloudflare.com/>
 2. Navigate to Workers → citybeat-worker → Logs tab
 3. Filter by timestamp to find recent runs
-
-### Sanity Studio (/studio)
-
-The studio is embedded in the web app via `next-sanity/studio` at `apps/web/src/app/studio/[[...index]]/page.tsx`.
-
-- `apps/web/next.config.js` excludes `/studio` from the `X-Frame-Options` header — Sanity Studio uses iframes internally and requires this
-- CORS for `https://citybeatmag.co` is managed automatically via Sanity's hosted studio integration
-- `SANITY_EDITOR_TOKEN` must be set in the Cloud Run service env vars (Production) for the studio to authenticate
-
-### Sanity API Issues
-
-Check Sanity token validity and dataset permissions:
-
-```bash
-curl -H "Authorization: Bearer $SANITY_WRITE_TOKEN" \
-  https://api.sanity.io/v2021-06-07/projects/$SANITY_PROJECT_ID/datasets/$SANITY_DATASET
-```
 
 ### DeepL Translation Quota
 

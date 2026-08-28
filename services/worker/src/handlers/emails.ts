@@ -1,3 +1,13 @@
+// NewsAPI article fields are publisher-controlled third-party content that we
+// interpolate into email HTML rendered inside the ADMIN-credentialed inbox —
+// unescaped, any indexed site matching the broad keywords could ship a spoofed
+// "Review and publish" link (a targeted phishing channel). Escape everything.
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] || c
+  )
+}
+
 export const emailTemplates = {
   editorNotification: (briefData: {
     title: string
@@ -6,18 +16,18 @@ export const emailTemplates = {
     content: string
     contentES: string
   }) => ({
-    subject: `New Brief Pending Review: ${briefData.title}`,
+    subject: `New Brief Pending Review: ${escapeHtml(briefData.title)}`,
     html: `
       <h2>New Brief Submitted for Review</h2>
-      <p><strong>Title:</strong> ${briefData.title}</p>
-      <p><strong>Source:</strong> ${briefData.source}</p>
-      <p><strong>Category:</strong> ${briefData.category}</p>
+      <p><strong>Title:</strong> ${escapeHtml(briefData.title)}</p>
+      <p><strong>Source:</strong> ${escapeHtml(briefData.source)}</p>
+      <p><strong>Category:</strong> ${escapeHtml(briefData.category)}</p>
       <hr />
       <h3>English Version</h3>
-      <p>${briefData.content}</p>
+      <p>${escapeHtml(briefData.content)}</p>
       <hr />
       <h3>Spanish Version (Translated)</h3>
-      <p>${briefData.contentES}</p>
+      <p>${escapeHtml(briefData.contentES)}</p>
       <hr />
       <p>Review and publish this brief in the admin dashboard: <a href="https://citybeatmag.co/en/admin">citybeatmag.co/en/admin</a></p>
     `,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { translateTexts } from '@/lib/translate'
+import { translateTexts , translateArticleToEs } from '@/lib/translate'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
@@ -20,6 +20,33 @@ export async function GET(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { searchParams } = new URL(request.url)
   const limit = Math.min(Math.max(Number(searchParams.get('limit')) || 25, 1), 40)
+  // `?articles=1`: backfill mode for ARTICLES whose Spanish is missing or was
+  // stored as a copy of the English (the pre-fix silent fallback). Uses the
+  // same translation pipeline; one-shot repair + safety net.
+  if (searchParams.get('articles') === '1') {
+    const snap = await adminDb.collection('articles').limit(400).get()
+    let fixed = 0
+    let scanned = 0
+    for (const doc of snap.docs) {
+      if (fixed >= limit) break
+      const a = doc.data() as any
+      scanned++
+      const en = typeof a.content === 'string' ? a.content : ''
+      const es = typeof a.content_es === 'string' ? a.content_es : ''
+      const missing = !es.trim()
+      const englishAsSpanish = Boolean(es.trim()) && en.trim() && es.trim() === en.trim()
+      const titleCopied = a.title_es && a.title && String(a.title_es).trim() === String(a.title).trim()
+      if (!missing && !englishAsSpanish && !titleCopied) continue
+      if (englishAsSpanish || titleCopied) {
+        // Clear the copies so translateArticleToEs's keep-existing guard
+        // doesn't treat English text as real Spanish.
+        await doc.ref.set({ content_es: '', title_es: '', excerpt_es: '' }, { merge: true })
+      }
+      await translateArticleToEs(doc.ref, { title: a.title, excerpt: a.excerpt, content: a.content })
+      fixed++
+    }
+    return NextResponse.json({ mode: 'articles', scanned, repaired: fixed })
+  }
 
   try {
     // Firestore can't query for a missing field, so scan published listings.

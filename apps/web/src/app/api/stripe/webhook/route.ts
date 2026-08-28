@@ -195,6 +195,50 @@ async function handleCheckoutCompleted(session: any) {
     /* never block fulfillment on a courtesy email */
   }
 
+  // Founders offer: the FIRST invoice was just paid at full price; now attach
+  // the 100%-off repeating(3) coupon so months 2-4 are free and Stripe resumes
+  // normal billing from month 5 on its own. Applied here — after payment —
+  // precisely so the first charge can never be discounted. Best-effort: a
+  // coupon failure must not block fulfillment (ops is alerted instead).
+  if (metadata.promo === 'founders_3mo_free' && session.subscription) {
+    try {
+      const subscriptionId = String(stripeObjectId(session.subscription))
+      const COUPON_ID = 'founders-3mo-free-100'
+      let coupon: Stripe.Coupon | null = null
+      try {
+        coupon = await stripe.coupons.retrieve(COUPON_ID)
+      } catch (error: any) {
+        if (error?.code !== 'resource_missing' && error?.statusCode !== 404) throw error
+      }
+      if (!coupon) {
+        try {
+          coupon = await stripe.coupons.create({
+            id: COUPON_ID,
+            percent_off: 100,
+            duration: 'repeating',
+            duration_in_months: 3,
+            name: 'CityBeat Founders offer — 3 months free',
+            metadata: { citybeat_promo: 'founders_3mo_free' },
+          })
+        } catch (error: any) {
+          // A concurrent webhook may have created it first.
+          if (error?.code === 'resource_already_exists' || error?.statusCode === 409) {
+            coupon = await stripe.coupons.retrieve(COUPON_ID)
+          } else throw error
+        }
+      }
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+      if (!(subscription as any).discount) {
+        await stripe.subscriptions.update(subscriptionId, { coupon: COUPON_ID, proration_behavior: 'none' })
+      }
+    } catch (error) {
+      await reportFailure('founders-promo-coupon', error, {
+        session_id: session.id,
+        note: 'First month charged; the 3-free-months coupon did NOT attach — apply founders-3mo-free-100 to the subscription by hand.',
+      }).catch(() => {})
+    }
+  }
+
   // The charge behind this sale, resolved once and passed to every payout below so
   // transfers succeed against still-pending funds (see resolveSessionChargeId).
   const sourceTransaction = await resolveSessionChargeId(session)

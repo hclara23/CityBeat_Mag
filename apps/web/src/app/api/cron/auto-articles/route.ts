@@ -11,6 +11,7 @@ import {
   shouldAttemptProcessedNews,
   type ProcessedNewsRecord,
 } from '@/lib/newsroom-processing'
+import { translateArticleToEs } from '@/lib/translate'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -23,6 +24,12 @@ function authorized(request: NextRequest) {
 
 function keyOf(item: NewsItem) {
   return crypto.createHash('sha1').update(item.title.toLowerCase().trim()).digest('hex').slice(0, 24)
+}
+// Secondary dedupe key on the canonical LINK: an outlet updating its headline
+// (or two outlets covering one story via the same wire link) changed keyOf and
+// republished a duplicate story.
+function linkKeyOf(item: NewsItem) {
+  return 'l' + crypto.createHash('sha1').update(String(item.link || '').trim()).digest('hex').slice(0, 24)
 }
 function slugify(s: string) {
   const base = s
@@ -91,9 +98,11 @@ export async function GET(request: NextRequest) {
       // Published and genuine editorial rejections stay deduplicated. Legacy
       // provider failures and due retryable failures get a bounded recovery path.
       const processedRef = adminDb.collection('processed_news').doc(id)
-      const seen = await processedRef.get()
+      const linkRef = adminDb.collection('processed_news').doc(linkKeyOf(item))
+      const [seen, seenLink] = await Promise.all([processedRef.get(), linkRef.get()])
       const previous = seen.exists ? (seen.data() as ProcessedNewsRecord) : undefined
-      if (!shouldAttemptProcessedNews(previous)) continue
+      const previousByLink = seenLink.exists ? (seenLink.data() as ProcessedNewsRecord) : undefined
+      if (!shouldAttemptProcessedNews(previous) || !shouldAttemptProcessedNews(previousByLink)) continue
       attempts++
 
       const rewrite = await rewriteAsArticle(item)
@@ -152,7 +161,11 @@ export async function GET(request: NextRequest) {
         : null
 
       const slug = slugify(written.title)
-      const ref = await adminDb.collection('articles').add({
+      // Article + BOTH dedupe records commit atomically: a crash between the
+      // article write and the marker used to republish the story next run.
+      const ref = adminDb.collection('articles').doc()
+      const writeBatch = adminDb.batch()
+      writeBatch.set(ref, {
         slug,
         title: written.title,
         title_es: written.title_es,
@@ -173,11 +186,24 @@ export async function GET(request: NextRequest) {
         created_at: FieldValue.serverTimestamp(),
         published_at: publish ? FieldValue.serverTimestamp() : null,
       })
-      await processedRef.set({
+      const processedRecord = {
         title: item.title, link: item.link, source: item.source,
         publishable: true, article_id: ref.id, slug, status: publish ? 'published' : 'pending_review',
         at: FieldValue.serverTimestamp(),
-      })
+      }
+      writeBatch.set(processedRef, processedRecord)
+      writeBatch.set(linkRef, processedRecord)
+      await writeBatch.commit()
+      // The model sometimes omits the Spanish fields; they are stored EMPTY
+      // (never English-as-Spanish) and backfilled here through the real
+      // translation pipeline before anyone sees /es.
+      if (!written.body_es || !written.title_es) {
+        await translateArticleToEs(ref, {
+          title: written.title,
+          excerpt: written.excerpt,
+          content: written.body_en,
+        }).catch(() => {})
+      }
       created.push({ id: ref.id, slug, title: written.title, category: written.category, status: publish ? 'published' : 'pending_review' })
     }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { FieldValue } from 'firebase-admin/firestore'
 import { getPublishedArticles } from '@/lib/articles'
 import { sendEmail } from '@/lib/email'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
@@ -163,14 +164,42 @@ export async function GET(request: NextRequest) {
 
   const sponsor = await getNewsletterSponsor()
 
+  // Per-week send journal: without it, a mid-blast crash or a scheduler retry
+  // re-sent early subscribers and skipped late ones. One doc per ISO week
+  // holding the emailHashes already delivered; safe under the 1MB doc cap for
+  // the current list size (~48KB at 2000 subscribers).
+  const weekKey = `digest-${new Date().toISOString().slice(0, 10)}`
+  const journalRef = adminDb.collection('newsletter_send_log').doc(weekKey)
+  const journalSnap = await journalRef.get().catch(() => null)
+  const alreadySent = new Set<string>(
+    journalSnap?.exists ? ((journalSnap.data() as any)?.hashes as string[]) || [] : []
+  )
+  let journalBuffer: string[] = []
+  const flushJournal = async () => {
+    if (!journalBuffer.length) return
+    const flushing = journalBuffer
+    journalBuffer = []
+    await journalRef.set(
+      { hashes: FieldValue.arrayUnion(...flushing), updated_at: new Date().toISOString() },
+      { merge: true }
+    ).catch(() => {})
+  }
+
   let sent = 0
   let failed = 0
   if (!dryRun) {
     for (const s of subs) {
       const locale: 'en' | 'es' = s._locale
       try {
+        const hash = emailHash(s._email)
+        if (alreadySent.has(hash)) continue
         const r = await sendEmail(s._email, subject, digestHtml(recent, s._email, locale, sponsor), FROM)
-        if (r.sent) sent++
+        if (r.sent) {
+          sent++
+          alreadySent.add(hash)
+          journalBuffer.push(hash)
+          if (journalBuffer.length >= 25) await flushJournal()
+        }
         else failed++
       } catch {
         failed++
@@ -186,6 +215,7 @@ export async function GET(request: NextRequest) {
 
   // Don't declare recovery on a run whose delivery mostly failed (the
   // reportFailure above would be instantly contradicted).
+  await flushJournal()
   if (!(failed > 0 && failed >= sent)) await reportSuccess('cron:newsletter-digest')
   return NextResponse.json({
     ok: true,

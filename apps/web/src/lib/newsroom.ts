@@ -217,11 +217,15 @@ Respond with ONLY valid JSON (no markdown fences):
         publishable: true,
         category: cat,
         title: String(parsed.title).slice(0, 140),
-        title_es: String(parsed.title_es || parsed.title).slice(0, 160),
+        // NEVER fall back to English for the _es fields: storing English AS
+        // Spanish is invisible everywhere (looks populated) and shipped English
+        // to /es. Empty means "missing" and the caller backfills via the real
+        // translation pipeline.
+        title_es: String(parsed.title_es || '').slice(0, 160),
         excerpt: String(parsed.excerpt || '').slice(0, 200),
-        excerpt_es: String(parsed.excerpt_es || parsed.excerpt || '').slice(0, 200),
+        excerpt_es: String(parsed.excerpt_es || '').slice(0, 200),
         body_en: String(parsed.body_en).slice(0, 6000),
-        body_es: String(parsed.body_es || parsed.body_en).slice(0, 6000),
+        body_es: String(parsed.body_es || '').slice(0, 6000),
         image_query: String(parsed.image_query || '').slice(0, 60),
       },
     }
