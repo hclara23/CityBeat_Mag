@@ -135,7 +135,8 @@ a route deleted in June. Worker secret check (#6) is with the operator
 (needs CLOUDFLARE_API_TOKEN): `cd services/worker && npx wrangler secret list`
 — delete STRIPE_* if present and rotate the live key in Stripe.
 
-FIX SOON (bounded today; trigger noted — promote to numbered plans on request):
+ALL 17 FIX-SOON items were implemented and deployed 2026-08-28 (commit 9d1df4c,
+worker version 4c37eadf). Original list, now DONE:
 
 - Social cron burns the dedupe slot when every network errors (trigger: FB
   token expiry silently halts distribution). Mirror the weekend-post fix.
@@ -174,3 +175,19 @@ ACCEPTED by the gate: 2 items (see the audit output) — including the sitemap
 XML escaping (safe with current slug charset) and worker→rewrite injection
 fencing (armed only if a brief auto-publish path is ever added; hardening
 note left in lib/rewrite.ts's backlog entry above).
+
+
+## 2026-08-28 (later) — Founders recovery campaign built
+
+Operator ordered the 7 abandoned El Paso businesses (all except Haggerty Co.)
+emailed a Founders offer: pay $9.99 month 1, months 2–4 free, $9.99/mo from
+month 5. Built: lib/promo.ts, /api/promo/founders/[orderId], a ?promo= mode on
+the checkout-recovery cron, the webhook coupon application, and a follow-up
+leads dashboard (/api/admin/recovery-leads + RecoveryLeadsBoard) on both the
+editor hub and Sales Desk. To send the campaign (after a dry-run review):
+  GET /api/cron/checkout-recovery?promo=founders_3mo_free&exclude=<haggerty-email>&send=1
+with the CRON_SECRET bearer header. Coupon 'founders-3mo-free-100' is created
+lazily by the webhook after first payment.
+
+Worker Stripe secrets fully removed (STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET);
+only INGEST_SECRET remains on citybeat-worker.

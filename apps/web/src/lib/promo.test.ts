@@ -13,11 +13,11 @@ test('founders promo terms are the operator-specified deal', () => {
 test('only unpaid Founding Monthly subscription orders are eligible', () => {
   const base = { payment_status: 'pending', billing_type: 'subscription', product_id: 'directory_founding_monthly' }
   assert.equal(isFoundersPromoEligible(base), true)
-  // Never a paid order, never a one-time product, never a different plan —
-  // the email states $9.99 Founding terms and must not be sent for anything else.
+  // Never a paid order, never a one-time product — but ANY directory
+  // subscription qualifies now (the coupon works at any price; see the
+  // dedicated eligibility test below).
   assert.equal(isFoundersPromoEligible({ ...base, payment_status: 'paid' }), false)
   assert.equal(isFoundersPromoEligible({ ...base, billing_type: 'one_time' }), false)
-  assert.equal(isFoundersPromoEligible({ ...base, product_id: 'directory_premium_monthly' }), false)
   assert.equal(isFoundersPromoEligible({ ...base, product_id: 'ad_newsletter_sponsorship' }), false)
   assert.equal(isFoundersPromoEligible({}), false)
 })
@@ -25,20 +25,37 @@ test('only unpaid Founding Monthly subscription orders are eligible', () => {
 test('the offer email states ALL the billing terms, in the right language(s)', () => {
   const en = foundersOfferEmail({ businessName: 'We Hike Adventure', offerUrl: 'https://citybeatmag.co/api/promo/founders/x?t=y', locale: 'en' })
   assert.match(en.subject, /3 months free/)
-  assert.match(en.html, /\$9\.99 for your first month/)
+  // Price comes from the order's plan label, defaulting to $9.99 / mo.
+  assert.match(en.html, /\$9\.99 \/ mo today/)
   assert.match(en.html, /months 2, 3 and 4 FREE/)
   // The month-5 resumption MUST be stated — a surprise charge is a chargeback.
-  assert.match(en.html, /\$9\.99\/month starting month 5/)
+  assert.match(en.html, /\$9\.99 \/ mo starting month 5/)
   assert.match(en.html, /cancel anytime/i)
   assert.match(en.html, /citybeatmag\.co\/api\/promo\/founders/)
 
   const es = foundersOfferEmail({ businessName: 'Casita Linda', offerUrl: 'https://x.co/a', locale: 'es' })
   assert.match(es.subject, /3 meses gratis/)
-  assert.match(es.html, /desde el mes 5 son \$9\.99\/mes/)
+  assert.match(es.html, /desde el mes 5 son \$9\.99 \/ mo/)
 
   const both = foundersOfferEmail({ offerUrl: 'https://x.co/a' })
   assert.match(both.html, /starting month 5/)
   assert.match(both.html, /desde el mes 5/)
+})
+
+test('the offer shows the real plan price, not a hardcoded $9.99', () => {
+  const premium = foundersOfferEmail({ businessName: 'X', offerUrl: 'https://x.co/a', locale: 'en', priceLabel: '$19.99 / mo' })
+  assert.match(premium.html, /\$19\.99 \/ mo today/)
+  assert.match(premium.html, /\$19\.99 \/ mo starting month 5/)
+  assert.equal(/\$9\.99/.test(premium.html), false)
+})
+
+test('eligibility now covers every unpaid directory subscription, not just Founding', () => {
+  const base = { payment_status: 'pending', billing_type: 'subscription' }
+  for (const product_id of ['directory_founding_monthly', 'directory_premium_monthly', 'directory_featured_monthly']) {
+    assert.equal(isFoundersPromoEligible({ ...base, product_id }), true, product_id)
+  }
+  // Still never a one-time product.
+  assert.equal(isFoundersPromoEligible({ ...base, product_id: 'ad_newsletter_sponsorship' }), false)
 })
 
 test('business names cannot inject markup into the offer', () => {

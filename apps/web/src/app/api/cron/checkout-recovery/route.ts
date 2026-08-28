@@ -138,6 +138,7 @@ export async function GET(request: NextRequest) {
             businessName: order.business_name,
             offerUrl: `${appOrigin}/api/promo/founders/${order.id}?t=${encodeURIComponent(access.token)}`,
             locale: order.locale,
+            priceLabel: getSalesProduct(order.product_id)?.priceLabel,
           })
           subject = offer.subject
           html = offer.html
