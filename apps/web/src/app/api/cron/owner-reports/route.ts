@@ -67,8 +67,8 @@ function reportHtml(ownerListings: ListingStats[], locale: 'en' | 'es') {
   const upsell = anyBasic
     ? `<p style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;font-size:13px;color:#92400e">
         ${isEs
-          ? 'Tu ficha Basic no muestra los datos de contacto de tus leads. Mejora a <strong>Premium ($19/mes)</strong> para recibir cada lead al instante y aparecer más arriba en el directorio.'
-          : "Your Basic listing doesn't reveal your leads' contact details. Upgrade to <strong>Premium ($19/mo)</strong> to get every lead instantly and rank higher in the directory."}
+          ? 'Tu ficha Basic no muestra los datos de contacto de tus leads. Mejora a <strong>Premium ($19.99/mes)</strong> para recibir cada lead al instante y aparecer más arriba en el directorio.'
+          : "Your Basic listing doesn't reveal your leads' contact details. Upgrade to <strong>Premium ($19.99/mo)</strong> to get every lead instantly and rank higher in the directory."}
         <br/><a href="${APP_URL}/${locale}/dashboard" style="color:#92400e;font-weight:800">${isEs ? 'Mejorar ahora →' : 'Upgrade now →'}</a></p>`
     : ''
 

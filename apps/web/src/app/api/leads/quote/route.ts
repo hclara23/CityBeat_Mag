@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       html = `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111">
         <h2 style="font-weight:900">You have a new customer inquiry</h2>
         <p>Someone just asked to be contacted by <strong>${bizName || 'your business'}</strong> through CityBeat.</p>
-        <p>Their contact details are waiting in your dashboard — upgrade to <strong>Premium ($19/mo)</strong> to see this and every future lead instantly.</p>
+        <p>Their contact details are waiting in your dashboard — upgrade to <strong>Premium ($19.99/mo)</strong> to see this and every future lead instantly.</p>
         <p style="margin:24px 0"><a href="${APP_URL}/en/dashboard" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">View my leads</a></p>
         <p style="font-size:11px;color:#999">Sent via citybeatmag.co</p></div>`
     } else {

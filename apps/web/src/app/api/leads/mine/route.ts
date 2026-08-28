@@ -25,7 +25,7 @@ function maskContact(contact: string): string {
 
 // Leads for the signed-in owner's listings. Premium/Featured listings see full
 // contact details; basic listings see masked leads with an upgrade path — the
-// lead ladder that makes the $19/mo subscription pay for itself visibly.
+// lead ladder that makes the $19.99/mo subscription pay for itself visibly.
 export async function GET() {
   const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

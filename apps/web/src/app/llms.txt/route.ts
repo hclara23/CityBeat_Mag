@@ -33,7 +33,7 @@ ${catLinks}
 
 ## For businesses
 - [Claim your listing (free)](${BASE}/en/directory): any local business can claim its listing and respond to customers
-- [Advertise](${BASE}/en/ads): sponsored placements and directory upgrades (Premium from $19/mo or $99/yr founding)
+- [Advertise](${BASE}/en/ads): sponsored placements and directory upgrades (Premium from $19.99/mo or $99/yr founding)
 - [Submit a story or event](${BASE}/en/contribute)
 
 ## Ask CityBeat

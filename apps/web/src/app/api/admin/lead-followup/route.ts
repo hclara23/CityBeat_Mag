@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   const prompt = `Write a warm sales follow-up for a local business that engaged with our cold outreach.
 
 Business: ${business}${category ? ` (${category})` : ''}${city ? ` in ${city}` : ''}.
-CityBeat is the bilingual local news + business directory for El Paso / Las Cruces / Ciudad Juárez. Offer: claim their free listing, then Premium ($19/mo) for photos, priority placement, and instant customer leads.
+CityBeat is the bilingual local news + business directory for El Paso / Las Cruces / Ciudad Juárez. Offer: claim their free listing, then Premium ($19.99/mo) for photos, priority placement, and instant customer leads.
 Context: ${signal}
 
 Respond with ONLY valid JSON, no markdown fences:

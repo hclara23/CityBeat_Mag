@@ -4,9 +4,15 @@ import { sendEmail as sendEmailViaProvider } from './email'
 import { isSuppressed } from './suppression'
 import { traceClaude } from '@/lib/observability'
 import { getCronCursor, setCronCursor } from './cron-cursor'
+import { DIRECTORY_PLANS } from './pricing'
+
+// Premium price pulled from the single pricing source of truth so the outbound
+// pitch can never quote a number different from what checkout actually charges
+// (it previously said "$19/mo" while Premium bills $19.99/mo).
+const PREMIUM_MONTHLY = `$${(DIRECTORY_PLANS.premium_monthly.unitAmount / 100).toFixed(2)}`
 
 // Automated outbound sales agent: contacts unclaimed directory businesses and
-// pitches the free claim + $19/mo Premium upgrade, with a one-click deep link
+// pitches the free claim + paid Premium upgrade (price from pricing.ts), with a one-click deep link
 // into the existing claim → Stripe flow. Tracks everything in `sales_outreach`.
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
@@ -63,7 +69,7 @@ function templatePitch(listing: Listing, step: number, locale: 'en' | 'es', vari
     return {
       subject: subjects[step] || subjects[0],
       intro: `Hola, vimos que ${name}${cat} aparece en el directorio de CityBeat, el medio bilingue de El Paso y Ciudad Juárez.`,
-      pitch: `Reclámalo gratis y mejora a Premium por $19/mes para añadir fotos, horarios, enlaces a redes y aparecer destacado ante miles de lectores locales.`,
+      pitch: `Reclámalo gratis y mejora a Premium por ${PREMIUM_MONTHLY}/mes para añadir fotos, horarios, enlaces a redes y aparecer destacado ante miles de lectores locales.`,
     }
   }
   const firstTouch = [
@@ -79,7 +85,7 @@ function templatePitch(listing: Listing, step: number, locale: 'en' | 'es', vari
   return {
     subject: subjects[step] || subjects[0],
     intro: `Hi — we noticed ${name}${cat} is listed in the CityBeat directory, El Paso & Ciudad Juárez's bilingual local guide.`,
-    pitch: `Claim it free, and upgrade to Premium for $19/mo to add photos, hours, social links, and get featured in front of thousands of local readers.`,
+    pitch: `Claim it free, and upgrade to Premium for ${PREMIUM_MONTHLY}/mo to add photos, hours, social links, and get featured in front of thousands of local readers.`,
   }
 }
 
@@ -100,7 +106,7 @@ async function enhanceWithClaude(listing: Listing, base: ReturnType<typeof templ
         messages: [
           {
             role: 'user',
-            content: `Write a short, warm ${locale === 'es' ? 'Spanish' : 'English'} sales email body (2 short paragraphs, no subject line, no signature) to a local business owner. Business: ${listing.name} ${listing.category ? `(${listing.category})` : ''}. Goal: get them to claim their free CityBeat directory listing and upgrade to Premium ($19/mo for photos, hours, social links, featured placement). Keep it under 90 words, friendly, specific to a local El Paso / Ciudad Juarez audience. Do not include a greeting or links.`,
+            content: `Write a short, warm ${locale === 'es' ? 'Spanish' : 'English'} sales email body (2 short paragraphs, no subject line, no signature) to a local business owner. Business: ${listing.name} ${listing.category ? `(${listing.category})` : ''}. Goal: get them to claim their free CityBeat directory listing and upgrade to Premium (${PREMIUM_MONTHLY}/mo for photos, hours, social links, featured placement). Keep it under 90 words, friendly, specific to a local El Paso / Ciudad Juarez audience. Do not include a greeting or links.`,
           },
         ],
       }),
@@ -323,7 +329,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     const html = `<div style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;color:#111">
   <h2 style="font-weight:900">CityBeat</h2>
   <p>${locale === 'es' ? `<strong>${name}</strong> ya está verificado y visible en CityBeat. ¡Bien hecho!` : `<strong>${name}</strong> is verified and live on CityBeat. Nice work!`}</p>
-  <p>${locale === 'es' ? 'Con <strong>Premium ($19/mes)</strong> recibes cada lead de clientes al instante, añades fotos y horarios, y apareces más arriba en tu categoría.' : 'With <strong>Premium ($19/mo)</strong> you get every customer lead instantly, add photos and hours, and rank higher in your category.'}</p>
+  <p>${locale === 'es' ? 'Con <strong>Premium ($19.99/mes)</strong> recibes cada lead de clientes al instante, añades fotos y horarios, y apareces más arriba en tu categoría.' : 'With <strong>Premium ($19.99/mo)</strong> you get every customer lead instantly, add photos and hours, and rank higher in your category.'}</p>
   <p style="margin:24px 0"><a href="${url}" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Mejorar mi ficha' : 'Upgrade my listing'}</a></p>
   <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(key, 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false
@@ -359,7 +365,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     const html = `<div style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;color:#111">
   <h2 style="font-weight:900">CityBeat</h2>
   <p>${locale === 'es' ? `<strong>${name}</strong> sigue en CityBeat, pero sin los beneficios Premium: los leads llegan y no puedes verlos.` : `<strong>${name}</strong> is still on CityBeat — but without Premium, customer leads arrive and you can't see them.`}</p>
-  <p>${locale === 'es' ? 'Reactiva Premium ($19/mes) y recupera tus leads, fotos y posicionamiento hoy mismo.' : 'Reactivate Premium ($19/mo) and get your leads, photos, and placement back today.'}</p>
+  <p>${locale === 'es' ? 'Reactiva Premium ($19.99/mes) y recupera tus leads, fotos y posicionamiento hoy mismo.' : 'Reactivate Premium ($19.99/mo) and get your leads, photos, and placement back today.'}</p>
   <p style="margin:24px 0"><a href="${APP_URL}/${locale}/dashboard" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Reactivar' : 'Reactivate'}</a></p>
   <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(key, 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false

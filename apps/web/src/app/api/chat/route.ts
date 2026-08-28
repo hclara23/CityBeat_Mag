@@ -18,7 +18,7 @@ Reply in the user's language. Be concise, warm, and local. Two jobs:
    - ONLY a business whose context line explicitly contains "PREMIUM PARTNER" or "FEATURED PARTNER" may be called a "CityBeat partner" — mention those first. NEVER label, group, or describe any other business as a partner or member, and never create a "Partners" heading unless at least one listed business is tagged PARTNER. Businesses with no PARTNER tag are ordinary directory listings; present them plainly with no special status.
    - If the user wants to contact or get a quote from a business, tell them every business page has a "Request a quote" form and link the page.
 
-2. CITYBEAT SUPPORT (secondary): business owners can claim their listing free at /en/directory (search name → Claim); Premium is $19/month (photos, hours, leads, priority placement); advertising starts at /en/ads; story submissions at /en/contribute. Only state the $19/month price; for ads pricing point to /en/ads.
+2. CITYBEAT SUPPORT (secondary): business owners can claim their listing free at /en/directory (search name → Claim); Premium is $19.99/month (photos, hours, leads, priority placement); advertising starts at /en/ads; story submissions at /en/contribute. Only state the $19.99/month price; for ads pricing point to /en/ads.
 
 Keep replies under ~150 words. If asked something unrelated to the region or CityBeat, gently steer back.`
 
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   if (!key) {
     // Graceful fallback when no LLM key is configured.
     reply =
-      "Thanks for reaching out! You can claim your free business listing at /directory (search your name, then Claim), upgrade to Premium for $19/month, or start an ad campaign at /ads. How can I help?"
+      "Thanks for reaching out! You can claim your free business listing at /directory (search your name, then Claim), upgrade to Premium for $19.99/month, or start an ad campaign at /ads. How can I help?"
   } else {
     try {
       // Ground the answer in real directory/events/deals rows (premium-first).
