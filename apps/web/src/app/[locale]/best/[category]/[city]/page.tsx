@@ -10,6 +10,8 @@ import {
   findCity,
   getLocalListings,
 } from '@/lib/local-seo'
+import { breadcrumbJsonLd } from '@/lib/seo'
+import { jsonLdSafe } from '@/lib/jsonld'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 3600
@@ -40,6 +42,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       languages: {
         en: `${BASE}/en/best/${cat.slug}/${city.slug}`,
         es: `${BASE}/es/best/${cat.slug}/${city.slug}`,
+        'x-default': `${BASE}/en/best/${cat.slug}/${city.slug}`,
       },
     },
     openGraph: { title, description, url, type: 'website', images: [{ url: ogImage }] },
@@ -75,12 +78,23 @@ export default async function LocalBestPage({ params }: { params: Params }) {
   }
   const jsonLd = JSON.stringify(itemList).replace(/</g, '\\u003c')
 
+  // BreadcrumbList (Home → Directory → this local guide) — the SERP breadcrumb
+  // trail for the programmatic long-tail pages.
+  const breadcrumb = jsonLdSafe(
+    breadcrumbJsonLd(params.locale, [
+      { name: isEs ? 'Inicio' : 'Home', path: '/' },
+      { name: isEs ? 'Directorio' : 'Directory', path: '/directory' },
+      { name: heading },
+    ])
+  )
+
   const otherCities = LOCAL_CITIES.filter((c) => c.slug !== city.slug)
   const otherCats = LOCAL_CATEGORIES.filter((c) => c.slug !== cat.slug)
 
   return (
     <CityBeatShell locale={params.locale}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumb }} />
       <section className="container-wide max-w-4xl py-14">
         <Link
           href={withLocale(params.locale, '/directory')}
