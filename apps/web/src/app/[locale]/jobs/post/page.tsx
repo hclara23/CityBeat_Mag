@@ -52,7 +52,7 @@ export default function PostJobPage() {
       <section className="container-wide max-w-2xl py-14">
         <h1 className="font-display text-4xl font-black tracking-tight text-white">{t('Post a Job', 'Publicar empleo')}</h1>
         <p className="mt-2 text-white/55">{t('Reach the El Paso & Juárez community. $50 — live for 30 days.', 'Llega a la comunidad de El Paso y Juárez. $50 — activo por 30 días.')}</p>
-        {error && <div className="mt-6 rounded-md bg-red-500/10 p-4 text-sm text-red-300">{error}</div>}
+        {error && <div role="alert" className="mt-6 rounded-md bg-red-500/10 p-4 text-sm text-red-300">{error}</div>}
         <form onSubmit={submit} className="mt-8 space-y-4">
           {[
             { k: 'title', label: t('Job title', 'Puesto'), req: true },
@@ -64,12 +64,14 @@ export default function PostJobPage() {
             <label key={f.k} className="block text-sm text-white/70">
               {f.label}{f.req ? ' *' : ''}
               <input value={(form as any)[f.k]} onChange={set(f.k)}
+                required={f.req} aria-required={f.req || undefined}
                 className="mt-1 w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-white outline-none focus:border-brand-neon" />
             </label>
           ))}
           <label className="block text-sm text-white/70">
             {t('Description', 'Descripción')} *
             <textarea value={form.description} onChange={set('description')} rows={6}
+              required aria-required="true"
               className="mt-1 w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-white outline-none focus:border-brand-neon" />
           </label>
           <button type="submit" disabled={submitting}

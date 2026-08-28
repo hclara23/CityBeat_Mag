@@ -78,14 +78,14 @@ export default function SubmitEvent() {
           </div>
         ) : (
           <form onSubmit={submit} className="mt-8 space-y-4">
-            {error && <p className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">{error}</p>}
+            {error && <p role="alert" className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">{error}</p>}
             <label className="block text-sm text-white/70">
               {isEs ? 'Título del evento *' : 'Event title *'}
-              <input className={input} value={form.title} onChange={set('title')} placeholder={isEs ? 'Mercado nocturno' : 'Night Market'} />
+              <input className={input} required aria-required="true" value={form.title} onChange={set('title')} placeholder={isEs ? 'Mercado nocturno' : 'Night Market'} />
             </label>
             <label className="block text-sm text-white/70">
               {isEs ? 'Fecha y hora *' : 'Date & time *'}
-              <input type="datetime-local" className={input} value={form.start_date} onChange={set('start_date')} />
+              <input type="datetime-local" required aria-required="true" className={input} value={form.start_date} onChange={set('start_date')} />
             </label>
             <label className="block text-sm text-white/70">
               {isEs ? 'Lugar' : 'Venue'}

@@ -519,13 +519,13 @@ function ClaimPageInner() {
                   ) : (
                     <div className="space-y-8">
                       {claimErrorMsg && (
-                        <div className="p-4 bg-brand-magenta/10 border border-brand-magenta/30 text-brand-magenta rounded-xl text-xs font-bold text-center">
+                        <div role="alert" className="p-4 bg-brand-magenta/10 border border-brand-magenta/30 text-brand-magenta rounded-xl text-xs font-bold text-center">
                           ⚠ {claimErrorMsg}
                         </div>
                       )}
 
                       {claimSuccessMsg && claimStep !== 'verified' && (
-                        <div className="p-4 bg-brand-neon/10 border border-brand-neon/30 text-brand-neon rounded-xl text-xs font-bold text-center">
+                        <div role="status" className="p-4 bg-brand-neon/10 border border-brand-neon/30 text-brand-neon rounded-xl text-xs font-bold text-center">
                           ✓ {claimSuccessMsg}
                         </div>
                       )}
