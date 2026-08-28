@@ -17,7 +17,12 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
     title,
     description,
     alternates: localeAlternates(params.locale, '/jobs'),
-    openGraph: { title, description, type: 'website' },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      images: [{ url: `/api/og?title=${encodeURIComponent(isEs ? 'Empleos en El Paso' : 'Jobs in El Paso')}&eyebrow=${encodeURIComponent(isEs ? 'Empleos' : 'Jobs')}` }],
+    },
   }
 }
 

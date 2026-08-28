@@ -33,7 +33,12 @@ export function generateMetadata({ params }: Props): Metadata {
     title,
     description,
     alternates: localeAlternates(params.locale, `/topics/${params.category}`),
-    openGraph: { title, description, type: 'website' },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      images: [{ url: `/api/og?title=${encodeURIComponent(isEs ? `${name} de El Paso` : `El Paso ${name}`)}&eyebrow=${encodeURIComponent('CityBeat')}` }],
+    },
   }
 }
 

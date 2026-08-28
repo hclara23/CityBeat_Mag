@@ -14,7 +14,12 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
     title,
     description,
     alternates: localeAlternates(params.locale, '/directory'),
-    openGraph: { title, description, type: 'website' },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      images: [{ url: `/api/og?title=${encodeURIComponent(isEs ? 'Directorio de negocios de El Paso' : 'El Paso Business Directory')}&eyebrow=${encodeURIComponent(isEs ? 'Directorio' : 'Directory')}` }],
+    },
   }
 }
 

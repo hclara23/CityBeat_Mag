@@ -12,7 +12,12 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
     title,
     description,
     alternates: localeAlternates(params.locale, '/leaderboard'),
-    openGraph: { title, description, type: 'website' },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      images: [{ url: `/api/og?title=${encodeURIComponent(isEs ? 'Colaboradores de CityBeat' : 'Top CityBeat Contributors')}&eyebrow=${encodeURIComponent(isEs ? 'Comunidad' : 'Community')}` }],
+    },
   }
 }
 

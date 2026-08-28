@@ -32,7 +32,12 @@ export function generateMetadata({ params }: HomePageProps): Metadata {
     title,
     description,
     alternates: localeAlternates(params.locale, '/'),
-    openGraph: { title, description, type: 'website' },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      images: [{ url: `/api/og?title=${encodeURIComponent(isEs ? 'Noticias locales de El Paso' : 'El Paso Local News & Directory')}&eyebrow=${encodeURIComponent('CityBeat')}` }],
+    },
   }
 }
 

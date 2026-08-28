@@ -24,7 +24,12 @@ export function generateMetadata({ params }: Props): Metadata {
     description,
     // Self-canonical (no ?category=) so filtered variants consolidate here.
     alternates: localeAlternates(params.locale, '/stories'),
-    openGraph: { title, description, type: 'website' },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      images: [{ url: `/api/og?title=${encodeURIComponent(isEs ? 'Noticias de El Paso' : 'El Paso News & Stories')}&eyebrow=${encodeURIComponent(isEs ? 'Boletines' : 'Stories')}` }],
+    },
   }
 }
 
