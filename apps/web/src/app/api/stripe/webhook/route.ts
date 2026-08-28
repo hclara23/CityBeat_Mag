@@ -19,6 +19,7 @@ import {
   referralDiscountAmount,
 } from '@/lib/referrals'
 import { directoryOrderPaymentPatch, salesDirectoryClaimStatus } from '@/lib/sales-directory'
+import { isOriginatingRefund, refundListingPatch } from '@/lib/refund-decision'
 import { getSalesProduct } from '@/lib/sales-products'
 import { purchaseConfirmationEmail } from '@/lib/buyer-emails'
 import { notifyUser } from '@/lib/user-notifications'
@@ -696,18 +697,17 @@ async function handleChargeRefunded(charge: any) {
   // on the invoice), so clawing back by the order's session id is only correct
   // for the originating charge — otherwise refunding a single renewal month
   // reverses the whole original sale's commission.
-  let isOriginatingCharge = false
+  let matchedByPaymentIntent = false
+  let invoiceBillingReason: string | null = null
   if (pi) {
     const snapshot = await adminDb.collection('sales_orders').where('stripe_payment_intent_id', '==', pi).get()
     orders = snapshot.docs
-    // A payment-intent match is by definition the exact payment that was refunded.
-    isOriginatingCharge = orders.length > 0
+    matchedByPaymentIntent = orders.length > 0
   }
   if (!orders.length && charge.invoice) {
     const invoice = await stripe.invoices.retrieve(stripeObjectId(charge.invoice) || String(charge.invoice))
+    invoiceBillingReason = (invoice as any).billing_reason || null
     const subscriptionId = stripeObjectId((invoice as any).subscription)
-    // Only the subscription's FIRST invoice represents the original sale.
-    isOriginatingCharge = (invoice as any).billing_reason === 'subscription_create'
     if (subscriptionId) {
       const snapshot = await adminDb
         .collection('sales_orders')
@@ -716,6 +716,9 @@ async function handleChargeRefunded(charge: any) {
       orders = snapshot.docs
     }
   }
+  // Pure, unit-tested decision (lib/refund-decision.ts) — the exact rule that
+  // stops a renewal refund from downgrading a still-billing listing.
+  const isOriginatingCharge = isOriginatingRefund({ matchedByPaymentIntent, invoiceBillingReason })
 
   const now = new Date().toISOString()
 
@@ -780,9 +783,7 @@ async function handleChargeRefunded(charge: any) {
             // the subscription still exists, so leaving them set after a real
             // refund handed the paid tier and the Sponsored slot to someone who
             // had already been given their money back.
-            ? fullyRefunded && isOriginatingCharge
-              ? { tier: 'basic', pending_tier: null, pending_sponsored: null, is_sponsored: false }
-              : {}
+            ? refundListingPatch({ fullyRefunded, isOriginatingCharge })
             : {
                 status: 'needs_attention',
                 is_active: false,

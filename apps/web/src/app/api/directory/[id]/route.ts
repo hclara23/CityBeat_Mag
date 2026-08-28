@@ -150,6 +150,24 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       : []
   }
   // Core text fields: trimmed + length-capped (no arbitrary/oversized JSON).
+  // GMB-parity fields.
+  if ('video_url' in allowedUpdates) allowedUpdates.video_url = sanitizeHttpUrl(allowedUpdates.video_url) || ''
+  if ('secondary_categories' in allowedUpdates) {
+    allowedUpdates.secondary_categories = Array.isArray(allowedUpdates.secondary_categories)
+      ? allowedUpdates.secondary_categories
+          .map((c: unknown) => capText(c, 60))
+          .filter(Boolean)
+          .slice(0, 9) // GBP allows up to 9 additional categories
+      : []
+  }
+  if ('service_areas' in allowedUpdates) {
+    allowedUpdates.service_areas = Array.isArray(allowedUpdates.service_areas)
+      ? allowedUpdates.service_areas
+          .map((a: unknown) => capText(a, 80))
+          .filter(Boolean)
+          .slice(0, 20)
+      : []
+  }
   if ('name' in allowedUpdates) allowedUpdates.name = capText(allowedUpdates.name, 140)
   if ('phone' in allowedUpdates) allowedUpdates.phone = capText(allowedUpdates.phone, 40)
   if ('address' in allowedUpdates) allowedUpdates.address = capText(allowedUpdates.address, 200)

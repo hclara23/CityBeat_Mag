@@ -164,6 +164,9 @@ export const CORE_LISTING_FIELDS = [
   'address',
   'hours',
   'special_hours',
+  // GMB parity, free: help discovery/SEO for every tier.
+  'secondary_categories',
+  'service_areas',
 ] as const
 
 // Paid fields, mapped to the entitlement that unlocks each one. This mirrors the
@@ -182,6 +185,9 @@ export const PAID_LISTING_FIELDS: Record<string, keyof DirectoryEntitlements> = 
   attributes: 'servicesAndProducts',
   posts: 'postsOffersEvents',
   action_links: 'bookingLinks',
+  // GMB parity: a promo/tour video (paid — the `video` entitlement already
+  // existed but had no field to write).
+  video_url: 'video',
 }
 
 export type FilteredListingUpdate = {
