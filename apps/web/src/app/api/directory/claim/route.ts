@@ -6,6 +6,7 @@ import { getPlan, FOUNDING_LIMIT } from '@/lib/pricing'
 import { REFERRAL_COOKIE } from '@/lib/referrals'
 import { resolveReferralForCheckout } from '@/lib/referrals-server'
 import { salesDirectoryCheckoutIsManaged } from '@/lib/sales-directory'
+import { blocksReplacementSubscription } from '@/lib/sales-checkout'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -60,6 +61,38 @@ export async function POST(request: NextRequest) {
         },
         { status: 409 }
       )
+    }
+
+    // A listing that already carries a LIVE Stripe subscription must never open a
+    // second one. Nothing in this codebase cancels a subscription (the only
+    // Stripe cancel-shaped call anywhere is deleteDiscount), so a second
+    // checkout leaves the first billing forever, unreachable from the customer
+    // portal — the owner is simply charged twice every month. This is reachable
+    // from the dashboard "boost" button, which posts here for a listing the user
+    // already owns, and even from re-selecting the plan they are already on.
+    // The Sales Desk path has always refused this (blocksReplacementSubscription
+    // in api/sales/checkout); the self-serve path never did.
+    if (listing.stripe_subscription_id) {
+      let subscriptionIsLive = true
+      try {
+        const existing = await stripe.subscriptions.retrieve(String(listing.stripe_subscription_id))
+        subscriptionIsLive = blocksReplacementSubscription(existing.status)
+      } catch (error: any) {
+        // A subscription Stripe cannot find is genuinely gone — let the customer
+        // buy again rather than locking them out on a lookup failure.
+        if (error?.code === 'resource_missing' || error?.statusCode === 404) subscriptionIsLive = false
+      }
+      if (subscriptionIsLive) {
+        return NextResponse.json(
+          {
+            error:
+              'This listing already has an active subscription. Manage or change your plan from Billing so you are not charged twice.',
+            code: 'subscription_already_exists',
+            manage_url: '/billing',
+          },
+          { status: 409 }
+        )
+      }
     }
 
     // Block claiming a listing another account already owns or is mid-claim on.
