@@ -61,6 +61,7 @@ export function LeadMagnet({ source = 'weekend_guide' }: { source?: string }) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              aria-label={isEs ? 'Correo electrónico' : 'Email address'}
               placeholder={isEs ? 'tu@correo.com' : 'you@email.com'}
               className="flex-1 rounded-md border border-white/15 bg-black/30 px-4 py-3 text-sm text-white placeholder-white/40 focus:border-brand-neon focus:outline-none"
             />

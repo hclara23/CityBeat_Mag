@@ -8,6 +8,10 @@ type ArticleVisualProps = {
   sizes: string
   priority?: boolean
   className?: string
+  // Alt text for the real image. Defaults to '' — correct for card thumbnails
+  // that sit next to a visible headline (avoids duplicate SR announcement). Pass
+  // the headline where this is used as a standalone hero with no adjacent title.
+  alt?: string
 }
 
 const PALETTES: Record<string, { base: string; mid: string; accent: string }> = {
@@ -37,6 +41,7 @@ export function ArticleVisual({
   sizes,
   priority = false,
   className = '',
+  alt = '',
 }: ArticleVisualProps) {
   const seed = hashOf(`${identifier}:${title}`)
   const palette = PALETTES[category] || PALETTES.news
@@ -50,7 +55,7 @@ export function ArticleVisual({
       {image ? (
         <Image
           src={image}
-          alt=""
+          alt={alt}
           fill
           priority={priority}
           sizes={sizes}

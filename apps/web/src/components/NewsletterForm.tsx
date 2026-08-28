@@ -43,7 +43,7 @@ export function NewsletterForm({
 
   if (status === 'success') {
     return (
-      <div className="mt-6 rounded-md border border-brand-neon/30 bg-brand-neon/10 px-4 py-4 text-center">
+      <div role="status" className="mt-6 rounded-md border border-brand-neon/30 bg-brand-neon/10 px-4 py-4 text-center">
         <p className="text-brand-neon font-black uppercase tracking-wider text-sm">
           {locale === 'es' ? '¡Suscrito con éxito!' : 'Successfully subscribed!'}
         </p>
@@ -59,6 +59,7 @@ export function NewsletterForm({
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder={emailPlaceholder}
+        aria-label={locale === 'es' ? 'Correo electrónico' : 'Email address'}
         className="rounded-md border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-brand-neon"
       />
       <button 
@@ -69,7 +70,7 @@ export function NewsletterForm({
         {status === 'loading' ? '...' : joinText}
       </button>
       {status === 'error' && (
-        <p className="col-span-full text-red-500 text-sm mt-1">
+        <p role="alert" className="col-span-full text-red-500 text-sm mt-1">
           {locale === 'es' ? 'Ocurrió un error. Inténtalo de nuevo.' : 'An error occurred. Please try again.'}
         </p>
       )}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { withLocale } from './content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser, signOut } from '@citybeat/lib/firebase/auth-client'
@@ -31,6 +31,8 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false)
   const [profile, setProfile] = useState<any | null>(null)
   const locale = useLocale()
+  const toggleRef = useRef<HTMLButtonElement>(null)
+  const mobileNavRef = useRef<HTMLElement>(null)
 
   // Detect the signed-in user so we can surface a role-appropriate Dashboard link.
   useEffect(() => {
@@ -42,6 +44,50 @@ export function SiteHeader() {
       active = false
     }
   }, [pathname])
+
+  // Mobile-menu keyboard behavior (WCAG 2.1.1 / 2.4.3): move focus into the panel
+  // on open, trap Tab within it, close on Escape, and restore focus to the toggle
+  // on close. Also lock background scroll while the overlay is open.
+  useEffect(() => {
+    if (!open) return
+    const panel = mobileNavRef.current
+    const focusables = () =>
+      Array.from(
+        panel?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      )
+    focusables()[0]?.focus()
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        setOpen(false)
+        toggleRef.current?.focus()
+        return
+      }
+      if (e.key === 'Tab') {
+        const items = focusables()
+        if (items.length === 0) return
+        const first = items[0]
+        const last = items[items.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [open])
 
   const dashboardHref = profile ? dashboardFor(profile) : null
 
@@ -87,10 +133,10 @@ export function SiteHeader() {
           {/* Always-visible EN|ES toggle — El Paso's audience is ~90% Spanish-speaking,
               so language switching must never be buried in a menu. */}
           <div className="flex items-center overflow-hidden rounded-full border border-white/25 text-[11px] font-black uppercase tracking-wider">
-            <Link href={enPath} aria-label="English" className={`px-2.5 py-1 transition ${locale === 'en' ? 'bg-brand-neon text-black' : 'text-white/60 hover:text-white'}`}>
+            <Link href={enPath} aria-label="English" aria-current={locale === 'en' ? 'true' : undefined} className={`px-2.5 py-1 transition ${locale === 'en' ? 'bg-brand-neon text-black' : 'text-white/60 hover:text-white'}`}>
               EN
             </Link>
-            <Link href={esPath} aria-label="Español" className={`px-2.5 py-1 transition ${locale === 'es' ? 'bg-brand-neon text-black' : 'text-white/60 hover:text-white'}`}>
+            <Link href={esPath} aria-label="Español" aria-current={locale === 'es' ? 'true' : undefined} className={`px-2.5 py-1 transition ${locale === 'es' ? 'bg-brand-neon text-black' : 'text-white/60 hover:text-white'}`}>
               ES
             </Link>
           </div>
@@ -132,11 +178,13 @@ export function SiteHeader() {
           </div>
 
           <button
+            ref={toggleRef}
             type="button"
             onClick={() => setOpen((value) => !value)}
             className="rounded-md border border-white/15 px-3 py-2 text-sm font-bold uppercase tracking-wider text-white md:hidden"
             aria-expanded={open}
             aria-controls="mobile-navigation"
+            aria-label={open ? (locale === 'es' ? 'Cerrar menú' : 'Close menu') : (locale === 'es' ? 'Abrir menú' : 'Open menu')}
           >
             {locale === 'es' ? 'Menú' : 'Menu'}
           </button>
@@ -144,7 +192,7 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <nav id="mobile-navigation" className="border-t border-white/10 bg-brand-dark px-4 py-6 md:hidden">
+        <nav ref={mobileNavRef} id="mobile-navigation" aria-label={locale === 'es' ? 'Navegación móvil' : 'Mobile navigation'} className="border-t border-white/10 bg-brand-dark px-4 py-6 md:hidden">
           <div className="flex flex-col gap-5">
             {navItems.map((item) => (
               <Link

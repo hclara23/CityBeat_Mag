@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useId, isValidElement, cloneElement } from 'react'
 import Image from 'next/image'
 import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { SiteFooter } from '@/components/citybeat/SiteFooter'
@@ -452,15 +452,35 @@ function Field({
   error?: string
   children: React.ReactNode
 }) {
+  // Associate the label + error with the control (WCAG 1.3.1 / 3.3.1 / 4.1.2) by
+  // injecting a stable id + aria into the single child element, and pointing the
+  // label's htmlFor at it. Non-element children fall back to unassociated render.
+  const uid = useId()
+  const fieldId = `field-${uid}`
+  const errId = `field-${uid}-err`
+  const childId = isValidElement(children) ? (children as any).props.id || fieldId : undefined
+  const control = isValidElement(children)
+    ? cloneElement(children as React.ReactElement, {
+        id: childId,
+        'aria-invalid': error ? true : (children as any).props['aria-invalid'],
+        'aria-describedby': error
+          ? [(children as any).props['aria-describedby'], errId].filter(Boolean).join(' ')
+          : (children as any).props['aria-describedby'],
+      })
+    : children
   return (
     <div>
       {label && (
-        <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/60">
+        <label htmlFor={childId} className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/60">
           {label}
         </label>
       )}
-      {children}
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      {control}
+      {error && (
+        <p id={errId} role="alert" className="mt-1 text-xs text-red-400">
+          {error}
+        </p>
+      )}
     </div>
   )
 }

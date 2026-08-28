@@ -46,11 +46,11 @@ export function QuoteForm({ listingId, locale = 'en' }: { listingId: string; loc
   return (
     <form onSubmit={submit} className="rounded-xl border border-white/10 bg-white/5 p-5">
       <p className="font-display text-lg font-bold text-white">{isEs ? 'Solicitar información' : 'Request a quote'}</p>
-      {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-red-300">{error}</p>}
       <div className="mt-3 grid gap-3">
-        <input className={input} placeholder={isEs ? 'Tu nombre' : 'Your name'} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <input className={input} placeholder={isEs ? 'Email o teléfono' : 'Email or phone'} value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} />
-        <textarea className={input} rows={3} placeholder={isEs ? 'Mensaje (opcional)' : 'Message (optional)'} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+        <input className={input} aria-label={isEs ? 'Tu nombre' : 'Your name'} placeholder={isEs ? 'Tu nombre' : 'Your name'} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        <input className={input} aria-label={isEs ? 'Email o teléfono' : 'Email or phone'} placeholder={isEs ? 'Email o teléfono' : 'Email or phone'} value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} />
+        <textarea className={input} rows={3} aria-label={isEs ? 'Mensaje (opcional)' : 'Message (optional)'} placeholder={isEs ? 'Mensaje (opcional)' : 'Message (optional)'} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
       </div>
       <button type="submit" disabled={busy} className="mt-3 w-full rounded-md bg-brand-neon px-4 py-2.5 text-sm font-black uppercase tracking-wider text-black hover:bg-cyan-300 disabled:opacity-50">
         {busy ? (isEs ? 'Enviando…' : 'Sending…') : isEs ? 'Enviar' : 'Send request'}

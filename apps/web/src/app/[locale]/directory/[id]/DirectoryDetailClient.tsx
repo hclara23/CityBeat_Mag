@@ -994,7 +994,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                         <div key={i} className="relative h-60 rounded-lg overflow-hidden bg-brand-charcoal">
                           <Image
                             src={url}
-                            alt=""
+                            alt={`${listing.name} — ${locale === 'es' ? 'foto' : 'photo'} ${i + 1}`}
                             fill
                             sizes="(max-width: 768px) 100vw, 33vw"
                             className="object-cover hover:scale-105 transition-transform duration-300"
@@ -1016,16 +1016,21 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     </h2>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                       {visitorPhotos.map((url, i) => (
-                        <div key={i} className="relative h-20 sm:h-24 rounded-lg overflow-hidden bg-brand-charcoal border border-white/10 cursor-pointer hover:opacity-80 transition group">
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => window.open(url, '_blank', 'noopener')}
+                          aria-label={`${locale === 'es' ? 'Ver foto de visitante' : 'View visitor photo'} ${i + 1} — ${listing.name}`}
+                          className="relative h-20 sm:h-24 rounded-lg overflow-hidden bg-brand-charcoal border border-white/10 cursor-pointer hover:opacity-80 transition group"
+                        >
                           <Image
                             src={url}
-                            alt=""
+                            alt={`${listing.name} — ${locale === 'es' ? 'foto de visitante' : 'visitor photo'} ${i + 1}`}
                             fill
                             sizes="(max-width: 768px) 33vw, 15vw"
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
-                            onClick={() => window.open(url, '_blank')}
                           />
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -1120,16 +1125,21 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                                   {rev.photo_urls && rev.photo_urls.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mt-3.5">
                                       {rev.photo_urls.map((photoUrl: string, idx: number) => (
-                                        <div key={idx} className="relative h-16 w-16 rounded overflow-hidden border border-white/10 bg-brand-charcoal cursor-pointer hover:opacity-80 transition flex-shrink-0">
+                                        <button
+                                          key={idx}
+                                          type="button"
+                                          onClick={() => window.open(photoUrl, '_blank', 'noopener')}
+                                          aria-label={`${locale === 'es' ? 'Ver foto de la reseña' : 'View review photo'} ${idx + 1} — ${listing.name}`}
+                                          className="relative h-16 w-16 rounded overflow-hidden border border-white/10 bg-brand-charcoal cursor-pointer hover:opacity-80 transition flex-shrink-0"
+                                        >
                                           <Image
                                             src={photoUrl}
-                                            alt=""
+                                            alt={`${listing.name} — ${locale === 'es' ? 'foto de reseña' : 'review photo'} ${idx + 1}`}
                                             fill
                                             sizes="64px"
                                             className="object-cover"
-                                            onClick={() => window.open(photoUrl, '_blank')}
                                           />
-                                        </div>
+                                        </button>
                                       ))}
                                     </div>
                                   )}
@@ -1151,28 +1161,36 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     {userProfile ? (
                       <form onSubmit={handleSubmitReview} className="space-y-4">
                         {reviewSuccess && (
-                          <div className="p-3 bg-brand-neon/10 border border-brand-neon/30 text-brand-neon rounded-md text-xs font-bold">
+                          <div role="status" className="p-3 bg-brand-neon/10 border border-brand-neon/30 text-brand-neon rounded-md text-xs font-bold">
                             {reviewSuccess}
                           </div>
                         )}
 
                         <div>
-                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon mb-2">
+                          <span id="review-rating-label" className="block text-xs font-bold uppercase tracking-wider text-brand-neon mb-2">
                             {t.ratingLabel}
-                          </label>
-                          <div className="flex items-center gap-1">
+                          </span>
+                          <div role="radiogroup" aria-labelledby="review-rating-label" className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map((star) => {
                               const active = hoverRating !== null ? star <= hoverRating : star <= userRating
+                              const starLabel =
+                                locale === 'es'
+                                  ? `${star} ${star === 1 ? 'estrella' : 'estrellas'}`
+                                  : `${star} ${star === 1 ? 'star' : 'stars'}`
                               return (
                                 <button
                                   key={star}
                                   type="button"
+                                  role="radio"
+                                  aria-checked={userRating === star}
+                                  aria-label={starLabel}
                                   onClick={() => setUserRating(star)}
                                   onMouseEnter={() => setHoverRating(star)}
                                   onMouseLeave={() => setHoverRating(null)}
-                                  className="p-1 focus:outline-none transition-transform active:scale-95"
+                                  className="p-1 transition-transform active:scale-95"
                                 >
                                   <svg
+                                    aria-hidden="true"
                                     className={`h-7 w-7 ${active ? 'text-brand-gold fill-brand-gold' : 'text-white/20'}`}
                                     xmlns="http://www.w3.org/2000/svg"
                                     viewBox="0 0 20 20"
@@ -1191,6 +1209,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                             value={userComment}
                             onChange={(e) => setUserComment(e.target.value)}
                             placeholder={t.commentPlaceholder}
+                            aria-label={t.commentPlaceholder}
                             className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none text-sm transition"
                           />
                         </div>
@@ -1205,7 +1224,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                               <div key={idx} className="relative h-20 w-20 rounded border border-white/20 overflow-hidden bg-brand-charcoal group">
                                 <Image
                                   src={photoUrl}
-                                  alt=""
+                                  alt={`${locale === 'es' ? 'Foto para subir' : 'Photo to upload'} ${idx + 1}`}
                                   fill
                                   sizes="80px"
                                   className="object-cover"
@@ -1213,9 +1232,10 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                                 <button
                                   type="button"
                                   onClick={() => removeUploadedPhoto(idx)}
+                                  aria-label={`${locale === 'es' ? 'Quitar foto' : 'Remove photo'} ${idx + 1}`}
                                   className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity"
                                 >
-                                  Remove
+                                  {locale === 'es' ? 'Quitar' : 'Remove'}
                                 </button>
                               </div>
                             ))}
@@ -1279,6 +1299,9 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                   {listing.website && (
                     <div>
                       <p className="text-[10px] uppercase font-bold text-brand-neon">{t.website}</p>
+                      {/* Premium/Featured view: do-follow backlink (no nofollow) —
+                          the paid SEO perk. Basic/unclaimed listings get nofollow+ugc
+                          in the free view (line ~1365). */}
                       <a href={listing.website} target="_blank" rel="noopener noreferrer" onClick={() => track('click_website')} className="text-sm mt-1 text-brand-neon hover:underline truncate block">
                         {listing.website.replace(/^https?:\/\/(www\.)?/, '')}
                       </a>
@@ -1362,7 +1385,12 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     {listing.website && (
                       <div className="sm:col-span-2">
                         <h4 className="text-[10px] font-black uppercase tracking-wider text-brand-neon">{t.website}</h4>
-                        <a href={listing.website} target="_blank" rel="noopener noreferrer" onClick={() => track('click_website')} className="text-brand-neon hover:underline mt-1 text-sm block truncate">
+                        {/* Basic/unclaimed listing: the outbound link is nofollow+ugc.
+                            A do-follow backlink (real SEO equity) is a PAID perk —
+                            it's emitted without nofollow only in the Premium/Featured
+                            view above (line ~1282). This also stops CityBeat from
+                            vouching for thousands of auto-scraped, unverified sites. */}
+                        <a href={listing.website} target="_blank" rel="noopener noreferrer nofollow ugc" onClick={() => track('click_website')} className="text-brand-neon hover:underline mt-1 text-sm block truncate">
                           {listing.website}
                         </a>
                       </div>

@@ -149,7 +149,7 @@ function LoginContent() {
               <p className="text-sm text-gray-700 text-center">
                 Enter the 6-digit code from your authenticator app.
               </p>
-              {mfaError && <p className="text-sm text-red-600 text-center">{mfaError}</p>}
+              {mfaError && <p role="alert" className="text-sm text-red-600 text-center">{mfaError}</p>}
               <input
                 type="text"
                 inputMode="numeric"
@@ -158,6 +158,7 @@ function LoginContent() {
                 value={mfaCode}
                 onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
                 onKeyDown={(e) => e.key === 'Enter' && mfaCode.length === 6 && submitMfa()}
+                aria-label="6-digit authentication code"
                 placeholder="000000"
                 className="w-full text-center tracking-[0.5em] text-2xl font-bold rounded-md border border-gray-300 p-3 text-gray-900 focus:border-red-500 focus:outline-none"
               />

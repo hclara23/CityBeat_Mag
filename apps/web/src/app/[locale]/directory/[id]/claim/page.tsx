@@ -599,11 +599,14 @@ function ClaimPageInner() {
 
                             {claimStep === 'enter_code' && (
                               <div className="space-y-4">
-                                <label className="block text-[10px] font-bold uppercase tracking-wider text-brand-neon">
+                                <label htmlFor="claim-verification-code" className="block text-[10px] font-bold uppercase tracking-wider text-brand-neon">
                                   Verification Code
                                 </label>
                                 <input
+                                  id="claim-verification-code"
                                   type="text"
+                                  inputMode="numeric"
+                                  aria-label="Verification code"
                                   placeholder="Enter 6-digit code"
                                   maxLength={6}
                                   value={verificationCode}

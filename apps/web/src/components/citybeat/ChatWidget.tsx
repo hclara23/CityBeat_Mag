@@ -39,6 +39,8 @@ export function ChatWidget() {
   const [busy, setBusy] = useState(false)
   const sessionId = useRef<string>(Math.random().toString(36).slice(2))
   const scrollRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const openBtnRef = useRef<HTMLButtonElement>(null)
 
   const greeting =
     locale === 'es'
@@ -52,6 +54,23 @@ export function ChatWidget() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, busy])
+
+  // Modal-style overlay keyboard behavior: focus the input on open, close on
+  // Escape and return focus to the launcher button (WCAG 2.1.2 / 4.1.2).
+  useEffect(() => {
+    if (!open) return
+    inputRef.current?.focus()
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false)
+        openBtnRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [open])
+
+  const dialogTitle = locale === 'es' ? 'Asistente de CityBeat' : 'CityBeat assistant'
 
   const send = async () => {
     const text = input.trim()
@@ -79,8 +98,9 @@ export function ChatWidget() {
     <>
       {!open && (
         <button
+          ref={openBtnRef}
           onClick={() => setOpen(true)}
-          aria-label="Open chat"
+          aria-label={locale === 'es' ? 'Abrir chat de CityBeat' : 'Open CityBeat chat'}
           className="fixed bottom-5 right-5 z-50 rounded-full bg-brand-neon px-5 py-4 text-sm font-black uppercase tracking-wider text-black shadow-xl transition hover:bg-cyan-300"
         >
           {locale === 'es' ? '¿Anunciar?' : 'Advertise?'}
@@ -88,15 +108,29 @@ export function ChatWidget() {
       )}
 
       {open && (
-        <div className="fixed bottom-5 right-5 z-50 flex h-[30rem] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-white/15 bg-brand-charcoal shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="citybeat-chat-title"
+          className="fixed bottom-5 right-5 z-50 flex h-[30rem] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-white/15 bg-brand-charcoal shadow-2xl"
+        >
           <div className="flex items-center justify-between border-b border-white/10 bg-brand-dark px-4 py-3">
-            <span className="font-display text-lg font-black text-white">
-              city<span className="italic text-brand-neon">BEat</span>
+            <span id="citybeat-chat-title" className="font-display text-lg font-black text-white">
+              <span className="sr-only">{dialogTitle}</span>
+              <span aria-hidden="true">
+                city<span className="italic text-brand-neon">BEat</span>
+              </span>
             </span>
-            <button onClick={() => setOpen(false)} aria-label="Close" className="text-white/50 hover:text-white">✕</button>
+            <button
+              onClick={() => setOpen(false)}
+              aria-label={locale === 'es' ? 'Cerrar chat' : 'Close chat'}
+              className="text-white/50 hover:text-white"
+            >
+              ✕
+            </button>
           </div>
 
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
+          <div ref={scrollRef} aria-live="polite" aria-atomic="false" className="flex-1 space-y-3 overflow-y-auto p-4">
             {messages.map((m, i) => (
               <div key={i} className={m.role === 'user' ? 'text-right' : 'text-left'}>
                 <span
@@ -113,14 +147,21 @@ export function ChatWidget() {
 
           <div className="flex items-center gap-2 border-t border-white/10 p-3">
             <input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && send()}
+              aria-label={locale === 'es' ? 'Escribe un mensaje' : 'Type a message'}
               placeholder={locale === 'es' ? 'Escribe un mensaje…' : 'Type a message…'}
               className="flex-1 rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-brand-neon"
             />
-            <button onClick={send} disabled={busy} className="rounded-md bg-brand-neon px-3 py-2 text-sm font-black text-black disabled:opacity-50">
-              →
+            <button
+              onClick={send}
+              disabled={busy}
+              aria-label={locale === 'es' ? 'Enviar mensaje' : 'Send message'}
+              className="rounded-md bg-brand-neon px-3 py-2 text-sm font-black text-black disabled:opacity-50"
+            >
+              <span aria-hidden="true">→</span>
             </button>
           </div>
         </div>

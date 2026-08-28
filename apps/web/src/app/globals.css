@@ -48,6 +48,15 @@
     @apply font-display font-bold;
   }
 
+  /* Visible keyboard focus on every interactive element (WCAG 2.4.7). :where()
+     keeps specificity at 0 so a component can still supply its own focus style,
+     and :focus-visible fires only for keyboard/AT focus — mouse clicks stay
+     ring-free. High-contrast neon outline reads clearly on the near-black theme. */
+  :where(a, button, [role="button"], input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--brand-neon);
+    outline-offset: 2px;
+  }
+
   h1 {
     @apply text-4xl;
   }
@@ -154,8 +163,19 @@
 
 .citybeat-app input::placeholder,
 .citybeat-app textarea::placeholder {
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.6);
 }
+
+/* Contrast floor (WCAG 1.4.3). The house style leans on low-opacity white text
+   utilities; below ~0.5 alpha they drop under 4.5:1 on the near-black theme.
+   Raise the effective alpha of the sub-threshold steps site-wide so body/label
+   text clears AA — a single systemic fix instead of editing ~49 files. Steps at
+   /50 and above already pass and are left untouched. Genuinely decorative uses
+   only become marginally brighter, which is harmless. */
+.citybeat-app .text-white\/30 { color: rgba(255, 255, 255, 0.62) !important; }
+.citybeat-app .text-white\/35 { color: rgba(255, 255, 255, 0.62) !important; }
+.citybeat-app .text-white\/40 { color: rgba(255, 255, 255, 0.64) !important; }
+.citybeat-app .text-white\/45 { color: rgba(255, 255, 255, 0.66) !important; }
 
 .citybeat-panel {
   background: rgba(26, 26, 26, 0.84);

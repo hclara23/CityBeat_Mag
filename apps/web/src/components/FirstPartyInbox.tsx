@@ -37,6 +37,7 @@ export function FirstPartyInbox() {
   const [items, setItems] = useState<Notification[]>([])
   const [unread, setUnread] = useState(0)
   const panelRef = useRef<HTMLDivElement>(null)
+  const bellRef = useRef<HTMLButtonElement>(null)
 
   const load = useCallback(async () => {
     try {
@@ -68,14 +69,25 @@ export function FirstPartyInbox() {
     }
   }, [load])
 
-  // Close on outside click.
+  // Close on outside click or Escape (returning focus to the bell for keyboard
+  // users — WCAG 2.1.1 / 4.1.2).
   useEffect(() => {
     if (!open) return
     const onClick = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) setOpen(false)
     }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false)
+        bellRef.current?.focus()
+      }
+    }
     document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKeyDown)
+    }
   }, [open])
 
   const markAllRead = async () => {
@@ -105,15 +117,26 @@ export function FirstPartyInbox() {
   return (
     <div className="relative" ref={panelRef}>
       <button
+        ref={bellRef}
         type="button"
         onClick={() => {
           setOpen((v) => !v)
           if (!open) void load()
         }}
-        aria-label={isEs ? 'Notificaciones' : 'Notifications'}
+        aria-label={
+          unread > 0
+            ? isEs
+              ? `Notificaciones, ${unread} sin leer`
+              : `Notifications, ${unread} unread`
+            : isEs
+              ? 'Notificaciones'
+              : 'Notifications'
+        }
+        aria-expanded={open}
+        aria-haspopup="true"
         className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-white/70 transition hover:border-brand-neon/60 hover:text-brand-neon"
       >
-        <svg className="h-4.5 w-4.5" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg aria-hidden="true" className="h-4.5 w-4.5" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
