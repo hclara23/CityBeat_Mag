@@ -112,7 +112,7 @@ export function ChatWidget() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="citybeat-chat-title"
-          className="fixed bottom-5 right-5 z-50 flex h-[30rem] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-white/15 bg-brand-charcoal shadow-2xl"
+          className="fixed bottom-5 right-5 z-50 flex h-[30rem] max-h-[calc(100dvh-2.5rem)] w-[22rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-white/15 bg-brand-charcoal shadow-2xl"
         >
           <div className="flex items-center justify-between border-b border-white/10 bg-brand-dark px-4 py-3">
             <span id="citybeat-chat-title" className="font-display text-lg font-black text-white">
@@ -159,7 +159,7 @@ export function ChatWidget() {
               onClick={send}
               disabled={busy}
               aria-label={locale === 'es' ? 'Enviar mensaje' : 'Send message'}
-              className="rounded-md bg-brand-neon px-3 py-2 text-sm font-black text-black disabled:opacity-50"
+              className="rounded-md bg-brand-neon px-3 py-2 text-sm font-black text-black transition hover:bg-cyan-300 disabled:opacity-50"
             >
               <span aria-hidden="true">→</span>
             </button>

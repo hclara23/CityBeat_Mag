@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { SiteHeader } from '@/components/citybeat/SiteHeader'
+import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import type { Metadata } from 'next'
 import { localeAlternates } from '@/lib/seo'
@@ -82,12 +82,11 @@ export default async function JobsPage({ params }: { params: { locale: string } 
     }))
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <CityBeatShell locale={locale}>
       {jobsLd.map((ld, i) => (
         <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(ld) }} />
       ))}
-      <SiteHeader />
-      <main id="main-content" className="container-wide py-12">
+      <div className="container-wide py-12">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
           <div>
             <h1 className="text-4xl font-display font-black uppercase tracking-widest mb-2">
@@ -147,7 +146,7 @@ export default async function JobsPage({ params }: { params: { locale: string } 
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </CityBeatShell>
   )
 }

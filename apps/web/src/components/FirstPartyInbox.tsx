@@ -36,6 +36,7 @@ export function FirstPartyInbox() {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<Notification[]>([])
   const [unread, setUnread] = useState(0)
+  const [loaded, setLoaded] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
   const bellRef = useRef<HTMLButtonElement>(null)
 
@@ -48,6 +49,10 @@ export function FirstPartyInbox() {
       setUnread(data.unread || 0)
     } catch {
       // Inbox is best-effort chrome — never break the header.
+    } finally {
+      // Gate the empty state so the panel doesn't flash "No notifications yet"
+      // before the first fetch resolves.
+      setLoaded(true)
     }
   }, [])
 
@@ -160,7 +165,9 @@ export function FirstPartyInbox() {
             )}
           </div>
           <div className="max-h-96 overflow-y-auto">
-            {items.length === 0 ? (
+            {!loaded ? (
+              <p className="px-4 py-8 text-center text-xs text-white/40">{isEs ? 'Cargando…' : 'Loading…'}</p>
+            ) : items.length === 0 ? (
               <p className="px-4 py-8 text-center text-xs text-white/40">
                 {isEs ? 'Sin notificaciones todavía.' : 'No notifications yet.'}
               </p>

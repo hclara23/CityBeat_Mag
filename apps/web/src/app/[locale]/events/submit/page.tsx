@@ -49,7 +49,7 @@ export default function SubmitEvent() {
     }
   }
 
-  const input = 'mt-1 w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-white placeholder-white/30'
+  const input = 'mt-1 w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-white placeholder-white/30 outline-none transition focus:border-brand-neon'
 
   return (
     <CityBeatShell locale={locale}>
@@ -97,11 +97,11 @@ export default function SubmitEvent() {
             </label>
             <label className="block text-sm text-white/70">
               {isEs ? 'Enlace de boletos / info' : 'Tickets / info link'}
-              <input className={input} value={form.ticket_url} onChange={set('ticket_url')} placeholder="https://" />
+              <input type="url" className={input} value={form.ticket_url} onChange={set('ticket_url')} placeholder="https://" />
             </label>
             <label className="block text-sm text-white/70">
               {isEs ? 'URL de imagen' : 'Image URL'}
-              <input className={input} value={form.image_url} onChange={set('image_url')} placeholder="https://" />
+              <input type="url" className={input} value={form.image_url} onChange={set('image_url')} placeholder="https://" />
             </label>
             <label className="block text-sm text-white/70">
               {isEs ? 'Tu email (opcional)' : 'Your email (optional)'}

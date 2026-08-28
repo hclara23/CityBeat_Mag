@@ -9,7 +9,7 @@ import { intakeCompletion, type IntakeField, type IntakeSchema } from '@/lib/sal
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
 const controlClass =
-  'mt-1.5 w-full border border-white/15 bg-black/35 px-3 py-2.5 text-white outline-none transition placeholder:text-white/25 focus:border-brand-neon/70 focus:ring-2 focus:ring-brand-neon/10'
+  'mt-1.5 w-full rounded-md border border-white/15 bg-black/35 px-3 py-2.5 text-white outline-none transition placeholder:text-white/25 focus:border-brand-neon/70 focus:ring-2 focus:ring-brand-neon/10'
 
 function formatMoney(cents: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((cents || 0) / 100)
@@ -197,8 +197,8 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
     return (
       <CityBeatShell locale={locale}>
         <main className="container-wide flex min-h-[70vh] items-center justify-center py-16">
-          <div className="max-w-2xl border border-brand-neon/30 bg-brand-neon/[0.07] p-8 text-center sm:p-12">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center bg-brand-neon text-2xl font-black text-black">OK</div>
+          <div className="max-w-2xl rounded-2xl border border-brand-neon/30 bg-brand-neon/[0.07] p-8 text-center sm:p-12">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-neon text-2xl font-black text-black">✓</div>
             <p className="mt-6 text-xs font-black uppercase tracking-[0.26em] text-brand-neon">Payment and brief complete</p>
             <h1 className="mt-2 font-display text-4xl font-black text-white">Your order is ready for CityBeat.</h1>
             <p className="mx-auto mt-4 max-w-xl leading-7 text-white/60">Our team has the information and files needed to begin {order?.product_name || 'your order'}. We will use {order?.contact_email} if anything needs clarification.</p>

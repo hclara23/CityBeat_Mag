@@ -113,7 +113,7 @@ export default function AdminDashboard() {
       <SiteHeader />
       <main className="mx-auto max-w-6xl px-4 py-12">
         <div className="mb-10">
-          <h1 className="font-display text-4xl font-black tracking-tight tracking-tight uppercase">Admin Control</h1>
+          <h1 className="font-display text-4xl font-black tracking-tight uppercase">Admin Control</h1>
           <p className="mt-1 text-white/50 text-sm">Review submissions and monitor performance</p>
           <a href={withLocale(locale, '/guide')} className="mt-1 inline-block text-xs font-bold text-brand-neon underline">
             📖 User Guide

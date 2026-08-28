@@ -1402,7 +1402,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                             view above (line ~1282). This also stops CityBeat from
                             vouching for thousands of auto-scraped, unverified sites. */}
                         <a href={listing.website} target="_blank" rel="noopener noreferrer nofollow ugc" onClick={() => track('click_website')} className="text-brand-neon hover:underline mt-1 text-sm block truncate">
-                          {listing.website}
+                          {listing.website.replace(/^https?:\/\/(www\.)?/, '')}
                         </a>
                       </div>
                     )}

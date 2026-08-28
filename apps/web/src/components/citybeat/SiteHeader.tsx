@@ -118,15 +118,21 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={withLocale(locale, item.href)}
-              className="text-xs font-bold uppercase tracking-[0.22em] text-white/70 transition hover:text-brand-neon"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const active = basePath === item.href || basePath.startsWith(`${item.href}/`)
+            return (
+              <Link
+                key={item.href}
+                href={withLocale(locale, item.href)}
+                aria-current={active ? 'page' : undefined}
+                className={`text-xs font-bold uppercase tracking-[0.22em] transition ${
+                  active ? 'text-brand-neon' : 'text-white/70 hover:text-brand-neon'
+                }`}
+              >
+                {item.label}
+              </Link>
+            )
+          })}
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">

@@ -33,7 +33,7 @@ export function QuoteForm({ listingId, locale = 'en' }: { listingId: string; loc
     }
   }
 
-  const input = 'mt-1 w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-white placeholder-white/30'
+  const input = 'mt-1 w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-white placeholder-white/30 outline-none transition focus:border-brand-neon'
 
   if (done) {
     return (
