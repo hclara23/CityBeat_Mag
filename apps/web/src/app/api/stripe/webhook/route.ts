@@ -649,7 +649,15 @@ async function handleChargeRefunded(charge: any) {
           payment_status: fullyRefunded ? 'refunded' : 'partially_refunded',
           fulfillment_status: 'needs_attention',
           ...(target.collection === 'directory_listings'
-            ? fullyRefunded ? { tier: 'basic' } : {}
+            // Clear the PENDING grants too, not just the live tier. Admin
+            // approval reads pending_tier/pending_sponsored and grants them with
+            // no check that the subscription still exists — so leaving them set
+            // after a refund meant a later approval handed the paid tier and the
+            // Sponsored slot to a customer who had already been given their
+            // money back, permanently and for free.
+            ? fullyRefunded
+              ? { tier: 'basic', pending_tier: null, pending_sponsored: null, is_sponsored: false }
+              : {}
             : { status: 'needs_attention', is_active: false }),
           updated_at: now,
         },
@@ -676,7 +684,17 @@ async function handleChargeRefunded(charge: any) {
   if (fullyRefunded && !orders.length && charge.customer) {
     const listing = await findOne('directory_listings', 'stripe_customer_id', charge.customer)
     if (listing) {
-      await listing.ref.set({ tier: 'basic', payment_status: 'refunded', updated_at: now }, { merge: true })
+      await listing.ref.set(
+        {
+          tier: 'basic',
+          pending_tier: null,
+          pending_sponsored: null,
+          is_sponsored: false,
+          payment_status: 'refunded',
+          updated_at: now,
+        },
+        { merge: true }
+      )
       await disqualifyPendingReferralForListing(listing.id, 'refunded')
     }
   }
@@ -920,7 +938,15 @@ async function handleSubscriptionDeleted(subscription: any) {
   const listing = await findOne('directory_listings', 'stripe_subscription_id', subscription.id)
   if (listing) {
     await listing.ref.set(
-      { tier: 'basic', is_sponsored: false, pending_sponsored: null, updated_at: new Date().toISOString() },
+      {
+        tier: 'basic',
+        is_sponsored: false,
+        pending_sponsored: null,
+        // pending_tier was left set here, so approving a claim after the
+        // subscription had already been cancelled re-granted the paid tier.
+        pending_tier: null,
+        updated_at: new Date().toISOString(),
+      },
       { merge: true }
     )
     await disqualifyPendingReferralForListing(listing.id, 'canceled')
