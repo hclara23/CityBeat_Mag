@@ -29,6 +29,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'amount (cents) must be greater than 0' }, { status: 400 })
   }
 
+  // The amount is in CENTS, so a slipped decimal sends 100x. Above this the
+  // caller must say so deliberately — it does not cap what can be paid, it just
+  // stops a typo becoming a silent five-figure transfer.
+  const LARGE_AMOUNT_CENTS = 200000 // $2,000
+  if (amount > LARGE_AMOUNT_CENTS && body.confirmLargeAmount !== true) {
+    return NextResponse.json(
+      {
+        error: `This would transfer $${(amount / 100).toFixed(2)}. Amounts are in cents — resend with confirmLargeAmount:true if that is intended.`,
+        code: 'confirm_large_amount',
+        amount_cents: amount,
+      },
+      { status: 400 }
+    )
+  }
+
   try {
     const result = await manualPayout({
       stripe: getStripe(),
@@ -37,6 +52,8 @@ export async function POST(request: NextRequest) {
       currency,
       issuedBy: user.id,
       note,
+      // Lets the caller make a retry provably the same payout instead of a second one.
+      requestId: typeof body.requestId === 'string' ? body.requestId : undefined,
     })
     return NextResponse.json({ ok: true, ...result })
   } catch (e: any) {

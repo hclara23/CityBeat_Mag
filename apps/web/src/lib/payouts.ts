@@ -817,6 +817,11 @@ export async function manualPayout(params: {
   currency?: string
   issuedBy: string
   note?: string
+  // Caller-supplied de-duplication handle. Two requests sharing one become ONE
+  // transfer at Stripe. Without it a double-click, an impatient retry, or a
+  // flaky connection sends real money twice — this endpoint had no idempotency
+  // key and appended an auto-id ledger row, so nothing anywhere caught it.
+  requestId?: string
 }): Promise<{ status: 'paid'; amount: number; transferId: string }> {
   const { stripe, payeeUserId, amount, currency = 'usd', issuedBy, note } = params
   if (!payeeUserId) throw new Error('Missing payee')
@@ -828,14 +833,25 @@ export async function manualPayout(params: {
     throw new Error('Payee has not finished connecting a payouts-enabled bank account')
   }
 
-  const transfer = await stripe.transfers.create({
-    amount: Math.round(amount),
-    currency,
-    destination: acct.stripe_account_id,
-    metadata: { service: 'manual', payee_user_id: payeeUserId, issued_by: issuedBy },
-  })
+  // Falls back to a per-minute bucket so a double-click collapses into one
+  // transfer even when the caller supplies no requestId.
+  const dedupeHandle =
+    params.requestId && params.requestId.trim()
+      ? params.requestId.trim().slice(0, 80)
+      : `auto:${Math.floor(Date.now() / 60000)}`
+  const idempotencyKey = `manual:${issuedBy}:${payeeUserId}:${Math.round(amount)}:${currency}:${dedupeHandle}`
 
-  await adminDb.collection('transfers').add({
+  const transfer = await stripe.transfers.create(
+    {
+      amount: Math.round(amount),
+      currency,
+      destination: acct.stripe_account_id,
+      metadata: { service: 'manual', payee_user_id: payeeUserId, issued_by: issuedBy },
+    },
+    { idempotencyKey }
+  )
+
+  await adminDb.collection('transfers').doc(idempotencyKey.replace(/\//g, '_')).set({
     payee_user_id: payeeUserId,
     service: 'manual',
     percent: null,
