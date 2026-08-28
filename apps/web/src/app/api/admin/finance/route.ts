@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasDeveloperAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { COMMISSION_OWED_STATUSES, PAID_STATUSES, collectedCents, purchaseRowCounts } from '@/lib/finance-rollup'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,7 +47,9 @@ export async function GET() {
         const subscription = subscriptions.get(String(x.stripe_subscription_id || '')) as any
         const listingId = x.listing_id || subscription?.listing_id || null
         const listing = listingId ? (listings.get(listingId) as any) : null
-        const amount = Number(x.amount) || 0
+        // Net of refunds: the webhook records amount_refunded on partial
+        // refunds and flips status to 'refunded' on full ones.
+        const amount = collectedCents(x)
         const discountAmount = Number(x.discount_amount) || 0
         return {
           id: d.id,
@@ -67,7 +70,7 @@ export async function GET() {
           billing_cycle: x.billing_cycle || subscription?.billing_cycle || null,
         }
       }),
-      ...(purchasesSnap.docs as any[]).map((d) => {
+      ...(purchasesSnap.docs as any[]).filter((d) => purchaseRowCounts(d.data() as any)).map((d) => {
         const x = d.data()
         const amount = Number(x.amount_total) || 0
         return { id: d.id, source: 'purchase', service: x.ad_type || 'advertisement', amount, gross_amount: amount, discount_amount: 0, discount_source: null, currency: x.currency || 'usd', status: x.payment_status, created_at: toIso(x.created_at), email: x.advertiser_email || null }
@@ -82,11 +85,21 @@ export async function GET() {
       })
       .sort((a, b) => (String(b.created_at) > String(a.created_at) ? 1 : -1))
 
-    const paidIncoming = incoming.filter((x) => ['paid', 'completed', 'succeeded'].includes(x.status))
+    const paidIncoming = incoming.filter((x) => (PAID_STATUSES as readonly string[]).includes(x.status))
     const totalIncoming = paidIncoming.reduce((s, x) => s + (x.amount || 0), 0)
     const totalDiscounts = paidIncoming.reduce((s, x) => s + (x.discount_amount || 0), 0)
     const totalGross = paidIncoming.reduce((s, x) => s + (x.gross_amount || x.amount || 0), 0)
     const totalPaidOut = outgoing.filter((x) => x.status === 'paid').reduce((s, x) => s + (x.amount || 0), 0)
+    // Commission accrued or attempted but not yet transferred is a real
+    // liability: since the accrual model, ignoring it overstated margin by up
+    // to 65% of recent sales. clawback_owed is the opposite direction — money
+    // a rep owes back after a post-payout refund.
+    const commissionOwed = outgoing
+      .filter((x) => (COMMISSION_OWED_STATUSES as readonly string[]).includes(x.status))
+      .reduce((s, x) => s + (x.amount || 0), 0)
+    const commissionOwedBack = outgoing
+      .filter((x) => x.status === 'clawback_owed')
+      .reduce((s, x) => s + (x.amount || 0), 0)
 
     // Monthly trend.
     const byMonth: Record<string, { month: string; incoming: number; outgoing: number }> = {}
@@ -156,6 +169,9 @@ export async function GET() {
         total_incoming: totalIncoming,
         total_paid_out: totalPaidOut,
         platform_net: totalIncoming - totalPaidOut,
+        total_commission_owed: commissionOwed,
+        commission_owed_back: commissionOwedBack,
+        platform_net_after_owed: totalIncoming - totalPaidOut - commissionOwed,
         active_subscriptions: (subsSnap.docs as any[]).filter((d) => (d.data() as any).status === 'active').length,
         currency: 'usd',
       },

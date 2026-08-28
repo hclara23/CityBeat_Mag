@@ -72,8 +72,10 @@ test('planRecovery separates marking the truth from contacting a person', () => 
     { id: 'live', checkout_status: 'ready', checkout_url: 'u', checkout_expires_at: '2026-08-28T00:00:00.000Z', contact_email: 'a@b.com' },
     { id: 'dead', checkout_status: 'ready', checkout_url: 'u', checkout_expires_at: '2026-08-21T00:00:00.000Z', contact_email: 'a@b.com' },
     { id: 'dead-no-email', checkout_status: 'ready', checkout_url: 'u', checkout_expires_at: '2026-08-21T00:00:00.000Z' },
-    { id: 'already-marked', checkout_status: 'expired', checkout_url: 'u', checkout_expires_at: '2026-08-21T00:00:00.000Z', contact_email: 'a@b.com', recovery_emailed_at: '2026-08-22T00:00:00.000Z' },
-    { id: 'paid', payment_status: 'paid', checkout_status: 'ready', checkout_url: 'u', checkout_expires_at: '2026-08-01T00:00:00.000Z', contact_email: 'a@b.com' },
+    // Distinct contacts: the per-customer suppression rules have their own
+    // tests below; this test is about marking-vs-contacting separation.
+    { id: 'already-marked', checkout_status: 'expired', checkout_url: 'u', checkout_expires_at: '2026-08-21T00:00:00.000Z', contact_email: 'c@d.com', recovery_emailed_at: '2026-08-22T00:00:00.000Z' },
+    { id: 'paid', payment_status: 'paid', checkout_status: 'ready', checkout_url: 'u', checkout_expires_at: '2026-08-01T00:00:00.000Z', contact_email: 'e@f.com' },
   ]
   const plan = planRecovery(orders, NOW)
   // Dead links get marked even when nobody can be emailed about them...
@@ -87,6 +89,47 @@ test('planRecovery separates marking the truth from contacting a person', () => 
   )
   assert.deepEqual(second.toExpire, ['dead-no-email'])
   assert.deepEqual(second.toEmail, [])
+})
+
+test('the nudge is per CUSTOMER: duplicate orders collapse to one email', () => {
+  const orders = [
+    { id: 'a', checkout_status: 'ready', checkout_url: 'u', checkout_expires_at: '2026-08-21T00:00:00.000Z', contact_email: 'A@b.com' },
+    { id: 'b', checkout_status: 'ready', checkout_url: 'u', checkout_expires_at: '2026-08-21T00:00:00.000Z', contact_email: 'a@B.com' },
+  ]
+  const plan = planRecovery(orders, NOW)
+  // Both dead links get marked; only ONE email per contact (case-insensitive).
+  assert.deepEqual(plan.toExpire.sort(), ['a', 'b'])
+  assert.deepEqual(plan.toEmail.map((o) => o.id), ['a'])
+})
+
+test('a customer who paid on a sibling order is never nudged about a dead one', () => {
+  const orders = [
+    { id: 'dead', checkout_status: 'ready', checkout_url: 'u', checkout_expires_at: '2026-08-21T00:00:00.000Z', contact_email: 'x@y.com' },
+    // The re-issued link they actually paid on ("Correct details" flow).
+    { id: 'paid', payment_status: 'paid', checkout_status: 'completed', checkout_url: 'u', contact_email: 'X@Y.com ' },
+  ]
+  const plan = planRecovery(orders, NOW)
+  assert.deepEqual(plan.toExpire, ['dead']) // marking is still per order
+  assert.deepEqual(plan.toEmail, [])
+})
+
+test('excludeEmails removes a customer from emailing but not from marking', () => {
+  const orders = [
+    { id: 'dead', checkout_status: 'ready', checkout_url: 'u', checkout_expires_at: '2026-08-21T00:00:00.000Z', contact_email: 'done@biz.com' },
+  ]
+  const plan = planRecovery(orders, NOW, { excludeEmails: [' DONE@BIZ.com'] })
+  assert.deepEqual(plan.toExpire, ['dead'])
+  assert.deepEqual(plan.toEmail, [])
+})
+
+test('an already-nudged sibling suppresses a second email to the same customer', () => {
+  const orders = [
+    { id: 'old', checkout_status: 'expired', checkout_url: 'u', checkout_expires_at: '2026-08-20T00:00:00.000Z', contact_email: 'n@z.com', recovery_emailed_at: '2026-08-22T00:00:00.000Z' },
+    { id: 'newer', checkout_status: 'ready', checkout_url: 'u', checkout_expires_at: '2026-08-21T00:00:00.000Z', contact_email: 'n@z.com' },
+  ]
+  const plan = planRecovery(orders, NOW)
+  assert.deepEqual(plan.toExpire, ['newer'])
+  assert.deepEqual(plan.toEmail, [])
 })
 
 test('the nudge is bilingual, escapes user data, and never links a dead session', () => {

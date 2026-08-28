@@ -506,29 +506,95 @@ export async function runPayoutCycle(params: {
   paid: number
   failed: number
   no_bank: number
+  invalid: number
   amount_paid: number
+  truncated: boolean
+  indexed: boolean
 }> {
   const { stripe, limit = 200, dryRun = false } = params
   const now = params.now ? new Date(params.now) : new Date()
+  const nowIso = now.toISOString()
 
-  const snap = await adminDb
-    .collection('transfers')
-    .where('status', '==', 'held')
-    .limit(limit)
-    .get()
-    .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+  // Oldest-eligible first, paged, so a growing backlog can never starve a
+  // matured share: every run drains from the front of the eligibility queue.
+  // The old scan was `status == 'held'` with an unordered limit(200) — with
+  // commission_mode 'residual' accruing a share on EVERY renewal, not-yet-due
+  // rows consumed the budget and, past 200 held rows, a doc-id-determined
+  // subset was re-scanned forever while matured commission was never examined.
+  let processedDocs: FirebaseFirestore.QueryDocumentSnapshot[] = []
+  let indexedQueryWorked = true
+  try {
+    let cursor: FirebaseFirestore.QueryDocumentSnapshot | null = null
+    while (processedDocs.length < limit) {
+      let pageQuery = adminDb
+        .collection('transfers')
+        .where('status', '==', 'held')
+        .where('eligible_at', '<=', nowIso)
+        .orderBy('eligible_at', 'asc')
+        .limit(Math.min(200, limit - processedDocs.length))
+      if (cursor) pageQuery = pageQuery.startAfter(cursor)
+      const page = await pageQuery.get()
+      if (page.empty) break
+      processedDocs.push(...page.docs)
+      cursor = page.docs[page.docs.length - 1]
+      if (page.docs.length < 200) break
+    }
+  } catch (error) {
+    // The composite (status, eligible_at) index may not be deployed yet. Fall
+    // back to the old unordered scan so payouts NEVER halt on an index gap —
+    // but tell ops, because the fallback can starve above `limit` rows.
+    indexedQueryWorked = false
+    await reportFailure('payout-cycle-index', error, {
+      hint: 'deploy firestore.indexes.json (transfers status+eligible_at)',
+    }).catch(() => {})
+    const snap = await adminDb
+      .collection('transfers')
+      .where('status', '==', 'held')
+      .limit(limit)
+      .get()
+      .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+    processedDocs = snap.docs
+  }
 
-  const summary = { scanned: snap.docs.length, due: 0, paid: 0, failed: 0, no_bank: 0, amount_paid: 0 }
+  const summary = {
+    scanned: processedDocs.length,
+    due: 0,
+    paid: 0,
+    failed: 0,
+    no_bank: 0,
+    invalid: 0,
+    amount_paid: 0,
+    truncated: processedDocs.length >= limit,
+    indexed: indexedQueryWorked,
+  }
 
-  for (const doc of snap.docs) {
+  if (summary.truncated && !dryRun) {
+    await reportFailure(
+      'payout-cycle-truncated',
+      new Error(
+        `Payout cycle hit its ${limit}-row window with matured shares possibly remaining — run again or raise ?limit=`
+      ),
+      { scanned: processedDocs.length }
+    ).catch(() => {})
+  }
+
+  for (const doc of processedDocs) {
     const row = doc.data() as any
+    // Defense in depth: the indexed path only returns matured rows, but the
+    // fallback path (and clock skew) still need the predicate.
     if (!isCommissionDue(row, now)) continue
     summary.due++
 
     const payeeUserId: string | undefined = row.payee_user_id
     const service: string = row.service
     const amount = Math.max(0, Math.round(Number(row.amount) || 0))
-    if (!payeeUserId || !service || amount <= 0) continue
+    if (!payeeUserId || !service || amount <= 0) {
+      // Retire malformed rows instead of re-scanning them every cycle forever
+      // — same pattern reconcileFailedTransfers uses for its scan window.
+      if (!dryRun) await doc.ref.set({ status: 'skipped_invalid' }, { merge: true }).catch(() => {})
+      summary.invalid++
+      continue
+    }
     if (dryRun) continue
 
     // Re-read immediately before moving money: this loop walks a point-in-time

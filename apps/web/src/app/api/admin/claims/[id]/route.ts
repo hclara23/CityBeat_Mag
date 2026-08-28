@@ -23,6 +23,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
   if (!hasAdminAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!profile?.mfa_enabled) {
+    return NextResponse.json(
+      { error: 'Two-factor authentication is required for this action. Enable it under Account → Security.' },
+      { status: 403 }
+    )
+  }
 
   const { action } = await request.json()
   if (!action || !['approve', 'reject'].includes(action)) {
@@ -106,6 +112,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // and tell them their listing is live (first-party inbox + email).
     if (action === 'approve' && ownerId) {
       await adminDb.collection('profiles').doc(ownerId).set({ is_advertiser: true }, { merge: true })
+      // Approval is the moment a Sales-Desk sale finally has a real owner —
+      // stamp the subscription so /billing and the customer portal can find it.
+      if (data?.stripe_subscription_id) {
+        await adminDb.collection('subscriptions').doc(String(data.stripe_subscription_id)).set(
+          { advertiser_id: ownerId, owner_id: ownerId, listing_id: id, updated_at: now },
+          { merge: true }
+        ).catch(() => {})
+      }
       const bizName = String(data?.name || 'your business')
       await notifyUser({
         userId: String(ownerId),

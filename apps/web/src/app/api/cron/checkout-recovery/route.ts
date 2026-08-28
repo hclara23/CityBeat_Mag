@@ -49,7 +49,21 @@ export async function GET(request: NextRequest) {
 
     const orders = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }))
     const now = new Date()
-    const { toExpire, toEmail } = planRecovery(orders, now)
+
+    // Customers who already converted on ANY order must never get a "your
+    // link expired" nudge — the pending-only query above cannot see their
+    // paid sibling, so fetch converted contacts separately.
+    const paidSnap = await adminDb
+      .collection('sales_orders')
+      .where('payment_status', '==', 'paid')
+      .limit(500)
+      .get()
+      .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+    const excludeEmails = paidSnap.docs
+      .map((d) => (d.data() as any).contact_email)
+      .filter((e: any) => typeof e === 'string' && e.includes('@'))
+
+    const { toExpire, toEmail } = planRecovery(orders, now, { excludeEmails })
 
     if (dryRun) {
       return NextResponse.json({
@@ -57,6 +71,7 @@ export async function GET(request: NextRequest) {
         scanned: orders.length,
         would_mark_expired: toExpire.length,
         would_email: toEmail.length,
+        excluded_converted: excludeEmails.length,
         emails_enabled: Boolean(process.env.CHECKOUT_RECOVERY_EMAILS === 'on'),
         recipients: toEmail.map((o) => ({
           id: o.id,

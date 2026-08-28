@@ -489,6 +489,9 @@ export default function SalesDesk() {
               <a href={withLocale(locale, '/admin/campaigns')} className="border border-white/20 px-4 py-2 text-white/70 hover:border-brand-neon/60 hover:text-brand-neon">
                 {isEs ? 'Patrocinios de boletín' : 'Newsletter sponsorships'}
               </a>
+              <a href={withLocale(locale, '/admin/fulfillment')} className="border border-white/20 px-4 py-2 text-white/70 hover:border-brand-neon/60 hover:text-brand-neon">
+                {isEs ? 'Entregas manuales' : 'Fulfillment queue'}
+              </a>
             </div>
           </div>
         </header>

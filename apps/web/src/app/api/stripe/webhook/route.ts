@@ -19,6 +19,8 @@ import {
   referralDiscountAmount,
 } from '@/lib/referrals'
 import { directoryOrderPaymentPatch, salesDirectoryClaimStatus } from '@/lib/sales-directory'
+import { getSalesProduct } from '@/lib/sales-products'
+import { purchaseConfirmationEmail } from '@/lib/buyer-emails'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -162,6 +164,36 @@ async function handleCheckoutCompleted(session: any) {
       business: metadata.companyName || metadata.contact_email || '',
     },
   })
+
+  // Tell the BUYER their money arrived — for every product. This webhook is
+  // the only guaranteed post-payment code path, and until now it sent the
+  // customer nothing; Stripe's own emails cover subscription invoices only,
+  // so one-time buyers (jobs, events, stories, custom) paid into silence.
+  // Best-effort: a mail failure must never block fulfillment.
+  try {
+    const buyerEmail =
+      session.customer_details?.email || session.customer_email || metadata.contact_email || null
+    if (buyerEmail) {
+      const orderRecord = salesOrderSync?.order as Record<string, any> | undefined
+      const productName =
+        orderRecord?.product_name ||
+        getSalesProduct(metadata.product_id)?.name ||
+        metadata.plan ||
+        metadata.adType ||
+        (metadata.type === 'event_feature' ? 'Featured Event' : metadata.type) ||
+        'CityBeat order'
+      const { subject, html } = purchaseConfirmationEmail({
+        productName,
+        businessName: orderRecord?.business_name || metadata.companyName || null,
+        amountTotal: session.amount_total,
+        currency: session.currency || 'usd',
+        locale: orderRecord?.locale,
+      })
+      await sendEmail(String(buyerEmail), subject, html)
+    }
+  } catch {
+    /* never block fulfillment on a courtesy email */
+  }
 
   // The charge behind this sale, resolved once and passed to every payout below so
   // transfers succeed against still-pending funds (see resolveSessionChargeId).
@@ -615,6 +647,21 @@ async function handleChargeRefunded(charge: any) {
   }
 
   const now = new Date().toISOString()
+
+  // Un-book the invoice ledger. `payments` rows are keyed by invoice id and
+  // the finance dashboard counts status 'paid' forever — so a refund used to
+  // leave collected-revenue overstated permanently. Partial refunds keep the
+  // row but record amount_refunded, which finance subtracts (collectedCents).
+  const refundedInvoiceId = stripeObjectId(charge.invoice)
+  if (refundedInvoiceId) {
+    await adminDb.collection('payments').doc(refundedInvoiceId).set(
+      fullyRefunded
+        ? { status: 'refunded', refunded_at: now, amount_refunded: Number(charge.amount_refunded || 0) }
+        : { amount_refunded: Number(charge.amount_refunded || 0), updated_at: now },
+      { merge: true }
+    ).catch(() => {})
+  }
+
   for (const orderDocument of orders) {
     const order = orderDocument.data() as Record<string, any>
     await orderDocument.ref.set(
@@ -665,7 +712,13 @@ async function handleChargeRefunded(charge: any) {
             ? fullyRefunded && isOriginatingCharge
               ? { tier: 'basic', pending_tier: null, pending_sponsored: null, is_sponsored: false }
               : {}
-            : { status: 'needs_attention', is_active: false }),
+            : {
+                status: 'needs_attention',
+                is_active: false,
+                // Jobs: the public board filters ONLY on is_paid + expires_at,
+                // so deactivating is not a takedown — expire it too.
+                ...(target.collection === 'jobs' ? { expires_at: now } : {}),
+              }),
           updated_at: now,
         },
         { merge: true }
@@ -942,14 +995,21 @@ async function upsertSubscription(subscription: any, status?: string) {
   // Try to attribute the subscription to an advertiser via an existing purchase.
   const purchase = await findOne('ad_purchases', 'stripe_customer_id', subscription.customer || '')
   const metadata = subscription.metadata || {}
+  // Attribution fields are merged CONDITIONALLY: Sales-Desk subscriptions have
+  // no owner in their Stripe metadata (the admin attaches the owner later on
+  // claim approval), so writing `null` here on every subscription.updated event
+  // WIPED the attribution that approval had set — leaving the customer's
+  // /billing page showing "no subscriptions" and the portal unable to resolve
+  // their Stripe customer. Merge semantics: absent key = keep existing value.
+  const advertiserId = metadata.owner_id || (purchase?.data() as any)?.advertiser_id || null
   await adminDb.collection('subscriptions').doc(subscription.id).set(
     {
       stripe_subscription_id: subscription.id,
       stripe_customer_id: subscription.customer || null,
-      advertiser_id: metadata.owner_id || (purchase?.data() as any)?.advertiser_id || null,
-      owner_id: metadata.owner_id || null,
-      listing_id: metadata.listing_id || null,
-      plan_id: metadata.plan || null,
+      ...(advertiserId ? { advertiser_id: advertiserId } : {}),
+      ...(metadata.owner_id ? { owner_id: metadata.owner_id } : {}),
+      ...(metadata.listing_id ? { listing_id: metadata.listing_id } : {}),
+      ...(metadata.plan ? { plan_id: metadata.plan } : {}),
       status: status || subscription.status || 'active',
       price_per_month: subscription.items?.data?.[0]?.price?.unit_amount ?? null,
       billing_cycle: subscription.items?.data?.[0]?.price?.recurring?.interval || 'month',

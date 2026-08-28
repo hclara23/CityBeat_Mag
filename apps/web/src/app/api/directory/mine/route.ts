@@ -33,6 +33,10 @@ export async function GET() {
           claim_status: x.claim_status || 'unclaimed',
           plan: x.plan || null,
           category: x.category || null,
+          // Boolean only — the raw Stripe id stays server-side. The dashboard
+          // uses this to route an upgrade through /api/directory/change-plan
+          // (modify in place, prorated) instead of opening a second checkout.
+          has_subscription: Boolean(x.stripe_subscription_id),
         }
       })
       .sort((a, b) => a.name.localeCompare(b.name))

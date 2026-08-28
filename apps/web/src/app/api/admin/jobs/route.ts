@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasSalesAccess } from '@citybeat/lib/roles'
+import { sendEmail } from '@/lib/email'
+import { moderationOutcomeEmail } from '@/lib/buyer-emails'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +21,9 @@ async function requireSalesAccess() {
   if (!user) return { error: 'Unauthorized', status: 401 as const }
   const profile = await getServerUserProfile(user.id)
   if (!hasSalesAccess(profile)) return { error: 'Forbidden', status: 403 as const }
+  // The admin PAGES force 2FA enrollment (both route-group layouts); these
+  // APIs approve paid content and must not accept a password-only session.
+  if (!profile?.mfa_enabled) return { error: 'Two-factor authentication required', status: 403 as const }
   return { user }
 }
 
@@ -69,6 +74,11 @@ export async function PATCH(request: NextRequest) {
       : {
           is_active: false,
           status: 'rejected',
+          // The public board filters on is_paid + expires_at (index-backed)
+          // and never reads status/is_active — so a rejected posting used to
+          // stay listed for its full 30 days. Expiring it is the index-free
+          // takedown.
+          expires_at: now,
           moderated_by: auth.user.id,
           moderated_at: now,
           updated_at: now,
@@ -79,6 +89,27 @@ export async function PATCH(request: NextRequest) {
     const existing = await ref.get()
     if (!existing.exists) return NextResponse.json({ error: 'Job not found' }, { status: 404 })
     await ref.set(updates, { merge: true })
+
+    // Tell the buyer the outcome — nobody was notified of approval OR
+    // rejection before, on either purchase path. Best-effort.
+    try {
+      const job = existing.data() as any
+      const to = job.application_email || job.contact_email
+      if (to) {
+        const { subject, html } = moderationOutcomeEmail({
+          itemLabel: job.title,
+          kindLabelEn: 'job posting',
+          kindLabelEs: 'oferta de empleo',
+          approved: action === 'approve',
+          liveUntil: action === 'approve' ? (updates as any).expires_at : undefined,
+          publicUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'}/en/jobs`,
+        })
+        await sendEmail(String(to), subject, html)
+      }
+    } catch {
+      /* best-effort */
+    }
+
     return NextResponse.json({ success: true, ...updates })
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 })

@@ -70,21 +70,60 @@ export function isRecoverable(
   return nowMs - reference <= RECOVERY_WINDOW_DAYS * 86400000
 }
 
-/** Split a batch into what to mark expired and what to actually email. */
+const normalizeEmail = (value: unknown) => String(value ?? '').trim().toLowerCase()
+
+/**
+ * Split a batch into what to mark expired and what to actually email.
+ *
+ * Marking is per ORDER (a dead link is a dead link). Emailing is per
+ * CUSTOMER: the "one nudge ever" promise was originally enforced per order,
+ * so a contact holding two abandoned orders got two emails, and a customer
+ * whose rep re-issued a fresh link ("Correct details" creates a new order)
+ * and who then PAID on it would still be told "your payment link expired".
+ * A customer is excluded when any sibling order in the batch is paid or
+ * completed or already nudged, when their email appears in `excludeEmails`
+ * (the cron passes every paid order's contact), or when an earlier order in
+ * this same batch already claimed the nudge.
+ */
 export function planRecovery(
   orders: Array<{ id: string } & Record<string, unknown>>,
-  now: Date | string = new Date()
+  now: Date | string = new Date(),
+  opts: { excludeEmails?: Iterable<string> } = {}
 ): {
   toExpire: string[]
   toEmail: Array<{ id: string } & Record<string, unknown>>
 } {
+  const excluded = new Set<string>()
+  for (const email of opts.excludeEmails ?? []) {
+    const normalized = normalizeEmail(email)
+    if (normalized) excluded.add(normalized)
+  }
+  // Siblings inside the batch: a converted or already-nudged order silences
+  // every other order belonging to the same contact.
+  for (const order of orders) {
+    const email = normalizeEmail(order.contact_email)
+    if (!email) continue
+    if (
+      order.payment_status === 'paid' ||
+      order.checkout_status === 'completed' ||
+      order.recovery_emailed_at
+    ) {
+      excluded.add(email)
+    }
+  }
+
   const toExpire: string[] = []
   const toEmail: Array<{ id: string } & Record<string, unknown>> = []
+  const claimed = new Set<string>()
   for (const order of orders) {
     if (checkoutLinkState(order, now) !== 'expired') continue
     // Only rewrite rows still claiming to be live, so the marker is idempotent.
     if (order.checkout_status !== 'expired') toExpire.push(order.id)
-    if (isRecoverable(order, now)) toEmail.push(order)
+    if (!isRecoverable(order, now)) continue
+    const email = normalizeEmail(order.contact_email)
+    if (!email || excluded.has(email) || claimed.has(email)) continue
+    claimed.add(email)
+    toEmail.push(order)
   }
   return { toExpire, toEmail }
 }

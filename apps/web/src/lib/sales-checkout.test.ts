@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   blocksReplacementSubscription,
+  directoryBillingQuantity,
   normalizeDirectoryCategory,
   normalizeSalesEmail,
   oneTimeCheckoutDefaults,
@@ -185,6 +186,27 @@ test('sales-created directory listings are public, claimable, and bound to the c
     }),
     'featured'
   )
+})
+
+test('multi-location directory subscriptions bill per location, everything else bills one unit', () => {
+  // The parity regression: a rep selling a 6-location brand charged 1x where
+  // self-serve charged 6x. The rule is family+billing gated and coerces the
+  // consolidation's location_count defensively.
+  const directory = { productFamily: 'directory', billing: 'subscription' }
+  assert.equal(directoryBillingQuantity({ ...directory, listing: { location_count: 6 } }), 6)
+  assert.equal(directoryBillingQuantity({ ...directory, listing: { location_count: '6' } }), 6)
+  assert.equal(directoryBillingQuantity({ ...directory, listing: { location_count: 6.9 } }), 6)
+  // Absent / 1 / 0 / NaN → one unit.
+  assert.equal(directoryBillingQuantity({ ...directory, listing: {} }), 1)
+  assert.equal(directoryBillingQuantity({ ...directory, listing: { location_count: 1 } }), 1)
+  assert.equal(directoryBillingQuantity({ ...directory, listing: { location_count: 0 } }), 1)
+  assert.equal(directoryBillingQuantity({ ...directory, listing: { location_count: 'many' } }), 1)
+  // Net-new listing (none yet) → one unit.
+  assert.equal(directoryBillingQuantity({ ...directory, listing: null }), 1)
+  // Non-directory and non-subscription products never multiply.
+  assert.equal(directoryBillingQuantity({ productFamily: 'advertising', billing: 'subscription', listing: { location_count: 6 } }), 1)
+  assert.equal(directoryBillingQuantity({ productFamily: 'directory', billing: 'free', listing: { location_count: 6 } }), 1)
+  assert.equal(directoryBillingQuantity({ productFamily: 'custom', billing: 'one_time', listing: { location_count: 6 } }), 1)
 })
 
 test('all non-terminal Stripe subscription states block replacement billing', () => {

@@ -105,3 +105,22 @@ export function oneTimeCheckoutDefaults() {
     locale: 'auto' as const,
   }
 }
+
+/**
+ * Locations a directory subscription bills for. Multi-location brands are
+ * billed PER LOCATION (the ScrapeFlow consolidation writes location_count);
+ * every other product — and a net-new single listing — bills exactly one
+ * unit. Mirrors the self-serve rule in api/directory/claim so the two
+ * checkout paths can never quote different prices for the same listing:
+ * before this, a rep selling a 6-location brand charged $19.99/mo where
+ * self-serve charged $119.94/mo, and commission shrank by the same factor.
+ */
+export function directoryBillingQuantity(input: {
+  productFamily: string
+  billing: string
+  listing: Record<string, unknown> | null
+}): number {
+  if (input.productFamily !== 'directory' || input.billing !== 'subscription') return 1
+  const count = Number(input.listing?.location_count)
+  return Number.isFinite(count) && count > 1 ? Math.floor(count) : 1
+}

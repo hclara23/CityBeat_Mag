@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { collectedCents, purchaseRowCounts } from '@/lib/finance-rollup'
+
+// ad_purchases created_at is a Firestore Timestamp (serverTimestamp), unlike
+// payments' ISO strings — normalize before the window check.
+function toIsoLike(value: any): string {
+  if (value?.toDate) return value.toDate().toISOString()
+  if (value?._seconds) return new Date(value._seconds * 1000).toISOString()
+  return typeof value === 'string' ? value : ''
+}
 import { sendEmail } from '@/lib/email'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
 
@@ -46,7 +55,18 @@ export async function GET(request: NextRequest) {
     ])
 
     const weekPayments = (payments.docs as any[]).map((d) => d.data()).filter((p) => inWindow(p.created_at) && p.status === 'paid')
-    const revenueCents = weekPayments.reduce((s, p) => s + (p.amount || 0), 0)
+    // One-time products (jobs, featured events, sponsored stories, custom)
+    // never produce an invoice, so a week of only one-time sales used to read
+    // $0 here — making a REAL revenue stop invisible. Count windowed
+    // ad_purchases too, excluding subscription-backed rows (their money
+    // arrives as invoices; counting both double-counts month one).
+    const purchasesSnap = await adminDb.collection('ad_purchases').get().catch(() => ({ docs: [] as any[] }))
+    const weekOneTime = (purchasesSnap.docs as any[])
+      .map((d) => d.data())
+      .filter((p) => inWindow(toIsoLike(p.created_at)) && p.payment_status === 'completed' && purchaseRowCounts(p))
+    const revenueCents =
+      weekPayments.reduce((s, p) => s + collectedCents(p), 0) +
+      weekOneTime.reduce((s, p) => s + (Number(p.amount_total) || 0), 0)
 
     const o = (outreach.docs as any[]).map((d) => d.data())
     const outreachSent = o.filter((x) => inWindow(x.last_sent_at)).length
@@ -87,7 +107,7 @@ export async function GET(request: NextRequest) {
   <h1 style="font-weight:900;font-size:24px;margin:0 0 4px">city<span style="color:#0891b2;font-style:italic">BEat</span> · ops digest</h1>
   <p style="color:#666;font-size:13px;margin:0 0 20px">What your machine did in the last 7 days</p>
   <table style="width:100%;border-collapse:collapse;font-size:14px">
-    ${row('Revenue collected', `$${(revenueCents / 100).toFixed(2)}`, 'paid invoices')}
+    ${row('Revenue collected', `$${(revenueCents / 100).toFixed(2)}`, 'invoices + one-time sales')}
     ${row('Paying listings (total)', paying)}
     ${row('Outbound emails sent', outreachSent, `${outreachOpened} opened · ${outreachClicked} clicked`)}
     ${row('Outreach conversions', converted, 'listings that paid after outreach')}

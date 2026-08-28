@@ -17,6 +17,7 @@ async function requireDeveloper() {
   if (!user) return { error: 'Unauthorized', status: 401 as const }
   const profile = await getServerUserProfile(user.id)
   if (!hasDeveloperAccess(profile)) return { error: 'Forbidden', status: 403 as const }
+  if (!profile?.mfa_enabled) return { error: 'Two-factor authentication required', status: 403 as const }
   return { user }
 }
 

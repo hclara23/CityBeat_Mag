@@ -11,6 +11,7 @@ async function requireDeveloper() {
   if (!user) return { error: 'Unauthorized', status: 401 as const }
   const profile = await getServerUserProfile(user.id)
   if (!hasDeveloperAccess(profile)) return { error: 'Forbidden', status: 403 as const }
+  if (!profile?.mfa_enabled) return { error: 'Two-factor authentication required', status: 403 as const }
   return { user }
 }
 
@@ -25,11 +26,18 @@ export async function PATCH(request: NextRequest) {
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   const body = await request.json().catch(() => ({}))
-  const patch: any = {}
-  if (typeof body.default_payout_percent === 'number') patch.default_payout_percent = body.default_payout_percent
-  if (body.service_payout_percent && typeof body.service_payout_percent === 'object') {
-    patch.service_payout_percent = body.service_payout_percent
+  // These fields are NOT read by the payout engine: payoutSplit/computeSplit
+  // use the SPLIT_RATES table plus split_overrides only. Accepting them let a
+  // godmode operator set "directory: 50%" that silently did nothing (the live
+  // settings doc really contains that value). Rejecting is kinder than
+  // ignoring — it tells the caller which knob actually works.
+  if ('service_payout_percent' in body || 'default_payout_percent' in body) {
+    return NextResponse.json(
+      { error: 'service_payout_percent/default_payout_percent are not read by the payout engine. Configure split_overrides (per-user percents) instead.' },
+      { status: 400 }
+    )
   }
+  const patch: any = {}
   if (body.user_overrides && typeof body.user_overrides === 'object') {
     patch.user_overrides = body.user_overrides
   }

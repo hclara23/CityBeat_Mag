@@ -16,6 +16,12 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
   if (!hasAdminAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!profile?.mfa_enabled) {
+    return NextResponse.json(
+      { error: 'Two-factor authentication is required for this action. Enable it under Account → Security.' },
+      { status: 403 }
+    )
+  }
 
   try {
     const eventsSnap = await adminDb.collection('events').orderBy('start_date', 'asc').get()
@@ -37,6 +43,12 @@ export async function PATCH(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
   if (!hasAdminAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!profile?.mfa_enabled) {
+    return NextResponse.json(
+      { error: 'Two-factor authentication is required for this action. Enable it under Account → Security.' },
+      { status: 403 }
+    )
+  }
 
   const body = await request.json().catch(() => ({}))
   const id = typeof body.id === 'string' ? body.id : ''
@@ -59,6 +71,12 @@ export async function DELETE(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
   if (!hasAdminAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!profile?.mfa_enabled) {
+    return NextResponse.json(
+      { error: 'Two-factor authentication is required for this action. Enable it under Account → Security.' },
+      { status: 403 }
+    )
+  }
 
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')

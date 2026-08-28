@@ -11,6 +11,7 @@ interface Listing {
   pending_tier: string | null
   claim_status: string
   plan: string | null
+  has_subscription?: boolean
 }
 
 // Upgrade options offered in the dashboard — annual (best value) first.
@@ -28,6 +29,7 @@ export function MyListingsBoost() {
   const [listings, setListings] = useState<Listing[] | null>(null)
   const [busy, setBusy] = useState<string>('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     fetch('/api/directory/mine')
@@ -36,14 +38,36 @@ export function MyListingsBoost() {
       .catch(() => setListings([]))
   }, [])
 
-  const boost = async (listingId: string, plan: PlanId) => {
-    setBusy(`${listingId}:${plan}`)
+  const boost = async (listing: Listing, plan: PlanId) => {
+    setBusy(`${listing.id}:${plan}`)
     setError('')
+    setNotice('')
     try {
+      if (listing.has_subscription) {
+        // Already paying: change the EXISTING subscription in place (Stripe
+        // prorates). Opening a second checkout used to double-bill forever.
+        const res = await fetch('/api/directory/change-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId: listing.id, plan }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Could not change the plan')
+        setNotice(
+          isEs
+            ? 'Plan actualizado. Stripe prorratea la diferencia en tu próxima factura.'
+            : 'Plan updated. Stripe prorates the difference on your next invoice.'
+        )
+        setListings((prev) =>
+          (prev || []).map((l) => (l.id === listing.id ? { ...l, tier: data.tier, plan: data.plan, pending_tier: null } : l))
+        )
+        setBusy('')
+        return
+      }
       const res = await fetch('/api/directory/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId, plan }),
+        body: JSON.stringify({ listingId: listing.id, plan }),
       })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error(data.error || 'Could not start checkout')
@@ -66,6 +90,7 @@ export function MyListingsBoost() {
           : 'Manage your listing content (photo, description, hours) or boost it to rank higher in directory search. Changes take effect once approved.'}
       </p>
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {notice && <p className="mb-4 text-sm text-emerald-600">{notice}</p>}
 
       <div className="grid gap-4">
         {listings.map((listing) => {
@@ -100,15 +125,17 @@ export function MyListingsBoost() {
               <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4">
                 {BOOST_PLANS.map((planId) => {
                   const plan = DIRECTORY_PLANS[planId]
-                  // Don't offer to "boost" to the tier they already have on a monthly plan.
+                  const samePlan = listing.plan === planId
                   const sameTier = plan.tier === listing.tier
                   const key = `${listing.id}:${planId}`
                   const isAnnual = plan.interval === 'year'
                   return (
                     <button
                       key={planId}
-                      disabled={busy === key || (sameTier && listing.tier === 'featured')}
-                      onClick={() => boost(listing.id, planId)}
+                      // Never sell someone the exact plan they already have —
+                      // re-buying it used to open a duplicate subscription.
+                      disabled={busy === key || samePlan || (sameTier && listing.tier === 'featured')}
+                      onClick={() => boost(listing, planId)}
                       className={`rounded-md px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50 ${isAnnual ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-red-600 hover:bg-red-700'}`}
                     >
                       {busy === key ? (isEs ? 'Iniciando…' : 'Starting…') : `${plan.label} · ${plan.priceLabel}`}

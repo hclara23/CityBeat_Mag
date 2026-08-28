@@ -6,6 +6,7 @@ import { getPlan, FOUNDING_LIMIT } from '@/lib/pricing'
 import { REFERRAL_COOKIE } from '@/lib/referrals'
 import { resolveReferralForCheckout } from '@/lib/referrals-server'
 import { salesDirectoryCheckoutIsManaged } from '@/lib/sales-directory'
+import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { blocksReplacementSubscription } from '@/lib/sales-checkout'
 import Stripe from 'stripe'
 
@@ -33,6 +34,11 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Same throttle as /api/stripe/checkout — this route creates real Stripe
+    // Checkout sessions and was the only session-creating route without one.
+    const rl = await checkRateLimit(`claim:ip:${getClientIp(request)}`, { max: 20, windowMs: 60 * 60 * 1000 })
+    if (!rl.ok) return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
 
     // Sales-rep commission attribution: a staff member (sales/editor/developer)
     // closing a deal can attribute the payout to a rep via `payout_user_id`.

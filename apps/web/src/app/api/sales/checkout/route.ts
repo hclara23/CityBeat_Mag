@@ -16,6 +16,7 @@ import {
 } from '@/lib/sales-orders'
 import {
   blocksReplacementSubscription,
+  directoryBillingQuantity,
   isValidSalesEmail,
   resolveDirectoryCategory,
   normalizeSalesEmail,
@@ -98,6 +99,14 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
   if (!hasSalesAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  // This route mints real Stripe charges; the Sales Desk PAGE already forces
+  // 2FA enrollment, but the API must not accept a password-only session.
+  if (!profile?.mfa_enabled) {
+    return NextResponse.json(
+      { error: 'Two-factor authentication is required for this action. Enable it under Account → Security.' },
+      { status: 403 }
+    )
+  }
 
   const body = await request.json().catch(() => ({}))
   const product = resolveSalesProductRequest({ productId: body.productId, kind: body.kind, plan: body.plan })
@@ -286,6 +295,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Multi-location brands bill PER LOCATION, exactly like self-serve.
+    // The order stores the TOTAL: the webhook validates
+    // session.amount_subtotal (= unit x quantity) against order.amount, and a
+    // mismatch fails fulfillment for a customer who has already paid.
+    const billingQuantity = directoryBillingQuantity({
+      productFamily: product.family,
+      billing: product.billing,
+      listing,
+    })
+    const amountTotal = amount * billingQuantity
+
     const access = createSalesOrderAccess()
     orderRef = adminDb.collection('sales_orders').doc()
     const listingPreexisting = Boolean(listingId)
@@ -293,7 +313,7 @@ export async function POST(request: NextRequest) {
     await orderRef.set(
       buildSalesOrderRecord({
         product,
-        amount,
+        amount: amountTotal,
         businessName,
         contactEmail,
         contactPhone,
@@ -360,6 +380,7 @@ export async function POST(request: NextRequest) {
             billing_cycle: directoryPlan.interval,
             directory_category: directoryCategory,
             listing_preexisting: listingPreexisting ? 'true' : 'false',
+            location_count: String(billingQuantity),
             ...(referralCode ? { referral_code: referralCode } : {}),
           }
         : {
@@ -387,7 +408,7 @@ export async function POST(request: NextRequest) {
       client_reference_id: orderRef.id,
       line_items: [
         {
-          quantity: 1,
+          quantity: billingQuantity,
           price_data: {
             currency: 'usd',
             unit_amount: amount,
@@ -395,7 +416,7 @@ export async function POST(request: NextRequest) {
               ? { recurring: { interval: product.interval || 'month' } }
               : {}),
             product_data: {
-              name: `CityBeat ${product.shortName}: ${businessName}`,
+              name: `CityBeat ${product.shortName}: ${businessName}${billingQuantity > 1 ? ` — ${billingQuantity} locations × ${product.priceLabel}` : ''}`,
               description: customDescription || product.description,
             },
           },

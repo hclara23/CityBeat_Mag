@@ -13,11 +13,17 @@ export type PublicEvent = {
   featured?: boolean
 }
 
-// Visible to the public = approved, or legacy events with no status set.
-// Pending (community-submitted, awaiting review) and rejected are hidden.
-function isVisible(e: any): boolean {
-  return e.status !== 'pending' && e.status !== 'rejected'
+// Visible to the public = explicitly approved, or a legacy event predating
+// the status field. This is an ALLOW-list on purpose: the old deny-list
+// (status !== 'pending' && status !== 'rejected') let every unknown status
+// through — including 'needs_attention', which the Stripe refund path stamps
+// on a refunded paid event. A refund was therefore PUBLISHING the event, and
+// featured:true then pinned it to the top of /events. Any NEW status must be
+// added here explicitly to become public.
+export function isEventVisible(e: { status?: unknown }): boolean {
+  return !e.status || e.status === 'approved'
 }
+const isVisible = isEventVisible
 
 export async function getUpcomingEvents(limit = 60): Promise<PublicEvent[]> {
   try {

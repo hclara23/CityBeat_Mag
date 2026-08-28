@@ -17,6 +17,12 @@ export async function POST(request: NextRequest) {
   if (!hasDeveloperAccess(profile)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+  if (!profile?.mfa_enabled) {
+    return NextResponse.json(
+      { error: 'Two-factor authentication is required for this action. Enable it under Account → Security.' },
+      { status: 403 }
+    )
+  }
 
   const body = await request.json().catch(() => ({}))
   const payeeUserId = typeof body.userId === 'string' ? body.userId.trim() : ''
