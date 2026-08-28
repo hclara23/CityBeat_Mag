@@ -125,7 +125,7 @@ export default async function JobsPage({ params }: { params: { locale: string } 
                       {job.title}
                     </Link>
                   </h3>
-                  <div className="flex gap-4 text-sm text-white/60 mb-4 font-bold uppercase tracking-wider">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/60 mb-4 font-bold uppercase tracking-wider">
                     <span>{job.company_name}</span>
                     <span>•</span>
                     <span>{job.location}</span>

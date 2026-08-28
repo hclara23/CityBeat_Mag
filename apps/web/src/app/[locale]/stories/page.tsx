@@ -69,7 +69,7 @@ export default async function StoriesPage({ params, searchParams }: Props) {
               <Link
                 key={cat}
                 href={withLocale(locale, href)}
-                className={`rounded-md border px-4 py-2 text-xs font-black uppercase tracking-[0.18em] transition ${
+                className={`inline-flex min-h-[44px] items-center justify-center rounded-md border px-4 py-2.5 text-xs font-black uppercase tracking-[0.18em] transition ${
                   isActive
                     ? 'border-brand-neon bg-brand-neon text-black'
                     : 'border-white/15 text-white/70 hover:border-brand-neon hover:text-brand-neon'

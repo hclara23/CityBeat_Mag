@@ -81,7 +81,7 @@ export function RecoveryLeadsBoard() {
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-white/10">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[760px] text-left text-sm">
           <thead>
             <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] font-black uppercase tracking-wider text-white/40">
               <th className="px-4 py-2">{isEs ? 'Negocio' : 'Business'}</th>

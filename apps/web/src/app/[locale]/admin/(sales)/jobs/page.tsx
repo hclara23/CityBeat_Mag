@@ -130,7 +130,7 @@ export default function AdminJobsPage() {
               {pendingCount > 0 && <span className="ml-2 rounded bg-amber-400/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300">{pendingCount} awaiting review</span>}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {(['pending_review', 'published', 'rejected', 'all'] as const).map((f) => (
               <button
                 key={f}

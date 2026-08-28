@@ -166,7 +166,7 @@ export default function AdminClaimsDashboard() {
         </div>
 
         {/* Tabs switcher */}
-        <div className="flex gap-4 mb-8">
+        <div className="flex flex-wrap gap-3 mb-8">
           <button
             onClick={() => setActiveTab('premium')}
             className={`px-5 py-2.5 rounded-md font-bold uppercase tracking-wider text-xs transition-all ${
@@ -206,7 +206,7 @@ export default function AdminClaimsDashboard() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full min-w-[820px] text-left border-collapse">
                       <thead>
                         <tr className="border-b border-white/10 text-xs font-bold uppercase text-brand-neon tracking-wider">
                           <th className="py-4 px-4">Business</th>
@@ -277,14 +277,14 @@ export default function AdminClaimsDashboard() {
                                 <button
                                   onClick={() => handleAction(claim.id, 'approve')}
                                   disabled={processingId === claim.id}
-                                  className="px-3.5 py-1.5 rounded bg-brand-neon text-black font-black uppercase tracking-wider text-[10px] hover:bg-cyan-300 transition"
+                                  className="px-3.5 py-2.5 rounded bg-brand-neon text-black font-black uppercase tracking-wider text-[10px] hover:bg-cyan-300 transition"
                                 >
                                   Approve
                                 </button>
                                 <button
                                   onClick={() => handleAction(claim.id, 'reject')}
                                   disabled={processingId === claim.id}
-                                  className="px-3.5 py-1.5 rounded border border-brand-magenta/30 text-brand-magenta font-black uppercase tracking-wider text-[10px] hover:bg-brand-magenta/10 transition"
+                                  className="px-3.5 py-2.5 rounded border border-brand-magenta/30 text-brand-magenta font-black uppercase tracking-wider text-[10px] hover:bg-brand-magenta/10 transition"
                                 >
                                   Reject
                                 </button>
@@ -312,7 +312,7 @@ export default function AdminClaimsDashboard() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full min-w-[820px] text-left border-collapse">
                       <thead>
                         <tr className="border-b border-white/10 text-xs font-bold uppercase text-brand-gold tracking-wider">
                           <th className="py-4 px-4">Business & Address</th>

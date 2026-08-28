@@ -131,7 +131,7 @@ export default async function Home({ params }: HomePageProps) {
 
         <div className="container-wide relative z-10 flex min-h-[86svh] items-end pb-16 pt-28">
           <div className="max-w-4xl">
-            <p className="mb-5 inline-flex rounded-md border border-brand-neon/30 bg-black/35 px-3 py-2 text-xs font-black uppercase tracking-[0.3em] text-brand-neon">
+            <p className="mb-5 inline-flex max-w-full whitespace-normal rounded-md border border-brand-neon/30 bg-black/35 px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-brand-neon sm:text-xs sm:tracking-[0.3em]">
               {localeCopy.regionTag}
             </p>
             <h1 className="text-balance font-display text-5xl font-black leading-[0.88] tracking-tight text-white sm:text-7xl lg:text-8xl">
@@ -223,7 +223,7 @@ export default async function Home({ params }: HomePageProps) {
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-gold">{event.meta}</p>
                   <h3 className="mt-3 text-2xl font-black text-white flex-grow">{event.title}</h3>
                   {event.ticket_url && (
-                    <a href={event.ticket_url} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block rounded-md border border-brand-neon/50 px-4 py-2 text-center text-xs font-bold uppercase tracking-widest text-brand-neon hover:bg-brand-neon hover:text-black transition">
+                    <a href={event.ticket_url} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-md border border-brand-neon/50 px-4 py-2.5 text-center text-xs font-bold uppercase tracking-widest text-brand-neon hover:bg-brand-neon hover:text-black transition">
                       {locale === 'es' ? 'Comprar Boletos' : 'Get Tickets'}
                     </a>
                   )}

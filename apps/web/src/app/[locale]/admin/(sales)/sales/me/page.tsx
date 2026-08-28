@@ -890,7 +890,7 @@ export default function SalesDesk() {
                       {deal.discount_amount > 0 && <p className="text-[10px] font-bold text-brand-gold">-{money(deal.discount_amount)} discount</p>}
                     </div>
                   </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.1em]">
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.1em]">
                     <span className={`border px-2 py-1 ${deal.payment_status === 'paid' ? 'border-brand-neon/30 text-brand-neon' : 'border-white/15 text-white/45'}`}>Payment: {deal.payment_status}</span>
                     {/* The truth about the payment link. Every unpaid order used
                         to read "ready" forever, so a rep believed dead links were

@@ -99,7 +99,7 @@ export function ShareButtons({ url, title = '', locale = 'en', className = '' }:
         type="button"
         onClick={onNativeShare}
         aria-label={t.share}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition hover:border-brand-neon hover:text-brand-neon sm:hidden"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white/70 transition hover:border-brand-neon hover:text-brand-neon sm:hidden sm:h-9 sm:w-9"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
@@ -114,7 +114,7 @@ export function ShareButtons({ url, title = '', locale = 'en', className = '' }:
           target="_blank"
           rel="noopener noreferrer"
           aria-label={l.label}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition hover:border-brand-neon hover:text-brand-neon"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white/70 transition hover:border-brand-neon hover:text-brand-neon sm:h-9 sm:w-9"
         >
           <Icon name={l.name} />
         </a>

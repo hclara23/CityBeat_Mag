@@ -198,7 +198,7 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <nav ref={mobileNavRef} id="mobile-navigation" aria-label={locale === 'es' ? 'Navegación móvil' : 'Mobile navigation'} className="border-t border-white/10 bg-brand-dark px-4 py-6 md:hidden">
+        <nav ref={mobileNavRef} id="mobile-navigation" aria-label={locale === 'es' ? 'Navegación móvil' : 'Mobile navigation'} className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-white/10 bg-brand-dark px-4 py-6 md:hidden">
           <div className="flex flex-col gap-5">
             {navItems.map((item) => (
               <Link

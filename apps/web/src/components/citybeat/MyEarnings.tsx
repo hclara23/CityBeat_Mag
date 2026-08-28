@@ -98,7 +98,7 @@ export function MyEarnings() {
 
       {upcoming.length > 0 && (
         <div className="mb-5 overflow-x-auto rounded-lg border border-white/10">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[520px] text-left text-sm">
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] font-black uppercase tracking-wider text-white/40">
                 <th className="px-4 py-2">{isEs ? 'Origen' : 'Source'}</th>
@@ -152,7 +152,7 @@ export function MyEarnings() {
         </p>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-white/10">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[520px] text-left text-sm">
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] font-black uppercase tracking-wider text-white/40">
                 <th className="px-4 py-2">{isEs ? 'Fecha' : 'Date'}</th>

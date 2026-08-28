@@ -209,7 +209,7 @@ function LocationsPanel({
                 href={maps}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wider text-brand-neon hover:text-cyan-300 whitespace-nowrap mt-0.5"
+                className="flex-shrink-0 inline-block -my-1 py-2 text-[11px] font-bold uppercase tracking-wider text-brand-neon hover:text-cyan-300 whitespace-nowrap"
               >
                 {t.directions} →
               </a>
@@ -911,7 +911,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
           /* PREMIUM VIEW DETAIL LAYOUT */
           <div>
             {/* High-res Premium Banner Cover */}
-            <div className="relative h-[420px] w-full bg-brand-charcoal overflow-hidden border-b border-brand-neon/30">
+            <div className="relative h-64 w-full bg-brand-charcoal overflow-hidden border-b border-brand-neon/30 sm:h-80 md:h-[420px]">
               <Image
                 src={listing.image_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600&auto=format&fit=crop&q=80'}
                 alt={listing.name}
@@ -922,7 +922,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
               <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/40 to-transparent" />
               
               {/* Floating Verified Badge */}
-              <div className="absolute bottom-12 container-wide left-4 right-4 z-10">
+              <div className="absolute bottom-8 left-0 right-0 z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="inline-flex items-center gap-2 bg-brand-neon text-black font-black text-xs tracking-widest px-3 py-1.5 rounded-full mb-4">
                   <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fillRule="evenodd" d="M2.166 4.9L10 1.154l7.834 3.746v5.82c0 5.626-4.524 9.176-7.834 10.026C6.69 19.896 2.166 16.346 2.166 10.72V4.9zm8.966 4.7a1 1 0 10-2 0v3a1 1 0 102 0v-3zm-1-4a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
@@ -1119,7 +1119,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                                         body: JSON.stringify({ reviewId: rev.id, reason }),
                                       }).then(() => alert(locale === 'es' ? 'Reseña reportada. Gracias.' : 'Review reported. Thank you.'))
                                     }}
-                                    className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-white/25 hover:text-white/60"
+                                    className="mt-1 inline-block py-1.5 text-[11px] font-bold uppercase tracking-wider text-white/25 hover:text-white/60"
                                   >
                                     {locale === 'es' ? 'Reportar' : 'Report'}
                                   </button>
@@ -1287,8 +1287,10 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 </div>
               </div>
 
-              {/* Right Column: Contact info & Hours */}
-              <div className="space-y-8">
+              {/* Right Column: Contact info & Hours. order-first lifts address/
+                  phone/directions/hours above the reviews list on mobile (single
+                  column) — the info a phone visitor wants first. */}
+              <div className="order-first space-y-8 lg:order-none">
                 {/* Contact Panel */}
                 <div className="citybeat-panel rounded-2xl p-6 border border-white/10 space-y-4">
                   <h3 className="font-display text-xl font-bold uppercase border-b border-white/5 pb-3">Contact Details</h3>

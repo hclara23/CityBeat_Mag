@@ -102,9 +102,9 @@ export default function DashboardPage() {
       <Navigation rightSlot={<LocaleToggle />} />
 
       <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="flex justify-between items-start mb-8">
+        <div className="flex flex-wrap justify-between items-start gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-bold">
+            <h1 className="text-3xl font-bold sm:text-4xl">
               {isEs ? 'Bienvenido' : 'Welcome'}, {profile?.full_name || (isEs ? 'Usuario' : 'User')}
             </h1>
             <a href={`/${locale}/guide`} className="mt-1 inline-block text-xs font-bold text-cyan-600 underline">
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-200">
                     <div>
                       <p className="text-xs text-gray-600">{isEs ? 'Impresiones' : 'Impressions'}</p>
                       <p className="text-lg font-semibold">

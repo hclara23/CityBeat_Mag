@@ -229,14 +229,14 @@ export default function DirectoryPageClient() {
             </div>
 
             {/* Category selection */}
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <div className="mt-8 -mx-4 flex flex-nowrap justify-start gap-2 overflow-x-auto px-4 pb-2 md:mx-0 md:flex-wrap md:justify-center md:gap-3 md:overflow-visible md:px-0">
               {CATEGORIES.map((cat) => {
                 const isActive = selectedCategory === cat
                 return (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-6 py-2 rounded-full text-sm font-bold uppercase tracking-wider transition ${
+                    className={`shrink-0 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold uppercase tracking-wider transition ${
                       isActive
                         ? 'bg-brand-neon text-black font-black shadow-[0_0_12px_rgba(0,240,255,0.4)]'
                         : 'border border-white/20 text-white hover:bg-white/10'
@@ -464,19 +464,19 @@ export default function DirectoryPageClient() {
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-white/40 bg-white/5 px-2 py-0.5 rounded">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-white/40 bg-white/5 px-2 py-0.5 rounded">
                               {categoryLabel(listing.category, locale)}
                             </span>
                             {listing.claim_status === 'unclaimed' ? (
-                              <span className="text-[8px] font-bold uppercase tracking-widest text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded bg-brand-gold/5">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded bg-brand-gold/5">
                                 {t.claimBadge}
                               </span>
                             ) : listing.claim_status === 'approved' ? (
-                              <span className="text-[8px] font-bold uppercase tracking-widest text-brand-neon border border-brand-neon/25 px-1.5 py-0.5 rounded bg-brand-neon/10">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-brand-neon border border-brand-neon/25 px-1.5 py-0.5 rounded bg-brand-neon/10">
                                 {t.approvedBadge}
                               </span>
                             ) : (
-                              <span className="text-[8px] font-bold uppercase tracking-widest text-white/40 bg-white/5 px-1.5 py-0.5 rounded">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-white/40 bg-white/5 px-1.5 py-0.5 rounded">
                                 {t.pendingBadge}
                               </span>
                             )}
@@ -491,7 +491,7 @@ export default function DirectoryPageClient() {
                           {listing.rating && (
                             <div className="flex items-center gap-1 mt-1">
                               {renderStars(listing.rating)}
-                              <span className="text-[9px] text-white/50 font-bold">
+                              <span className="text-[10px] text-white/50 font-bold">
                                 {listing.rating}
                               </span>
                             </div>
@@ -507,7 +507,7 @@ export default function DirectoryPageClient() {
                           <div className="mt-4 pt-3 border-t border-white/5">
                             <Link
                               href={`/${locale}/directory/${listing.id}/claim`}
-                              className="w-full text-center block rounded bg-brand-neon hover:bg-cyan-300 text-black font-extrabold uppercase tracking-wider text-[9px] py-1.5 transition"
+                              className="flex min-h-[40px] w-full items-center justify-center rounded bg-brand-neon hover:bg-cyan-300 text-black font-extrabold uppercase tracking-wider text-[11px] py-2.5 transition"
                             >
                               {t.claimBtn}
                             </Link>
