@@ -38,18 +38,31 @@ async function getNewsletterSponsor(): Promise<Sponsor> {
   }
 }
 
+// Every value below reaches this from a PUBLIC, token-authenticated customer
+// brief and is mailed to the whole subscriber list from CityBeat's own address,
+// so it must be escaped at the sink. Without this, a sponsor could break out of
+// an attribute and inject markup into the newsletter — and a perfectly innocent
+// name or URL containing & or a quote would render their paid ad broken.
+function escapeHtml(value: unknown) {
+  return String(value ?? '').replace(
+    /[&<>"']/g,
+    (character) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] || character
+  )
+}
+
 function sponsorHtml(sponsor: Sponsor, locale: 'en' | 'es') {
   if (!sponsor) return ''
   const label = locale === 'es' ? 'Patrocinado por' : 'Sponsored by'
-  const name = sponsor.sponsor_name || sponsor.title || ''
+  const name = escapeHtml(sponsor.sponsor_name || sponsor.title || '')
   if (!name) return ''
   const img = sponsor.image_url
-    ? `<img src="${sponsor.image_url}" alt="${name}" width="560" style="width:100%;max-width:560px;border-radius:8px;display:block;margin:6px 0" />`
+    ? `<img src="${escapeHtml(sponsor.image_url)}" alt="${name}" width="560" style="width:100%;max-width:560px;border-radius:8px;display:block;margin:6px 0" />`
     : ''
   const inner = `${img}<span style="font-weight:800;color:#0a0a0a">${name}</span>`
   return `<tr><td style="padding:0 0 26px;border-top:1px solid #eee;padding-top:16px">
     <p style="color:#999;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin:0 0 6px">${label}</p>
-    ${sponsor.link_url ? `<a href="${sponsor.link_url}" style="text-decoration:none">${inner}</a>` : inner}
+    ${sponsor.link_url ? `<a href="${escapeHtml(sponsor.link_url)}" style="text-decoration:none">${inner}</a>` : inner}
   </td></tr>`
 }
 

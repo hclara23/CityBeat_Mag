@@ -285,7 +285,13 @@ function safeUrl(value: string) {
   if (!value) return ''
   try {
     const parsed = new URL(value)
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? value : ''
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return ''
+    // Return the NORMALIZED href, not the raw input. `new URL()` accepts quotes
+    // and angle brackets inside a URL, so returning `value` verbatim let a
+    // customer-supplied string escape an HTML attribute downstream — these
+    // values are interpolated unescaped into the mass newsletter. `href`
+    // percent-encodes them at storage time.
+    return parsed.href
   } catch {
     return ''
   }

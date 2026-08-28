@@ -91,7 +91,7 @@ export function MyEarnings() {
             {money(commission.owed_back)}
           </p>
           <p className="mt-1 text-xs text-white/40">
-            {isEs ? 'Se descuenta de tu siguiente pago' : 'Deducted from your next payout'}
+            {isEs ? 'Reembolsado por el cliente — te contactamos' : 'Customer refunded — we will contact you'}
           </p>
         </div>
       </div>

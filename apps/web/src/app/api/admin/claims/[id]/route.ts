@@ -3,6 +3,7 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasAdminAccess } from '@citybeat/lib/roles'
 import { notifyUser } from '@/lib/user-notifications'
+import { directoryApprovalTier } from '@/lib/sales-directory'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +43,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             claim_status: 'approved',
             // Honor the tier set at claim/checkout time (basic for free claims,
             // premium/featured for paid). Falls back to premium for legacy claims.
-            tier: data?.pending_tier || data?.tier || 'premium',
+            // Never lower the tier a live subscription is already paying for
+            // — approval is an ownership decision, not a billing one.
+            tier: directoryApprovalTier(data || {}),
             pending_tier: null,
             // Same promotion for a purchased Sponsored placement — held back
             // pending this exact review so a fraudulent claim couldn't light

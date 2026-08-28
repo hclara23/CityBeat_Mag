@@ -587,13 +587,24 @@ async function handleChargeRefunded(charge: any) {
     )
   }
   let orders: FirebaseFirestore.QueryDocumentSnapshot[] = []
+  // Whether the refunded charge is the one that ORIGINATED these orders, rather
+  // than a later renewal that merely shares their subscription. Commission is
+  // accrued per payment (the first sale keys on the checkout session, renewals
+  // on the invoice), so clawing back by the order's session id is only correct
+  // for the originating charge — otherwise refunding a single renewal month
+  // reverses the whole original sale's commission.
+  let isOriginatingCharge = false
   if (pi) {
     const snapshot = await adminDb.collection('sales_orders').where('stripe_payment_intent_id', '==', pi).get()
     orders = snapshot.docs
+    // A payment-intent match is by definition the exact payment that was refunded.
+    isOriginatingCharge = orders.length > 0
   }
   if (!orders.length && charge.invoice) {
     const invoice = await stripe.invoices.retrieve(stripeObjectId(charge.invoice) || String(charge.invoice))
     const subscriptionId = stripeObjectId((invoice as any).subscription)
+    // Only the subscription's FIRST invoice represents the original sale.
+    isOriginatingCharge = (invoice as any).billing_reason === 'subscription_create'
     if (subscriptionId) {
       const snapshot = await adminDb
         .collection('sales_orders')
@@ -667,17 +678,25 @@ async function handleChargeRefunded(charge: any) {
   // recover it from the matched sales orders, since a charge/invoice id will not
   // match. Best-effort: a clawback failure must never wedge the refund handler.
   if (fullyRefunded) {
-    // Match on the charge id (stored on every share as source_transaction) so
-    // self-serve sales — which have no sales_orders row — are covered too, plus
-    // the session id from any matched Sales Desk order.
-    const sessionIds = new Set<string>()
-    for (const orderDocument of orders) {
-      const order = orderDocument.data() as Record<string, any>
-      if (order.stripe_checkout_session_id) sessionIds.add(String(order.stripe_checkout_session_id))
-    }
+    // The charge id is stored on EVERY accrued share as source_transaction, so
+    // this reverses exactly the payment that was refunded — including for
+    // self-serve sales, which have no sales_orders row at all.
     await clawbackCommission({ sourceTransaction: charge.id, reason: 'refund' }).catch(() => {})
-    for (const sourcePaymentId of sessionIds) {
-      await clawbackCommission({ sourcePaymentId, reason: 'refund' }).catch(() => {})
+
+    // The session-id pass is a fallback for shares whose source_transaction
+    // could not be resolved at accrual time (resolveSessionChargeId can return
+    // null). It is only valid for the ORIGINATING charge: a renewal refund
+    // reaching this with the original order's session id would reverse the
+    // whole first sale's commission for one refunded month.
+    if (isOriginatingCharge) {
+      const sessionIds = new Set<string>()
+      for (const orderDocument of orders) {
+        const order = orderDocument.data() as Record<string, any>
+        if (order.stripe_checkout_session_id) sessionIds.add(String(order.stripe_checkout_session_id))
+      }
+      for (const sourcePaymentId of sessionIds) {
+        await clawbackCommission({ sourcePaymentId, reason: 'refund' }).catch(() => {})
+      }
     }
   }
 }

@@ -11,6 +11,8 @@ import {
   localDateParts,
   nextPayoutRunOn,
   totalByState,
+  PAYOUT_POLICY_EN,
+  PAYOUT_POLICY_ES,
 } from './commission-schedule'
 
 test('commission matures exactly seven days after the customer pays', () => {
@@ -81,6 +83,45 @@ test('a refund inside the hold window costs nothing; after payment it becomes a 
   assert.equal(clawbackTransition('reversed'), null)
   assert.equal(clawbackTransition('clawback_owed'), null)
   assert.equal(clawbackTransition(undefined), null)
+})
+
+test('a cancellation must only reverse shares still inside the refund window', () => {
+  // clawbackCommission's heldOnly guard is `row.status !== 'held' || isCommissionDue(row, now)`.
+  // These cases pin the predicate that drives it: everything a rep has already
+  // EARNED must be excluded from a plain-cancellation reversal, even though none
+  // of it has been transferred yet.
+  const now = '2026-08-30T00:00:00.000Z'
+  const immature = { status: 'held', eligible_at: '2026-09-10T00:00:00.000Z' }
+  const matured = { status: 'held', eligible_at: '2026-08-29T00:00:00.000Z' }
+
+  const reversibleOnCancel = (row: any) => row.status === 'held' && !isCommissionDue(row, now)
+
+  // Backed out inside the window — reverse it, nothing was ever sent.
+  assert.equal(reversibleOnCancel(immature), true)
+  // Matured but waiting for the 1st/15th — EARNED, must survive.
+  assert.equal(reversibleOnCancel(matured), false)
+  // Transfer errored, awaiting the daily reconcile — EARNED, must survive.
+  assert.equal(reversibleOnCancel({ status: 'failed', eligible_at: '2026-08-01T00:00:00.000Z' }), false)
+  // Rep simply hasn't connected a bank yet — EARNED, must survive indefinitely.
+  assert.equal(
+    reversibleOnCancel({ status: 'skipped_no_connected_account', eligible_at: '2026-08-01T00:00:00.000Z' }),
+    false
+  )
+  // Already transferred — untouched by a cancellation.
+  assert.equal(reversibleOnCancel({ status: 'paid' }), false)
+})
+
+test('rep-facing payout terms describe what the code actually does', () => {
+  // The policy promised an already-paid clawback is "deducted from your next
+  // payout". Nothing implements that — runPayoutCycle reads only `held` rows and
+  // never nets a `clawback_owed` debt — so the copy must not claim it.
+  for (const policy of [PAYOUT_POLICY_EN, PAYOUT_POLICY_ES]) {
+    assert.equal(/deducted from your next payout/i.test(policy.clawback), false)
+    assert.equal(/se descuenta de tu siguiente pago/i.test(policy.clawback), false)
+    assert.ok(policy.clawback.length > 40, 'the clawback term must still be stated plainly')
+  }
+  assert.match(PAYOUT_POLICY_EN.hold, /7 days/)
+  assert.match(PAYOUT_POLICY_EN.cycle, /1st and the 15th/)
 })
 
 test('display state tells the rep exactly when money arrives', () => {

@@ -78,16 +78,40 @@ export function salesDirectoryCheckoutIsManaged(listing: Record<string, unknown>
   return !approvedFreeListing
 }
 
+/**
+ * The tier a verified claim should carry into the admin approval queue.
+ *
+ * Reads the tier that was actually GRANTED, which lives in `pending_tier` for a
+ * claim on a pre-existing listing but in `tier` for a net-new rep sale — where
+ * payment unlocks the tier immediately and leaves `pending_tier` null (see
+ * directoryOrderPaymentPatch). Reading only `pending_tier` returned 'basic' for
+ * every paid net-new listing, and since the approval route resolves
+ * `pending_tier || tier`, that truthy 'basic' then WON — silently downgrading a
+ * paying customer at the exact moment an admin approved their ownership claim.
+ */
 export function directoryClaimPendingTier(
   listing: Record<string, unknown>
 ): 'basic' | 'premium' | 'featured' {
-  const paidTier =
-    listing.pending_tier === 'featured'
-      ? 'featured'
-      : listing.pending_tier === 'premium'
-        ? 'premium'
-        : null
+  const granted = listing.pending_tier ?? listing.tier
+  const paidTier = granted === 'featured' ? 'featured' : granted === 'premium' ? 'premium' : null
   return listing.stripe_subscription_id && paidTier ? paidTier : 'basic'
+}
+
+// Rank for "never downgrade an actively-paying listing" comparisons.
+const TIER_RANK: Record<string, number> = { basic: 1, premium: 2, featured: 3 }
+
+/**
+ * The tier an admin approval should grant. Approval must never LOWER the tier a
+ * live subscription is already paying for — it is an ownership decision, not a
+ * billing one. A cancelled subscription already resets `tier` to basic in the
+ * webhook, so taking the higher of the two cannot strand a stale paid tier.
+ */
+export function directoryApprovalTier(listing: Record<string, unknown>): string {
+  const pending = typeof listing.pending_tier === 'string' ? listing.pending_tier : ''
+  const current = typeof listing.tier === 'string' ? listing.tier : ''
+  const resolved = pending || current || 'premium'
+  if (!listing.stripe_subscription_id) return resolved
+  return (TIER_RANK[current] || 0) > (TIER_RANK[resolved] || 0) ? current : resolved
 }
 
 /**

@@ -186,12 +186,18 @@ export function totalByState(
 // Rep-facing policy copy. Kept here so the Sales Desk, My Earnings, and any
 // future rep onboarding all state the same terms — a rep must never be
 // surprised by a clawback.
+// Rep-facing terms. These must describe what the code ACTUALLY does — an
+// earlier draft promised that an already-paid clawback is "deducted from your
+// next payout", but nothing nets a debt off a future cycle: runPayoutCycle only
+// reads `held` rows and never looks at `clawback_owed`. Recovery is a manual
+// conversation an operator has (clawbackCommission alerts them), so that is
+// what the policy says.
 export const PAYOUT_POLICY_EN = {
   headline: 'How and when you get paid',
   hold: `Commission is held for ${COMMISSION_HOLD_DAYS} days after the customer pays. This is the refund window.`,
   cycle: 'After that, it is paid on the next payout cycle — the 1st and the 15th of each month.',
   clawback:
-    'If the customer refunds, cancels, or disputes the charge, the commission is reversed. If it was already paid to you, the amount is deducted from your next payout.',
+    'If the customer refunds or disputes the charge, the commission is reversed. If it had not been paid out yet, it simply never is. If it had, we will contact you to settle it.',
 }
 
 export const PAYOUT_POLICY_ES = {
@@ -199,5 +205,5 @@ export const PAYOUT_POLICY_ES = {
   hold: `La comisión se retiene ${COMMISSION_HOLD_DAYS} días después de que el cliente paga. Es el periodo de reembolso.`,
   cycle: 'Después se paga en el siguiente ciclo de pago: el día 1 y el día 15 de cada mes.',
   clawback:
-    'Si el cliente pide reembolso, cancela o disputa el cargo, la comisión se revierte. Si ya se te pagó, el monto se descuenta de tu siguiente pago.',
+    'Si el cliente pide reembolso o disputa el cargo, la comisión se revierte. Si aún no se había pagado, simplemente no se paga. Si ya se te había pagado, te contactamos para resolverlo.',
 }

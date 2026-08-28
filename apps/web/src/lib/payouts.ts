@@ -598,9 +598,16 @@ export async function clawbackCommission(params: {
     const transition = clawbackTransition(row.status)
     if (!transition) continue
 
-    // A plain cancellation never reaches back for money the rep has already been
-    // paid — that service was delivered and earned.
-    if (heldOnly && transition.alreadyPaid) {
+    // A plain cancellation reverses ONLY shares genuinely still inside the
+    // 7-day refund window. Gating on `alreadyPaid` instead was wrong: it also
+    // reversed every share that was earned but not yet transferred — a matured
+    // `held` row waiting for the next 1st/15th cycle, a `failed` row awaiting
+    // the daily reconcile, and (with no time limit at all) a
+    // `skipped_no_connected_account` row belonging to a rep who simply hadn't
+    // finished connecting a bank. Nothing reads `reversed`, so those were
+    // destroyed permanently and silently, for service the customer had already
+    // received and never got refunded.
+    if (heldOnly && (row.status !== 'held' || isCommissionDue(row, now))) {
       summary.kept_paid++
       continue
     }
