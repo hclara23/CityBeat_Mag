@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -59,7 +59,7 @@ const CATEGORIES = ['All', ...DIRECTORY_CATEGORIES]
 const translations = {
   en: {
     title: 'Local Business Directory',
-    subtitle: 'Discover the best food, drinks, and coffee spots in El Paso, Las Cruces, and the borderlands.',
+    subtitle: 'The El Paso business directory — find local restaurants, home services, contractors, auto shops, salons, doctors, attorneys and more across El Paso, Las Cruces, and the borderlands. Read reviews, see hours, and connect directly.',
     searchPlaceholder: 'Search by name, category, address...',
     allCategories: 'All Categories',
     premiumTitle: 'Featured Premium Listings',
@@ -78,7 +78,7 @@ const translations = {
   },
   es: {
     title: 'Directorio de Negocios Locales',
-    subtitle: 'Descubre los mejores restaurantes, cafés y bares en El Paso, Las Cruces y la frontera.',
+    subtitle: 'El directorio de negocios de El Paso — encuentra restaurantes, servicios para el hogar, contratistas, talleres, salones, médicos, abogados y más en El Paso, Las Cruces y la frontera. Lee reseñas, ve horarios y contacta directamente.',
     searchPlaceholder: 'Buscar por nombre, categoría, dirección...',
     allCategories: 'Todas las Categorías',
     premiumTitle: 'Negocios Premium Destacados',
@@ -97,7 +97,7 @@ const translations = {
   }
 }
 
-export default function DirectoryPageClient() {
+export default function DirectoryPageClient({ browseLinks }: { browseLinks?: ReactNode } = {}) {
   const locale = useLocale() as 'en' | 'es'
   const t = translations[locale] || translations.en
   const router = useRouter()
@@ -521,6 +521,11 @@ export default function DirectoryPageClient() {
             </div>
           )}
         </section>
+
+        {/* Server-rendered "browse by category & city" internal links (passed
+            from the server page). In the initial SSR HTML — crawlable, keyword-
+            rich, and feeds PageRank to the /best money pages + listing details. */}
+        {browseLinks}
       </div>
     </CityBeatShell>
   )
