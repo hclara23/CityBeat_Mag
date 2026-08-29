@@ -1170,6 +1170,13 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     </h3>
 
                     {userProfile ? (
+                      reviews.find((r: any) => r.user_id === userProfile?.id) ? (
+                        <div className="rounded-md border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+                          {locale === 'es'
+                            ? 'Ya escribiste una reseña para este negocio. ¡Gracias por tu opinión!'
+                            : 'You’ve already reviewed this business. Thanks for your feedback!'}
+                        </div>
+                      ) : (
                       <form onSubmit={handleSubmitReview} className="space-y-4">
                         {reviewSuccess && (
                           <div role="status" className="p-3 bg-brand-neon/10 border border-brand-neon/30 text-brand-neon rounded-md text-xs font-bold">
@@ -1272,6 +1279,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                           {submittingReview ? t.submittingReview : t.submitReview}
                         </button>
                       </form>
+                      )
                     ) : (
                       <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
                         <p className="text-sm text-white/70 mb-4">{t.logInToReview}</p>

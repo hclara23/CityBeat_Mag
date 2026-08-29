@@ -48,10 +48,12 @@ export default function BookmarkButton({ contentType, contentId, className = '' 
         if (res.ok) {
           setIsSaved(true)
         } else {
-          // Might be unauthorized
+          // Anonymous user: send them to login (preserving locale + return path)
+          // instead of dead-ending on an alert.
           const data = await res.json()
           if (data.error === 'Unauthorized') {
-            alert('Please log in to save this for later.')
+            const locale = window.location.pathname.startsWith('/es') ? 'es' : 'en'
+            window.location.href = `/${locale}/login?redirectTo=${encodeURIComponent(window.location.pathname)}`
           }
         }
       }

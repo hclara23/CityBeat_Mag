@@ -574,7 +574,9 @@ function ClaimPageInner() {
                                     {listing?.claim_contact_email_hint ? (
                                       <>We&apos;ll email a verification code to the address on file for this business: <strong className="text-white">{listing.claim_contact_email_hint}</strong>. You must have access to that inbox to verify ownership.</>
                                     ) : (
-                                      <span className="text-brand-gold">No email is on file for this business. Please use SMS or postcard verification instead.</span>
+                                      <span className="text-brand-gold">
+                                        No email is on file for this business yet, and SMS &amp; postcard verification are coming soon. In the meantime, open the chat in the bottom-right corner and our team will verify your ownership directly.
+                                      </span>
                                     )}
                                   </div>
                                 )}
@@ -635,8 +637,8 @@ function ClaimPageInner() {
                               {claimStep === 'select_method' ? (
                                 <button
                                   onClick={handleStartClaim}
-                                  disabled={verifying}
-                                  className="w-full text-center rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-3 transition disabled:opacity-50"
+                                  disabled={verifying || (claimMethod === 'email' && !listing?.claim_contact_email_hint)}
+                                  className="w-full text-center rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-3 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   {verifying ? 'Requesting...' : 'Request Verification Code'}
                                 </button>

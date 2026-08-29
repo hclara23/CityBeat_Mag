@@ -170,6 +170,13 @@ export default function ContributePage() {
         if (res.status === 422 && data.fields) {
           setFieldErrors(data.fields)
           setStatus('idle')
+          // The submit button sits far below a 20-row body field; bring the first
+          // invalid field into view + focus it so the rejection is visible.
+          setTimeout(() => {
+            const el = document.querySelector('[aria-invalid="true"]') as HTMLElement | null
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            el?.focus?.()
+          }, 0)
           return
         }
         throw new Error(data.error || t.errorGeneric)
