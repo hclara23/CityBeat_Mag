@@ -1,4 +1,5 @@
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { unstable_cache } from 'next/cache'
 
 // Programmatic local-SEO surface: one landing page per (category × city), e.g.
 // "Best Restaurants in El Paso". These rank for high-intent "near me" / "in <city>"
@@ -109,20 +110,24 @@ export async function getLocalListings(cat: LocalCategory, city: LocalCity): Pro
 // All (category × city) combos that actually have ≥1 listing — for the sitemap and
 // the /best hub. One query per category, bucketed by city in memory. Empty combos
 // are omitted so we never publish a thin/zero-result page.
-export async function getNonEmptyCombos(): Promise<Array<{ category: LocalCategory; city: LocalCity; count: number }>> {
-  const out: Array<{ category: LocalCategory; city: LocalCity; count: number }> = []
-  for (const cat of LOCAL_CATEGORIES) {
-    let rows: any[] = []
-    try {
-      const snap = await adminDb
+async function computeNonEmptyCombos(): Promise<Array<{ category: LocalCategory; city: LocalCity; count: number }>> {
+  // One query PER CATEGORY, but run in PARALLEL (was a sequential await loop —
+  // 24 serial round-trips) and projected to only the fields inCity() needs (was
+  // reading full docs). This scans the published catalog to bucket by city.
+  const snaps = await Promise.all(
+    LOCAL_CATEGORIES.map((cat) =>
+      adminDb
         .collection('directory_listings')
         .where('is_published', '==', true)
         .where('category', '==', cat.value)
+        .select('address', 'locations')
         .get()
-      rows = snap.docs.map((d) => d.data())
-    } catch {
-      rows = []
-    }
+        .then((snap) => ({ cat, rows: snap.docs.map((d) => d.data()) }))
+        .catch(() => ({ cat, rows: [] as any[] }))
+    )
+  )
+  const out: Array<{ category: LocalCategory; city: LocalCity; count: number }> = []
+  for (const { cat, rows } of snaps) {
     for (const city of LOCAL_CITIES) {
       const count = rows.filter((r) => inCity(r, city)).length
       if (count > 0) out.push({ category: cat, city, count })
@@ -130,3 +135,11 @@ export async function getNonEmptyCombos(): Promise<Array<{ category: LocalCatego
   }
   return out
 }
+
+// All (category × city) combos that have ≥1 listing — for the sitemap and /best.
+// unstable_cache runs the full-catalog scan at most once/hour across ALL traffic
+// (shared by /best and every /sitemap.xml hit) instead of once per request.
+export const getNonEmptyCombos = unstable_cache(computeNonEmptyCombos, ['directory-non-empty-combos'], {
+  revalidate: 3600,
+  tags: ['directory'],
+})

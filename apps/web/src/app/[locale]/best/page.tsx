@@ -4,7 +4,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { getNonEmptyCombos } from '@/lib/local-seo'
 
-export const dynamic = 'force-dynamic'
+// ISR: cache for 1h (was force-dynamic, which re-ran the full-catalog scan per hit).
 export const revalidate = 3600
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'

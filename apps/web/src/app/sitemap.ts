@@ -4,7 +4,8 @@ import { localArticles } from '@/lib/localArticles'
 import { getNonEmptyCombos } from '@/lib/local-seo'
 import { getUpcomingEvents } from '@/lib/events'
 
-export const dynamic = 'force-dynamic'
+// ISR: regenerate at most hourly (was force-dynamic, so every /sitemap.xml hit
+// ran full scans of listings + articles + events + jobs + the 24 category reads).
 export const revalidate = 3600
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
@@ -15,6 +16,18 @@ function entry(path: string, lastModified?: Date): MetadataRoute.Sitemap[number]
     lastModified: lastModified || new Date(),
     alternates: { languages: { en: `${BASE}/en${path}`, es: `${BASE}/es${path}`, 'x-default': `${BASE}/en${path}` } },
   }
+}
+
+// Real lastmod so Google trusts the freshness signal (was `now` for every URL,
+// which trains crawlers to ignore lastmod). Accepts Firestore Timestamp or ISO.
+function toDate(v: any): Date | undefined {
+  if (!v) return undefined
+  if (typeof v?.toDate === 'function') {
+    const d = v.toDate()
+    return d instanceof Date && !Number.isNaN(d.getTime()) ? d : undefined
+  }
+  const d = new Date(v)
+  return Number.isNaN(d.getTime()) ? undefined : d
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -28,7 +41,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Upcoming events (Event-structured detail pages).
   try {
     const events = await getUpcomingEvents(200)
-    events.forEach((e) => urls.push(entry(`/events/${e.id}`)))
+    events.forEach((e) => urls.push(entry(`/events/${e.id}`, toDate(e.start_date))))
   } catch {
     /* ignore */
   }
@@ -40,8 +53,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const now = new Date().toISOString()
     const snap = await adminDb.collection('jobs').where('is_paid', '==', true).get()
     snap.forEach((d) => {
-      const exp = (d.data() as any).expires_at
-      if (!exp || exp > now) urls.push(entry(`/jobs/${d.id}`))
+      const data = d.data() as any
+      if (!data.expires_at || data.expires_at > now) {
+        urls.push(entry(`/jobs/${d.id}`, toDate(data.updated_at || data.created_at)))
+      }
     })
   } catch {
     /* ignore — still emit the rest */
@@ -55,18 +70,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     /* ignore — still emit the rest */
   }
 
-  // Published stories (Firestore articles + bundled seed content).
-  const slugs = new Set<string>(localArticles.map((a) => a.slug))
+  // Published stories (Firestore articles + bundled seed content). Track each
+  // slug's real modified date for an honest lastmod (news freshness signal).
+  const slugDates = new Map<string, Date | undefined>()
+  localArticles.forEach((a) => slugDates.set(a.slug, toDate((a as any).publishedAt)))
   try {
     const snap = await adminDb.collection('articles').where('status', '==', 'published').get()
     snap.forEach((d) => {
-      const s = (d.data() as any).slug
-      if (s) slugs.add(s)
+      const data = d.data() as any
+      if (data.slug) slugDates.set(data.slug, toDate(data.updatedAt || data.updated_at || data.published_at || data.publishedAt))
     })
   } catch {
     /* ignore — still emit static + seed */
   }
-  slugs.forEach((s) => urls.push(entry(`/stories/${s}`)))
+  slugDates.forEach((date, s) => urls.push(entry(`/stories/${s}`, date)))
 
   // Directory listings (the long-tail local-SEO engine) — PUBLISHED only. Never
   // emit unpublished candidates or merged-duplicate siblings: they'd be dead/
@@ -74,8 +91,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const snap = await adminDb.collection('directory_listings').where('is_published', '==', true).get()
     snap.forEach((d) => {
-      if ((d.data() as any).merged_into) return
-      urls.push(entry(`/directory/${d.id}`))
+      const data = d.data() as any
+      if (data.merged_into) return
+      urls.push(entry(`/directory/${d.id}`, toDate(data.updated_at)))
     })
   } catch {
     /* ignore */

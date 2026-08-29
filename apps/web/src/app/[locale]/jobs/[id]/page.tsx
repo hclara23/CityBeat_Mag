@@ -8,7 +8,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { jsonLdSafe } from '@/lib/jsonld'
 import { localeAlternates, breadcrumbJsonLd } from '@/lib/seo'
 
-export const dynamic = 'force-dynamic'
+// ISR: cache the rendered page for 15 min (was force-dynamic, defeating this).
 export const revalidate = 900
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'

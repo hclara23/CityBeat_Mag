@@ -7,7 +7,8 @@ import { stripInternalListingFields } from '@/lib/listing-fields'
 import { activePosts, elPasoDayKey } from '@/lib/listing-content'
 import DirectoryDetailClient from './DirectoryDetailClient'
 
-export const dynamic = 'force-dynamic'
+// ISR: cache the rendered page for 15 min. (Was force-dynamic, which silently
+// overrode this revalidate — every crawl of all ~6,700 listings re-read Firestore.)
 export const revalidate = 900
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'

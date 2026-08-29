@@ -13,7 +13,7 @@ import {
 import { breadcrumbJsonLd } from '@/lib/seo'
 import { jsonLdSafe } from '@/lib/jsonld'
 
-export const dynamic = 'force-dynamic'
+// ISR: cache for 1h (was force-dynamic, defeating this revalidate).
 export const revalidate = 3600
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
