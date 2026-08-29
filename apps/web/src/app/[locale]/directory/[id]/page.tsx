@@ -163,6 +163,34 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   }
 }
 
+// Answered customer questions, for FAQPage structured data. Only ANSWERED
+// questions are marked up, and they are rendered on the page (DirectoryDetail
+// Client's Q&A section), so this stays within Google's "content must be visible"
+// FAQ policy. cache() dedupes if called more than once per request.
+const getAnsweredQuestions = cache(async (id: string): Promise<Array<{ q: string; a: string }>> => {
+  try {
+    const snap = await adminDb.collection('listing_questions').where('listing_id', '==', id).limit(50).get()
+    return snap.docs
+      .map((d) => d.data() as any)
+      .filter((x) => typeof x.question === 'string' && typeof x.answer === 'string' && x.answer.trim())
+      .map((x) => ({ q: String(x.question).slice(0, 300), a: String(x.answer).slice(0, 700) }))
+  } catch {
+    return []
+  }
+})
+
+function buildFaqSchema(faq: Array<{ q: string; a: string }>) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faq.map(({ q, a }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  }
+}
+
 function buildSchema(
   listing: any,
   locale: string,
@@ -240,9 +268,9 @@ export default async function DirectoryDetailPage({ params }: { params: Params }
   const listing = await getListing(params.id)
   const locale = params.locale === 'es' ? 'es' : 'en'
   const indexable = listing && listing.is_published !== false && !listing.merged_into
-  const reviewData = indexable
-    ? await getFirstPartyReviews(params.id)
-    : { reviews: [], count: 0, average: 0 }
+  const [reviewData, faq] = indexable
+    ? await Promise.all([getFirstPartyReviews(params.id), getAnsweredQuestions(params.id)])
+    : [{ reviews: [], count: 0, average: 0 }, [] as Array<{ q: string; a: string }>]
 
   const breadcrumb = listing
     ? breadcrumbJsonLd(locale, [
@@ -262,6 +290,9 @@ export default async function DirectoryDetailPage({ params }: { params: Params }
           />
           {breadcrumb && (
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(breadcrumb) }} />
+          )}
+          {faq.length > 0 && (
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(buildFaqSchema(faq)) }} />
           )}
         </>
       )}

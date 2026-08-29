@@ -271,6 +271,15 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
   const [uploadingCover, setUploadingCover] = useState(false)
   const [uploadingGallery, setUploadingGallery] = useState(false)
 
+  // Customer Q&A (Google Business Profile parity) — public ask, owner answers.
+  const [questions, setQuestions] = useState<any[]>([])
+  const [questionsLoading, setQuestionsLoading] = useState(true)
+  const [newQuestion, setNewQuestion] = useState('')
+  const [questionSubmitting, setQuestionSubmitting] = useState(false)
+  const [questionMsg, setQuestionMsg] = useState('')
+  const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
+  const [answering, setAnswering] = useState<string | null>(null)
+
   const fetchReviews = useCallback(async () => {
     try {
       setReviewsLoading(true)
@@ -285,6 +294,76 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
       setReviewsLoading(false)
     }
   }, [id])
+
+  const fetchQuestions = useCallback(async () => {
+    try {
+      setQuestionsLoading(true)
+      const res = await fetch(`/api/directory/${id}/questions`)
+      if (res.ok) {
+        const data = await res.json()
+        setQuestions(data.questions || [])
+      }
+    } catch (err) {
+      console.error('Error fetching questions:', err)
+    } finally {
+      setQuestionsLoading(false)
+    }
+  }, [id])
+
+  useEffect(() => {
+    void fetchQuestions()
+  }, [fetchQuestions])
+
+  const handleSubmitQuestion = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const q = newQuestion.trim()
+    if (q.length < 5) {
+      setQuestionMsg(locale === 'es' ? 'Escribe una pregunta real.' : 'Please write a real question.')
+      return
+    }
+    setQuestionSubmitting(true)
+    setQuestionMsg('')
+    try {
+      const res = await fetch(`/api/directory/${id}/questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setQuestionMsg(data.error || (locale === 'es' ? 'No se pudo enviar.' : 'Could not post your question.'))
+        return
+      }
+      setNewQuestion('')
+      setQuestionMsg(locale === 'es' ? '¡Pregunta enviada!' : 'Question posted!')
+      void fetchQuestions()
+    } catch {
+      setQuestionMsg(locale === 'es' ? 'Error de red.' : 'Network error — please try again.')
+    } finally {
+      setQuestionSubmitting(false)
+    }
+  }
+
+  const handleAnswerQuestion = async (questionId: string) => {
+    const answer = (answerDrafts[questionId] || '').trim()
+    if (answer.length < 2) return
+    setAnswering(questionId)
+    try {
+      const res = await fetch(`/api/directory/${id}/questions/${questionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answer }),
+      })
+      if (res.ok) {
+        setAnswerDrafts((d) => ({ ...d, [questionId]: '' }))
+        void fetchQuestions()
+      }
+    } catch {
+      /* best-effort; owner can retry */
+    } finally {
+      setAnswering(null)
+    }
+  }
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -1292,6 +1371,102 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Customer Q&A — Google Business Profile parity. Public asks;
+                    the owner (or an editor) answers inline; askers get notified. */}
+                <div className="citybeat-panel rounded-2xl p-8 border border-white/10 space-y-6">
+                  <h2 className="font-display text-2xl font-black uppercase text-white tracking-wide">
+                    {locale === 'es' ? 'Preguntas y Respuestas' : 'Questions & Answers'}
+                  </h2>
+
+                  {questionsLoading ? (
+                    <p className="text-sm text-white/50">{locale === 'es' ? 'Cargando…' : 'Loading…'}</p>
+                  ) : questions.length === 0 ? (
+                    <p className="text-sm italic text-white/60">
+                      {locale === 'es' ? 'Aún no hay preguntas. ¡Haz la primera!' : 'No questions yet. Ask the first one!'}
+                    </p>
+                  ) : (
+                    <ul className="space-y-4">
+                      {questions.map((q) => (
+                        <li key={q.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                          <p className="text-sm font-bold text-white">
+                            <span className="text-brand-neon">Q:</span> {q.question}
+                          </p>
+                          <p className="mt-1 text-[11px] text-white/40">{q.asker_name}</p>
+                          {q.answer ? (
+                            <div className="mt-3 rounded-md border border-brand-neon/20 bg-brand-neon/5 p-3">
+                              <p className="text-[10px] font-black uppercase tracking-wider text-brand-neon">
+                                {q.answered_by === 'owner'
+                                  ? locale === 'es' ? 'Respuesta del negocio' : 'Answer from the business'
+                                  : locale === 'es' ? 'Respuesta' : 'Answer'}
+                              </p>
+                              <p className="mt-1 whitespace-pre-line text-sm text-white/80">{q.answer}</p>
+                            </div>
+                          ) : showEditButton ? (
+                            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                              <input
+                                value={answerDrafts[q.id] || ''}
+                                onChange={(e) => setAnswerDrafts((d) => ({ ...d, [q.id]: e.target.value }))}
+                                aria-label={locale === 'es' ? 'Responder esta pregunta' : 'Answer this question'}
+                                placeholder={locale === 'es' ? 'Responde esta pregunta…' : 'Answer this question…'}
+                                className="flex-1 rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-brand-neon"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleAnswerQuestion(q.id)}
+                                disabled={answering === q.id}
+                                className="rounded-md bg-brand-neon px-4 py-2 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-50"
+                              >
+                                {answering === q.id ? '…' : locale === 'es' ? 'Responder' : 'Answer'}
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-[11px] italic text-white/35">
+                              {locale === 'es' ? 'Esperando respuesta' : 'Awaiting an answer'}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {userProfile ? (
+                    <form onSubmit={handleSubmitQuestion} className="space-y-2">
+                      {questionMsg && (
+                        <div role="status" className="text-xs font-bold text-brand-neon">{questionMsg}</div>
+                      )}
+                      <textarea
+                        value={newQuestion}
+                        onChange={(e) => setNewQuestion(e.target.value)}
+                        rows={2}
+                        aria-label={locale === 'es' ? 'Tu pregunta' : 'Your question'}
+                        placeholder={locale === 'es' ? 'Haz una pregunta a este negocio…' : 'Ask this business a question…'}
+                        className="w-full rounded-md border border-white/15 bg-black/40 p-3 text-sm text-white outline-none transition focus:border-brand-neon"
+                      />
+                      <button
+                        type="submit"
+                        disabled={questionSubmitting}
+                        className="rounded-md bg-brand-neon px-5 py-2.5 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-50"
+                      >
+                        {questionSubmitting
+                          ? locale === 'es' ? 'Enviando…' : 'Posting…'
+                          : locale === 'es' ? 'Preguntar' : 'Ask a question'}
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
+                      <p className="mb-3 text-sm text-white/70">
+                        {locale === 'es' ? 'Inicia sesión para hacer una pregunta.' : 'Sign in to ask a question.'}
+                      </p>
+                      <Link
+                        href={`/${locale}/login?redirectTo=/directory/${id}`}
+                        className="inline-block rounded bg-brand-neon px-5 py-2.5 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300"
+                      >
+                        {locale === 'es' ? 'Iniciar sesión' : 'Sign in'}
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
 

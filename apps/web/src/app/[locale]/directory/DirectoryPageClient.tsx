@@ -35,6 +35,8 @@ interface Listing {
   sponsored_since?: string | null
   created_at?: string | null
   location_count?: number | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
 function LocationBadge({ count }: { count?: number | null }) {
