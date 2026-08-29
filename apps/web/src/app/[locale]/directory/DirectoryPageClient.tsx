@@ -107,6 +107,9 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [referralNotice, setReferralNotice] = useState<'saved' | 'invalid' | 'inactive' | null>(null)
+  // The map (Leaflet, ~140 kB) is opt-in so it never blocks the listings the
+  // visitor came for — it only mounts + downloads when "Show map" is clicked.
+  const [showMap, setShowMap] = useState(false)
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
@@ -250,11 +253,22 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
           </div>
         </section>
 
-        {/* Map Section */}
+        {/* Map Section — opt-in so Leaflet doesn't load above the listings on
+            every visit (it also blocked LCP). */}
         <section className="container-wide mt-12 mb-8 relative z-0">
-          <div className="citybeat-panel rounded-2xl p-4">
-            <DirectoryMap listings={listings} locale={locale} />
-          </div>
+          {showMap ? (
+            <div className="citybeat-panel rounded-2xl p-4">
+              <DirectoryMap listings={listings} locale={locale} />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowMap(true)}
+              className="w-full rounded-2xl border border-dashed border-white/15 bg-white/[0.03] py-4 text-sm font-bold uppercase tracking-wider text-white/60 transition hover:border-brand-neon/40 hover:text-brand-neon"
+            >
+              🗺️ {locale === 'es' ? 'Mostrar mapa' : 'Show map'}
+            </button>
+          )}
         </section>
 
         {/* Sponsored banner (renders only when an active banner exists) */}
