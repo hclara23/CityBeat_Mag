@@ -1,7 +1,7 @@
 import { ReactNode } from 'react'
 import { SiteFooter } from './SiteFooter'
 import { SiteHeader } from './SiteHeader'
-import { ChatWidget } from './ChatWidget'
+import { SiteOverlays } from './SiteOverlays'
 
 export function CityBeatShell({
   locale = 'en',
@@ -26,7 +26,7 @@ export function CityBeatShell({
         {children}
       </main>
       <SiteFooter locale={locale} />
-      <ChatWidget />
+      <SiteOverlays />
     </div>
   )
 }

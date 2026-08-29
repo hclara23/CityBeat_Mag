@@ -15,9 +15,27 @@
 // webhook fulfills each planned line item. Prices come from SALES_PRODUCTS (the
 // single source of truth) so a cart can never quote a price checkout won't charge.
 
-import { SALES_PRODUCTS, getSalesProduct, salesProductAmount, type SalesProductId } from './sales-products'
+import { SALES_PRODUCTS, getSalesProduct, salesProductAmount, type SalesProduct, type SalesProductId } from './sales-products'
 
 export type CartItem = { productId: string; customAmount?: number | null }
+
+/**
+ * Whether a product may go into the SELF-SERVE one-checkout basket. Directory
+ * plans attach to a specific listing (they use the per-listing Claim flow) and the
+ * "custom" SKU is a rep-quoted name-your-price line — both are barred so a buyer
+ * can't self-serve them here. Free products aren't purchasable. This is the single
+ * source of truth the checkout route, the cart provider, and the concierge all use.
+ */
+export function isSelfServeCartEligible(product: SalesProduct | null | undefined): boolean {
+  if (!product) return false
+  if (product.family === 'directory' || product.family === 'custom') return false
+  if (product.billing === 'free') return false
+  return true
+}
+
+export function isSelfServeCartEligibleId(productId: string): boolean {
+  return isSelfServeCartEligible(getSalesProduct(productId))
+}
 
 export interface CheckoutLineItem {
   productId: SalesProductId

@@ -1,6 +1,21 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { planCart, toStripeLineItems, MAX_CART_ITEMS, type CartItem } from './cart'
+import { planCart, toStripeLineItems, isSelfServeCartEligibleId, MAX_CART_ITEMS, type CartItem } from './cart'
+
+test('self-serve eligibility bars directory, custom, and free; allows ads/events/jobs', () => {
+  // Barred families
+  assert.equal(isSelfServeCartEligibleId('directory_premium_monthly'), false)
+  assert.equal(isSelfServeCartEligibleId('directory_founding_annual'), false)
+  assert.equal(isSelfServeCartEligibleId('custom_one_time'), false)
+  assert.equal(isSelfServeCartEligibleId('directory_basic_free'), false)
+  // Unknown id
+  assert.equal(isSelfServeCartEligibleId('made_up'), false)
+  // Allowed
+  assert.equal(isSelfServeCartEligibleId('ad_sponsored_story'), true)
+  assert.equal(isSelfServeCartEligibleId('ad_social_promotion'), true)
+  assert.equal(isSelfServeCartEligibleId('event_featured'), true)
+  assert.equal(isSelfServeCartEligibleId('job_posting_30_day'), true)
+})
 
 test('rejects empty, oversized, unknown, free, duplicate, and bad-amount carts', () => {
   assert.equal(planCart([]).ok, false)

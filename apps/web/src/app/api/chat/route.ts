@@ -5,6 +5,7 @@ import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { retrieveLocalContext } from '@/lib/concierge'
 import { traceClaude } from '@/lib/observability'
 import { SALES_PRODUCT_ORDER, SALES_PRODUCTS } from '@/lib/sales-products'
+import { isSelfServeCartEligible } from '@/lib/cart'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -20,6 +21,12 @@ const PRODUCT_CATALOG = SALES_PRODUCT_ORDER.filter((id) => id !== 'custom_one_ti
     return `- ${p.shortName} — ${p.priceLabel}: ${p.description} (Why it sells: ${p.salesAngle})`
   })
   .join('\n')
+
+// Products the concierge may drop into the one-checkout basket. Directory listings
+// (they attach to a specific listing via the Claim flow) and the custom SKU are
+// excluded — same rule the /api/cart/checkout route enforces server-side.
+const CART_PRODUCTS = SALES_PRODUCT_ORDER.filter((id) => isSelfServeCartEligible(SALES_PRODUCTS[id]))
+const CART_PRODUCT_LINES = CART_PRODUCTS.map((id) => `- ${id} — ${SALES_PRODUCTS[id].shortName} (${SALES_PRODUCTS[id].priceLabel})`).join('\n')
 
 // Curated El Paso knowledge for rapport + local credibility. Use for coloring
 // the conversation and tying products to how locals actually shop; do NOT invent
@@ -68,6 +75,10 @@ DISCOVERY EXAMPLE — online presence / "I need a website or app": qualify befor
 - If they clearly need a full custom website or a mobile app (online store, bookings, bespoke features): be honest — that's a bigger custom project beyond the self-serve microsite. Capture what they want, tell them CityBeat's team will follow up (this chat is saved as a lead), and note a Premium listing + advertising gets them found in the meantime.
 
 CHECKOUT BY CHAT: when the user decides to buy, TAKE them to the purchase page (e.g. [[nav:/ads/sponsored]] for that ad, or [[nav:/directory]] to claim + upgrade a listing) and tell them to complete the secure checkout there. You NEVER take payment yourself and must NEVER say a charge was made or a card was entered — the customer always confirms payment on the checkout/Stripe page.
+
+BASKET — BUY SEVERAL THINGS IN ONE CHECKOUT. If the user wants MORE THAN ONE product (e.g. a sponsored story AND a social promo), don't send them through separate checkouts. Drop each into the basket by emitting [[cart:add:<productId>]] (one directive per product, its own line) and then [[cart:open]] to show them the basket, where they enter their email once and pay for everything in a SINGLE Stripe checkout. Only these product ids are basket-eligible (use the id EXACTLY):
+${CART_PRODUCT_LINES}
+Rules: only add what the user actually agreed to; confirm what you're adding in the message text ("Added the Sponsored Story and Social Promotion — $75 today"). Directory listing plans are NOT basket-eligible (those are claimed on the listing page) — for a single directory upgrade use [[nav:/directory]] instead. A monthly plan and an annual plan can't share one checkout; if the user wants both, tell them they'll be two payments. You still NEVER take payment — they confirm on Stripe.
 
 Keep replies tight (~180 words max), skimmable, and end with a concrete next step or a link/navigation. If asked something unrelated to the region or CityBeat, gently steer back.
 

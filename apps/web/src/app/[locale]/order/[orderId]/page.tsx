@@ -17,10 +17,17 @@ export default function OrderStatusPage({ params }: { params: { orderId: string 
   const [order, setOrder] = useState<any>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  // Completing a brief (/fulfill) requires the access token — the session-id-only
+  // receipt link authorizes viewing status but not editing, so hide Finish links
+  // (which would 401) when the token is absent.
+  const [hasAccess, setHasAccess] = useState(false)
 
   useEffect(() => {
-    const access = new URLSearchParams(window.location.search).get('access') || ''
-    fetch(`/api/sales/orders/${params.orderId}/status?access=${encodeURIComponent(access)}`)
+    // Forward the whole query string so the API sees both ?access= (Stripe redirect)
+    // and ?session_id= (confirmation-email receipt link) auth paths.
+    const qs = window.location.search || ''
+    setHasAccess(Boolean(new URLSearchParams(qs).get('access')))
+    fetch(`/api/sales/orders/${params.orderId}/status${qs}`)
       .then(async (r) => {
         const data = await r.json().catch(() => ({}))
         if (!r.ok) throw new Error(data.error || 'Could not load this order')
@@ -73,7 +80,7 @@ export default function OrderStatusPage({ params }: { params: { orderId: string 
                     <p className={`font-bold ${s.state === 'upcoming' ? 'text-white/40' : 'text-white'}`}>
                       {isEs ? s.labelEs : s.labelEn}
                     </p>
-                    {s.state === 'current' && s.key === 'brief' && order.payment_status === 'paid' && (
+                    {s.state === 'current' && s.key === 'brief' && order.payment_status === 'paid' && hasAccess && (
                       <Link
                         href={withLocale(locale, `/fulfill/${params.orderId}${window.location.search}`)}
                         className="mt-1 inline-block text-sm font-bold text-brand-neon underline"
@@ -85,6 +92,41 @@ export default function OrderStatusPage({ params }: { params: { orderId: string 
                 </li>
               ))}
             </ol>
+
+            {Array.isArray(order.siblings) && order.siblings.length > 0 && (
+              <div className="mt-10 rounded-xl border border-white/10 bg-white/5 p-6">
+                <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-neon">
+                  {isEs ? 'También en esta compra' : 'Also in this purchase'}
+                </p>
+                <p className="mt-1 text-sm text-white/50">
+                  {isEs
+                    ? 'Pagaste todo junto. Completa los detalles de cada producto aquí.'
+                    : 'You paid for these together. Finish the details for each one here.'}
+                </p>
+                <ul className="mt-4 space-y-3">
+                  {order.siblings.map((sib: any) => {
+                    const done = sib.intake_status === 'submitted' || sib.intake_status === 'complete'
+                    return (
+                      <li key={sib.id} className="flex items-center justify-between gap-3 border-t border-white/10 pt-3 first:border-t-0 first:pt-0">
+                        <span className="text-sm font-bold text-white/80">{sib.product_name}</span>
+                        {done ? (
+                          <span className="text-xs font-bold text-brand-neon">{isEs ? 'Completado ✓' : 'Done ✓'}</span>
+                        ) : hasAccess ? (
+                          <Link
+                            href={withLocale(locale, `/fulfill/${sib.id}${window.location.search}`)}
+                            className="shrink-0 text-sm font-bold text-brand-neon underline"
+                          >
+                            {isEs ? 'Completar →' : 'Finish →'}
+                          </Link>
+                        ) : (
+                          <span className="shrink-0 text-xs text-white/40">{isEs ? 'Pendiente' : 'Pending'}</span>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
 
             <p className="mt-10 border-t border-white/10 pt-6 text-sm text-white/40">
               {isEs

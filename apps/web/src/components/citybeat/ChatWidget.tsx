@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/TranslationProvider'
+import { useCart } from './cart/CartProvider'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
@@ -21,6 +22,25 @@ function parseNav(text: string): { clean: string; nav: string | null } {
   const bare = m[1].trim().replace(/^\/(en|es)(?=\/|$)/, '') || '/'
   const nav = NAV_ALLOW.test(bare) ? bare : null
   return { clean, nav }
+}
+
+// The concierge can stage a purchase by emitting [[cart:add:<productId>]] (one per
+// product) and [[cart:open]] to reveal the basket. It NEVER charges — the drawer
+// still collects the email and the buyer confirms on Stripe. Unknown/ineligible
+// ids are rejected by useCart().add, so a hallucinated id is harmless.
+function parseCart(text: string): { clean: string; adds: string[]; open: boolean } {
+  const adds: string[] = []
+  let open = false
+  let clean = text.replace(/\[\[\s*cart:add:\s*([a-z0-9_]+)\s*\]\]/gi, (_m, id) => {
+    adds.push(String(id))
+    return ''
+  })
+  clean = clean.replace(/\[\[\s*cart:(open|checkout)\s*\]\]/gi, () => {
+    open = true
+    return ''
+  })
+  clean = clean.replace(/\n{3,}/g, '\n\n').trim()
+  return { clean, adds, open }
 }
 
 function linkify(text: string, locale: string) {
@@ -52,6 +72,7 @@ function linkify(text: string, locale: string) {
 export function ChatWidget() {
   const locale = useLocale() as 'en' | 'es'
   const router = useRouter()
+  const cart = useCart()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
@@ -125,8 +146,19 @@ export function ChatWidget() {
         body: JSON.stringify({ messages: next, sessionId: sessionId.current }),
       })
       const data = await res.json()
-      const { clean, nav } = parseNav(data.reply || '…')
+      // Cart directives first, then nav — a message can both add to the basket and
+      // reference a page.
+      const cartParsed = parseCart(data.reply || '…')
+      const { clean, nav } = parseNav(cartParsed.clean)
+      let addedCount = 0
+      for (const id of cartParsed.adds) {
+        if (cart.add(id)) addedCount++
+      }
       setMessages((m) => [...m, { role: 'assistant', content: clean || '…' }])
+      if (cartParsed.open || addedCount > 0) {
+        // Reveal the basket so the buyer can confirm and pay (we never auto-charge).
+        setTimeout(() => cart.open(), 600)
+      }
       if (nav) {
         // Take the user to the page the bot referenced — after a short beat so
         // they can read the message first. Keeps the chat open across the nav.

@@ -19,25 +19,9 @@ function stripeId(value: unknown): string | null {
 // customer can track an order that is still awaiting payment, in review, or
 // live. Same token gate as the paid-authorization path, but never throws
 // payment_required; returns a customer-safe projection (no internal ids).
-export async function authorizeSalesOrderStatus(input: {
-  orderId: string
-  accessToken: string
-}): Promise<Record<string, any>> {
-  if (!input.orderId || !input.accessToken) {
-    throw new SalesOrderAccessError('This order link is incomplete.', 401, 'missing_access')
-  }
-  const ref = adminDb.collection('sales_orders').doc(input.orderId)
-  const snapshot = await ref.get()
-  if (!snapshot.exists) throw new SalesOrderAccessError('Order not found.', 404, 'order_not_found')
-  const order = snapshot.data() as Record<string, any>
-  if (!salesOrderTokenMatches(input.accessToken, order.intake_token_hash)) {
-    throw new SalesOrderAccessError('This order link is not valid.', 403, 'invalid_access')
-  }
-  if (salesOrderAccessExpired(order.intake_expires_at)) {
-    throw new SalesOrderAccessError('This order link has expired. Contact CityBeat for a new link.', 410, 'access_expired')
-  }
+function projectSalesOrderStatus(id: string, order: Record<string, any>): Record<string, any> {
   return {
-    id: snapshot.id,
+    id,
     product_name: order.product_name || order.product_id || 'CityBeat order',
     business_name: order.business_name || null,
     amount: Number(order.amount_paid ?? order.amount ?? 0),
@@ -50,7 +34,48 @@ export async function authorizeSalesOrderStatus(input: {
     locale: order.locale === 'es' ? 'es' : 'en',
     created_at: typeof order.created_at === 'string' ? order.created_at : null,
     paid_at: typeof order.paid_at === 'string' ? order.paid_at : null,
+    // Multi-item cart context (lets the status page list the basket's siblings so
+    // the buyer can complete every brief with the one shared access token).
+    cart_purchase: Boolean(order.cart_purchase),
+    checkout_session_id: typeof order.stripe_checkout_session_id === 'string' ? order.stripe_checkout_session_id : null,
   }
+}
+
+export async function authorizeSalesOrderStatus(input: {
+  orderId: string
+  accessToken: string
+  // Both purchase confirmation emails link to /order/{id}?session_id=… (no token —
+  // the webhook only knows the token HASH, never the plaintext). So the Stripe
+  // checkout session id is accepted as an alternate READ-ONLY bearer: it matches
+  // only the order it actually paid for, and this path never mutates or exposes
+  // internal ids. The token path is unchanged (and still honors link expiry).
+  sessionId?: string
+}): Promise<Record<string, any>> {
+  const hasToken = Boolean(input.accessToken)
+  const hasSession = Boolean(input.sessionId)
+  if (!input.orderId || (!hasToken && !hasSession)) {
+    throw new SalesOrderAccessError('This order link is incomplete.', 401, 'missing_access')
+  }
+  const ref = adminDb.collection('sales_orders').doc(input.orderId)
+  const snapshot = await ref.get()
+  if (!snapshot.exists) throw new SalesOrderAccessError('Order not found.', 404, 'order_not_found')
+  const order = snapshot.data() as Record<string, any>
+
+  const tokenOk = hasToken && salesOrderTokenMatches(input.accessToken, order.intake_token_hash)
+  // Session id is a bearer just like the token: it must exactly match the id Stripe
+  // assigned this order's checkout. A missing/blank stored id never matches.
+  const sessionOk =
+    hasSession && typeof order.stripe_checkout_session_id === 'string' && order.stripe_checkout_session_id === input.sessionId
+
+  if (!tokenOk && !sessionOk) {
+    throw new SalesOrderAccessError('This order link is not valid.', 403, 'invalid_access')
+  }
+  // Link-expiry applies only to the emailed token link, not the durable receipt
+  // session link (a buyer may return to their Stripe receipt weeks later).
+  if (tokenOk && !sessionOk && salesOrderAccessExpired(order.intake_expires_at)) {
+    throw new SalesOrderAccessError('This order link has expired. Contact CityBeat for a new link.', 410, 'access_expired')
+  }
+  return projectSalesOrderStatus(snapshot.id, order)
 }
 
 export async function authorizePaidSalesOrder(input: {
@@ -85,7 +110,19 @@ export async function authorizePaidSalesOrder(input: {
     if (!key) throw new SalesOrderAccessError('Payment verification is temporarily unavailable.', 503, 'stripe_unavailable')
     const stripe = new Stripe(key, { apiVersion: '2023-08-16' })
     const session = await stripe.checkout.sessions.retrieve(input.sessionId)
-    const belongsToOrder = session.metadata?.sales_order_id === input.orderId
+    // Single-order sessions stamp sales_order_id; multi-item cart sessions stamp
+    // cart_order_ids (a JSON array). Accept either — but ONLY if this exact order
+    // is named by the session, so a session id borrowed from a different order is
+    // still rejected.
+    let cartIds: string[] = []
+    try {
+      cartIds = JSON.parse(session.metadata?.cart_order_ids || '[]')
+    } catch {
+      cartIds = []
+    }
+    const belongsToOrder =
+      session.metadata?.sales_order_id === input.orderId ||
+      (Array.isArray(cartIds) && cartIds.includes(input.orderId))
     const isPaid = session.payment_status === 'paid' || session.payment_status === 'no_payment_required'
     if (!belongsToOrder || !isPaid) {
       throw new SalesOrderAccessError('Payment has not completed for this order.', 402, 'payment_required')

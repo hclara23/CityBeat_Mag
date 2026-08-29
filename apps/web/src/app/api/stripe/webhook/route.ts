@@ -145,8 +145,87 @@ async function syncSalesOrderFromCheckout(session: any, metadata: Record<string,
   return { paymentStatus, order }
 }
 
+// Self-serve MULTI-ITEM cart: one Stripe session paid for N sales_orders. This
+// is a self-contained lifecycle — mark every order paid → awaiting_intake and
+// STOP, so it never runs the single-order validation, per-line commission
+// (payoutSplit), or the founders coupon. Self-serve carts carry NO rep/payout, so
+// there is nothing to split or claw back. Returns true iff this was a cart session.
+async function handleCartCheckoutCompleted(session: any, metadata: Record<string, any>): Promise<boolean> {
+  if (metadata.cart !== 'true' && !metadata.cart_order_ids) return false
+  let orderIds: string[] = []
+  try {
+    orderIds = JSON.parse(metadata.cart_order_ids || '[]')
+  } catch {
+    orderIds = []
+  }
+  if (!Array.isArray(orderIds) || orderIds.length === 0) return true // malformed, but still a cart — don't fall through
+
+  const paymentStatus =
+    session.payment_status === 'paid' || session.payment_status === 'no_payment_required' ? 'paid' : 'pending'
+  const now = new Date().toISOString()
+
+  let firstOrder: Record<string, any> | null = null
+  for (const oid of orderIds) {
+    const ref = adminDb.collection('sales_orders').doc(String(oid))
+    const snap = await ref.get()
+    if (!snap.exists) continue
+    const order = snap.data() as Record<string, any>
+    // Integrity: the order must belong to THIS session.
+    if (order.stripe_checkout_session_id && order.stripe_checkout_session_id !== session.id) continue
+    if (!firstOrder) firstOrder = order
+    await ref.set(
+      {
+        checkout_status: 'completed',
+        payment_status: paymentStatus,
+        billing_status: session.subscription ? 'active' : 'completed',
+        fulfillment_status: paymentStatus === 'paid' ? 'awaiting_intake' : 'awaiting_payment',
+        stripe_checkout_session_id: session.id,
+        stripe_customer_id: stripeObjectId(session.customer),
+        stripe_subscription_id: stripeObjectId(session.subscription),
+        stripe_payment_intent_id: stripeObjectId(session.payment_intent),
+        customer_email: session.customer_details?.email || session.customer_email || metadata.contact_email || null,
+        // Record THIS order's own price (its line amount), not the session total —
+        // finance rollups sum amount_paid per order, so the session total must not
+        // be attributed to any single line of a multi-item cart.
+        amount_paid: paymentStatus === 'paid' ? Number(order.amount) || 0 : 0,
+        paid_at: paymentStatus === 'paid' ? now : null,
+        updated_at: now,
+      },
+      { merge: true }
+    )
+  }
+
+  if (paymentStatus !== 'paid') return true
+
+  // One buyer confirmation for the whole basket → the order-status page (session
+  // authorizes it), where they complete each item's brief. Best-effort.
+  try {
+    const buyerEmail = session.customer_details?.email || session.customer_email || metadata.contact_email || null
+    if (buyerEmail) {
+      const loc = firstOrder?.locale === 'es' ? 'es' : 'en'
+      const statusUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'}/${loc}/order/${orderIds[0]}?session_id=${session.id}`
+      const { subject, html } = purchaseConfirmationEmail({
+        productName: `${orderIds.length} CityBeat product${orderIds.length > 1 ? 's' : ''}`,
+        businessName: firstOrder?.business_name || metadata.contact_email || null,
+        amountTotal: session.amount_total,
+        currency: session.currency || 'usd',
+        locale: firstOrder?.locale,
+        statusUrl,
+      })
+      await sendEmail(String(buyerEmail), subject, html)
+    }
+  } catch {
+    /* never block on a courtesy email */
+  }
+
+  return true
+}
+
 async function handleCheckoutCompleted(session: any) {
   const metadata = session.metadata || {}
+
+  // Self-serve multi-item cart runs its own lifecycle and returns.
+  if (await handleCartCheckoutCompleted(session, metadata)) return
 
   // The canonical order is updated before any product-specific legacy branch
   // returns, so jobs, events, directory listings, and ads share one lifecycle.
