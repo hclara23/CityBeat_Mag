@@ -201,7 +201,7 @@ export function ChatWidget() {
             <button
               onClick={() => setOpen(false)}
               aria-label={locale === 'es' ? 'Cerrar chat' : 'Close chat'}
-              className="text-white/50 hover:text-white"
+              className="-mr-2 flex h-9 w-9 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"
             >
               ✕
             </button>

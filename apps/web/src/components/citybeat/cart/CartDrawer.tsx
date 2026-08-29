@@ -106,7 +106,11 @@ export function CartDrawer() {
           >
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <h2 className="font-display text-xl font-black text-white">{isEs ? 'Tu carrito' : 'Your cart'}</h2>
-              <button onClick={() => setOpen(false)} aria-label={isEs ? 'Cerrar' : 'Close'} className="text-white/50 hover:text-white">
+              <button
+                onClick={() => setOpen(false)}
+                aria-label={isEs ? 'Cerrar' : 'Close'}
+                className="-mr-2 flex h-10 w-10 items-center justify-center rounded-md text-white/50 hover:bg-white/10 hover:text-white"
+              >
                 ✕
               </button>
             </div>

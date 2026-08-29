@@ -31,11 +31,10 @@ export function AddToCartButton({
   const inCart = items.some((i) => i.productId === productId)
 
   const onClick = () => {
-    if (inCart) {
-      open()
-      return
-    }
-    if (add(productId)) open()
+    // Add if new (no-op if already in the basket), then ALWAYS reveal the drawer —
+    // opening is the visible confirmation, so it must not hinge on add()'s return.
+    add(productId)
+    open()
   }
 
   const base =

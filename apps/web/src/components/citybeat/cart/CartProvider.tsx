@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { planCart, isSelfServeCartEligibleId, type CartItem, type CartPlan } from '@/lib/cart'
 
 // Client-side basket so a visitor can gather several products and pay for them in
@@ -61,8 +61,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setHydrated(true)
   }, [])
 
+  // Mirror items into a ref so add() can decide truthfully & synchronously whether
+  // it added — React's setState updater runs asynchronously, so reading a flag set
+  // inside it would report stale (the drawer wouldn't open on the first click).
+  const itemsRef = useRef<CartItem[]>([])
+
   // Persist after hydration (never clobber storage with the empty initial state).
   useEffect(() => {
+    itemsRef.current = items
     if (!hydrated) return
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
@@ -81,14 +87,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const add = useCallback((productId: string, customAmount?: number | null): boolean => {
     if (!isSelfServeCartEligibleId(productId)) return false
-    let added = false
-    setItems((prev) => {
-      if (prev.some((i) => i.productId === productId)) return prev // one of each
-      if (prev.length >= 10) return prev
-      added = true
-      return [...prev, { productId, customAmount: typeof customAmount === 'number' ? customAmount : null }]
-    })
-    return added
+    // Decide against the ref (current committed state) so the return value is
+    // reliable the instant we're called.
+    const cur = itemsRef.current
+    if (cur.some((i) => i.productId === productId)) return false // already in — one of each
+    if (cur.length >= 10) return false
+    const item: CartItem = { productId, customAmount: typeof customAmount === 'number' ? customAmount : null }
+    itemsRef.current = [...cur, item] // keep the ref current for a rapid second add()
+    setItems((prev) => (prev.some((i) => i.productId === productId) ? prev : [...prev, item]))
+    return true
   }, [])
 
   const remove = useCallback((productId: string) => {
