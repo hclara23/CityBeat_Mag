@@ -2,6 +2,7 @@ import { ReactNode } from 'react'
 import { SiteFooter } from './SiteFooter'
 import { SiteHeader } from './SiteHeader'
 import { SiteOverlays } from './SiteOverlays'
+import { CartProvider } from './cart/CartProvider'
 
 export function CityBeatShell({
   locale = 'en',
@@ -21,12 +22,17 @@ export function CityBeatShell({
       >
         {skipLabel}
       </a>
-      <SiteHeader />
-      <main id="main-content" tabIndex={-1}>
-        {children}
-      </main>
-      <SiteFooter locale={locale} />
-      <SiteOverlays />
+      {/* CartProvider wraps the WHOLE shell (a client provider around server-rendered
+          children) so "Add to cart" buttons anywhere in a page — not just the chat
+          widget — can reach the shared basket. */}
+      <CartProvider>
+        <SiteHeader />
+        <main id="main-content" tabIndex={-1}>
+          {children}
+        </main>
+        <SiteFooter locale={locale} />
+        <SiteOverlays />
+      </CartProvider>
     </div>
   )
 }

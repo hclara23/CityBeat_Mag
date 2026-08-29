@@ -223,6 +223,15 @@ const adProductsData = {
 
 export type AdProductKey = keyof typeof adProductsData
 
+// Which SALES_PRODUCTS id each ad-hub card sells, so both the hub and the product
+// detail page can offer "Add to cart" → the one-checkout basket. Kept here (beside
+// the ad catalog) as the single mapping both surfaces import.
+export const AD_KEY_TO_SALES_PRODUCT: Record<AdProductKey, string> = {
+  newsletter: 'ad_newsletter_sponsorship',
+  sponsored: 'ad_sponsored_story',
+  banners: 'ad_category_banner',
+}
+
 export type Story = {
   title: string
   dek: string

@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
-import { getAdProducts, withLocale, type Locale } from '@/components/citybeat/content'
+import { AddToCartButton } from '@/components/citybeat/cart/AddToCartButton'
+import { getAdProducts, withLocale, AD_KEY_TO_SALES_PRODUCT, type Locale } from '@/components/citybeat/content'
 
 type AdsPageProps = {
   params: {
@@ -66,27 +67,36 @@ export default function AdsPage({ params }: AdsPageProps) {
       <section className="py-16">
         <div className="container-wide grid gap-6 lg:grid-cols-3">
           {Object.entries(adProducts).map(([key, product]) => (
-            <Link
+            <div
               key={key}
-              href={withLocale(locale, `/ads/${key}`)}
-              className="citybeat-panel group overflow-hidden rounded-md transition hover:-translate-y-1 hover:border-brand-neon/40"
+              className="citybeat-panel group flex flex-col overflow-hidden rounded-md transition hover:-translate-y-1 hover:border-brand-neon/40"
             >
-              <Image src={product.image} alt="" width={1100} height={760} className="aspect-[16/10] w-full object-cover opacity-80 transition duration-500 group-hover:scale-105" />
-              <div className="p-7">
-                <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-neon">{product.shortTitle}</p>
-                <h2 className="mt-3 text-3xl font-black text-white">{product.title}</h2>
-                <p className="mt-4 text-sm leading-6 text-white/60">{product.dek}</p>
-                <div className="mt-6 flex items-end justify-between border-t border-white/10 pt-5">
-                  <div>
-                    <p className="text-4xl font-black text-white">{product.price}</p>
-                    <p className="text-xs uppercase tracking-[0.22em] text-white/35">{product.cadence}</p>
-                  </div>
-                  <span className="rounded-md bg-brand-neon px-4 py-2 text-xs font-black uppercase tracking-wider text-black">
+              <Link href={withLocale(locale, `/ads/${key}`)} className="block">
+                <Image src={product.image} alt="" width={1100} height={760} className="aspect-[16/10] w-full object-cover opacity-80 transition duration-500 group-hover:scale-105" />
+                <div className="p-7 pb-4">
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-neon">{product.shortTitle}</p>
+                  <h2 className="mt-3 text-3xl font-black text-white">{product.title}</h2>
+                  <p className="mt-4 text-sm leading-6 text-white/60">{product.dek}</p>
+                </div>
+              </Link>
+              <div className="mt-auto flex items-end justify-between gap-3 border-t border-white/10 px-7 py-5">
+                <div>
+                  <p className="text-4xl font-black text-white">{product.price}</p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-white/35">{product.cadence}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {AD_KEY_TO_SALES_PRODUCT[key as keyof typeof AD_KEY_TO_SALES_PRODUCT] && (
+                    <AddToCartButton productId={AD_KEY_TO_SALES_PRODUCT[key as keyof typeof AD_KEY_TO_SALES_PRODUCT]} variant="outline" />
+                  )}
+                  <Link
+                    href={withLocale(locale, `/ads/${key}`)}
+                    className="rounded-md bg-brand-neon px-4 py-2 text-xs font-black uppercase tracking-wider text-black hover:bg-cyan-300"
+                  >
                     {localeCopy.start}
-                  </span>
+                  </Link>
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       </section>

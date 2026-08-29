@@ -2,7 +2,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
-import { getAdProducts, withLocale, type Locale } from '@/components/citybeat/content'
+import { AddToCartButton } from '@/components/citybeat/cart/AddToCartButton'
+import { getAdProducts, withLocale, AD_KEY_TO_SALES_PRODUCT, type Locale } from '@/components/citybeat/content'
 import type { AdProductKey } from '@/components/citybeat/content'
 
 type ProductPageProps = {
@@ -54,6 +55,22 @@ export default function ProductPage({ params }: ProductPageProps) {
               </li>
             ))}
           </ul>
+
+          {AD_KEY_TO_SALES_PRODUCT[productKey] && (
+            <div className="mt-8">
+              <AddToCartButton
+                productId={AD_KEY_TO_SALES_PRODUCT[productKey]}
+                label={locale === 'es' ? 'Agregar al carrito' : 'Add to cart'}
+                inCartLabel={locale === 'es' ? 'En el carrito — ver ✓' : 'In cart — view ✓'}
+                className="rounded-md bg-brand-neon px-7 py-4 text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300"
+              />
+              <p className="mt-3 max-w-md text-sm text-white/45">
+                {locale === 'es'
+                  ? 'Combínalo con otros productos y paga todo en un solo pago seguro.'
+                  : 'Combine it with other products and pay for everything in one secure checkout.'}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="citybeat-panel rounded-md p-6">
