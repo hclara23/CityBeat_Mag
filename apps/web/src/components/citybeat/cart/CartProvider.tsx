@@ -58,6 +58,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
+    // The app mounted successfully → clear the one-shot chunk-reload guard set by
+    // the error boundary, so a LATER deploy in this same session can auto-recover
+    // again (the guard only exists to prevent a reload loop within one bad load).
+    try {
+      sessionStorage.removeItem('cb_chunk_reloaded')
+    } catch {
+      /* ignore */
+    }
     setHydrated(true)
   }, [])
 
