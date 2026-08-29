@@ -1,9 +1,27 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useLocale } from '@/components/TranslationProvider'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
+
+// The bot can steer the browser by emitting a `[[nav:/path]]` directive. We only
+// ever follow it for a strict allowlist of PUBLIC internal routes — never admin/
+// account/api/dashboard, and never an external URL — so a hallucinated or
+// injected directive can't send the user somewhere unsafe.
+const NAV_ALLOW =
+  /^\/(directory|ads|jobs|contribute|events|stories|best|deals|leaderboard|guide|this-weekend|topics)(\/[a-z0-9\-_/]*)?$/i
+
+function parseNav(text: string): { clean: string; nav: string | null } {
+  const m = text.match(/\[\[\s*nav:\s*(\/[^\]]+?)\s*\]\]/i)
+  if (!m) return { clean: text, nav: null }
+  const clean = text.replace(m[0], '').replace(/\n{3,}/g, '\n\n').trim()
+  // Drop any locale prefix the model added; we re-add the current one on navigate.
+  const bare = m[1].trim().replace(/^\/(en|es)(?=\/|$)/, '') || '/'
+  const nav = NAV_ALLOW.test(bare) ? bare : null
+  return { clean, nav }
+}
 
 function linkify(text: string, locale: string) {
   // Render markdown links [Label](/path) — the concierge cites businesses that
@@ -33,6 +51,7 @@ function linkify(text: string, locale: string) {
 
 export function ChatWidget() {
   const locale = useLocale() as 'en' | 'es'
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
@@ -44,12 +63,32 @@ export function ChatWidget() {
 
   const greeting =
     locale === 'es'
-      ? '¡Hola! ¿Tienes un negocio en El Paso o Juárez? Puedo ayudarte a reclamar tu ficha o anunciarte.'
-      : 'Hi! Have a business in El Paso or Juárez? I can help you claim your listing or advertise.'
+      ? '¡Hola! 👋 Soy tu guía de CityBeat. Conozco El Paso y todo lo que ofrecemos — desde hacer que encuentren tu negocio hasta publicidad, empleos y eventos. Dime qué necesitas y te llevo directo ahí. ¿En qué te ayudo?'
+      : "Hi! 👋 I'm your CityBeat guide. I know El Paso and everything we offer — from getting your business found to advertising, jobs, and events. Tell me what you need and I'll take you right to it. What can I help with?"
 
   useEffect(() => {
     if (open && messages.length === 0) setMessages([{ role: 'assistant', content: greeting }])
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Proactively greet first-time visitors: pop the assistant open once per browser
+  // session, a few seconds after landing, so it introduces itself and offers help.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      if (sessionStorage.getItem('cb_chat_greeted')) return
+      const t = setTimeout(() => {
+        setOpen(true)
+        try {
+          sessionStorage.setItem('cb_chat_greeted', '1')
+        } catch {
+          /* ignore */
+        }
+      }, 3500)
+      return () => clearTimeout(t)
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -86,7 +125,13 @@ export function ChatWidget() {
         body: JSON.stringify({ messages: next, sessionId: sessionId.current }),
       })
       const data = await res.json()
-      setMessages((m) => [...m, { role: 'assistant', content: data.reply || '…' }])
+      const { clean, nav } = parseNav(data.reply || '…')
+      setMessages((m) => [...m, { role: 'assistant', content: clean || '…' }])
+      if (nav) {
+        // Take the user to the page the bot referenced — after a short beat so
+        // they can read the message first. Keeps the chat open across the nav.
+        setTimeout(() => router.push(`/${locale}${nav}`), 700)
+      }
     } catch {
       setMessages((m) => [...m, { role: 'assistant', content: 'Connection issue — please try again.' }])
     } finally {
