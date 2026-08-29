@@ -3,8 +3,13 @@
 //
 // Auth is server-session based (the `__session` cookie set by /api/auth/login),
 // so reads go through /api/profile and writes through /api/auth/* routes.
-import { auth } from './client'
-import { sendPasswordResetEmail } from 'firebase/auth'
+//
+// PERF: this module is imported by SiteHeader (mounted on EVERY page). Statically
+// importing ./client here used to drag the whole Firebase web SDK (app + auth +
+// firestore + storage, ~90KB+ gzip) into every public page's first-load JS — even
+// though the reading path only makes fetch() calls. The client SDK is now loaded
+// dynamically, only inside the two functions that actually need it (signOut,
+// resetPassword), so it never ships on the public reading path.
 
 type AuthResult = {
   user?: any
@@ -63,7 +68,10 @@ export async function signOut(): Promise<AuthResult> {
     /* ignore */
   }
   try {
-    const { signOut: fbSignOut } = await import('firebase/auth')
+    const [{ auth }, { signOut: fbSignOut }] = await Promise.all([
+      import('./client'),
+      import('firebase/auth'),
+    ])
     await fbSignOut(auth)
   } catch {
     /* ignore */
@@ -73,6 +81,10 @@ export async function signOut(): Promise<AuthResult> {
 
 export async function resetPassword(email: string, _redirectTo?: string): Promise<AuthResult> {
   try {
+    const [{ auth }, { sendPasswordResetEmail }] = await Promise.all([
+      import('./client'),
+      import('firebase/auth'),
+    ])
     await sendPasswordResetEmail(auth, email)
     return { message: 'Password reset email sent. Check your inbox.' }
   } catch (e: any) {

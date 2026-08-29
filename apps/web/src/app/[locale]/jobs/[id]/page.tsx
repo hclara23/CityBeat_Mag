@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { cache } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
@@ -28,7 +29,7 @@ interface Job {
 
 // Only a currently-active, paid job has its own indexable page. An expired or
 // unpaid job 404s so we never serve (or ask Google to index) a dead posting.
-async function getJob(id: string): Promise<Job | null> {
+const getJob = cache(async (id: string): Promise<Job | null> => {
   try {
     const doc = await adminDb.collection('jobs').doc(id).get()
     if (!doc.exists) return null
@@ -39,7 +40,7 @@ async function getJob(id: string): Promise<Job | null> {
   } catch {
     return null
   }
-}
+})
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const job = await getJob(params.id)

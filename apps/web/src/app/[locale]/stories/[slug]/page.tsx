@@ -4,8 +4,12 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale, type Locale } from '@/components/citybeat/content'
-import { getArticleBySlug } from '@/lib/articles'
+import { cache } from 'react'
+import { getArticleBySlug as getArticleBySlugRaw } from '@/lib/articles'
 import { jsonLdSafe } from '@/lib/jsonld'
+
+// Dedupe the read across generateMetadata + the component within one request.
+const getArticleBySlug = cache(getArticleBySlugRaw)
 import { breadcrumbJsonLd } from '@/lib/seo'
 import { ShareButtons } from '@/components/citybeat/ShareButtons'
 
@@ -134,6 +138,7 @@ export default async function StoryPage({ params }: Props) {
                 alt={displayTitle}
                 width={1200}
                 height={800}
+                priority
                 sizes="(max-width: 768px) 100vw, 768px"
                 className="aspect-[3/2] w-full object-cover"
                 // CC images come from arbitrary hosts; serve as-is (skips the

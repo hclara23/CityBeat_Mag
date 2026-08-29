@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { cache } from 'react'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { jsonLdSafe } from '@/lib/jsonld'
 import { breadcrumbJsonLd } from '@/lib/seo'
@@ -16,14 +17,16 @@ type Params = { locale: string; id: string }
 // Server-side fetch of the listing so metadata + schema live in the INITIAL
 // HTML (a client component can't do that). This is what makes each business
 // page actually rank and show rich results — the core of the Premium SEO perk.
-async function getListing(id: string): Promise<any | null> {
+// cache() dedupes the read across generateMetadata + the component within one
+// request, so each business page hits Firestore once instead of twice.
+const getListing = cache(async (id: string): Promise<any | null> => {
   try {
     const doc = await adminDb.collection('directory_listings').doc(id).get()
     return doc.exists ? { id: doc.id, ...(doc.data() as any) } : null
   } catch {
     return null
   }
-}
+})
 
 type FirstPartyReview = { rating: number; comment: string; author: string; datePublished: string | null }
 

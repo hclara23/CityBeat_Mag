@@ -4,8 +4,12 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
-import { getEventById } from '@/lib/events'
+import { cache } from 'react'
+import { getEventById as getEventByIdRaw } from '@/lib/events'
 import { jsonLdSafe } from '@/lib/jsonld'
+
+// Dedupe the read across generateMetadata + the component within one request.
+const getEventById = cache(getEventByIdRaw)
 import { breadcrumbJsonLd } from '@/lib/seo'
 import { affiliateTicketUrl } from '@/lib/affiliate'
 

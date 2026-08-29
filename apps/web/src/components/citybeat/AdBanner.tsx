@@ -59,6 +59,10 @@ export function AdBanner({
           <img
             src={banner.image_url}
             alt={banner.sponsor_name || banner.title || 'Sponsor'}
+            loading="lazy"
+            decoding="async"
+            width={isSidebar ? 400 : 192}
+            height={isSidebar ? 128 : 112}
             className={
               isSidebar
                 ? 'w-full h-32 object-cover rounded-lg'
