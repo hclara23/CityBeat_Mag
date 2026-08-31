@@ -60,6 +60,9 @@ export function isRecoverable(
   order: Record<string, unknown>,
   now: Date | string = new Date()
 ): boolean {
+  // A rep explicitly "Removed" this lead from the Sales Desk board — treat that as
+  // "stop pursuing," so the recovery cron never auto-nudges a dismissed customer.
+  if (order.recovery_dismissed) return false
   if (checkoutLinkState(order, now) !== 'expired') return false
   if (order.recovery_emailed_at) return false
   if (typeof order.contact_email !== 'string' || !order.contact_email.includes('@')) return false

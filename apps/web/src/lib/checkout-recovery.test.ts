@@ -65,6 +65,8 @@ test('a customer is chased once, recently, and only with a real address', () => 
   assert.equal(RECOVERY_WINDOW_DAYS, 45)
   // Never chase something already paid.
   assert.equal(isRecoverable({ ...base, payment_status: 'paid' }, NOW), false)
+  // Never chase a lead a rep explicitly Removed from the board.
+  assert.equal(isRecoverable({ ...base, recovery_dismissed: true }, NOW), false)
 })
 
 test('planRecovery separates marking the truth from contacting a person', () => {
