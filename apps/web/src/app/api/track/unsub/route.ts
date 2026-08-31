@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic'
 
 // Honors an unsubscribe from any marketing email. The token is the outreach
 // doc id (unguessable) in its own collection: o= sales_outreach,
-// u= upsell_outreach, r= recovery_outreach. The doc is marked AND the email is
+// u= upsell_outreach, r= recovery_outreach. x= is the unclaimed-relay stream,
+// looked up by a RANDOM unsub_token field (relay doc ids embed event ids, so
+// the doc id itself is not the token there). The doc is marked AND the email is
 // added to the global suppression list so no other marketing stream emails it.
 export async function GET(request: NextRequest) {
   const params = new URL(request.url).searchParams
@@ -23,6 +25,25 @@ export async function GET(request: NextRequest) {
       if (!doc.exists) continue
       await ref.set({ status: 'unsubscribed', unsubscribed_at: FieldValue.serverTimestamp() }, { merge: true })
       await suppress((doc.data() as any).email, `unsub:${t.collection}`)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Unclaimed-relay stream: token → doc lookup (token is random, never derived).
+  const relayToken = params.get('x')
+  if (relayToken && /^[a-f0-9]{24,64}$/i.test(relayToken)) {
+    try {
+      const snap = await adminDb
+        .collection('unclaimed_relays')
+        .where('unsub_token', '==', relayToken)
+        .limit(1)
+        .get()
+      if (!snap.empty) {
+        const doc = snap.docs[0]
+        await doc.ref.set({ status: 'unsubscribed', unsubscribed_at: FieldValue.serverTimestamp() }, { merge: true })
+        await suppress((doc.data() as any).email, 'unsub:unclaimed_relays')
+      }
     } catch {
       /* ignore */
     }

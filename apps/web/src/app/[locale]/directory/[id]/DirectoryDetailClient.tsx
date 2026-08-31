@@ -49,6 +49,8 @@ interface Listing {
   attributes?: string[] | null
   action_links?: ActionLinks | null
   special_hours?: SpecialHour[] | null
+  // Press Clip Pin: CityBeat stories that mentioned this business.
+  mentioned_in?: Array<{ article_id: string; slug: string; title: string; at: string }> | null
 }
 
 interface ListingLocation {
@@ -274,6 +276,8 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
   // Customer Q&A (Google Business Profile parity) — public ask, owner answers.
   const [questions, setQuestions] = useState<any[]>([])
   const [questionsLoading, setQuestionsLoading] = useState(true)
+  // Live "¿Es su negocio?" banner stats (unclaimed listings only).
+  const [publicStats, setPublicStats] = useState<{ views: number; unanswered: number } | null>(null)
   const [newQuestion, setNewQuestion] = useState('')
   const [questionSubmitting, setQuestionSubmitting] = useState(false)
   const [questionMsg, setQuestionMsg] = useState('')
@@ -394,6 +398,17 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
             defaultHours[day] = l.hours?.[day] || '9:00 AM - 9:00 PM'
           })
           setHoursState(defaultHours)
+
+          // "¿Es su negocio?" live stats for the claim banner — unclaimed only,
+          // best-effort (the banner shows number-free copy when this fails).
+          if (l.claim_status === 'unclaimed') {
+            fetch(`/api/directory/${id}/public-stats`)
+              .then((r) => (r.ok ? r.json() : null))
+              .then((s) => {
+                if (s?.eligible) setPublicStats({ views: Number(s.views_30d) || 0, unanswered: Number(s.unanswered_questions) || 0 })
+              })
+              .catch(() => {})
+          }
         }
 
         // Fetch current user
@@ -1650,6 +1665,28 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                       {t.claimSub}
                     </p>
 
+                    {/* Real demand, shown to the owner ego-surfing their own page —
+                        the single strongest claim trigger. Numbers only appear when
+                        they impress (≥10 views) or demand action (unanswered Q). */}
+                    {publicStats && (publicStats.views >= 10 || publicStats.unanswered > 0) && (
+                      <div className="mt-4 rounded-lg border border-brand-neon/25 bg-brand-neon/5 px-4 py-3 text-left">
+                        {publicStats.views >= 10 && (
+                          <p className="text-sm font-bold text-white">
+                            {locale === 'es'
+                              ? `${publicStats.views.toLocaleString('es-MX')} personas vieron esta página en los últimos 30 días.`
+                              : `${publicStats.views.toLocaleString('en-US')} people viewed this page in the last 30 days.`}
+                          </p>
+                        )}
+                        {publicStats.unanswered > 0 && (
+                          <p className="mt-1 text-xs font-bold text-amber-300">
+                            {locale === 'es'
+                              ? `${publicStats.unanswered} pregunta${publicStats.unanswered > 1 ? 's' : ''} de clientes sin responder.`
+                              : `${publicStats.unanswered} customer question${publicStats.unanswered > 1 ? 's' : ''} waiting for an answer.`}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <ul className="text-left text-xs text-white/80 space-y-2.5 my-6 max-w-xs mx-auto">
                       <li className="flex items-center gap-2">
                         <span className="text-brand-neon font-black">✓</span>
@@ -1681,6 +1718,37 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     </Link>
                   </div>
                 ) : null}
+
+                {/* Press Clip Pin — CityBeat coverage that named this business.
+                    Compounds with every future mention; owners share these. */}
+                {Array.isArray(listing.mentioned_in) && listing.mentioned_in.length > 0 && (
+                  <div className="citybeat-panel rounded-2xl p-6 border border-white/10">
+                    <h3 className="font-display text-sm font-black uppercase tracking-[0.2em] text-brand-neon">
+                      {locale === 'es' ? 'Mencionado en CityBeat' : 'As seen in CityBeat'}
+                    </h3>
+                    <ul className="mt-4 space-y-3">
+                      {listing.mentioned_in.slice(0, 5).map((m) => (
+                        <li key={m.article_id}>
+                          <Link
+                            href={`/${locale}/stories/${m.slug}`}
+                            className="text-sm font-bold text-white/85 hover:text-brand-neon"
+                          >
+                            {m.title}
+                          </Link>
+                          {m.at && (
+                            <p className="text-[11px] text-white/35">
+                              {new Date(m.at).toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           </div>

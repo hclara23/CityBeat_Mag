@@ -4,6 +4,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { notifyUser } from '@/lib/user-notifications'
+import { sendUnclaimedRelay } from '@/lib/unclaimed-relay'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -79,6 +80,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       body_es: 'Un cliente hizo una pregunta en tu ficha — respóndela para ayudarle a decidir.',
       link: `/dashboard/listings/${id}`,
     }).catch(() => {})
+  } else {
+    // UNCLAIMED listing: an unanswered public question is visible to every
+    // visitor — relay it to the business's enriched contact so they can claim
+    // and answer (deduped per question, capped per listing). Awaited (never
+    // throws): a detached send on CPU-frozen Cloud Run could consume the
+    // per-event dedupe without sending.
+    await sendUnclaimedRelay({
+      listingId: id,
+      listing: listing || {},
+      eventId: qRef.id,
+      detail: { type: 'question', question },
+    })
   }
 
   return NextResponse.json({ ok: true, id: qRef.id }, { status: 201 })

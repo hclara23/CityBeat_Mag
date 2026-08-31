@@ -12,6 +12,7 @@ import {
   type ProcessedNewsRecord,
 } from '@/lib/newsroom-processing'
 import { translateArticleToEs } from '@/lib/translate'
+import { matchAndPinPressMentions } from '@/lib/press-mentions'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -201,6 +202,17 @@ export async function GET(request: NextRequest) {
         await translateArticleToEs(ref, {
           title: written.title,
           excerpt: written.excerpt,
+          content: written.body_en,
+        }).catch(() => {})
+      }
+      // Press Clip Pin: when the brief goes live immediately, scan it for local
+      // businesses we list, pin the mention to their pages, and relay the claim
+      // hook to unclaimed ones. (Pending briefs get this at admin publish time.)
+      if (publish) {
+        await matchAndPinPressMentions({
+          articleId: ref.id,
+          slug,
+          title: written.title,
           content: written.body_en,
         }).catch(() => {})
       }

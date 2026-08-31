@@ -5,6 +5,8 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { sanitizePublicReview, shouldAwardReviewPoints } from '@/lib/directory-security'
 import { notifyUser } from '@/lib/user-notifications'
 import { awardPoints } from '@/lib/points-server'
+import { sendUnclaimedRelay } from '@/lib/unclaimed-relay'
+import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,6 +57,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const user = await getServerUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized. Please log in to leave a review.' }, { status: 401 })
+  }
+
+  // Rate limits (per user AND per IP): reviews on unclaimed listings relay an
+  // email to the business, so cross-listing review volume must be bounded —
+  // one scripted account must not be able to turn the platform into an email
+  // cannon across thousands of scraped listings.
+  const [rlUser, rlIp] = await Promise.all([
+    checkRateLimit(`listing-review:user:${user.id}`, { max: 5, windowMs: 60 * 60 * 1000 }),
+    checkRateLimit(`listing-review:ip:${getClientIp(request)}`, { max: 10, windowMs: 60 * 60 * 1000 }),
+  ])
+  if (!rlUser.ok || !rlIp.ok) {
+    return NextResponse.json({ error: 'Too many reviews. Please try again later.' }, { status: 429 })
   }
 
   try {
@@ -127,6 +141,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         body: comment ? String(comment).slice(0, 300) : 'No comment was left.',
         body_es: comment ? String(comment).slice(0, 300) : 'Sin comentario.',
         link: `/dashboard/listings/${id}`,
+      })
+    } else {
+      // UNCLAIMED listing: a public review with nobody to hear it is the
+      // strongest claim trigger there is — relay it to the business's enriched
+      // contact (deduped per review, capped per listing; see unclaimed-relay).
+      // Awaited (it never throws, so the review still can't fail on this):
+      // Cloud Run can freeze CPU after the response, and a detached send could
+      // consume the per-event dedupe without ever sending.
+      await sendUnclaimedRelay({
+        listingId: id,
+        listing: listing || {},
+        eventId: reviewRef.id,
+        detail: { type: 'review', rating: intRating, comment: comment ? String(comment) : null },
       })
     }
 

@@ -11,8 +11,13 @@ type Msg = { role: 'user' | 'assistant'; content: string }
 // ever follow it for a strict allowlist of PUBLIC internal routes — never admin/
 // account/api/dashboard, and never an external URL — so a hallucinated or
 // injected directive can't send the user somewhere unsafe.
+// ':' and '.' are allowed in sub-paths: ScrapeFlow/OSM listing ids look like
+// sf:<hash> / osm:node:<id> — without them the owner-catcher's claim nav would
+// silently drop for exactly the scraped listings it targets. Safety holds: the
+// FIRST segment must still be allowlisted, so admin/dashboard/API/external
+// destinations remain unreachable.
 const NAV_ALLOW =
-  /^\/(directory|ads|jobs|contribute|events|stories|best|deals|leaderboard|guide|this-weekend|topics)(\/[a-z0-9\-_/]*)?$/i
+  /^\/(directory|ads|jobs|contribute|events|stories|best|deals|leaderboard|guide|this-weekend|topics)(\/[a-z0-9\-_:./]*)?$/i
 
 function parseNav(text: string): { clean: string; nav: string | null } {
   const m = text.match(/\[\[\s*nav:\s*(\/[^\]]+?)\s*\]\]/i)
@@ -143,7 +148,14 @@ export function ChatWidget() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next, sessionId: sessionId.current }),
+        // path lets the concierge know WHICH page the user is on — e.g. an
+        // unclaimed listing page, where "this is my business" should trigger
+        // the guided free-claim play.
+        body: JSON.stringify({
+          messages: next,
+          sessionId: sessionId.current,
+          path: typeof window !== 'undefined' ? window.location.pathname : '',
+        }),
       })
       const data = await res.json()
       // Cart directives first, then nav — a message can both add to the basket and

@@ -4,6 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
 import { notifyUser } from '@/lib/user-notifications'
+import { sendUnclaimedRelay } from '@/lib/unclaimed-relay'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,8 +36,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Name and contact are required.' }, { status: 400 })
   }
   // A valid Firestore listing id — rejecting '/' also avoids the odd-segment
-  // throw when building the listing_stats doc id below.
-  if (!/^[A-Za-z0-9_-]{1,80}$/.test(listingId)) {
+  // throw when building the listing_stats doc id below. ':' must be allowed:
+  // ScrapeFlow (sf:<hash>) and OSM (osm:node:<id>) listings use it in doc ids.
+  if (!/^[A-Za-z0-9:_-]{1,120}$/.test(listingId)) {
     return NextResponse.json({ error: 'Invalid listing.' }, { status: 400 })
   }
 
@@ -58,8 +60,9 @@ export async function POST(request: NextRequest) {
   // dashboard (basic) or behind the claim flow (unclaimed).
   const gated = !isPremium
 
+  let quoteId = ''
   try {
-    await adminDb.collection('quote_requests').add({
+    const quoteRef = await adminDb.collection('quote_requests').add({
       listing_id: listingId,
       business_name: listing?.name || null,
       owner_id: listing?.owner_id || null,
@@ -71,6 +74,7 @@ export async function POST(request: NextRequest) {
       listing_tier_at_capture: listing?.tier || 'basic',
       created_at: FieldValue.serverTimestamp(),
     })
+    quoteId = quoteRef.id
   } catch {
     return NextResponse.json({ error: 'Could not submit request' }, { status: 500 })
   }
@@ -106,7 +110,7 @@ export async function POST(request: NextRequest) {
 
   // Notify the business (best effort).
   const to = listing?.contact_email || listing?.email
-  if (to) {
+  if (to && (isPremium || isClaimed)) {
     const bizName = listing?.name ? esc(String(listing.name)) : ''
     let subject: string
     let html: string
@@ -120,7 +124,7 @@ export async function POST(request: NextRequest) {
         <p><strong>From:</strong> ${esc(name)}<br/><strong>Contact:</strong> ${esc(contact)}</p>
         ${message ? `<p><strong>Message:</strong><br/>${esc(message)}</p>` : ''}
         <p style="font-size:11px;color:#999">Sent via citybeatmag.co — delivered instantly with your Premium listing.</p></div>`
-    } else if (isClaimed) {
+    } else {
       // Claimed basic → dashboard teaser + Premium upsell.
       subject = `A customer is trying to reach ${bizName || 'your business'} on CityBeat`
       html = `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111">
@@ -129,18 +133,25 @@ export async function POST(request: NextRequest) {
         <p>Their contact details are waiting in your dashboard — upgrade to <strong>Premium ($19.99/mo)</strong> to see this and every future lead instantly.</p>
         <p style="margin:24px 0"><a href="${APP_URL}/en/dashboard" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">View my leads</a></p>
         <p style="font-size:11px;color:#999">Sent via citybeatmag.co</p></div>`
-    } else {
-      // Unclaimed → the claim hook. The lead is real and waiting; claiming is free.
-      subject = `A customer is trying to reach ${bizName || 'your business'} — CityBeat`
-      html = `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111">
-        <h2 style="font-weight:900">You have a customer inquiry waiting</h2>
-        <p>Someone just asked to be contacted by <strong>${bizName || 'your business'}</strong> through your listing on CityBeat, El Paso &amp; Ciudad Juárez's bilingual local guide.</p>
-        <p><strong>Claim your listing (free)</strong> to see who's trying to reach you — it takes two minutes.</p>
-        <p style="margin:24px 0"><a href="${APP_URL}/en/directory/${listingId}/claim" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">Claim my business</a></p>
-        <p style="font-size:11px;color:#999">Sent via citybeatmag.co · You received this because your business is listed in the public CityBeat directory.</p></div>`
     }
 
     await sendEmail(to, subject, html, FROM).catch(() => {})
+  } else if (to) {
+    // Unclaimed → relay through the shared unclaimed pipe (bilingual, deduped
+    // per quote, suppression-aware, capped per listing, unsubscribe link).
+    // The FIRST lead ever is forwarded in full — "this one was free" — which is
+    // both the honest move for the customer (they get served) and the strongest
+    // claim hook; the relay claims that slot internally AFTER its gates pass, so
+    // a blocked send can't burn it. Every later lead gets the same teaser a
+    // claimed-basic listing gets, so claiming never REDUCES what a business
+    // receives. Awaited (never throws): Cloud Run can freeze CPU after the
+    // response, so a detached send could consume the dedupe without sending.
+    await sendUnclaimedRelay({
+      listingId,
+      listing: listing || {},
+      eventId: quoteId || `${listingId}-${Date.now()}`,
+      detail: { type: 'quote', name, contact, message: message || null },
+    })
   }
 
   return NextResponse.json({ ok: true })

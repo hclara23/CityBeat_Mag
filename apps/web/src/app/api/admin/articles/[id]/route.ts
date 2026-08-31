@@ -3,6 +3,7 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { translateArticleToEs } from '@/lib/translate'
 import { hasEditorAccess } from '@citybeat/lib/roles'
+import { matchAndPinPressMentions } from '@/lib/press-mentions'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,6 +72,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // When publishing, keep the Spanish translation in sync (best-effort).
     if (status === 'published') {
       await translateArticleToEs(ref, { title: data.title, excerpt: data.excerpt, content: data.content })
+      // Press Clip Pin: on the transition INTO published (any article source),
+      // scan for directory businesses named in the story, pin the mention to
+      // their listings, and relay the claim hook to unclaimed ones. Idempotent
+      // (per-article pin dedupe + per-event relay reservation); best-effort.
+      if ((doc.data() as any)?.status !== 'published' && data.slug) {
+        await matchAndPinPressMentions({
+          articleId: id,
+          slug: String(data.slug),
+          title: String(data.title || ''),
+          content: data.content,
+        }).catch(() => {})
+      }
     }
 
     return NextResponse.json({

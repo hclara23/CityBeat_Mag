@@ -30,6 +30,9 @@ type Listing = {
   phone?: string
   address?: string
   claim_status?: string
+  description?: string
+  description_es?: string
+  hours?: Record<string, string>
 }
 
 function claimUrl(listingId: string, outreachId: string, locale = 'en') {
@@ -40,32 +43,79 @@ function openPixel(outreachId: string) {
   return `${APP_URL}/api/track/open?o=${outreachId}`
 }
 
-// A/B test on the step-0 (first-touch) subject line — the highest-volume email.
+// A/B test on the step-0 (first-touch) email — the highest-volume send.
 // Deterministic per listing so webhook/cron retries reuse the same variant. The
 // chosen variant is recorded on the outreach doc; opens/clicks are already
 // tracked per doc, so variant performance is a simple Firestore aggregation.
-export const SUBJECT_VARIANTS = 3
+//
+// Variants 0-2 are subject-line spins on the standard pitch. Variants 3-4 are
+// full MIRROR arms (subject + body): 3 quotes the business's own auto-translated
+// Spanish description back to them ("Su Negocio Ya Habla Español" — the endowment
+// play no national directory can run), 4 asks whether the scraped phone/address/
+// hours are still right (honest accuracy-audit play). Both need listing data, so
+// pickFirstTouchVariant downgrades to 0 when it's missing — the RECORDED variant
+// always matches the copy actually sent.
+export const SUBJECT_VARIANTS = 5
 export function subjectVariant(listingId: string): number {
   let h = 0
   for (let i = 0; i < listingId.length; i++) h = (h * 31 + listingId.charCodeAt(i)) | 0
   return Math.abs(h) % SUBJECT_VARIANTS
 }
 
+export function pickFirstTouchVariant(listing: Pick<Listing, 'id' | 'description_es' | 'phone' | 'address'>): number {
+  let v = subjectVariant(listing.id)
+  if (v === 3 && !(listing.description_es || '').trim()) v = 0
+  if (v === 4 && !(listing.phone || '').trim() && !(listing.address || '').trim()) v = 0
+  return v
+}
+
+const escHtml = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
 // Template pitch (bilingual). Used as-is, or as the brief for Claude enhancement.
+// Variants 3-4 are mirror arms whose BODY is built from the listing's own data —
+// they must never be handed to enhanceWithClaude (it would paraphrase away the
+// exact data being mirrored). The send path skips enhancement for variant >= 3.
 function templatePitch(listing: Listing, step: number, locale: 'en' | 'es', variant = 0) {
   const name = listing.name || (locale === 'es' ? 'tu negocio' : 'your business')
   const cat = listing.category ? ` (${listing.category})` : ''
+
+  // Mirror-arm content (first touch only). Scraped/generated data is escaped —
+  // it lands directly in email HTML.
+  const esQuote = (listing.description_es || '').trim().slice(0, 260)
+  const auditBits: string[] = []
+  if ((listing.phone || '').trim()) auditBits.push(`☎ ${escHtml(String(listing.phone).trim())}`)
+  if ((listing.address || '').trim()) auditBits.push(`📍 ${escHtml(String(listing.address).trim())}`)
+  const firstHours = listing.hours && typeof listing.hours === 'object' ? Object.entries(listing.hours).find(([, v]) => String(v || '').trim()) : null
+  if (firstHours) auditBits.push(`🕒 ${escHtml(`${firstHours[0]}: ${firstHours[1]}`)}`)
+  const auditList = auditBits.join('<br/>')
+
   if (locale === 'es') {
     const firstTouch = [
       `${name} ya aparece en CityBeat — reclámalo gratis`,
       `¿Este es tu negocio? ${name} está en CityBeat`,
       `${name}: los clientes te buscan en CityBeat`,
+      `Así aparece ${name} en español ante El Paso`,
+      `¿Estos datos de ${name} siguen correctos?`,
     ]
     const subjects = [
       firstTouch[variant] || firstTouch[0],
       `¿Sigues interesado en ${name} en CityBeat?`,
       `Última oportunidad: destaca ${name} en CityBeat`,
     ]
+    if (step === 0 && variant === 3 && esQuote) {
+      return {
+        subject: subjects[0],
+        intro: `Hola — CityBeat ya presenta a ${name}${cat} EN ESPAÑOL a los lectores de El Paso y Ciudad Juárez. Así lo describimos:`,
+        pitch: `<em>“${escHtml(esQuote)}”</em><br/><br/>¿Está bien escrito? <strong>Reclame su página gratis</strong> (2 minutos) para corregirlo, añadir fotos y horarios, y responder a sus clientes — en los dos idiomas.`,
+      }
+    }
+    if (step === 0 && variant === 4 && auditList) {
+      return {
+        subject: subjects[0],
+        intro: `Hola — miles de lectores ven la ficha de ${name}${cat} en CityBeat. Estos son los datos que mostramos hoy:`,
+        pitch: `${auditList}<br/><br/>¿Siguen correctos? <strong>Confírmelos o corríjalos gratis en 2 minutos</strong> reclamando su página — un dato equivocado le cuesta clientes.`,
+      }
+    }
     return {
       subject: subjects[step] || subjects[0],
       intro: `Hola, vimos que ${name}${cat} aparece en el directorio de CityBeat, el medio bilingue de El Paso y Ciudad Juárez.`,
@@ -76,12 +126,28 @@ function templatePitch(listing: Listing, step: number, locale: 'en' | 'es', vari
     `${name} is listed on CityBeat — claim it free`,
     `Is this your business? ${name} is on CityBeat`,
     `${name}: customers are finding you on CityBeat`,
+    `${name} already speaks Spanish on CityBeat`,
+    `Are these details for ${name} still right?`,
   ]
   const subjects = [
     firstTouch[variant] || firstTouch[0],
     `Still want to grow ${name} with CityBeat?`,
     `Last call: feature ${name} on CityBeat`,
   ]
+  if (step === 0 && variant === 3 && esQuote) {
+    return {
+      subject: subjects[0],
+      intro: `Hi — CityBeat already introduces ${name}${cat} IN SPANISH to El Paso's readers (80%+ of the market is bilingual). Here's how your page reads:`,
+      pitch: `<em>“${escHtml(esQuote)}”</em><br/><br/>Did we get it right? <strong>Claim your page free</strong> (2 minutes) to fix the wording, add photos and hours, and answer customers — in both languages.`,
+    }
+  }
+  if (step === 0 && variant === 4 && auditList) {
+    return {
+      subject: subjects[0],
+      intro: `Hi — thousands of local readers see ${name}${cat} on CityBeat. Here's what we're showing them today:`,
+      pitch: `${auditList}<br/><br/>Still correct? <strong>Confirm or fix it free in 2 minutes</strong> by claiming your page — one wrong detail costs you customers.`,
+    }
+  }
   return {
     subject: subjects[step] || subjects[0],
     intro: `Hi — we noticed ${name}${cat} is listed in the CityBeat directory, El Paso & Ciudad Juárez's bilingual local guide.`,
@@ -462,9 +528,13 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
       continue
     }
     const ref = adminDb.collection('sales_outreach').doc()
-    const variant = subjectVariant(l.id)
+    // Downgrades to variant 0 when the mirror arms' data is missing, so the
+    // recorded subject_variant always matches the copy that actually went out.
+    const variant = pickFirstTouchVariant(l)
     const base = templatePitch(l, 0, locale, variant)
-    const content = await enhanceWithClaude(l, base, locale)
+    // Mirror arms (3-4) quote the listing's own data — never let Claude
+    // paraphrase that away.
+    const content = variant >= 3 ? base : await enhanceWithClaude(l, base, locale)
     const html = renderHtml(l, content, ref.id, locale)
     let sent = false
     if (!opts.dryRun) {

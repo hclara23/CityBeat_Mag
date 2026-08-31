@@ -74,6 +74,12 @@ DISCOVERY EXAMPLE — online presence / "I need a website or app": qualify befor
 - Most local businesses just need to be FOUND and look credible → a CityBeat Premium listing IS a microsite: photos, hours, links, reviews, a map, and a shareable page that ranks on Google. Recommend claiming free then upgrading, and open [[nav:/directory]].
 - If they clearly need a full custom website or a mobile app (online store, bookings, bespoke features): be honest — that's a bigger custom project beyond the self-serve microsite. Capture what they want, tell them CityBeat's team will follow up (this chat is saved as a lead), and note a Premium listing + advertising gets them found in the meantime.
 
+OWNER-CATCHER — when the visitor IS the business. Owners constantly look at their own page. If the user says anything like "this is my business", "that's my shop", "es mi negocio", "how do I edit this page", "the hours/phone are wrong", "cómo edito mi página":
+- Congratulate them warmly and tell them managing the page is FREE: claiming takes ~2 minutes (verify by email code) and lets them fix hours/phone, reply to reviews, answer customer questions, and get customer leads.
+- Answer the classic objections honestly: yes it's really free (Premium is optional, $19.99/mo for photos/priority/full leads); no credit card needed to claim; they keep control.
+- If CURRENT PAGE is a /directory/<id> page, walk them straight there with [[nav:/directory/<id>/claim]] (use the exact <id> from the path). Otherwise open [[nav:/directory]] and tell them to search their business name and hit Claim.
+- If they mention wrong info (hours, phone, address), lead with "claim it free and you can fix that in the next two minutes."
+
 CHECKOUT BY CHAT: when the user decides to buy, TAKE them to the purchase page (e.g. [[nav:/ads/sponsored]] for that ad, or [[nav:/directory]] to claim + upgrade a listing) and tell them to complete the secure checkout there. You NEVER take payment yourself and must NEVER say a charge was made or a card was entered — the customer always confirms payment on the checkout/Stripe page.
 
 BASKET — BUY SEVERAL THINGS IN ONE CHECKOUT. If the user wants MORE THAN ONE product (e.g. a sponsored story AND a social promo), don't send them through separate checkouts. Drop each into the basket by emitting [[cart:add:<productId>]] (one directive per product, its own line) and then [[cart:open]] to show them the basket, where they enter their email once and pay for everything in a SINGLE Stripe checkout. Only these product ids are basket-eligible (use the id EXACTLY):
@@ -103,6 +109,9 @@ export async function POST(req: NextRequest) {
     content: typeof m?.content === 'string' ? m.content.slice(0, 2000) : m?.content,
   }))
   const sessionId = typeof body.sessionId === 'string' ? body.sessionId : null
+  // Current page path (from the widget) — internal paths only, tightly bounded.
+  const rawPath = typeof body.path === 'string' ? body.path.slice(0, 200) : ''
+  const currentPath = /^\/[a-zA-Z0-9\-_/:.]*$/.test(rawPath) && !rawPath.startsWith('//') ? rawPath : ''
 
   const userMsgs = messages.filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
   if (userMsgs.length === 0) {
@@ -121,7 +130,10 @@ export async function POST(req: NextRequest) {
       // Ground the answer in real directory/events/deals rows (premium-first).
       const lastUser = [...userMsgs].reverse().find((m: any) => m.role === 'user')
       const context = await retrieveLocalContext(String(lastUser?.content || '')).catch(() => '')
-      const system = context ? `${SYSTEM}\n\nLOCAL CONTEXT:\n${context}` : SYSTEM
+      let system = context ? `${SYSTEM}\n\nLOCAL CONTEXT:\n${context}` : SYSTEM
+      if (currentPath) {
+        system += `\n\nCURRENT PAGE: the user is on ${currentPath} right now. If it is a business page (/directory/<id>), that <id> is the listing they are looking at — use it for the owner-catcher play below.`
+      }
 
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
