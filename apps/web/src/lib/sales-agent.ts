@@ -62,11 +62,47 @@ export function subjectVariant(listingId: string): number {
   return Math.abs(h) % SUBJECT_VARIANTS
 }
 
-export function pickFirstTouchVariant(listing: Pick<Listing, 'id' | 'description_es' | 'phone' | 'address'>): number {
-  let v = subjectVariant(listing.id)
-  if (v === 3 && !(listing.description_es || '').trim()) v = 0
-  if (v === 4 && !(listing.phone || '').trim() && !(listing.address || '').trim()) v = 0
-  return v
+export interface FirstTouchAssignment {
+  /** The arm whose copy is actually sent. */
+  variant: number
+  /** The arm the hash picked, before any data-availability downgrade. */
+  variant_intended: number
+  /** True when the intended arm was unusable and we fell back to the control. */
+  variant_downgraded: boolean
+  /** Whether this listing COULD have received arm 3 (Spanish mirror). */
+  had_description_es: boolean
+  /** Whether this listing COULD have received arm 4 (accuracy audit). */
+  had_contact_details: boolean
+}
+
+/**
+ * Assign the first-touch arm AND record why.
+ *
+ * The mirror arms need listing data (a Spanish description for arm 3; a phone or
+ * address for arm 4), so a data-poor listing cannot receive them and falls back
+ * to the control. That fallback silently destroyed the experiment: arm 0 ended up
+ * holding its own random share PLUS every data-poor listing rejected from arms
+ * 3-4, while arms 3-4 were conditioned on rich data — so any measured "lift" was
+ * really listing quality. Stamping the intent and the eligibility flags lets the
+ * scoreboard compare arm 3 only against control listings that were themselves
+ * arm-3-eligible, which is the comparison that actually means something.
+ */
+export function pickFirstTouchVariant(
+  listing: Pick<Listing, 'id' | 'description_es' | 'phone' | 'address'>
+): FirstTouchAssignment {
+  const intended = subjectVariant(listing.id)
+  const hadEs = Boolean((listing.description_es || '').trim())
+  const hadContact = Boolean((listing.phone || '').trim() || (listing.address || '').trim())
+  let v = intended
+  if (v === 3 && !hadEs) v = 0
+  if (v === 4 && !hadContact) v = 0
+  return {
+    variant: v,
+    variant_intended: intended,
+    variant_downgraded: v !== intended,
+    had_description_es: hadEs,
+    had_contact_details: hadContact,
+  }
 }
 
 const escHtml = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -461,7 +497,17 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
     if (results.followups >= limit) break
     const o = doc.data()
     const step = (o.step ?? 0) + 1
-    if (step >= MAX_STEPS) continue
+    // Conversion is checked BEFORE the step guard: a doc that finished the drip
+    // (step >= MAX_STEPS) used to be abandoned here, so claims landing after the
+    // 9-day sequence were never recorded — censoring the A/B experiment's only
+    // outcome metric, and hitting later-launched arms hardest.
+    if (step >= MAX_STEPS) {
+      const doneDoc = await adminDb.collection('directory_listings').doc(o.listing_id).get()
+      if (doneDoc.exists && (doneDoc.data() as any).claim_status !== 'unclaimed') {
+        await doc.ref.set({ status: 'converted', converted_at: FieldValue.serverTimestamp() }, { merge: true })
+      }
+      continue
+    }
     const lastAt = o.last_sent_at?.toDate ? o.last_sent_at.toDate().getTime() : Date.parse(o.last_sent_at || 0)
     if (!lastAt || now - lastAt < FOLLOWUP_DAYS[step] * 86400000 - FOLLOWUP_DAYS[(o.step ?? 0)] * 86400000) {
       // not yet due relative to schedule
@@ -483,10 +529,20 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
       const r = await sendEmail(o.email, content.subject, html)
       sent = r.sent
     }
-    await doc.ref.set(
-      { step, status: sent || opts.dryRun ? 'sent' : 'send_failed', last_sent_at: FieldValue.serverTimestamp() },
-      { merge: true }
-    )
+    if (!opts.dryRun) {
+      // Never clobber a DELIVERED status with 'send_failed': the first touch did
+      // reach the mailbox, and overwriting it both drops the row from the A/B
+      // denominator and removes it from this query's status filter forever.
+      const deliveredAlready = ['sent', 'opened', 'clicked', 'converted'].includes(String(o.status))
+      await doc.ref.set(
+        {
+          step,
+          ...(sent || deliveredAlready ? {} : { status: 'send_failed' }),
+          ...(sent ? { last_sent_at: FieldValue.serverTimestamp() } : { last_send_failed_at: FieldValue.serverTimestamp() }),
+        },
+        { merge: true }
+      )
+    }
     results.followups++
     if (sent) results.sent++
   }
@@ -529,8 +585,10 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
     }
     const ref = adminDb.collection('sales_outreach').doc()
     // Downgrades to variant 0 when the mirror arms' data is missing, so the
-    // recorded subject_variant always matches the copy that actually went out.
-    const variant = pickFirstTouchVariant(l)
+    // recorded subject_variant always matches the copy that actually went out —
+    // and records the intent + eligibility so the scoreboard can un-confound it.
+    const assignment = pickFirstTouchVariant(l)
+    const variant = assignment.variant
     const base = templatePitch(l, 0, locale, variant)
     // Mirror arms (3-4) quote the listing's own data — never let Claude
     // paraphrase that away.
@@ -541,6 +599,13 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
       const r = await sendEmail(l.email, content.subject, html)
       sent = r.sent
     }
+    // A dry run must not create experiment rows: the already-contacted guard is
+    // status-agnostic, so a 'dry_run' doc used to block that listing from ever
+    // being emailed for real while its arm assignment vanished from the analysis.
+    if (opts.dryRun) {
+      results.contacted++
+      continue
+    }
     await ref.set({
       listing_id: l.id,
       business_name: l.name || null,
@@ -549,7 +614,11 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
       locale,
       step: 0,
       subject_variant: variant,
-      status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed',
+      variant_intended: assignment.variant_intended,
+      variant_downgraded: assignment.variant_downgraded,
+      had_description_es: assignment.had_description_es,
+      had_contact_details: assignment.had_contact_details,
+      status: sent ? 'sent' : 'send_failed',
       opens: 0,
       clicks: 0,
       created_at: FieldValue.serverTimestamp(),

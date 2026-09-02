@@ -24,6 +24,11 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
   if (!hasSalesAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  // This board returns business names + contact emails. Every other admin route
+  // that exposes contact data requires 2FA; this one was the outlier.
+  if (!profile?.mfa_enabled) {
+    return NextResponse.json({ error: 'Two-factor authentication required' }, { status: 403 })
+  }
 
   try {
     // Pull every marketing stream that tracks engagement.
