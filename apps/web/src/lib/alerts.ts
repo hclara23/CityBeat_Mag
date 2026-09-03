@@ -10,6 +10,18 @@ import { checkRateLimit } from './auth-security'
 
 const ALERT_EMAIL = process.env.ALERT_EMAIL || 'morningstarelp@gmail.com'
 
+// Alert bodies used to interpolate first-party strings only (crons, the Stripe
+// webhook). Client bug reports now flow in from a PUBLIC endpoint, so an
+// unescaped message would let anyone put a live phishing link inside a genuine
+// alert email sent from our own domain.
+const esc = (s: unknown) =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
 // Clears a source's failing state and emails a one-line "recovered" note —
 // so a red alert in the inbox is known-resolved without asking anyone.
 // No-ops unless the source was actually marked failing (one cheap read/run).
@@ -23,7 +35,7 @@ export async function reportSuccess(source: string) {
       ALERT_EMAIL,
       `✅ [CityBeat] ${source} recovered`,
       `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111">
-  <p><strong>${source}</strong> is healthy again as of ${new Date().toISOString()} — the earlier failure alert is resolved.</p>
+  <p><strong>${esc(source)}</strong> is healthy again as of ${new Date().toISOString()} — the earlier failure alert is resolved.</p>
 </div>`
     )
   } catch {
@@ -31,18 +43,34 @@ export async function reportSuccess(source: string) {
   }
 }
 
-export async function reportFailure(source: string, error: unknown, context?: Record<string, unknown>) {
+export async function reportFailure(
+  source: string,
+  error: unknown,
+  context?: Record<string, unknown>,
+  opts?: {
+    /**
+     * Skip the system_health "failing" flag. Bug reports use this: nothing ever
+     * calls reportSuccess('bug:client'), so flagging it would pin that source to
+     * failing forever and devalue the recovered-state signal for real crons.
+     */
+    skipHealth?: boolean
+    /** Override the email dedupe bucket (e.g. to keep critical from being crowded out). */
+    alertKey?: string
+  }
+) {
   const message = error instanceof Error ? error.message : String(error)
   const stack = error instanceof Error ? (error.stack || '').slice(0, 2000) : null
 
   // Mark the source failing so the next success can announce recovery.
-  try {
-    await adminDb.collection('system_health').doc(source).set(
-      { status: 'failing', last_failure_at: FieldValue.serverTimestamp(), message: message.slice(0, 300) },
-      { merge: true }
-    )
-  } catch {
-    /* best effort */
+  if (!opts?.skipHealth) {
+    try {
+      await adminDb.collection('system_health').doc(source).set(
+        { status: 'failing', last_failure_at: FieldValue.serverTimestamp(), message: message.slice(0, 300) },
+        { merge: true }
+      )
+    } catch {
+      /* best effort */
+    }
   }
 
   // Always record the alert, even when the email is deduped away.
@@ -59,15 +87,15 @@ export async function reportFailure(source: string, error: unknown, context?: Re
   }
 
   try {
-    const rl = await checkRateLimit(`alert:${source}`, { max: 3, windowMs: 6 * 60 * 60 * 1000 })
+    const rl = await checkRateLimit(`alert:${opts?.alertKey || source}`, { max: 3, windowMs: 6 * 60 * 60 * 1000 })
     if (!rl.ok) return { alerted: false, deduped: true }
 
     const subject = `[CityBeat ALERT] ${source} failed`
     const html = `<div style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;color:#111">
   <h2 style="font-weight:900">CityBeat — automation failure</h2>
-  <p><strong>Source:</strong> ${source}</p>
-  <p><strong>Error:</strong> ${message.slice(0, 500)}</p>
-  ${context ? `<p><strong>Context:</strong> <code>${JSON.stringify(context).slice(0, 500)}</code></p>` : ''}
+  <p><strong>Source:</strong> ${esc(source)}</p>
+  <p><strong>Error:</strong> ${esc(message.slice(0, 500))}</p>
+  ${context ? `<p><strong>Context:</strong> <code>${esc(JSON.stringify(context).slice(0, 500))}</code></p>` : ''}
   <p style="color:#666;font-size:13px">Full details are in the <code>system_alerts</code> Firestore collection.
   Repeat failures from this source are muted for up to 6 hours.</p>
 </div>`

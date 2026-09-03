@@ -1,6 +1,6 @@
 import { FieldValue } from 'firebase-admin/firestore'
 import type { DocumentReference } from 'firebase-admin/firestore'
-import { traceClaude } from '@/lib/observability'
+import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 
 // Translation goes through the Cloudflare worker (which holds the DeepL key).
 // The web app authenticates with the shared INGEST_SECRET it already uses.
@@ -20,7 +20,10 @@ async function translateViaWorker(texts: string[]): Promise<string[] | null> {
         headers: { 'Content-Type': 'application/json', 'x-ingest-secret': secret },
         body: JSON.stringify({ texts: chunk, target_lang: 'ES', source_lang: 'EN' }),
       })
-      if (!res.ok) return null
+      if (!res.ok) {
+        await traceClaudeFailure('translate.claude', prompt, `anthropic_http_${res.status}`, { items: chunk.length })
+        return null
+      }
       const data: any = await res.json()
       if (!Array.isArray(data.translations) || data.translations.length !== chunk.length) return null
       out.push(...data.translations.map((s: any) => String(s)))

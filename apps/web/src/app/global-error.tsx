@@ -10,6 +10,35 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   const isChunkError =
     error?.name === 'ChunkLoadError' || /Loading chunk [\d]+ failed|import\(\) failed/i.test(error?.message || '')
 
+  // Root-layout crash: report it directly with fetch (this boundary deliberately
+  // imports nothing, so it still renders when the app bundle is broken).
+  useEffect(() => {
+    if (isChunkError || typeof window === 'undefined') return
+    try {
+      // Same one-shot + budget guards as ErrorReporter (this file stays
+      // import-free so it still renders when the app bundle is broken).
+      const w = window as any
+      if (w.__cbGlobalReported) return
+      w.__cbGlobalReported = true
+      w.__cbErrCount = (w.__cbErrCount || 0) + 1
+      if (w.__cbErrCount > 5) return
+      fetch('/api/telemetry/error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({
+          message: error?.message || 'Global error boundary',
+          stack: (error?.stack || '').slice(0, 4000),
+          route: window.location.pathname,
+          release: process.env.NEXT_PUBLIC_RELEASE || null,
+          digest: error?.digest || null,
+        }),
+      }).catch(() => {})
+    } catch {
+      /* ignore */
+    }
+  }, [error, isChunkError])
+
   useEffect(() => {
     if (!isChunkError || typeof window === 'undefined') return
     const KEY = 'cb_chunk_reloaded'

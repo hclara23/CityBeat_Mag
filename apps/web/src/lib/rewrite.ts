@@ -4,7 +4,7 @@
 // ANTHROPIC_API_KEY is configured it returns null so callers fall back to a
 // summary-and-link draft (low copyright risk) rather than copying source text.
 
-import { traceClaude } from '@/lib/observability'
+import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 
 const MODEL = process.env.REWRITE_MODEL || 'claude-haiku-4-5-20251001'
 
@@ -53,6 +53,7 @@ ${input.sourceText || ''}
     })
     if (!res.ok) {
       console.error('rewriteSourceArticle anthropic error:', res.status, await res.text().catch(() => ''))
+      await traceClaudeFailure('rewrite', userPrompt, `anthropic_http_${res.status}`, { source: input.sourceName })
       return null
     }
     const data: any = await res.json()

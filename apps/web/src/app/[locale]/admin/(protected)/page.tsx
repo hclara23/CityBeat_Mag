@@ -22,6 +22,7 @@ const primaryAdminLinks = [
   { href: '/creator', label: 'Creator Studio', description: 'Manage drafts, review status, and submitted work.' },
   { href: '/admin', label: 'Review Queue', description: 'Approve, reject, and publish submitted articles.' },
   { href: '/admin/claims', label: 'Claims Queue', description: 'Review, approve, or reject business directory claims.' },
+  { href: '/admin/logs', label: 'Logs & Audit', description: 'Bugs that reported themselves, grouped by fingerprint, plus the auditable record of every AI generation.' },
   { href: '/admin/sales/me', label: 'Sales Desk', description: 'Work leads, create any product checkout, and track fulfillment in one place.' },
   { href: '/admin/jobs', label: 'Job Postings', description: 'Review and approve paid job postings — including every Sales Desk sale — before they go live.' },
   { href: '/admin/campaigns', label: 'Newsletter Sponsorships', description: 'Review and approve paid newsletter sponsorships before they start running.' },

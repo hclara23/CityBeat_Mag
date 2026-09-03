@@ -3,7 +3,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { retrieveLocalContext } from '@/lib/concierge'
-import { traceClaude } from '@/lib/observability'
+import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 import { SALES_PRODUCT_ORDER, SALES_PRODUCTS } from '@/lib/sales-products'
 import { isSelfServeCartEligible } from '@/lib/cart'
 
@@ -145,7 +145,10 @@ export async function POST(req: NextRequest) {
           messages: userMsgs.map((m: any) => ({ role: m.role, content: m.content })),
         }),
       })
-      if (!res.ok) throw new Error(`anthropic_${res.status}`)
+      if (!res.ok) {
+        await traceClaudeFailure('concierge.chat', userMsgs, `anthropic_http_${res.status}`, { hasContext: Boolean(context) })
+        throw new Error(`anthropic_${res.status}`)
+      }
       const data: any = await res.json()
       await traceClaude('concierge.chat', userMsgs, data, { hasContext: Boolean(context) })
       reply = data?.content?.[0]?.text || 'Sorry, I had trouble responding — try /ads or /directory.'

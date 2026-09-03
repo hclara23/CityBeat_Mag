@@ -7,7 +7,7 @@
 //
 // Needs ANTHROPIC_API_KEY. Sources are free/keyless.
 
-import { traceClaude } from '@/lib/observability'
+import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 
 const MODEL = process.env.NEWSROOM_MODEL || process.env.CHAT_MODEL || 'claude-haiku-4-5-20251001'
 
@@ -192,6 +192,7 @@ Respond with ONLY valid JSON (no markdown fences):
       }),
     })
     if (!res.ok) {
+      await traceClaudeFailure('newsroom.rewrite', prompt, `anthropic_http_${res.status}`, { source: item.source })
       return {
         outcome: 'retryable_error',
         reason: `anthropic_http_${res.status}`,

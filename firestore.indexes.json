@@ -91,7 +91,47 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "ai_audit",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "purpose",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "recorded_at",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "ai_audit",
+      "fieldPath": "input",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "ai_audit",
+      "fieldPath": "output",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "ai_audit",
+      "fieldPath": "error",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "error_reports",
+      "fieldPath": "stack",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "error_reports",
+      "fieldPath": "message",
+      "indexes": []
+    }
+  ]
 }

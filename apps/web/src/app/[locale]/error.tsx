@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { reportClientError } from '@/components/ErrorReporter'
 
 // Route-level error boundary for the whole localized app. Two jobs:
 //  1. Deploy resilience — a new deploy replaces the JS chunk hashes, so any tab
@@ -31,11 +32,14 @@ export default function LocaleError({ error, reset }: { error: Error & { digest?
     }
   }, [isChunkError])
 
-  // Log for observability; never surface internals to the user.
+  // Report to our own telemetry so the bug reaches a human — a console.error in
+  // the USER's browser is seen by nobody. Chunk errors are skipped: they are a
+  // deploy transient this boundary already auto-recovers from.
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.error('App error boundary:', error?.message, error?.digest)
-  }, [error])
+    if (!isChunkError) reportClientError(error?.message || 'Route error boundary', error?.stack, error?.digest)
+  }, [error, isChunkError])
 
   if (isChunkError) {
     // A reload is already in flight — show a neutral "updating" state, not an error.

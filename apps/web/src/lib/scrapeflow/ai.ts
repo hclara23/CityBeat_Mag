@@ -3,7 +3,7 @@
 // ANTHROPIC_API_KEY (same raw-fetch pattern as lib/newsroom.ts) so no per-user
 // credential store is needed.
 
-import { traceClaude } from '@/lib/observability'
+import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 import { parseJsonLoose } from './definition'
 import type { ExtractedListing } from './types'
 
@@ -26,7 +26,10 @@ async function callClaude(prompt: string, maxTokens: number, traceName: string, 
     body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] }),
     signal: AbortSignal.timeout(120_000),
   })
-  if (!res.ok) throw new Error(`Anthropic HTTP ${res.status}`)
+  if (!res.ok) {
+    await traceClaudeFailure(traceName, prompt.slice(0, 4000), `anthropic_http_${res.status}`, meta, started).catch(() => {})
+    throw new Error(`Anthropic HTTP ${res.status}`)
+  }
   const data: any = await res.json()
   await traceClaude(traceName, prompt.slice(0, 4000), data, meta, started).catch(() => {})
   return String(data?.content?.[0]?.text || '')

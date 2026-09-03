@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { traceClaude } from '@/lib/observability'
+import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -67,7 +67,10 @@ Respond with ONLY valid JSON, no markdown fences:
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model: MODEL, max_tokens: 500, messages: [{ role: 'user', content: prompt }] }),
     })
-    if (!res.ok) return NextResponse.json({ ...fallback, ai: false })
+    if (!res.ok) {
+      await traceClaudeFailure('lead-followup', prompt, `anthropic_http_${res.status}`, { business })
+      return NextResponse.json({ ...fallback, ai: false })
+    }
     const data: any = await res.json()
     await traceClaude('lead-followup', prompt, data, { business })
     const text: string = data?.content?.[0]?.text || ''

@@ -1,7 +1,7 @@
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { sendEmail } from './email'
-import { traceClaude } from '@/lib/observability'
+import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 
 // The AI account manager: every paying (premium/featured) listing gets weekly
 // marketing work product — a suggested deal, social captions, and drafted
@@ -44,7 +44,10 @@ Produce marketing work in ${lang}. Respond with ONLY valid JSON, no markdown fen
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model: MODEL, max_tokens: 900, messages: [{ role: 'user', content: prompt }] }),
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      await traceClaudeFailure('account-manager', prompt, `anthropic_http_${res.status}`, { business: listing.name })
+      return null
+    }
     const data: any = await res.json()
     await traceClaude('account-manager', prompt, data, { business: listing.name })
     const text: string = data?.content?.[0]?.text || ''

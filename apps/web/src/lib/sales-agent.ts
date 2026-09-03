@@ -2,7 +2,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { sendEmail as sendEmailViaProvider } from './email'
 import { isSuppressed } from './suppression'
-import { traceClaude } from '@/lib/observability'
+import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 import { getCronCursor, setCronCursor } from './cron-cursor'
 import { DIRECTORY_PLANS } from './pricing'
 
@@ -213,7 +213,10 @@ async function enhanceWithClaude(listing: Listing, base: ReturnType<typeof templ
         ],
       }),
     })
-    if (!res.ok) return base
+    if (!res.ok) {
+      await traceClaudeFailure('sales-agent.pitch', { business: listing.name, category: listing.category, locale }, `anthropic_http_${res.status}`, { business: listing.name })
+      return base
+    }
     const data: any = await res.json()
     await traceClaude('sales-agent.pitch', { business: listing.name, category: listing.category, locale }, data, { business: listing.name })
     const text = data?.content?.[0]?.text
