@@ -1313,11 +1313,39 @@ export async function POST(req: NextRequest) {
     console.error(`Failed to process ${event.type}:`, e)
     // A failing webhook means paid customers aren't being fulfilled — alert.
     await reportFailure('stripe-webhook', e, { event_type: event.type, event_id: event.id })
+    // Record the stuck event so the reconciliation cron can find it and so the
+    // "recovered" all-clear below cannot fire while a paid customer is unfulfilled.
+    await adminDb
+      .collection('stripe_failed_events')
+      .doc(event.id)
+      .set(
+        {
+          event_id: event.id,
+          type: event.type,
+          message: String(e?.message || e).slice(0, 500),
+          failed_at: new Date().toISOString(),
+        },
+        { merge: true }
+      )
+      .catch(() => {})
     // Don't mark processed — let Stripe retry.
     return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
   }
 
-  await reportSuccess('stripe-webhook')
+  // A successful event no longer declares the whole webhook healthy. It used to
+  // call reportSuccess() unconditionally, which flipped system_health back to
+  // 'ok' and EMAILED an explicit "✅ recovered" all-clear after every good event
+  // — so one poison event inside a normal stream produced a few muted alerts
+  // followed by a written all-clear, while a business that paid got nothing.
+  // Health is only cleared once no event is still stuck.
+  await adminDb.collection('stripe_failed_events').doc(event.id).delete().catch(() => {})
+  const stuck = await adminDb
+    .collection('stripe_failed_events')
+    .limit(1)
+    .get()
+    .catch(() => null)
+  if (stuck && stuck.empty) await reportSuccess('stripe-webhook')
+
   // Mark processed only after success, so a partial failure can still be retried.
   await eventRef
     .set({ type: event.type, processed_at: new Date().toISOString() })
