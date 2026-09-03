@@ -388,9 +388,13 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
       .set({ ...fields, unsub_token: tokenFor(key), created_at: FieldValue.serverTimestamp() })
 
   // Segment 1: abandoned verifications.
+  // Bounded: this collection only grows. Oldest-first so nothing starves, and
+  // the loop's own `limit` still governs how many are actually contacted.
   const stalled = await adminDb
     .collection('directory_claims')
     .where('status', 'in', ['code_sent', 'expired', 'failed'])
+    .orderBy('created_at', 'asc')
+    .limit(Math.max(limit * 10, 200))
     .get()
     .catch(() => ({ docs: [] as any[] }))
   for (const doc of stalled.docs as any[]) {
@@ -463,12 +467,18 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
   }
 
   // Segment 3: win-back — churned subscriptions whose 30-day cool-off passed.
+  // Bounded, and the loop below now respects `limit` — this segment previously
+  // loaded EVERY canceled subscription ever and had no counter, so it processed
+  // the whole set on every run regardless of the limit the caller asked for.
   const churned = await adminDb
     .collection('subscriptions')
     .where('status', '==', 'canceled')
+    .limit(Math.max(limit * 10, 200))
     .get()
     .catch(() => ({ docs: [] as any[] }))
+  let winbacks = 0
   for (const doc of churned.docs as any[]) {
+    if (winbacks >= limit) break
     const s = doc.data()
     if (!s.winback_due_at || Date.parse(s.winback_due_at) > now) continue
     const key = `winback:${doc.id}`
@@ -494,6 +504,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     let sent = false
     if (!opts.dryRun) sent = (await sendEmail(to, subject, html)).sent
     await record(key, { type: 'winback', listing_id: lDoc.id, subscription_id: doc.id, email: to, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })
+    winbacks++
     if (sent) results.sent++
   }
 
@@ -508,9 +519,14 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
   const results = { contacted: 0, followups: 0, skipped_no_email: 0, skipped_already: 0, sent: 0, dryRun: Boolean(opts.dryRun) }
 
   // 1) Due follow-ups first.
+  // Bounded: sales_outreach grows by one doc per business ever contacted, so an
+  // uncapped read here got more expensive every single day (flagged in
+  // docs/SECURITY_AUDIT.md). Oldest-first so the earliest due follow-ups win.
   const dueSnap = await adminDb
     .collection('sales_outreach')
     .where('status', 'in', ['sent', 'opened', 'clicked'])
+    .orderBy('last_sent_at', 'asc')
+    .limit(Math.max(limit * 10, 200))
     .get()
     .catch(() => ({ docs: [] as any[] }))
   const now = Date.now()

@@ -3,6 +3,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin';
 import { stripInternalListingFields } from '@/lib/listing-fields';
 import { activePosts, elPasoDayKey } from '@/lib/listing-content';
 import { sponsorshipExpired } from '@/lib/sponsored-rotation';
+import { getClientIp, checkRateLimit } from '@/lib/auth-security';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +53,46 @@ const toRow = (doc: any) => ({ id: doc.id, ...doc.data() });
 // without a real search index (Algolia/Typesense) — a separate, larger fix.
 const BASIC_SLICE_LIMIT = 200;
 
+// ── Search corpus cache ──────────────────────────────────────────────────────
+// Free-text search has no Firestore-native answer (no substring index), so the
+// matching happens in memory — which meant EVERY search read the whole published
+// collection. At ~6,700 listings that is 6,700 billed document reads per
+// keystroke-pause, from a public unauthenticated endpoint. It was the single
+// largest line on the Firestore bill and it scales linearly with traffic, so a
+// successful promotion would have multiplied it directly.
+//
+// Firestore bills per document READ regardless of projection, so .select() saves
+// bandwidth but not money. The only levers are reading fewer docs or reading less
+// often. This caches the corpus per category for a few minutes: the first search
+// pays the read, every search after it is free. Under sustained traffic — exactly
+// when cost matters — instances stay warm and the hit rate approaches 100%.
+const CORPUS_TTL_MS = 5 * 60 * 1000;
+// Hard backstop so an unbounded collection can never OOM the container. Well
+// above current inventory; if it is ever hit, search needs a real index.
+const CORPUS_MAX_DOCS = 8000;
+
+type Corpus = { rows: any[]; at: number };
+const corpusCache = new Map<string, Corpus>();
+
+async function getSearchCorpus(category: string): Promise<any[]> {
+  const key = category || '__all__';
+  const hit = corpusCache.get(key);
+  if (hit && Date.now() - hit.at < CORPUS_TTL_MS) return hit.rows;
+
+  let dbQuery: any = adminDb.collection('directory_listings').where('is_published', '==', true);
+  if (category) dbQuery = dbQuery.where('category', '==', category);
+  const snapshot = await dbQuery.limit(CORPUS_MAX_DOCS).get();
+  const rows = snapshot.docs.map(toRow);
+
+  corpusCache.set(key, { rows, at: Date.now() });
+  // Bound the cache itself: one entry per category plus the all-categories view.
+  if (corpusCache.size > 40) {
+    const oldest = [...corpusCache.entries()].sort((a, b) => a[1].at - b[1].at)[0];
+    if (oldest) corpusCache.delete(oldest[0]);
+  }
+  return rows;
+}
+
 async function fetchDefaultView(): Promise<any[]> {
   const base = adminDb.collection('directory_listings').where('is_published', '==', true);
   const [sponsoredSnap, premiumSnap, featuredSnap, basicSnap] = await Promise.all([
@@ -74,8 +115,23 @@ async function fetchDefaultView(): Promise<any[]> {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const query = searchParams.get('query') || '';
-  const category = searchParams.get('category') || '';
+  // Cap the query length: it is only ever used for an in-memory substring match,
+  // and an enormous string is pure CPU waste on a public endpoint.
+  const query = (searchParams.get('query') || '').slice(0, 100);
+  const category = (searchParams.get('category') || '').slice(0, 60);
+
+  // Public, unauthenticated, and fired on every keystroke pause by the UI — so it
+  // gets a limit. Generous enough that real browsing never trips it.
+  const rl = await checkRateLimit(`directory-search:ip:${getClientIp(request)}`, {
+    max: 120,
+    windowMs: 60 * 1000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please slow down.' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec ?? 30) } }
+    );
+  }
 
   try {
     let results: any[];
@@ -84,14 +140,13 @@ export async function GET(request: NextRequest) {
       results = expireSponsorship(await fetchDefaultView());
       results.sort(compareListings);
     } else {
-      // To support multi-field sorting, we pull the results down and sort in
-      // memory since Firestore requires composite indexes for complex multi-
-      // field orderBys. We also do the text-search filter in memory since
-      // Firestore doesn't support substring match natively.
-      let dbQuery: any = adminDb.collection('directory_listings').where('is_published', '==', true);
-      if (category) dbQuery = dbQuery.where('category', '==', category);
-      const snapshot = await dbQuery.get();
-      results = expireSponsorship(snapshot.docs.map(toRow));
+      // Multi-field sorting and substring matching both have to happen in memory
+      // (Firestore supports neither natively), so this works over a cached,
+      // capped corpus instead of re-reading the collection on every request.
+      // expireSponsorship mutates its input, so copy the cached rows first —
+      // otherwise it would permanently clear is_sponsored in the cache.
+      const corpus = await getSearchCorpus(category);
+      results = expireSponsorship(corpus.map((r) => ({ ...r })));
 
       if (query) {
         const q = query.toLowerCase();
