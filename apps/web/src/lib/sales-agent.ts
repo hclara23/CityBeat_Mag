@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { sendEmail as sendEmailViaProvider } from './email'
@@ -366,8 +367,25 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     return Boolean(doc?.exists)
   }
 
+  // The recovery_outreach doc id is DETERMINISTIC ("upgrade:<listingId>", etc.)
+  // and listing ids are public, so using it as the unsubscribe bearer let anyone
+  // enumerate a sitemap and suppress every business we market to. Each send now
+  // mints a random token; the doc id remains the dedupe key only.
+  const unsubTokens = new Map<string, string>()
+  const tokenFor = (key: string) => {
+    let t = unsubTokens.get(key)
+    if (!t) {
+      t = crypto.randomBytes(18).toString('hex')
+      unsubTokens.set(key, t)
+    }
+    return t
+  }
+
   const record = (key: string, fields: Record<string, unknown>) =>
-    adminDb.collection('recovery_outreach').doc(key).set({ ...fields, created_at: FieldValue.serverTimestamp() })
+    adminDb
+      .collection('recovery_outreach')
+      .doc(key)
+      .set({ ...fields, unsub_token: tokenFor(key), created_at: FieldValue.serverTimestamp() })
 
   // Segment 1: abandoned verifications.
   const stalled = await adminDb
@@ -399,7 +417,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
   <p>${locale === 'es' ? `Empezaste a reclamar <strong>${name}</strong> pero el código expiró.` : `You started claiming <strong>${name}</strong> but the code expired.`}</p>
   <p>${locale === 'es' ? 'Toma un minuto — pide un código nuevo y termina la verificación.' : 'It takes a minute — request a fresh code and finish verifying.'}</p>
   <p style="margin:24px 0"><a href="${url}" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Terminar mi reclamo' : 'Finish my claim'}</a></p>
-  <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(key, 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
+  <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(tokenFor(key), 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false
     if (!opts.dryRun) sent = (await sendEmail(email, subject, html)).sent
     await record(key, { type: 'incomplete_claim', listing_id: c.listing_id, user_id: c.user_id, email, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })
@@ -436,7 +454,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
   <p>${locale === 'es' ? `<strong>${name}</strong> ya está verificado y visible en CityBeat. ¡Bien hecho!` : `<strong>${name}</strong> is verified and live on CityBeat. Nice work!`}</p>
   <p>${locale === 'es' ? 'Con <strong>Premium ($19.99/mes)</strong> recibes cada lead de clientes al instante, añades fotos y horarios, y apareces más arriba en tu categoría.' : 'With <strong>Premium ($19.99/mo)</strong> you get every customer lead instantly, add photos and hours, and rank higher in your category.'}</p>
   <p style="margin:24px 0"><a href="${url}" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Mejorar mi ficha' : 'Upgrade my listing'}</a></p>
-  <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(key, 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
+  <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(tokenFor(key), 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false
     if (!opts.dryRun) sent = (await sendEmail(to, subject, html)).sent
     await record(key, { type: 'basic_upsell', listing_id: doc.id, owner_id: l.owner_id, email: to, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })
@@ -472,7 +490,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
   <p>${locale === 'es' ? `<strong>${name}</strong> sigue en CityBeat, pero sin los beneficios Premium: los leads llegan y no puedes verlos.` : `<strong>${name}</strong> is still on CityBeat — but without Premium, customer leads arrive and you can't see them.`}</p>
   <p>${locale === 'es' ? 'Reactiva Premium ($19.99/mes) y recupera tus leads, fotos y posicionamiento hoy mismo.' : 'Reactivate Premium ($19.99/mo) and get your leads, photos, and placement back today.'}</p>
   <p style="margin:24px 0"><a href="${APP_URL}/${locale}/dashboard" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Reactivar' : 'Reactivate'}</a></p>
-  <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(key, 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
+  <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(tokenFor(key), 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false
     if (!opts.dryRun) sent = (await sendEmail(to, subject, html)).sent
     await record(key, { type: 'winback', listing_id: lDoc.id, subscription_id: doc.id, email: to, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })

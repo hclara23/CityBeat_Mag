@@ -7,6 +7,10 @@ import {
   storePublicSubmissionImage,
 } from '@/lib/public-submission-service'
 import { validatePublicSubmissionImage } from '@/lib/public-submissions'
+// Shared helper: this file used to define its own copy that read the LEFTMOST
+// X-Forwarded-For entry (caller-controlled), leaving its rate limit bypassable
+// with a rotating header even after the shared one was fixed.
+import { getClientIp } from '@/lib/auth-security'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,13 +29,6 @@ function checkRateLimit(ip: string): boolean {
   return true
 }
 
-function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  )
-}
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request)

@@ -3,10 +3,36 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 
 // ── Client IP ────────────────────────────────────────────────────────────────
-// Cloud Run / Firebase Hosting set X-Forwarded-For (client is the first hop).
+// X-Forwarded-For is APPENDED to by each proxy, so the LEFTMOST entry is whatever
+// the caller sent — fully attacker-controlled. Reading entry 0 (the previous
+// behaviour) made every rate limit in the app bypassable with a rotating header:
+// login throttling, checkout, the quote form, and /api/chat, which spends real
+// money on a paid LLM per request.
+//
+// Behind Firebase Hosting → Cloud Run the trailing entries are appended by
+// infrastructure we trust, so we count in from the RIGHT. TRUSTED_PROXY_HOPS is
+// the number of proxies that append after the true client:
+//   [client, ...spoofable..., <hosting>, <run>]
+// Configurable because the chain differs between the CDN domain and the direct
+// run.app origin; default 1 keeps the last infrastructure-appended entry.
+const TRUSTED_PROXY_HOPS = Number(process.env.TRUSTED_PROXY_HOPS ?? 1)
+
 export function getClientIp(request: Request): string {
   const xff = request.headers.get('x-forwarded-for')
-  if (xff) return xff.split(',')[0].trim()
+  if (xff) {
+    const parts = xff
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean)
+    if (parts.length > 0) {
+      // Walk in from the right past the hops we trust; clamp so a short header
+      // (direct hit, or fewer proxies than expected) still yields a real value
+      // rather than falling through to 'unknown' and collapsing every caller
+      // into one shared bucket.
+      const idx = Math.max(0, parts.length - 1 - TRUSTED_PROXY_HOPS)
+      return parts[idx]
+    }
+  }
   return request.headers.get('x-real-ip')?.trim() || 'unknown'
 }
 

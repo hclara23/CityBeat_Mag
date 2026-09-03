@@ -54,6 +54,12 @@ jobs:
       - name: Type check
         run: npm run type-check --workspace=apps/web
 
+      # Gate the deploy on the test suite. Until now tests ran only in a separate
+      # workflow that could not block a release, so a red suite still shipped to
+      # customers. Money, auth and fulfilment logic is covered here.
+      - name: Test
+        run: npm test
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:

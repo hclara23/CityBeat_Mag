@@ -102,6 +102,20 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // GLOBAL spend ceiling, independent of IP. Every request here calls a paid
+  // model, so a per-IP limit alone is not a cost control: anyone who can vary
+  // their apparent IP gets unbounded spend. This caps the whole endpoint per
+  // hour so a bad day is a capped day. Raise CHAT_HOURLY_CAP deliberately as
+  // real usage grows — it is the only hard stop on this bill.
+  const hourlyCap = Number(process.env.CHAT_HOURLY_CAP || 500)
+  const globalRl = await checkRateLimit('chat:global', { max: hourlyCap, windowMs: 60 * 60 * 1000 })
+  if (!globalRl.ok) {
+    return NextResponse.json(
+      { reply: 'The assistant is unusually busy right now — please try again shortly.' },
+      { status: 429, headers: { 'Retry-After': String(globalRl.retryAfterSec ?? 300) } }
+    )
+  }
+
   const body = await req.json().catch(() => ({}))
   // Cap count AND per-message length so a caller can't inflate token cost.
   const messages = (Array.isArray(body.messages) ? body.messages.slice(-12) : []).map((m: any) => ({

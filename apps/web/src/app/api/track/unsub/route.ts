@@ -14,9 +14,12 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   const params = new URL(request.url).searchParams
   const targets: Array<{ collection: string; id: string }> = []
+  // o/u are random Firestore auto-ids, so the doc id is itself an unguessable
+  // bearer. r is NOT: recovery_outreach ids are deterministic ("upgrade:<listingId>")
+  // and listing ids are public, so it is resolved by a random unsub_token field
+  // below instead — never by doc id.
   if (params.get('o')) targets.push({ collection: 'sales_outreach', id: params.get('o')! })
   if (params.get('u')) targets.push({ collection: 'upsell_outreach', id: params.get('u')! })
-  if (params.get('r')) targets.push({ collection: 'recovery_outreach', id: params.get('r')! })
 
   for (const t of targets) {
     try {
@@ -30,19 +33,21 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Unclaimed-relay stream: token → doc lookup (token is random, never derived).
-  const relayToken = params.get('x')
-  if (relayToken && /^[a-f0-9]{24,64}$/i.test(relayToken)) {
+  // Token-addressed streams: look the doc up by a RANDOM unsub_token field.
+  // Both of these collections use deterministic doc ids, so the id must never
+  // serve as the bearer — it would be forgeable from public data.
+  for (const [param, collection] of [
+    ['x', 'unclaimed_relays'],
+    ['r', 'recovery_outreach'],
+  ] as const) {
+    const token = params.get(param)
+    if (!token || !/^[a-f0-9]{24,64}$/i.test(token)) continue
     try {
-      const snap = await adminDb
-        .collection('unclaimed_relays')
-        .where('unsub_token', '==', relayToken)
-        .limit(1)
-        .get()
+      const snap = await adminDb.collection(collection).where('unsub_token', '==', token).limit(1).get()
       if (!snap.empty) {
         const doc = snap.docs[0]
         await doc.ref.set({ status: 'unsubscribed', unsubscribed_at: FieldValue.serverTimestamp() }, { merge: true })
-        await suppress((doc.data() as any).email, 'unsub:unclaimed_relays')
+        await suppress((doc.data() as any).email, `unsub:${collection}`)
       }
     } catch {
       /* ignore */
