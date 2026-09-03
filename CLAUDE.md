@@ -272,6 +272,53 @@ Prod runs on **Google Cloud Run** in GCP project `kerstenblueprint` (region `us-
 
 > Note: the session cookie MUST stay named `__session` — Firebase Hosting strips every other cookie before forwarding to Cloud Run. Symptom of a regression: auth works on the `*.run.app` URL but 401s on `citybeatmag.co`.
 
+### Rollback
+
+Cloud Run keeps every revision. To undo a bad deploy without waiting for a build:
+
+```bash
+gcloud run revisions list --service citybeat-web --region us-central1 --project kerstenblueprint --limit 5
+gcloud run services update-traffic citybeat-web --region us-central1 --project kerstenblueprint \
+  --to-revisions <GOOD_REVISION>=100
+```
+
+### Disaster recovery (Firestore)
+
+Posture: **daily backups** (7d retention) + **weekly** (56d), **PITR enabled** (7-day
+window, ~1 minute granularity), and **delete protection enabled**.
+
+A Firestore restore ALWAYS creates a **NEW** database — it can never overwrite
+`(default)`. The app therefore reads `FIRESTORE_DATABASE_ID` (see
+`packages/lib/src/firebase/admin.ts`); unset it resolves to `(default)`, so
+recovery is a config change, not an emergency code edit:
+
+```bash
+# 1a. Restore from a scheduled backup
+gcloud firestore backups list --location=nam5 --project kerstenblueprint
+gcloud firestore databases restore \
+  --source-backup=projects/kerstenblueprint/locations/nam5/backups/<BACKUP_ID> \
+  --destination-database=citybeat-restored --project kerstenblueprint
+
+# 1b. …or to an exact moment within the last 7 days (PITR)
+gcloud firestore databases restore \
+  --source-database='(default)' --snapshot-time=2026-09-03T14:31:00Z \
+  --destination-database=citybeat-restored --project kerstenblueprint
+
+# 2. Point the live app at it (takes effect on the next revision)
+gcloud run services update citybeat-web --region us-central1 --project kerstenblueprint \
+  --update-env-vars FIRESTORE_DATABASE_ID=citybeat-restored
+
+# 3. To go back: --update-env-vars FIRESTORE_DATABASE_ID='(default)'
+```
+
+What Stripe does NOT hold, and therefore what a restore is actually protecting:
+commission attribution (`payout_user_id`), accrued-but-unpaid `transfers` rows,
+claim ownership, activated tier, and per-order cart amounts. Charges themselves
+can always be re-derived from Stripe; this state cannot.
+
+> Not yet rehearsed end-to-end. A restore creates a second billed database, so do
+> it deliberately: restore, point a *staging* revision at it, verify, delete it.
+
 ## Debugging Tips
 
 ### Worker Logs

@@ -85,10 +85,15 @@ async function getSearchCorpus(category: string): Promise<any[]> {
   const rows = snapshot.docs.map(toRow);
 
   corpusCache.set(key, { rows, at: Date.now() });
-  // Bound the cache itself: one entry per category plus the all-categories view.
-  if (corpusCache.size > 40) {
+  // Bound the cache's own memory. This trades Firestore reads for RAM, so the
+  // ceiling matters on a small container: evict oldest-first past a handful of
+  // entries rather than letting every category slug hold a corpus. (Net effect
+  // is still far LESS memory than before — every concurrent request used to
+  // materialise its own full copy of the collection.)
+  while (corpusCache.size > 12) {
     const oldest = [...corpusCache.entries()].sort((a, b) => a[1].at - b[1].at)[0];
-    if (oldest) corpusCache.delete(oldest[0]);
+    if (!oldest) break;
+    corpusCache.delete(oldest[0]);
   }
   return rows;
 }

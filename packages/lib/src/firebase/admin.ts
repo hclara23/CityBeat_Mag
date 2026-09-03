@@ -45,6 +45,26 @@ if (!getApps().length) {
 }
 
 export const adminAuth = getAuth(app);
-export const adminDb = getFirestore(app);
+
+// DISASTER RECOVERY: a Firestore restore (from a backup or a PITR timestamp)
+// ALWAYS creates a NEW database — it can never overwrite (default). With the
+// database id hardcoded there was no supported way to point the app at restored
+// data, so backups and PITR were unclaimable insurance: the recovery step would
+// have been an emergency code change and deploy, under outage conditions.
+//
+// Recovery is now a config change:
+//   1. gcloud firestore databases restore \
+//        --source-backup=projects/kerstenblueprint/locations/nam5/backups/<ID> \
+//        --destination-database='citybeat-restored'
+//      (or --source-database='(default)' --snapshot-time=<RFC3339> for PITR)
+//   2. gcloud run services update citybeat-web --region us-central1 \
+//        --update-env-vars FIRESTORE_DATABASE_ID=citybeat-restored
+//   3. Verify, then either keep serving from it or restore back.
+//
+// Unset (the normal case) it resolves to '(default)', so this is a no-op today.
+const databaseId = process.env.FIRESTORE_DATABASE_ID?.trim();
+export const adminDb =
+  databaseId && databaseId !== '(default)' ? getFirestore(app, databaseId) : getFirestore(app);
+
 export const adminStorage = getStorage(app);
 export default app;

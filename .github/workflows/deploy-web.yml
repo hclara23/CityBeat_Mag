@@ -75,6 +75,9 @@ jobs:
             --project "$GCP_PROJECT" \
             --region "$GCP_REGION" \
             --update-env-vars ELEVATE_PARTNER_SECRET="$ELEVATE_PARTNER_SECRET" \
+            --memory=2Gi \
+            --cpu=1 \
+            --concurrency=80 \
             --quiet
 
       # Fail the workflow (and page Slack) if the LIVE site is broken after
