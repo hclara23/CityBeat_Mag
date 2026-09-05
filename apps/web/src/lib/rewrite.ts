@@ -5,6 +5,7 @@
 // summary-and-link draft (low copyright risk) rather than copying source text.
 
 import { traceClaude, traceClaudeFailure } from '@/lib/observability'
+import { fetchWithTimeout, FETCH_TIMEOUT_LLM } from './http'
 
 const MODEL = process.env.REWRITE_MODEL || 'claude-haiku-4-5-20251001'
 
@@ -41,7 +42,7 @@ ${input.sourceText || ''}
 </untrusted_source_material>`
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -50,7 +51,7 @@ ${input.sourceText || ''}
         system: SYSTEM,
         messages: [{ role: 'user', content: userPrompt }],
       }),
-    })
+    }, FETCH_TIMEOUT_LLM)
     if (!res.ok) {
       console.error('rewriteSourceArticle anthropic error:', res.status, await res.text().catch(() => ''))
       await traceClaudeFailure('rewrite', userPrompt, `anthropic_http_${res.status}`, { source: input.sourceName })

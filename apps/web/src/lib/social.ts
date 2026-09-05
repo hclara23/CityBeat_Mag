@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from './http'
 // Social auto-poster. No-op until credentials are configured, so it can ship now
 // and "turn on" the moment you add tokens. Implements Facebook Page posting
 // (highest local reach) and Threads (text-first, great for event roundups);
@@ -18,7 +19,7 @@ async function postToFacebook(message: string, link: string): Promise<SocialResu
   const token = process.env.FB_PAGE_ACCESS_TOKEN
   if (!pageId || !token) return { network: 'facebook', status: 'skipped' }
   try {
-    const res = await fetch(`https://graph.facebook.com/${pageId}/feed`, {
+    const res = await fetchWithTimeout(`https://graph.facebook.com/${pageId}/feed`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, link, access_token: token }),
@@ -43,7 +44,7 @@ async function postToThreads(text: string): Promise<SocialResult> {
   const BASE = 'https://graph.threads.net/v1.0'
   try {
     // 1) Create the text container (Threads caps a post at 500 chars).
-    const createRes = await fetch(`${BASE}/${userId}/threads`, {
+    const createRes = await fetchWithTimeout(`${BASE}/${userId}/threads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ media_type: 'TEXT', text: text.slice(0, 500), access_token: token }),
@@ -53,7 +54,7 @@ async function postToThreads(text: string): Promise<SocialResult> {
       return { network: 'threads', status: 'error', error: created?.error?.message || `create HTTP ${createRes.status}` }
     }
     // 2) Publish the container. Small text posts are ready immediately.
-    const pubRes = await fetch(`${BASE}/${userId}/threads_publish`, {
+    const pubRes = await fetchWithTimeout(`${BASE}/${userId}/threads_publish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ creation_id: created.id, access_token: token }),

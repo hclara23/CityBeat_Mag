@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { fetchWithTimeout } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No billing account found for customer portal' }, { status: 404 })
   }
 
-  const response = await fetch('https://api.stripe.com/v1/billing_portal/sessions', {
+  const response = await fetchWithTimeout('https://api.stripe.com/v1/billing_portal/sessions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${stripeSecretKey}`,

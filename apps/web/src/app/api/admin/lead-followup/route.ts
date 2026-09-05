@@ -3,6 +3,7 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { traceClaude, traceClaudeFailure } from '@/lib/observability'
+import { fetchWithTimeout, FETCH_TIMEOUT_LLM } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -62,11 +63,11 @@ Respond with ONLY valid JSON, no markdown fences:
 }`
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model: MODEL, max_tokens: 500, messages: [{ role: 'user', content: prompt }] }),
-    })
+    }, FETCH_TIMEOUT_LLM)
     if (!res.ok) {
       await traceClaudeFailure('lead-followup', prompt, `anthropic_http_${res.status}`, { business })
       return NextResponse.json({ ...fallback, ai: false })

@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from './http'
 // Real event ingestion for the El Paso / Las Cruces / Ciudad Juárez area via the
 // Ticketmaster Discovery API (free tier: https://developer.ticketmaster.com).
 // Env-gated on TICKETMASTER_API_KEY — without it the sync is a clean no-op.
@@ -37,7 +38,7 @@ export async function fetchTicketmasterEvents(): Promise<ScrapedEvent[]> {
     `&latlong=${EL_PASO_LATLONG}&radius=${RADIUS_MILES}&unit=miles` +
     `&size=100&sort=date,asc&startDateTime=${encodeURIComponent(startDateTime)}`
 
-  const res = await fetch(url)
+  const res = await fetchWithTimeout(url)
   if (!res.ok) {
     throw new Error(`Ticketmaster API ${res.status}: ${(await res.text()).slice(0, 300)}`)
   }

@@ -6,6 +6,7 @@
 import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 import { parseJsonLoose } from './definition'
 import type { ExtractedListing } from './types'
+import { fetchWithTimeout, FETCH_TIMEOUT_LLM } from '../http'
 
 const MODEL = process.env.SCRAPEFLOW_MODEL || process.env.CHAT_MODEL || 'claude-haiku-4-5-20251001'
 const MAX_CHUNK_CHARS = 45_000
@@ -20,12 +21,12 @@ async function callClaude(prompt: string, maxTokens: number, traceName: string, 
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) throw new Error('ANTHROPIC_API_KEY is not set — AI extraction nodes are unavailable')
   const started = new Date()
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] }),
     signal: AbortSignal.timeout(120_000),
-  })
+  }, FETCH_TIMEOUT_LLM)
   if (!res.ok) {
     await traceClaudeFailure(traceName, prompt.slice(0, 4000), `anthropic_http_${res.status}`, meta, started).catch(() => {})
     throw new Error(`Anthropic HTTP ${res.status}`)

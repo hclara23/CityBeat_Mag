@@ -2,6 +2,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { sendEmail } from './email'
 import { traceClaude, traceClaudeFailure } from '@/lib/observability'
+import { fetchWithTimeout, FETCH_TIMEOUT_LLM } from './http'
 
 // The AI account manager: every paying (premium/featured) listing gets weekly
 // marketing work product — a suggested deal, social captions, and drafted
@@ -39,11 +40,11 @@ Produce marketing work in ${lang}. Respond with ONLY valid JSON, no markdown fen
 }`
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model: MODEL, max_tokens: 900, messages: [{ role: 'user', content: prompt }] }),
-    })
+    }, FETCH_TIMEOUT_LLM)
     if (!res.ok) {
       await traceClaudeFailure('account-manager', prompt, `anthropic_http_${res.status}`, { business: listing.name })
       return null

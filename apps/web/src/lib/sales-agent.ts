@@ -6,6 +6,7 @@ import { isSuppressed } from './suppression'
 import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 import { getCronCursor, setCronCursor } from './cron-cursor'
 import { DIRECTORY_PLANS } from './pricing'
+import { fetchWithTimeout, FETCH_TIMEOUT_LLM } from './http'
 
 // Premium price pulled from the single pricing source of truth so the outbound
 // pitch can never quote a number different from what checkout actually charges
@@ -196,7 +197,7 @@ async function enhanceWithClaude(listing: Listing, base: ReturnType<typeof templ
   const key = process.env.ANTHROPIC_API_KEY
   if (!key) return base
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'x-api-key': key,
@@ -213,7 +214,7 @@ async function enhanceWithClaude(listing: Listing, base: ReturnType<typeof templ
           },
         ],
       }),
-    })
+    }, FETCH_TIMEOUT_LLM)
     if (!res.ok) {
       await traceClaudeFailure('sales-agent.pitch', { business: listing.name, category: listing.category, locale }, `anthropic_http_${res.status}`, { business: listing.name })
       return base

@@ -613,15 +613,34 @@ async function handleCheckoutCompleted(session: any) {
   }
   if (provisionMeta.productId && provisionMeta.type) {
     const now = new Date().toISOString()
-    if (provisionMeta.type === 'job') {
-      const expires = new Date(Date.now() + 30 * 86400000).toISOString()
-      await adminDb.collection('jobs').doc(provisionMeta.productId).set(
-        { is_active: true, is_paid: true, status: 'published', payment_status: 'paid', published_at: now, expires_at: expires }, { merge: true }
-      )
-    } else if (provisionMeta.type === 'ad_campaign') {
-      await adminDb.collection('campaigns').doc(provisionMeta.productId).set(
-        { is_active: true, status: 'running', payment_status: 'paid', published_at: now }, { merge: true }
-      )
+    const collection = provisionMeta.type === 'job' ? 'jobs' : provisionMeta.type === 'ad_campaign' ? 'campaigns' : null
+    // Only ever UPDATE an existing draft. set({merge:true}) creates the document
+    // when it is absent, so a payer supplying an arbitrary id could inject a
+    // published record straight into a public collection. update() rejects a
+    // missing document instead — and a paid session with nothing to fulfil is a
+    // real anomaly, so it alerts rather than failing silently. Revenue is still
+    // recorded below either way, so the money is never lost from the ledger.
+    if (collection && /^[A-Za-z0-9_-]{1,128}$/.test(provisionMeta.productId)) {
+      const patch =
+        provisionMeta.type === 'job'
+          ? {
+              is_active: true,
+              is_paid: true,
+              status: 'published',
+              payment_status: 'paid',
+              published_at: now,
+              expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+            }
+          : { is_active: true, status: 'running', payment_status: 'paid', published_at: now }
+      try {
+        await adminDb.collection(collection).doc(provisionMeta.productId).update(patch)
+      } catch {
+        await reportFailure(
+          'stripe-provisioning',
+          new Error(`Paid ${provisionMeta.type} could not be provisioned — no such draft`),
+          { session_id: session.id, product_id: provisionMeta.productId, type: provisionMeta.type }
+        ).catch(() => {})
+      }
     }
 
     // This branch returns early, so it must record revenue and commission

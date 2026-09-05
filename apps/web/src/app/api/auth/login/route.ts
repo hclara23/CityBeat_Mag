@@ -4,6 +4,7 @@ import { adminAuth, adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit, clearRateLimit } from '@/lib/auth-security'
 import { resolvePlatformCapabilities } from '@citybeat/lib/roles'
+import { fetchWithTimeout, FETCH_TIMEOUT_FAST } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,13 +68,14 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. Verify credentials via Firebase REST.
-    const signInRes = await fetch(
+    const signInRes = await fetchWithTimeout(
       `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, returnSecureToken: true }),
-      }
+      },
+      FETCH_TIMEOUT_FAST
     )
     const signInData = await signInRes.json()
 

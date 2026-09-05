@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { fetchWithTimeout, FETCH_TIMEOUT_LLM } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -125,11 +126,11 @@ export async function GET(request: NextRequest) {
           const full = await stripe.events.retrieve(item.id)
           const payload = JSON.stringify(full)
           const signature = stripe.webhooks.generateTestHeaderString({ payload, secret: webhookSecret })
-          const res = await fetch(`${APP_URL}/api/stripe/webhook`, {
+          const res = await fetchWithTimeout(`${APP_URL}/api/stripe/webhook`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'stripe-signature': signature },
             body: payload,
-          })
+          }, FETCH_TIMEOUT_LLM)
           if (res.ok) replayed++
           else replayFailed++
         } catch {

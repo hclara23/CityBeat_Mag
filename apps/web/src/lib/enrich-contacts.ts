@@ -1,5 +1,6 @@
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getCronCursor, setCronCursor } from './cron-cursor'
+import { fetchWithTimeout } from './http'
 
 // Backfills contact data for directory listings so the sales agent can reach them.
 // Strategy: Google Places Details (place_id → website + phone) when GOOGLE_PLACES_API_KEY
@@ -44,7 +45,7 @@ async function findPlaceId(query: string): Promise<string | null> {
   if (!key || !query.trim()) return null
   try {
     const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=place_id&key=${key}`
-    const res = await fetch(url)
+    const res = await fetchWithTimeout(url)
     if (!res.ok) return null
     const data: any = await res.json()
     return data?.candidates?.[0]?.place_id || null
@@ -60,7 +61,7 @@ async function placesDetails(query: string): Promise<{ website?: string; phone?:
   if (!placeId) return null
   try {
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=website,formatted_phone_number,international_phone_number&key=${key}`
-    const res = await fetch(url)
+    const res = await fetchWithTimeout(url)
     if (!res.ok) return null
     const data: any = await res.json()
     const r = data?.result || {}

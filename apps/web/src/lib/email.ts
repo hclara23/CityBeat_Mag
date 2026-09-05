@@ -4,6 +4,29 @@
 
 const DEFAULT_FROM = process.env.SALES_FROM_EMAIL || 'CityBeat <hello@citybeatmag.co>'
 
+// Every send is hard-bounded. This function is awaited from inside the Stripe
+// webhook, where Stripe gives us ~30s before it calls the delivery a failure and
+// retries. An SMTP socket with no timeout blocks for the OS default (minutes),
+// so a slow mail host used to be able to stall fulfilment of a real payment.
+// Email is a notification; it must never be able to hold a payment open.
+const SEND_TIMEOUT_MS = Number(process.env.EMAIL_TIMEOUT_MS) || 10_000
+
+function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label}_timeout_${ms}ms`)), ms)
+    work.then(
+      (v) => {
+        clearTimeout(timer)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(timer)
+        reject(e)
+      }
+    )
+  })
+}
+
 function parseFrom(from: string): { email: string; name?: string } {
   const m = from.match(/^\s*(.*?)\s*<([^>]+)>\s*$/)
   return m ? { name: m[1] || undefined, email: m[2] } : { email: from.trim() }
@@ -24,6 +47,10 @@ async function getSmtpTransport() {
     port,
     secure: port === 465,
     auth: { user, pass },
+    // Without these nodemailer inherits the OS socket timeout (minutes).
+    connectionTimeout: SEND_TIMEOUT_MS,
+    greetingTimeout: SEND_TIMEOUT_MS,
+    socketTimeout: SEND_TIMEOUT_MS,
   })
   return smtpTransport
 }
@@ -34,10 +61,18 @@ export async function sendEmail(
   html: string,
   from: string = DEFAULT_FROM
 ): Promise<{ sent: boolean; error?: string }> {
-  const smtp = await getSmtpTransport()
+  // A failure to *build* the transport falls through to the next provider; a
+  // failure to *send* over a configured SMTP host does not, because that host is
+  // the domain-authenticated sender and silently rerouting would hurt delivery.
+  let smtp: any = null
+  try {
+    smtp = await withTimeout(getSmtpTransport(), SEND_TIMEOUT_MS, 'smtp_connect')
+  } catch {
+    smtp = null
+  }
   if (smtp) {
     try {
-      await smtp.sendMail({ from, to, subject, html })
+      await withTimeout(smtp.sendMail({ from, to, subject, html }), SEND_TIMEOUT_MS, 'smtp')
       return { sent: true }
     } catch (e: any) {
       return { sent: false, error: e?.message || 'smtp_failed' }
@@ -50,6 +85,7 @@ export async function sendEmail(
       const parsed = parseFrom(from)
       const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
+        signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
         headers: { Authorization: `Bearer ${sg}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           personalizations: [{ to: [{ email: to }] }],
@@ -70,6 +106,7 @@ export async function sendEmail(
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
+        signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
         headers: { Authorization: `Bearer ${resend}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ from, to, subject, html }),
       })

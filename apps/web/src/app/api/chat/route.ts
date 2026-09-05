@@ -6,6 +6,7 @@ import { retrieveLocalContext } from '@/lib/concierge'
 import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 import { SALES_PRODUCT_ORDER, SALES_PRODUCTS } from '@/lib/sales-products'
 import { isSelfServeCartEligible } from '@/lib/cart'
+import { fetchWithTimeout, FETCH_TIMEOUT_LLM } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
         system += `\n\nCURRENT PAGE: the user is on ${currentPath} right now. If it is a business page (/directory/<id>), that <id> is the listing they are looking at — use it for the owner-catcher play below.`
       }
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -158,7 +159,7 @@ export async function POST(req: NextRequest) {
           system,
           messages: userMsgs.map((m: any) => ({ role: m.role, content: m.content })),
         }),
-      })
+      }, FETCH_TIMEOUT_LLM)
       if (!res.ok) {
         await traceClaudeFailure('concierge.chat', userMsgs, `anthropic_http_${res.status}`, { hasContext: Boolean(context) })
         throw new Error(`anthropic_${res.status}`)
