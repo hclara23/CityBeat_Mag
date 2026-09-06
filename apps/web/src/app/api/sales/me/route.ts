@@ -3,6 +3,7 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { checkoutLinkState } from '@/lib/checkout-recovery'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { scanCollection } from '@/lib/firestore-scan'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,14 +24,30 @@ export async function GET() {
   if (!hasSalesAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
-    const [ordersSnapshot, listingsSnapshot, transfersSnapshot] = await Promise.all([
+    // This route used to read the ENTIRE transfers ledger — every rep's every
+    // share — on every load of one rep's own Sales Desk, and hold all of it in
+    // memory. It grows with total sales volume forever. Two things needed it:
+    // the rep's own commission, which is a filtered query, and the leaderboard,
+    // which only ever looks at `paid` rows and can be streamed.
+    const byRep = new Map<string, number>()
+    const [ordersSnapshot, listingsSnapshot, myTransfersSnapshot] = await Promise.all([
       adminDb.collection('sales_orders').where('sold_by', '==', user.id).get().catch(() => ({ docs: [] as any[] })),
       adminDb.collection('directory_listings').where('sold_by_rep', '==', user.id).get().catch(() => ({ docs: [] as any[] })),
-      adminDb.collection('transfers').get().catch(() => ({ docs: [] as any[] })),
+      adminDb
+        .collection('transfers')
+        .where('payee_user_id', '==', user.id)
+        .get()
+        .catch(() => ({ docs: [] as any[] })),
+      scanCollection(adminDb.collection('transfers').where('status', '==', 'paid'), (document) => {
+        const row = document.data() as any
+        if (!row.payee_user_id) return
+        byRep.set(row.payee_user_id, (byRep.get(row.payee_user_id) || 0) + (Number(row.amount) || 0))
+      }).catch(() => ({ scanned: 0, truncated: false })),
     ])
 
-    const transfers = (transfersSnapshot.docs as any[]).map((document) => ({ id: document.id, ...document.data() }))
-    const myPaidTransfers = transfers.filter((transfer) => transfer.payee_user_id === user.id && transfer.status === 'paid')
+    const myPaidTransfers = (myTransfersSnapshot.docs as any[])
+      .map((document) => ({ id: document.id, ...document.data() }))
+      .filter((transfer) => transfer.status === 'paid')
     const commissionBySource = new Map<string, number>()
     for (const transfer of myPaidTransfers) {
       if (!transfer.source_payment) continue
@@ -107,11 +124,6 @@ export async function GET() {
     const deals = [...orders, ...legacyDeals].sort((a, b) => b.created_at - a.created_at)
     const paidDeals = deals.filter((deal) => deal.payment_status === 'paid')
 
-    const byRep = new Map<string, number>()
-    for (const transfer of transfers) {
-      if (transfer.status !== 'paid' || !transfer.payee_user_id) continue
-      byRep.set(transfer.payee_user_id, (byRep.get(transfer.payee_user_id) || 0) + (Number(transfer.amount) || 0))
-    }
     const top = [...byRep.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)
     const names = new Map<string, string>()
     await Promise.all(
