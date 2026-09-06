@@ -58,7 +58,12 @@ function placesTemplate(opts: {
     key: opts.key,
     name: opts.name,
     description: opts.description,
-    enabled: true,
+    // Every Places template is seeded DISABLED. Its output is Google Maps
+    // Platform Content, which the directory sink now refuses to store, so an
+    // enabled one would only burn Places API quota producing rows that are then
+    // thrown away. The executor refuses too (executors.ts), which is what covers
+    // the workflows already seeded into Firestore with enabled:true.
+    enabled: false,
     interval_hours: opts.intervalHours ?? 24,
     definition: {
       nodes: [
@@ -154,7 +159,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Google Places — electrical contractors (residential · commercial · industrial)',
     description:
       'Places text search across El Paso / Doña Ana sub-areas for electrical contractors, residential electricians, commercial and industrial electrical contractors. 55 queries, 10 per run (rotating), up to 60 results each; phone + website via Place Details; real place ids; multi-location brands consolidated.',
-    enabled: true,
+    enabled: false, // Google Places ingest disabled - see executors.ts
     interval_hours: 24,
     definition: {
       nodes: [
@@ -168,7 +173,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Google Places — automation & control systems integrators',
     description:
       'Places text search for industrial automation companies, control/automation systems integrators, PLC/SCADA, instrumentation, robotics and building-automation firms in El Paso, Las Cruces and Santa Teresa. 32 queries, 8 per run (rotating).',
-    enabled: true,
+    enabled: false, // Google Places ingest disabled - see executors.ts
     interval_hours: 24,
     definition: {
       nodes: [
@@ -182,7 +187,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Google Places — industrial supply companies',
     description:
       'Places text search for industrial supply, electrical supply, industrial equipment, bearings/power transmission, fasteners, welding, hydraulic/pneumatic, MRO, safety, wire & cable and industrial tool suppliers. 44 queries, 8 per run (rotating).',
-    enabled: true,
+    enabled: false, // Google Places ingest disabled - see executors.ts
     interval_hours: 24,
     definition: {
       nodes: [

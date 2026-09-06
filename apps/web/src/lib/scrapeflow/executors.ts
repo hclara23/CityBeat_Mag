@@ -472,6 +472,23 @@ const mapJsonToListings: ExecutorFn = async (env) => {
 }
 
 const searchGooglePlaces: ExecutorFn = async (env) => {
+  // DISABLED. Every row this produces is Google Maps Platform Content, and the
+  // directory sink now refuses to persist it (see google-content.ts): storing
+  // Places fields indefinitely breaches the No-Caching term, and publishing them
+  // as a searchable business directory breaches No-Re-Creating-Google-Features.
+  //
+  // Left in place rather than deleted so an already-seeded workflow in Firestore
+  // fails loudly here instead of silently burning Places API quota to produce
+  // rows the sink then throws away. Disabling the templates alone would not have
+  // stopped the workflows already seeded into scrapeflow_workflows.
+  //
+  // Re-enabling this needs a licensing answer, not a code change.
+  if (process.env.ALLOW_GOOGLE_PLACES_INGEST !== 'true') {
+    env.log.error(
+      'SEARCH_GOOGLE_PLACES is disabled: its output is Google Maps Platform Content and the directory sink refuses to store it. This workflow should be disabled.'
+    )
+    return false
+  }
   const all = parseJsonArray(env.getInput('Queries')).map(String).map((s) => s.trim()).filter(Boolean)
   if (!all.length) {
     env.log.error('Queries is required')
