@@ -68,7 +68,16 @@ jobs:
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v3
 
-      - name: Deploy to Cloud Run (source build)
+      # Deploy WITHOUT taking traffic. Every push used to go straight to 100% of
+      # paying customers and only then get smoke-tested — so the first person to
+      # meet a broken release was a customer, and a failed smoke test did nothing
+      # about it: it turned the workflow red and left the bad revision serving.
+      #
+      # --no-traffic + --tag gives the new revision its own URL while the previous
+      # one keeps serving. That is the canary this pipeline never had, and it is
+      # free: Cloud Run bills per request, and an untrafficked revision gets none.
+      - name: Deploy candidate revision (no traffic)
+        id: candidate
         run: |
           gcloud run deploy "$SERVICE" \
             --source . \
@@ -78,21 +87,82 @@ jobs:
             --memory=2Gi \
             --cpu=1 \
             --concurrency=80 \
+            --no-traffic \
+            --tag candidate \
             --quiet
 
-      # Fail the workflow (and page Slack) if the LIVE site is broken after
-      # deploy — build success alone doesn't prove the app serves traffic.
-      - name: Post-deploy smoke test
+          # Record what is serving RIGHT NOW, before anything is promoted — this
+          # is the rollback target if the live check below fails.
+          LIVE_REVISION=$(gcloud run services describe "$SERVICE" \
+            --project "$GCP_PROJECT" --region "$GCP_REGION" \
+            --format='value(status.traffic.filter("percent:100").extract(revisionName))' | tr -d '[]')
+          CANDIDATE_URL=$(gcloud run services describe "$SERVICE" \
+            --project "$GCP_PROJECT" --region "$GCP_REGION" \
+            --format='value(status.traffic.filter("tag:candidate").extract(url))' | tr -d '[]')
+          echo "candidate_url=$CANDIDATE_URL" >> "$GITHUB_OUTPUT"
+          echo "live_revision=$LIVE_REVISION" >> "$GITHUB_OUTPUT"
+          echo "Candidate URL: $CANDIDATE_URL"
+          echo "Currently serving: $LIVE_REVISION"
+
+      # Smoke test the candidate BEFORE it can reach a customer. A failure here
+      # simply never promotes it — the previous revision keeps serving, so there
+      # is nothing to roll back and no customer ever saw the bad build.
+      - name: Smoke test the candidate
         run: |
-          sleep 15
+          URL="${{ steps.candidate.outputs.candidate_url }}"
+          if [ -z "$URL" ]; then echo "No candidate URL resolved"; exit 1; fi
+          sleep 10
+          fail=0
+          for path in "/en" "/es" "/en/directory" "/api/health"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL$path")
+            echo "GET $path -> $code"
+            [ "$code" = "200" ] || { echo "  FAILED (expected 200)"; fail=1; }
+          done
+          # A garbage locale must 404 — not 500, and above all not 200. Both
+          # regressions actually shipped: /xx/directory rendered the entire site
+          # under a junk prefix, and /xx returned a 500 that buried real errors.
+          for path in "/xx" "/xx/directory" "/definitely-not-a-page"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL$path")
+            echo "GET $path -> $code"
+            [ "$code" = "404" ] || { echo "  FAILED (expected 404)"; fail=1; }
+          done
+          exit $fail
+
+      # Only now does a paying customer see it.
+      - name: Promote candidate to 100% traffic
+        run: |
+          gcloud run services update-traffic "$SERVICE" \
+            --project "$GCP_PROJECT" --region "$GCP_REGION" \
+            --to-latest --quiet
+          echo "Promoted. Previous revision was ${{ steps.candidate.outputs.live_revision }}"
+
+      # Belt and braces: verify through the CDN on the real hostname, which the
+      # tagged URL bypasses. If THIS fails the bad revision is already live, so
+      # roll traffic back to whatever was serving before this run instead of
+      # leaving it broken and merely turning the workflow red.
+      - name: Verify live, auto-rollback on failure
+        run: |
+          sleep 10
+          fail=0
           for path in "/en" "/en/directory" "/api/health"; do
             code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://citybeatmag.co$path")
             echo "GET $path -> $code"
-            if [ "$code" != "200" ]; then
-              echo "Smoke test FAILED on $path (got $code)"
-              exit 1
-            fi
+            [ "$code" = "200" ] || fail=1
           done
+          if [ "$fail" != "0" ]; then
+            PREV="${{ steps.candidate.outputs.live_revision }}"
+            echo "LIVE VERIFICATION FAILED"
+            if [ -n "$PREV" ]; then
+              echo "Rolling back to $PREV"
+              gcloud run services update-traffic "$SERVICE" \
+                --project "$GCP_PROJECT" --region "$GCP_REGION" \
+                --to-revisions "$PREV=100" --quiet
+              echo "Rolled back to $PREV"
+            else
+              echo "No previous revision recorded — CANNOT auto-roll-back, needs a human NOW"
+            fi
+            exit 1
+          fi
 
       # Slack notifications are optional: skipped cleanly when no webhook secret
       # is configured (previously the step errored with "Need to provide at

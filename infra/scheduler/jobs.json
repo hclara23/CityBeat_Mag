@@ -1,0 +1,330 @@
+{
+  "project": "kerstenblueprint",
+  "location": "us-central1",
+  "note": "Captured from live on 2026-09-06. Authorization header values are NEVER stored here.",
+  "jobs": [
+    {
+      "name": "citybeat-account-manager",
+      "schedule": "30 9 * * 3",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/account-manager",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "300s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-auto-articles",
+      "schedule": "30 6,11,15,19 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/auto-articles?limit=2",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "320s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-checkout-recovery",
+      "schedule": "30 7 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/checkout-recovery?limit=200",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "300s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-directory-ingest",
+      "schedule": "0 2 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/directory-ingest",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "600s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-enrich-contacts",
+      "schedule": "0 3 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/enrich-contacts",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "600s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-ghost-reports",
+      "schedule": "0 10 5 * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/ghost-reports?limit=25",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "180s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-newsletter-digest",
+      "schedule": "0 8 * * 5",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/newsletter-digest",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "600s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-ops-digest",
+      "schedule": "0 8 * * 1",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/ops-digest",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "300s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-owner-reports",
+      "schedule": "0 9 1 * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/owner-reports",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "300s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-payout-cycle",
+      "schedule": "0 9 1,15 * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/payout-cycle",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "600s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-reconcile-orders",
+      "schedule": "0 3 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/reconcile-orders?hours=72",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "180s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-reconcile-payouts",
+      "schedule": "0 1 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/reconcile-payouts?limit=50",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "600s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-referrals",
+      "schedule": "30 0 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/referrals",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "600s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-sales-agent",
+      "schedule": "0 9 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/sales-agent?limit=20",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "600s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-scrapeflow",
+      "schedule": "30 2 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/scrapeflow?limit=3",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "600s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-social",
+      "schedule": "0 11 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/social?limit=5",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "600s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-sync-events",
+      "schedule": "0 4 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/sync-events",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "600s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-translate-listings",
+      "schedule": "0 5 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/translate-listings?limit=40",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "300s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-upsell",
+      "schedule": "0 10 * * 2",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/upsell?limit=20",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "600s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    }
+  ]
+}
