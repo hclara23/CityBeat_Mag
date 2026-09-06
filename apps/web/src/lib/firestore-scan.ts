@@ -1,3 +1,4 @@
+import { FieldPath } from 'firebase-admin/firestore'
 import type { Query, QueryDocumentSnapshot } from 'firebase-admin/firestore'
 
 /**
@@ -27,12 +28,37 @@ export async function scanCollection(
   const pageSize = Math.max(1, options.pageSize ?? 500)
   const cap = Math.max(0, options.cap ?? 50_000)
 
+  // Order EXPLICITLY by document id. Firestore does apply an implicit __name__
+  // ordering, and startAfter(snapshot) would pick it up — but a cursor whose
+  // ordering is implied is exactly the kind of thing that pages correctly in
+  // testing and silently skips or repeats rows against a real index. The
+  // production payout cycle already pairs startAfter with an explicit orderBy;
+  // this matches it. An equality filter plus orderBy(__name__) is served by
+  // Firestore's automatic single-field index, so this needs no composite index.
+  //
+  // The helper is therefore for UNORDERED full scans; a query that carries its
+  // own orderBy must not be passed here.
   let cursor: QueryDocumentSnapshot | null = null
   let scanned = 0
+  let ordered = true
+
+  const buildPage = (): Query => {
+    // If the explicit ordering is ever rejected, fall back to the implicit form
+    // rather than failing the whole page. Losing the ordering guarantee is bad;
+    // 500ing the operator's finance dashboard is worse.
+    const base = ordered ? query.orderBy(FieldPath.documentId()) : query
+    return cursor ? base.startAfter(cursor).limit(pageSize) : base.limit(pageSize)
+  }
 
   while (scanned < cap) {
-    const page: Query = cursor ? query.startAfter(cursor).limit(pageSize) : query.limit(pageSize)
-    const snap = await page.get()
+    let snap
+    try {
+      snap = await buildPage().get()
+    } catch (error) {
+      if (!ordered) throw error
+      ordered = false
+      snap = await buildPage().get()
+    }
     if (snap.empty) return { scanned, truncated: false }
     for (const doc of snap.docs) {
       visit(doc)

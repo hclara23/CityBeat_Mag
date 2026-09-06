@@ -7,11 +7,18 @@ import { TopN, scanCollection } from './firestore-scan'
 // bounded, so what matters is that they see every document and that the "most
 // recent N" they hand back is the same list a full sort would have produced.
 
-// A Firestore Query stub: pages through a fixed array via limit/startAfter.
-function fakeQuery(ids: string[]) {
+// A Firestore Query stub: pages through a fixed array via orderBy/limit/
+// startAfter. `orderBy` is required — the scan orders explicitly by document id
+// rather than relying on Firestore's implicit key order — and `onOrderBy` lets a
+// test make it throw, to exercise the fallback path.
+function fakeQuery(ids: string[], onOrderBy?: () => void) {
   const make = (offset: number, size: number | null) => {
     const slice = size === null ? ids.slice(offset) : ids.slice(offset, offset + size)
-    return {
+    const self: any = {
+      orderBy() {
+        onOrderBy?.()
+        return self
+      },
       limit(n: number) {
         return make(offset, n)
       },
@@ -23,6 +30,7 @@ function fakeQuery(ids: string[]) {
         return { empty: docs.length === 0, docs }
       },
     }
+    return self
   }
   return make(0, null) as any
 }
@@ -101,4 +109,22 @@ test('an undated row sorts last instead of displacing a real one', () => {
   top.add('2026-01-01', 'january')
   top.add('2026-02-02', 'february')
   assert.deepEqual(top.values(), ['february', 'january'])
+})
+
+test('an ordering the backend rejects falls back instead of failing the page', () => {
+  // 500ing the operator's finance dashboard is worse than losing the ordering
+  // guarantee, so a rejected orderBy retries the same page unordered.
+  const ids = Array.from({ length: 25 }, (_, i) => `d${i}`)
+  let calls = 0
+  const query = fakeQuery(ids, () => {
+    calls++
+    throw new Error('index required')
+  })
+  const seen: string[] = []
+  return scanCollection(query, (d) => seen.push(d.id), { pageSize: 10 }).then((res) => {
+    assert.equal(res.scanned, 25)
+    assert.equal(new Set(seen).size, 25)
+    // Tried the ordered form once, then stopped trying.
+    assert.equal(calls, 1)
+  })
 })
