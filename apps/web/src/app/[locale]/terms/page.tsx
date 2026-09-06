@@ -49,7 +49,7 @@ const copy = {
       },
       {
         heading: '9. Refunds',
-        text: 'Refund requests are reviewed by a person — email hello@citybeatmag.co and tell us what happened. A refund reverses what it paid for: a refunded directory subscription returns the listing to the Basic tier, and a refunded advertising placement is taken down. If you believe a charge is wrong, please contact us before disputing it with your bank; we can usually resolve it faster than a dispute can.',
+        text: 'Refund requests are reviewed by a person — use the contact page at /contact, or email hello@citybeatmag.co, and tell us what happened. Anything about a payment is treated as urgent. A refund reverses what it paid for: a refunded directory subscription returns the listing to the Basic tier, and a refunded advertising placement is taken down. If you believe a charge is wrong, please contact us before disputing it with your bank; we can usually resolve it faster than a dispute can.',
       },
       {
         heading: '10. Directory Listings and Claims',
@@ -110,7 +110,7 @@ const copy = {
       },
       {
         heading: '9. Reembolsos',
-        text: 'Las solicitudes de reembolso las revisa una persona: escriba a hello@citybeatmag.co y cuéntenos qué pasó. Un reembolso revierte lo que pagó: una suscripción del directorio reembolsada devuelve la ficha al plan Básico, y una colocación publicitaria reembolsada se retira. Si cree que un cargo es incorrecto, contáctenos antes de disputarlo con su banco; normalmente podemos resolverlo más rápido que una disputa.',
+        text: 'Las solicitudes de reembolso las revisa una persona: use la página de contacto en /contact, o escriba a hello@citybeatmag.co, y cuéntenos qué pasó. Todo lo relacionado con un pago se trata como urgente. Un reembolso revierte lo que pagó: una suscripción del directorio reembolsada devuelve la ficha al plan Básico, y una colocación publicitaria reembolsada se retira. Si cree que un cargo es incorrecto, contáctenos antes de disputarlo con su banco; normalmente podemos resolverlo más rápido que una disputa.',
       },
       {
         heading: '10. Fichas del Directorio y Reclamaciones',

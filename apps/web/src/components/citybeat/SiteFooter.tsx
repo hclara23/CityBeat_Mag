@@ -65,12 +65,20 @@ export function SiteFooter({ locale = 'en' }: { locale?: string }) {
               {/* The only contact affordance in the site chrome used to be the
                   ADVERTISING address, so a paying customer with a billing
                   problem had nowhere obvious to write — and the move after
-                  "nobody answered" is a card dispute. Support is named here in
-                  both languages, and the address is shown as text (not just as
-                  a mailto label) so it can be copied on a phone or a desktop
-                  with no mail handler configured. */}
-              <a href="mailto:support@citybeatmag.co" className="hover:text-brand-neon">
-                {locale === 'es' ? 'Soporte' : 'Support'} · support@citybeatmag.co
+                  "nobody answered" is a card dispute.
+                  The page is primary rather than a mailto because four different
+                  addresses are published across this site and there is no way for
+                  a customer to tell which are monitored; a message landing in an
+                  unread mailbox looks exactly like being ignored. The form stores
+                  it before anything else can fail and escalates anything about a
+                  payment. The address stays visible underneath as plain text, for
+                  anyone who would rather use their own mail client — or is on a
+                  device with no mail handler configured. */}
+              <Link href={withLocale(locale, '/contact')} className="hover:text-brand-neon">
+                {locale === 'es' ? 'Soporte — contáctanos' : 'Support — contact us'}
+              </Link>
+              <a href="mailto:hello@citybeatmag.co" className="hover:text-brand-neon">
+                hello@citybeatmag.co
               </a>
               {/* Billing is the two-click cancellation path the billing terms
                   promise (BILLING_TERMS_*.cancel). It was reachable only from

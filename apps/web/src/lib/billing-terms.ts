@@ -31,7 +31,7 @@ export const BILLING_TERMS_EN: BillingTermsCopy = {
   cancel: 'Cancel any time from Billing in your dashboard — it takes a couple of clicks, no email required.',
   whatHappens:
     'Cancelling stops future charges. You keep everything you paid for until the end of the period you have already paid, and the listing then returns to the free Basic tier.',
-  refunds: 'Need a refund? Email hello@citybeatmag.co and a person will look at it.',
+  refunds: 'Need a refund, or think a charge is wrong? Use the contact page (/contact) or email hello@citybeatmag.co — a person reads it, and anything about a payment is treated as urgent.',
 }
 
 export const BILLING_TERMS_ES: BillingTermsCopy = {
@@ -40,7 +40,7 @@ export const BILLING_TERMS_ES: BillingTermsCopy = {
   cancel: 'Cancela cuando quieras desde Facturación en tu panel — son dos clics, sin necesidad de escribir un correo.',
   whatHappens:
     'Al cancelar dejamos de cobrarte. Conservas todo lo que pagaste hasta que termine el periodo ya pagado, y después la ficha vuelve al plan Básico gratuito.',
-  refunds: '¿Necesitas un reembolso? Escribe a hello@citybeatmag.co y una persona lo revisará.',
+  refunds: '¿Necesitas un reembolso o crees que un cargo está mal? Usa la página de contacto (/contact) o escribe a hello@citybeatmag.co — una persona lo lee, y todo lo relacionado con un pago se trata como urgente.',
 }
 
 export function billingTerms(locale: string | undefined): BillingTermsCopy {
