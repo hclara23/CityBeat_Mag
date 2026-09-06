@@ -216,12 +216,24 @@ export const ARTICLE_LIST_FIELDS: string[] = [
 
 // Hard backstop so an unbounded collection can never OOM the container, in the
 // spirit of CORPUS_MAX_DOCS in api/directory/route.ts. Well above current
-// inventory. There is no orderBy on this query (an ordered + limited one would
-// need a `status` + `published_at` composite index in firestore.indexes.json),
-// so past the cap Firestore returns an arbitrary doc-id-ordered subset — if it
-// is ever reached the list needs that index, not a bigger number here.
+// inventory.
+//
+// The query IS ordered now — the (status, published_at) composite index this
+// needs is in firestore.indexes.json — so hitting the cap drops the OLDEST
+// articles rather than an arbitrary doc-id-ordered subset. That is the
+// difference between a truncated list that still shows today's news and one
+// that shows a random slice of the archive.
 const LIST_SCAN_CAP = 5000
-const LIST_TTL_MS = 60 * 1000
+
+// Every caller shares one cache, so the read cost is per cache MISS, not per
+// request: articles_count x (3600 / TTL) x warm instances per hour, and
+// Firestore bills per document read regardless of projection. At 60s that is 60
+// full scans an hour per instance for a corpus that changes a few times a day.
+//
+// 3 minutes is the trade: an editor publishing an article waits up to that long
+// to see it on the homepage, and the read bill drops threefold. A shorter TTL
+// would be buying immediacy nobody asked for with the only cost that scales.
+const LIST_TTL_MS = 3 * 60 * 1000
 // Ceiling on the excerpt backfill below, sized to the largest limit any list
 // caller passes (60, on /stories and /topics). Without it a caller that asks for
 // no limit at all (the newsletter and social crons) could turn the backfill back
@@ -238,14 +250,25 @@ const byPublishedDesc = (a: Article, b: Article) => (b.publishedAt > a.published
 
 async function fetchPublishedList(): Promise<Article[]> {
   const { catMap, authorMap } = await loadLookups()
-  // Still no orderBy — see LIST_SCAN_CAP. Sorting stays in memory, but now over
-  // projected rows, so the bodies are no longer part of the working set.
-  const snap = await adminDb
+  // Ordered at the database now, so the cap drops the oldest rather than an
+  // arbitrary subset. The in-memory sort below stays: it is cheap over projected
+  // rows and it is what keeps the result correct on the fallback path.
+  //
+  // Falls back to the unordered scan if the composite index is missing — the same
+  // shape runPayoutCycle uses. An index that has not finished building must never
+  // take the homepage down.
+  const base = adminDb
     .collection('articles')
     .where('status', '==', 'published')
     .select(...ARTICLE_LIST_FIELDS)
-    .limit(LIST_SCAN_CAP)
-    .get()
+
+  let snap
+  try {
+    snap = await base.orderBy('published_at', 'desc').limit(LIST_SCAN_CAP).get()
+  } catch {
+    snap = await base.limit(LIST_SCAN_CAP).get()
+  }
+
   const rows = snap.docs.map((d) =>
     normalizeFirestore(d.id, d.data(), catMap, authorMap, { flattenBody: false })
   )
