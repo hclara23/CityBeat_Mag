@@ -87,6 +87,7 @@ jobs:
             --memory=2Gi \
             --cpu=1 \
             --concurrency=80 \
+            --max-instances=20 \
             --no-traffic \
             --tag candidate \
             --quiet
