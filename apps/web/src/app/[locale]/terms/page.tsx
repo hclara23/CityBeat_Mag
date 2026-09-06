@@ -40,15 +40,31 @@ const copy = {
         text: 'CityBeat Magazine has not reviewed all of the sites linked to its website and is not responsible for the contents of any such linked site. The inclusion of any link does not imply endorsement by CityBeat Magazine of the site. Use of any such linked website is at the user\'s own risk.',
       },
       {
-        heading: '7. Modifications',
+        heading: '7. Paid Services and Subscriptions',
+        text: 'CityBeat sells directory listing plans, advertising, sponsored content, job postings, and related services. Prices are shown before you pay and are charged through Stripe; we never see or store your card details. Directory listing plans and some advertising products are SUBSCRIPTIONS: unless the checkout page says otherwise, the amount shown is charged every billing period (monthly or yearly, as selected) and RENEWS AUTOMATICALLY at the same price until you cancel. Where a listing covers multiple locations, the price shown is per location and the total is calculated at checkout.',
+      },
+      {
+        heading: '8. Cancellation',
+        text: 'You can cancel a subscription at any time from Billing in your dashboard, which opens the Stripe customer portal. No email or phone call is required. Cancelling stops future charges. You keep what you paid for until the end of the period you have already paid for; after that, a directory listing returns to the free Basic tier and any paid placements (including Sponsored positioning) end. We do not delete your listing when you cancel.',
+      },
+      {
+        heading: '9. Refunds',
+        text: 'Refund requests are reviewed by a person — email hello@citybeatmag.co and tell us what happened. A refund reverses what it paid for: a refunded directory subscription returns the listing to the Basic tier, and a refunded advertising placement is taken down. If you believe a charge is wrong, please contact us before disputing it with your bank; we can usually resolve it faster than a dispute can.',
+      },
+      {
+        heading: '10. Directory Listings and Claims',
+        text: 'Claiming a business listing requires us to verify that you represent that business. We may decline a claim we cannot verify. If we decline a claim you paid for, we cancel the subscription so you are not billed again and will contact you about the payment already made. Listing content you provide must be accurate and yours to publish; we may edit or remove content that is not.',
+      },
+      {
+        heading: '11. Modifications',
         text: 'CityBeat Magazine may revise these terms of service for its website at any time without notice. By using this website, you are agreeing to be bound by the then current version of these terms of service.',
       },
       {
-        heading: '8. Governing Law',
+        heading: '12. Governing Law',
         text: 'These terms and conditions are governed by and construed in accordance with the laws of Texas, and you irrevocably submit to the exclusive jurisdiction of the courts in that location.',
       },
     ],
-    updated: 'Last updated: February 2024',
+    updated: 'Last updated: September 2026',
   },
   es: {
     title: 'Términos de Servicio',
@@ -85,15 +101,31 @@ const copy = {
         text: 'CityBeat Magazine no ha revisado todos los sitios vinculados a su sitio web y no es responsable del contenido de dichos sitios vinculados. La inclusión de cualquier enlace no implica respaldo por parte de CityBeat Magazine del sitio. El uso de cualquier sitio web vinculado es bajo su propio riesgo.',
       },
       {
-        heading: '7. Modificaciones',
+        heading: '7. Servicios de Pago y Suscripciones',
+        text: 'CityBeat vende planes de ficha en el directorio, publicidad, contenido patrocinado, ofertas de empleo y servicios relacionados. Los precios se muestran antes de pagar y se cobran a través de Stripe; nunca vemos ni guardamos los datos de su tarjeta. Los planes del directorio y algunos productos publicitarios son SUSCRIPCIONES: salvo que la página de pago indique lo contrario, el importe mostrado se cobra cada periodo de facturación (mensual o anual, según lo elegido) y SE RENUEVA AUTOMÁTICAMENTE al mismo precio hasta que usted la cancele. Cuando una ficha cubre varias ubicaciones, el precio mostrado es por ubicación y el total se calcula al pagar.',
+      },
+      {
+        heading: '8. Cancelación',
+        text: 'Puede cancelar una suscripción cuando quiera desde Facturación en su panel, que abre el portal de clientes de Stripe. No hace falta enviar un correo ni llamar. Al cancelar dejamos de cobrarle. Conserva lo que pagó hasta que termine el periodo ya pagado; después, la ficha vuelve al plan Básico gratuito y terminan las colocaciones pagadas (incluida la posición Patrocinada). No borramos su ficha al cancelar.',
+      },
+      {
+        heading: '9. Reembolsos',
+        text: 'Las solicitudes de reembolso las revisa una persona: escriba a hello@citybeatmag.co y cuéntenos qué pasó. Un reembolso revierte lo que pagó: una suscripción del directorio reembolsada devuelve la ficha al plan Básico, y una colocación publicitaria reembolsada se retira. Si cree que un cargo es incorrecto, contáctenos antes de disputarlo con su banco; normalmente podemos resolverlo más rápido que una disputa.',
+      },
+      {
+        heading: '10. Fichas del Directorio y Reclamaciones',
+        text: 'Reclamar la ficha de un negocio requiere que verifiquemos que usted representa a ese negocio. Podemos rechazar una reclamación que no podamos verificar. Si rechazamos una reclamación que usted pagó, cancelamos la suscripción para que no se le vuelva a cobrar y le contactaremos sobre el pago ya realizado. El contenido que aporte debe ser exacto y suyo para publicarlo; podemos editar o retirar contenido que no lo sea.',
+      },
+      {
+        heading: '11. Modificaciones',
         text: 'CityBeat Magazine puede revisar estos términos de servicio para su sitio web en cualquier momento sin previo aviso. Al usar este sitio web, usted acepta regirse por la versión vigente de estos términos de servicio.',
       },
       {
-        heading: '8. Ley Aplicable',
+        heading: '12. Ley Aplicable',
         text: 'Estos términos y condiciones se rigen e interpretan de acuerdo con las leyes de Texas, y usted se somete irrevocablemente a la jurisdicción exclusiva de los tribunales en esa ubicación.',
       },
     ],
-    updated: 'Última actualización: febrero de 2024',
+    updated: 'Última actualización: septiembre de 2026',
   },
 }
 

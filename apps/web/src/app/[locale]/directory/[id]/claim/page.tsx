@@ -7,6 +7,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
+import { RecurringTerms } from '@/components/citybeat/RecurringTerms'
 
 interface Listing {
   id: string
@@ -468,6 +469,19 @@ function ClaimPageInner() {
                         $
                       </div>
                     </div>
+
+                    {/* Recurring-billing disclosure. Nothing on this page said the
+                        price repeats — required before charging a card on a
+                        schedule, and the only defence against an "I didn't know it
+                        renewed" dispute. Free Basic claims are not a subscription,
+                        so it only shows for a paid plan. */}
+                    {DIRECTORY_PLANS[selectedPlan].unitAmount > 0 && (
+                      <RecurringTerms
+                        locale={locale}
+                        interval={DIRECTORY_PLANS[selectedPlan].interval}
+                        className="mt-4"
+                      />
+                    )}
 
                     <div className="mt-8 space-y-4">
                       <h3 className="text-xs font-black uppercase tracking-wider text-brand-neon">

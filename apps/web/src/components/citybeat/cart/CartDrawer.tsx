@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useLocale } from '@/components/TranslationProvider'
 import { SALES_PRODUCTS, salesProductAmount, getSalesProduct } from '@/lib/sales-products'
 import { useCart } from './CartProvider'
+import { RecurringTerms } from '@/components/citybeat/RecurringTerms'
 
 function money(cents: number) {
   return `$${(cents / 100).toFixed(2)}`
@@ -178,6 +179,16 @@ export function CartDrawer() {
                   aria-label={isEs ? 'Nombre del negocio' : 'Business name'}
                   className="w-full rounded-md border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-brand-neon"
                 />
+                {/* The basket showed a "Total today" and a Checkout button with
+                    nothing saying the amount repeats. Disclosed here, above the
+                    button, for the same reason as on the claim page. */}
+                {hasRecurring && (
+                  <RecurringTerms
+                    locale={isEs ? 'es' : 'en'}
+                    interval={rows.find((r) => r.interval === 'year') ? 'year' : 'month'}
+                    variant="short"
+                  />
+                )}
                 {error && <p className="text-xs text-red-300">{error}</p>}
                 <button
                   onClick={checkout}
