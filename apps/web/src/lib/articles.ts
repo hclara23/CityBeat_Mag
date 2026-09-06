@@ -53,7 +53,17 @@ function blocksToText(content: unknown): string {
   return node.text ?? ''
 }
 
-async function loadLookups() {
+type Lookups = { catMap: Map<string, string>; authorMap: Map<string, string> }
+
+// `categories` and `authors` are small, near-static lookup tables that were
+// re-read IN FULL on every single article read — two extra whole-collection
+// reads on every homepage render and on every /stories/[slug] hit. Cached per
+// process; a newly created category or author becomes visible within the TTL.
+const LOOKUP_TTL_MS = 5 * 60 * 1000
+let lookupCache: { at: number; value: Lookups } | null = null
+let lookupInFlight: Promise<Lookups> | null = null
+
+async function fetchLookups(): Promise<Lookups> {
   const [cats, authors] = await Promise.all([
     adminDb.collection('categories').get(),
     adminDb.collection('authors').get(),
@@ -71,15 +81,42 @@ async function loadLookups() {
   return { catMap, authorMap }
 }
 
+async function loadLookups(): Promise<Lookups> {
+  if (lookupCache && Date.now() - lookupCache.at < LOOKUP_TTL_MS) return lookupCache.value
+  // Single in-flight read: the TTL expires for every concurrent request at the
+  // same instant, so without this a burst re-read both collections once per
+  // request instead of once per window.
+  if (!lookupInFlight) {
+    lookupInFlight = fetchLookups()
+      .then((value) => {
+        lookupCache = { at: Date.now(), value }
+        return value
+      })
+      .finally(() => {
+        lookupInFlight = null
+      })
+  }
+  // A stale lookup table only mislabels a brand-new category/author; a failed
+  // read must not take the article list down with it.
+  if (lookupCache) return lookupCache.value
+  return lookupInFlight
+}
+
+// `flattenBody: false` is the LIST shape: the row arrived from the ARTICLE_LIST_FIELDS
+// projection, so `content` / `content_es` are not present at all and there is
+// nothing to walk. Only the two single-document detail readers flatten, and they
+// read exactly one document each.
 function normalizeFirestore(
   id: string,
   a: any,
   catMap: Map<string, string>,
-  authorMap: Map<string, string>
+  authorMap: Map<string, string>,
+  opts: { flattenBody?: boolean } = {}
 ): Article {
-  const text = blocksToText(a.content)
+  const flattenBody = opts.flattenBody !== false
+  const text = flattenBody ? blocksToText(a.content) : ''
   // Spanish fields are populated by the translation pipeline; fall back to EN.
-  const textEs = a.content_es ? blocksToText(a.content_es) : text
+  const textEs = flattenBody ? (a.content_es ? blocksToText(a.content_es) : text) : ''
   const rawPublished = a.published_at?.toDate ? a.published_at.toDate().toISOString() : a.published_at
   const createdAt = a.created_at?.toDate ? a.created_at.toDate().toISOString() : a.created_at
   const publishedAt =
@@ -87,6 +124,8 @@ function normalizeFirestore(
     (typeof createdAt === 'string' && createdAt) ||
     new Date().toISOString()
   const title = a.title || 'Untitled'
+  // A list row has no body to fall back to; backfillExcerpts() pays that read
+  // for the handful of rows a caller actually renders.
   const excerpt = a.excerpt || text.slice(0, 160)
   return {
     _id: id,
@@ -137,32 +176,164 @@ function fromLocal(a: LocalArticle): Article {
   }
 }
 
+// ── The published-article list ──────────────────────────────────────────────
+// Every homepage render used to `.get()` the WHOLE `articles` collection with no
+// projection and no cache, run blocksToText over both bilingual bodies of every
+// document, sort, and keep 3. The pages are force-dynamic, so no ISR or fetch
+// cache absorbed any of it: N published articles cost N billed reads plus two
+// whole-collection lookup reads per request, and at --concurrency=80 the
+// container held eighty independent copies of every article body. At the
+// newsroom's own rate (up to 8 briefs/day) N passes 2,900 inside a year.
+//
+// Two costs, two fixes:
+//   • bytes and CPU — ARTICLE_LIST_FIELDS omits `content` / `content_es`, the only large
+//     fields, so the TipTap bodies never leave Firestore for a list read.
+//   • billed reads — the projected, sorted list is cached per process behind a
+//     single in-flight promise, so a burst of renders costs one read set rather
+//     than one per request. Firestore bills per document READ regardless of
+//     projection (see api/directory/route.ts), so only the cache moves the bill.
+export const ARTICLE_LIST_FIELDS: string[] = [
+  'slug',
+  'title',
+  'title_es',
+  'excerpt',
+  'excerpt_es',
+  'category',
+  'category_id',
+  'author',
+  'author_id',
+  'image_url',
+  'cover_image_path',
+  'published_at',
+  'created_at',
+  'status',
+  'source_name',
+  'source_url',
+  'image_credit',
+  'image_credit_url',
+  'image_illustrative',
+]
+
+// Hard backstop so an unbounded collection can never OOM the container, in the
+// spirit of CORPUS_MAX_DOCS in api/directory/route.ts. Well above current
+// inventory. There is no orderBy on this query (an ordered + limited one would
+// need a `status` + `published_at` composite index in firestore.indexes.json),
+// so past the cap Firestore returns an arbitrary doc-id-ordered subset — if it
+// is ever reached the list needs that index, not a bigger number here.
+const LIST_SCAN_CAP = 5000
+const LIST_TTL_MS = 60 * 1000
+// Ceiling on the excerpt backfill below, sized to the largest limit any list
+// caller passes (60, on /stories and /topics). Without it a caller that asks for
+// no limit at all (the newsletter and social crons) could turn the backfill back
+// into a whole-collection body read — the exact bug this file just removed.
+const EXCERPT_BACKFILL_MAX = 60
+
+let listCache: { at: number; rows: Article[] } | null = null
+let listInFlight: Promise<Article[]> | null = null
+// Excerpts derived from a body, for the rare row whose `excerpt` field is empty.
+// Rebuilt with the list cache so it can never outlive the rows it describes.
+let excerptMemo = new Map<string, string>()
+
+const byPublishedDesc = (a: Article, b: Article) => (b.publishedAt > a.publishedAt ? 1 : -1)
+
+async function fetchPublishedList(): Promise<Article[]> {
+  const { catMap, authorMap } = await loadLookups()
+  // Still no orderBy — see LIST_SCAN_CAP. Sorting stays in memory, but now over
+  // projected rows, so the bodies are no longer part of the working set.
+  const snap = await adminDb
+    .collection('articles')
+    .where('status', '==', 'published')
+    .select(...ARTICLE_LIST_FIELDS)
+    .limit(LIST_SCAN_CAP)
+    .get()
+  const rows = snap.docs.map((d) =>
+    normalizeFirestore(d.id, d.data(), catMap, authorMap, { flattenBody: false })
+  )
+  // Firestore is the source of truth (the seed has been migrated into it). The
+  // bundled seed is only a fallback for when Firestore returns nothing — e.g. the
+  // migration hasn't run yet — so the site never goes empty.
+  return (rows.length > 0 ? rows : localArticles.map(fromLocal)).sort(byPublishedDesc)
+}
+
+async function loadPublishedList(): Promise<Article[]> {
+  if (listCache && Date.now() - listCache.at < LIST_TTL_MS) return listCache.rows
+  // Stampede guard: Cloud Run scales out and the TTL lapses for every in-flight
+  // request at the same instant, so without this a burst of homepage renders
+  // each issued its own full-collection read.
+  if (!listInFlight) {
+    listInFlight = fetchPublishedList()
+      .then((rows) => {
+        listCache = { at: Date.now(), rows }
+        excerptMemo = new Map()
+        return rows
+      })
+      .catch((error) => {
+        console.error('getPublishedArticles firestore error:', error)
+        // Prefer the last good list over the bundled seed: a transient Firestore
+        // error must not swap the newsroom's current stories for 2024 seed copy.
+        return listCache?.rows ?? localArticles.map(fromLocal).sort(byPublishedDesc)
+      })
+      .finally(() => {
+        listInFlight = null
+      })
+  }
+  return listInFlight
+}
+
+/**
+ * Filter + limit over the SHARED cached array. Pure, and it copies at every
+ * level: the array handed in is the cache itself, so a caller that sorted or
+ * spliced it in place would corrupt every later request on the instance.
+ */
+export function selectArticles(
+  all: Article[],
+  opts: { category?: string; limit?: number } = {}
+): Article[] {
+  const filtered =
+    opts.category && opts.category !== 'all' ? all.filter((a) => a.category === opts.category) : all
+  const limited = opts.limit ? filtered.slice(0, opts.limit) : filtered
+  return limited.map((a) => ({ ...a }))
+}
+
+// A projected list row has no body, so an article whose `excerpt` field is empty
+// (the creator flow stores `excerpt: excerpt || ''`) would render a card with no
+// summary line — it used to derive one from the body, which is precisely the
+// whole-collection body read this change removes. Pay that read for just the
+// rows the caller is about to render, and memoise it until the list is rebuilt.
+async function backfillExcerpts(rows: Article[]): Promise<Article[]> {
+  const missing = rows
+    .filter((r) => !r.excerpt && !excerptMemo.has(r._id))
+    .slice(0, EXCERPT_BACKFILL_MAX)
+  if (missing.length > 0) {
+    try {
+      const refs = missing.map((r) => adminDb.collection('articles').doc(r._id))
+      const docs = await adminDb.getAll(...refs, { fieldMask: ['content'] })
+      docs.forEach((d, i) => {
+        excerptMemo.set(missing[i]._id, blocksToText(d.data()?.content).slice(0, 160))
+      })
+    } catch (error) {
+      // A card with no summary line is a much smaller failure than a 500.
+      console.error('getPublishedArticles excerpt backfill error:', error)
+    }
+  }
+  for (const row of rows) {
+    if (row.excerpt) continue
+    const derived = excerptMemo.get(row._id)
+    if (!derived) continue
+    row.excerpt = derived
+    // Mirrors the old fallback chain: excerptES fell back to the EN excerpt,
+    // which itself fell back to the body text.
+    if (!row.excerptES) row.excerptES = derived
+  }
+  return rows
+}
+
 export async function getPublishedArticles(
   opts: { category?: string; limit?: number } = {}
 ): Promise<Article[]> {
-  let firestoreArticles: Article[] = []
-  try {
-    const { catMap, authorMap } = await loadLookups()
-    // No orderBy here to avoid requiring a composite index; sorted in memory below.
-    const snap = await adminDb.collection('articles').where('status', '==', 'published').get()
-    firestoreArticles = snap.docs.map((d) => normalizeFirestore(d.id, d.data(), catMap, authorMap))
-  } catch (error) {
-    console.error('getPublishedArticles firestore error:', error)
-  }
-
-  // Firestore is the source of truth (the seed has been migrated into it). The
-  // bundled seed is only a fallback for when Firestore returns nothing — e.g. the
-  // migration hasn't run yet or the fetch failed — so the site never goes empty.
-  let result = (firestoreArticles.length > 0
-    ? firestoreArticles
-    : localArticles.map(fromLocal)
-  ).sort((a, b) => (b.publishedAt > a.publishedAt ? 1 : -1))
-
-  if (opts.category && opts.category !== 'all') {
-    result = result.filter((a) => a.category === opts.category)
-  }
-  if (opts.limit) result = result.slice(0, opts.limit)
-  return result
+  const all = await loadPublishedList()
+  // selectArticles hands back copies, so mutating them here cannot touch the cache.
+  return backfillExcerpts(selectArticles(all, opts))
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {

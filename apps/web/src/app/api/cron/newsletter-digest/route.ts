@@ -3,7 +3,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getPublishedArticles } from '@/lib/articles'
 import { sendEmail } from '@/lib/email'
-import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { emailHash, isSuppressedStatus, mintUnsubToken, normalizeNewsletterEmail } from '@/lib/newsletter'
 import { loadSuppressedHashes } from '@/lib/newsletter-server'
 
@@ -107,7 +107,13 @@ function digestHtml(articles: any[], email: string, locale: 'en' | 'es', sponsor
 }
 
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!authorized(request)) {
+    // A rejected BEARER token is our own scheduler running against a rotated
+    // CRON_SECRET — the failure that silences every cron at once, before any of
+    // their try/catch blocks. See reportCronAuthRejected.
+    await reportCronAuthRejected('cron:newsletter-digest', request.headers.get('authorization'))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   const { searchParams } = new URL(request.url)
   const dryRun = searchParams.get('dryRun') === '1'
   const max = Math.min(Number(searchParams.get('limit')) || 1000, 2000)
@@ -164,29 +170,65 @@ export async function GET(request: NextRequest) {
 
   const sponsor = await getNewsletterSponsor()
 
-  // Per-week send journal: without it, a mid-blast crash or a scheduler retry
-  // re-sent early subscribers and skipped late ones. One doc per ISO week
-  // holding the emailHashes already delivered; safe under the 1MB doc cap for
-  // the current list size (~48KB at 2000 subscribers).
-  const weekKey = `digest-${new Date().toISOString().slice(0, 10)}`
-  const journalRef = adminDb.collection('newsletter_send_log').doc(weekKey)
-  const journalSnap = await journalRef.get().catch(() => null)
-  const alreadySent = new Set<string>(
-    journalSnap?.exists ? ((journalSnap.data() as any)?.hashes as string[]) || [] : []
+  // Send journal: without it, a mid-blast crash or a scheduler retry re-sent
+  // early subscribers and skipped late ones. One doc per RUN DAY holding the
+  // emailHashes already delivered; safe under the 1MB doc cap for the current
+  // list size (~48KB at 2000 subscribers).
+  //
+  // Read as the union of the last three daily docs, not just today's. A Cloud
+  // Scheduler retry or a manual re-run that lands after UTC midnight used to
+  // look at a brand-new, empty journal and mail the ENTIRE list a second time.
+  // Three days is wide enough for any retry of the current send and far short of
+  // the weekly cadence, so next Friday's digest still goes out.
+  const JOURNAL_LOOKBACK_DAYS = 3
+  const dayKey = (offsetDays: number) =>
+    `digest-${new Date(Date.now() - offsetDays * 86400000).toISOString().slice(0, 10)}`
+  const journalRef = adminDb.collection('newsletter_send_log').doc(dayKey(0))
+  const journalRefs = Array.from({ length: JOURNAL_LOOKBACK_DAYS }, (_, i) =>
+    adminDb.collection('newsletter_send_log').doc(dayKey(i))
   )
+
+  // FAIL CLOSED. This read used to be `.catch(() => null)`, which turned a
+  // Firestore hiccup into an empty de-dup set and re-blasted the whole
+  // subscriber list — the single most expensive mistake this job can make, and
+  // one that cannot be undone once the mail is out. A missing doc is `exists:
+  // false`; only a real read failure throws, so throwing means we genuinely do
+  // not know who has already been mailed, and the only safe answer is not to
+  // send.
+  let journalSnaps
+  try {
+    journalSnaps = await adminDb.getAll(...journalRefs)
+  } catch (error) {
+    await reportFailure('cron:newsletter-digest', error, { phase: 'journal_read', recipients: subs.length })
+    return NextResponse.json({ ok: false, skipped: 'journal_unavailable' })
+  }
+  const alreadySent = new Set<string>()
+  for (const snap of journalSnaps) {
+    if (!snap.exists) continue
+    for (const hash of ((snap.data() as any)?.hashes as string[]) || []) alreadySent.add(hash)
+  }
+
   let journalBuffer: string[] = []
-  const flushJournal = async () => {
-    if (!journalBuffer.length) return
+  // Returns false when the journal could not be written. arrayUnion makes the
+  // write idempotent, so a retried flush lands on the same value.
+  const flushJournal = async (): Promise<boolean> => {
+    if (!journalBuffer.length) return true
     const flushing = journalBuffer
     journalBuffer = []
-    await journalRef.set(
-      { hashes: FieldValue.arrayUnion(...flushing), updated_at: new Date().toISOString() },
-      { merge: true }
-    ).catch(() => {})
+    try {
+      await journalRef.set(
+        { hashes: FieldValue.arrayUnion(...flushing), updated_at: new Date().toISOString() },
+        { merge: true }
+      )
+      return true
+    } catch {
+      return false
+    }
   }
 
   let sent = 0
   let failed = 0
+  let journalBroken = false
   if (!dryRun) {
     for (const s of subs) {
       const locale: 'en' | 'es' = s._locale
@@ -198,25 +240,41 @@ export async function GET(request: NextRequest) {
           sent++
           alreadySent.add(hash)
           journalBuffer.push(hash)
-          if (journalBuffer.length >= 25) await flushJournal()
+          // Stop the blast if delivery can no longer be RECORDED. This used to
+          // swallow the write error and keep mailing: every subscriber sent
+          // after a failed flush is one the next run has no record of, and the
+          // retry mails them all again.
+          if (journalBuffer.length >= 25 && !(await flushJournal())) {
+            journalBroken = true
+            break
+          }
         }
         else failed++
       } catch {
         failed++
       }
     }
+    if (!(await flushJournal())) journalBroken = true
+
     // If delivery is mostly failing (provider outage, bad key), tell a human.
     if (failed > 0 && failed >= sent) {
       await reportFailure('cron:newsletter-digest', new Error(`digest delivery failing: ${failed} failed vs ${sent} sent`), {
         recipients: subs.length,
       })
     }
+    if (journalBroken) {
+      await reportFailure(
+        'cron:newsletter-digest',
+        new Error(`send journal unwritable after ${sent} deliveries — run halted to avoid re-sending on retry`),
+        { recipients: subs.length, sent }
+      )
+    }
   }
 
-  // Don't declare recovery on a run whose delivery mostly failed (the
-  // reportFailure above would be instantly contradicted).
-  await flushJournal()
-  if (!(failed > 0 && failed >= sent)) await reportSuccess('cron:newsletter-digest')
+  // Don't declare recovery on a run whose delivery mostly failed, or one that
+  // stopped because it could not journal (either reportFailure above would be
+  // instantly contradicted).
+  if (!journalBroken && !(failed > 0 && failed >= sent)) await reportSuccess('cron:newsletter-digest')
   return NextResponse.json({
     ok: true,
     dryRun,
@@ -224,6 +282,7 @@ export async function GET(request: NextRequest) {
     recipients: subs.length,
     sent,
     failed,
+    ...(journalBroken ? { halted: 'journal_unwritable' } : {}),
     sponsored: Boolean(sponsor),
     ...(dryRun ? { preview_subject: subject, preview_html: digestHtml(recent, 'preview@citybeatmag.co', 'en', sponsor) } : {}),
   })

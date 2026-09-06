@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasDeveloperAccess } from '@citybeat/lib/roles'
+import { privilegedDenial } from '@/lib/privileged-access'
 import { getWorkflow, runWorkflow } from '@/lib/scrapeflow'
 import { reportFailure } from '@/lib/alerts'
 
@@ -12,7 +13,11 @@ async function requireDeveloper() {
   const user = await getServerUser()
   if (!user) return { error: 'Unauthorized', status: 401 as const }
   const profile = await getServerUserProfile(user.id)
-  if (!hasDeveloperAccess(profile)) return { error: 'Forbidden', status: 403 as const }
+  // Role AND second factor, together. This checked the role alone, so a staff
+  // password with no TOTP enrollment behind it reached this API even though the
+  // page in front of it only redirects. See lib/privileged-access.
+  const denial = privilegedDenial(profile, hasDeveloperAccess(profile))
+  if (denial) return denial
   return { user }
 }
 

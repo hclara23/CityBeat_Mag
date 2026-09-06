@@ -3,6 +3,7 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { hasEditorAccess } from '@citybeat/lib/roles'
+import { resolveEntitlements, resolveListingPatchAccess } from '@/lib/directory-entitlements'
 import { awardPoints } from '@/lib/points-server'
 import { notifyUser } from '@/lib/user-notifications'
 
@@ -30,9 +31,21 @@ export async function PATCH(
   if (!listingSnap.exists) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
   const listing = listingSnap.data() as any
 
-  // Only the listing owner or a staff editor may moderate its photos.
-  const isOwner = listing.owner_id && listing.owner_id === user.id
-  if (!isOwner && !hasEditorAccess(profile)) {
+  // Who may moderate. This used a raw `listing.owner_id === user.id`, which is
+  // NOT the ownership rule the rest of the directory uses: resolveListingPatchAccess
+  // additionally requires claim_status === 'approved'. owner_id is written when a
+  // claim is SUBMITTED, so a claimant an admin had not yet approved (or whose claim
+  // was rejected) could approve photos onto a business's public gallery — a public
+  // upload path with the moderation gate opened by the person being moderated. It
+  // also ignored the paid manager seats, so a Premium/Featured owner's managers
+  // were locked out of a job the plan sells them.
+  const entitlements = resolveEntitlements(listing)
+  const { canManage } = resolveListingPatchAccess(listing, {
+    userId: user.id,
+    isStaff: hasEditorAccess(profile),
+    managerAllowance: entitlements.additionalManagers,
+  })
+  if (!canManage) {
     return NextResponse.json({ error: 'Only the business owner can manage its photos.' }, { status: 403 })
   }
 

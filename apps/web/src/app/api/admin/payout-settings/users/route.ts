@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getPrimaryPlatformRole, hasDeveloperAccess } from '@citybeat/lib/roles'
+import { privilegedDenial } from '@/lib/privileged-access'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -13,7 +14,11 @@ export async function GET() {
   const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
-  if (!hasDeveloperAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  // Role AND second factor, together. This checked the role alone, so a staff
+  // password with no TOTP enrollment behind it reached this API even though the
+  // page in front of it only redirects. See lib/privileged-access.
+  const denial = privilegedDenial(profile, hasDeveloperAccess(profile))
+  if (denial) return NextResponse.json({ error: denial.error }, { status: denial.status })
 
   // Staff/company roles that can earn commission or manage the platform
   // (advertisers/visitors are customers, not company individuals).

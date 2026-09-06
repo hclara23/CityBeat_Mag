@@ -71,6 +71,32 @@ test('hitting the cap is reported, never silently swallowed', async () => {
   assert.equal(result.truncated, true)
 })
 
+test('a collection exactly the size of the cap is complete, not truncated', async () => {
+  // Reaching the cap was reported as truncation whether or not anything was
+  // left behind, so a ledger of exactly `cap` rows made /admin/finance disclaim
+  // a total that was complete and correct — the operator cannot act on a
+  // number the page says it does not trust.
+  const ids = Array.from({ length: 30 }, (_, i) => `d${String(i).padStart(3, '0')}`)
+  const seen: string[] = []
+  const result = await scanCollection(fakeQuery(ids), (d) => seen.push(d.id), { pageSize: 10, cap: 30 })
+  assert.equal(result.scanned, 30)
+  assert.equal(result.truncated, false)
+  assert.equal(seen.length, 30)
+})
+
+test('the cap is a hard bound, not a bound plus one more page', async () => {
+  // The page size was applied whole even when fewer rows remained under the
+  // cap, so cap 750 with 500-row pages read 1000 documents. The cap exists to
+  // bound memory and Firestore reads; overshooting it by a page defeats both.
+  const ids = Array.from({ length: 1000 }, (_, i) => `d${String(i).padStart(4, '0')}`)
+  const seen: string[] = []
+  const result = await scanCollection(fakeQuery(ids), (d) => seen.push(d.id), { pageSize: 500, cap: 750 })
+  assert.equal(result.scanned, 750)
+  assert.equal(seen.length, 750)
+  assert.equal(seen[749], ids[749])
+  assert.equal(result.truncated, true)
+})
+
 test('TopN keeps exactly the highest-scoring items, in order', () => {
   const top = new TopN<string>(3)
   for (const s of ['2026-01-01', '2026-05-05', '2026-03-03', '2026-09-09', '2026-02-02']) {

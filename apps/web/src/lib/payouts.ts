@@ -105,12 +105,39 @@ export function resolvePayoutPercent(settings: PayoutSettings, service: string, 
   return settings.default_payout_percent || 0
 }
 
+// What Stripe told us about a prior transfer for this exact share, before we
+// consider creating one.
+export type PriorTransferLookup =
+  | 'none' // Stripe answered: no transfer exists for this share
+  | 'found' // a transfer already exists — adopt it, never create a second
+  | 'failed' // the lookup itself errored — we do NOT know either way
+  | 'unchecked' // no stable key for this share, so there is no transfer_group to look up
+
+// Whether stripe.transfers.create may be called for this share.
+//
+// The bug this closes: the transfer_group lookup used to swallow its error into
+// `adopted = null`, which is indistinguishable from "Stripe has no transfer for
+// this share". A share whose first transfer succeeded but whose ledger write
+// failed stays `held` and is re-selected by a later cycle; the stable idempotency
+// key expires ~24h after the first attempt, so by then this lookup is the ONLY
+// thing between that share and a second real transfer. Refusing to create on an
+// inconclusive answer costs at most a delayed payout (the next run retries);
+// creating on one pays the rep twice for one sale.
+export function mayCreateTransfer(lookup: PriorTransferLookup): boolean {
+  return lookup === 'none' || lookup === 'unchecked'
+}
+
 // Creates the Stripe transfer and records it in the `transfers` ledger.
 // NON-THROWING: on a Stripe error it records a `failed` row (with everything the
 // reconcile pass needs to retry) and alerts ops — it never rethrows. That way a
 // rep's payout can never block the customer's fulfillment or wedge the Stripe
 // webhook into a 500 retry-storm. `existingRef`, when given, is updated in place
 // (a reconcile retry) instead of appending a new row.
+//
+// `paid_unrecorded` is the honest fourth outcome: the transfer went through and
+// money left the platform, but the ledger write did not land. Callers must not
+// count it as a clean `paid` — the row is still unpaid in Firestore and a human
+// has been paged (see recordPaid).
 async function executeTransfer(input: {
   stripe: Stripe
   payeeUserId: string
@@ -126,7 +153,12 @@ async function executeTransfer(input: {
   // (skipped → failed → paid) is written here with set/merge, so duplicate
   // deliveries and retries never append duplicate rows.
   ledgerRef: FirebaseFirestore.DocumentReference
-}): Promise<{ status: 'paid' | 'failed' | 'in_progress'; amount?: number; transferId?: string; error?: string }> {
+}): Promise<{
+  status: 'paid' | 'paid_unrecorded' | 'failed' | 'in_progress'
+  amount?: number
+  transferId?: string
+  error?: string
+}> {
   const {
     stripe, payeeUserId, destination, service, role = null, percent, amount, currency,
     sourcePaymentId = null, sourceTransaction = null, ledgerRef,
@@ -139,53 +171,137 @@ async function executeTransfer(input: {
     amount, currency, destination, service, payeeUserId, sourcePaymentId, sourceTransaction,
   })
 
-  const recordPaid = async (transferId: string, actualAmount: number) => {
-    // A clawback can land between this run reading its snapshot and the transfer
-    // completing. Blindly writing status:'paid' would silently overwrite that
-    // reversal, leaving a refunded sale marked paid with no alert. Money HAS
-    // left the platform at this point, so the reversal is not undone — the row
-    // records the transfer and stays in its clawback state for a human.
-    const clobbered = await adminDb
-      .runTransaction(async (transaction) => {
-        const fresh = await transaction.get(ledgerRef)
-        const status = fresh.exists ? (fresh.data() as any)?.status : null
-        const reversedMidFlight = status === 'reversed' || status === 'clawback_owed'
-        transaction.set(
-          ledgerRef,
-          {
-            payee_user_id: payeeUserId,
-            service,
-            role,
-            percent,
-            amount: actualAmount,
-            currency,
-            source_payment: sourcePaymentId,
-            source_transaction: sourceTransaction,
-            stripe_transfer_id: transferId,
-            stripe_destination: destination,
-            // Keep the clawback status; never demote it back to 'paid'.
-            ...(reversedMidFlight
-              ? { paid_after_clawback: true, paid_after_clawback_at: new Date().toISOString() }
-              : { status: 'paid', error_code: null, error_message: null }),
-            paid_at: FieldValue.serverTimestamp(),
-            attempts: FieldValue.increment(1),
-          },
-          { merge: true }
-        )
-        return reversedMidFlight
-      })
-      .catch(() => false)
+  // Records that the money left, and says whether it managed to.
+  //
+  // The bug this closes: this transaction used to end in `.catch(() => false)`,
+  // and `false` is ALSO the value for "wrote fine, nothing was clawed back". So a
+  // transient Firestore error (contention, UNAVAILABLE) landing after a
+  // SUCCESSFUL stripe.transfers.create was completely invisible: the row stayed
+  // `held` with a past `eligible_at`, /api/admin/finance kept counting the money
+  // as an unpaid liability, MyEarnings kept showing the rep unpaid, nothing
+  // alerted, and the next cycle re-selected the row to pay it again.
+  //
+  // The write is a set/merge of fixed values, so replaying it is harmless — only
+  // `attempts` moves, and only on a transaction that actually committed.
+  const LEDGER_WRITE_ATTEMPTS = 3
+  const recordPaid = async (
+    transferId: string,
+    actualAmount: number
+  ): Promise<'recorded' | 'unrecorded'> => {
+    let lastError: unknown = null
+    for (let attempt = 1; attempt <= LEDGER_WRITE_ATTEMPTS; attempt++) {
+      try {
+        // A clawback can land between this run reading its snapshot and the transfer
+        // completing. Blindly writing status:'paid' would silently overwrite that
+        // reversal, leaving a refunded sale marked paid with no alert. Money HAS
+        // left the platform at this point, so the reversal is not undone — the row
+        // records the transfer and stays in its clawback state for a human.
+        const reversedMidFlight = await adminDb.runTransaction(async (transaction) => {
+          const fresh = await transaction.get(ledgerRef)
+          const status = fresh.exists ? (fresh.data() as any)?.status : null
+          const clawedBack = status === 'reversed' || status === 'clawback_owed'
+          transaction.set(
+            ledgerRef,
+            {
+              payee_user_id: payeeUserId,
+              service,
+              role,
+              percent,
+              amount: actualAmount,
+              currency,
+              source_payment: sourcePaymentId,
+              source_transaction: sourceTransaction,
+              stripe_transfer_id: transferId,
+              stripe_destination: destination,
+              // Keep the clawback status; never demote it back to 'paid'.
+              ...(clawedBack
+                ? { paid_after_clawback: true, paid_after_clawback_at: new Date().toISOString() }
+                : { status: 'paid', error_code: null, error_message: null }),
+              paid_at: FieldValue.serverTimestamp(),
+              attempts: FieldValue.increment(1),
+            },
+            { merge: true }
+          )
+          return clawedBack
+        })
 
-    if (clobbered) {
-      await reportFailure(
-        'payout-clawback-race',
-        new Error(
-          `A commission transfer completed for a share that was clawed back mid-run — $${(actualAmount / 100).toFixed(2)} left the platform for a reversed sale`
-        ),
-        { service, payee_user_id: payeeUserId, source_payment: sourcePaymentId, transfer_id: transferId }
-      ).catch(() => {})
+        if (reversedMidFlight) {
+          await reportFailure(
+            'payout-clawback-race',
+            new Error(
+              `A commission transfer completed for a share that was clawed back mid-run — $${(actualAmount / 100).toFixed(2)} left the platform for a reversed sale`
+            ),
+            { service, payee_user_id: payeeUserId, source_payment: sourcePaymentId, transfer_id: transferId }
+          ).catch(() => {})
+        }
+        return 'recorded'
+      } catch (err) {
+        lastError = err
+        // Contention and UNAVAILABLE are exactly what a retry fixes; a permanent
+        // error just costs three quick attempts before the alert below.
+        if (attempt < LEDGER_WRITE_ATTEMPTS) {
+          await new Promise((resolve) => setTimeout(resolve, 200 * attempt))
+        }
+      }
     }
+
+    const lastErrorText = String((lastError as any)?.message ?? lastError).slice(0, 300)
+
+    // Last-ditch breadcrumb. A plain merge is a different, simpler operation than
+    // the transaction that just failed (no read, no contention retry), so it can
+    // survive when that did not. It deliberately does NOT set `status` — promoting
+    // to 'paid' needs the clawback re-read this path could not complete — but a
+    // still-`held` row carrying a stripe_transfer_id is the evidence a human needs
+    // to reconcile it against Stripe by hand.
+    await ledgerRef
+      .set(
+        {
+          stripe_transfer_id: transferId,
+          ledger_write_failed_at: FieldValue.serverTimestamp(),
+          error_code: 'ledger_write_failed',
+          error_message: lastErrorText,
+        },
+        { merge: true }
+      )
+      .catch(() => {})
+
+    // Nothing repairs this automatically: Stripe has moved the money and Firestore
+    // will not say so. Page a human with everything needed to fix the row by hand.
+    // Its own alert source keeps this out of the `payout-transfer` dedupe bucket,
+    // which a noisy run could otherwise use up (3 emails per 6h per source).
+    await reportFailure(
+      'payout-ledger-write',
+      new Error(
+        `Stripe transfer ${transferId} sent $${(actualAmount / 100).toFixed(2)} but its ledger row could not be written after ${LEDGER_WRITE_ATTEMPTS} attempts — the share still reads as unpaid in Firestore while the money has left the platform`
+      ),
+      {
+        ledger_path: ledgerRef.path,
+        transfer_id: transferId,
+        amount_cents: actualAmount,
+        service,
+        role,
+        payee_user_id: payeeUserId,
+        source_payment: sourcePaymentId,
+        last_error: lastErrorText,
+      }
+    ).catch(() => {})
+    return 'unrecorded'
   }
+
+  // One place that turns "the transfer went through" into a caller-visible status,
+  // so neither the adopt path nor the create path can report a clean `paid` for a
+  // share whose ledger row was never written.
+  const settled = (
+    transferId: string,
+    actualAmount: number,
+    recorded: 'recorded' | 'unrecorded'
+  ) =>
+    ({
+      status: recorded === 'recorded' ? ('paid' as const) : ('paid_unrecorded' as const),
+      amount: actualAmount,
+      transferId,
+      ...(recorded === 'recorded' ? {} : { error: 'ledger_write_failed' }),
+    })
 
   // Anti-double-pay backstop: if a transfer for this exact share already exists on
   // Stripe — a prior attempt committed but its ledger row was lost, or the
@@ -193,18 +309,50 @@ async function executeTransfer(input: {
   // second transfer. The lookup result is captured here and acted on OUTSIDE the
   // try so a transient recordPaid error can never fall through to a second create.
   let adopted: { id: string; amount: number } | null = null
+  let lookup: PriorTransferLookup = transferGroup ? 'none' : 'unchecked'
+  let lookupError: unknown = null
   if (transferGroup) {
     try {
       const prior = await stripe.transfers.list({ transfer_group: transferGroup, limit: 1 })
       const t = prior.data[0]
-      if (t) adopted = { id: t.id, amount: t.amount }
-    } catch {
-      /* lookup is best-effort; the shared idempotency key still guards the race */
+      if (t) {
+        adopted = { id: t.id, amount: t.amount }
+        lookup = 'found'
+      }
+    } catch (err) {
+      // This used to be a bare `catch {}` commented as "best-effort" — but the
+      // shared idempotency key it deferred to only guards the first ~24h, so past
+      // that window a swallowed lookup error fell straight through to a second
+      // stripe.transfers.create. See mayCreateTransfer.
+      lookup = 'failed'
+      lookupError = err
     }
   }
   if (adopted) {
-    await recordPaid(adopted.id, adopted.amount)
-    return { status: 'paid', amount: adopted.amount, transferId: adopted.id }
+    return settled(adopted.id, adopted.amount, await recordPaid(adopted.id, adopted.amount))
+  }
+  if (!mayCreateTransfer(lookup)) {
+    // Deliberately does NOT touch `status`: a `held` row must stay held for the
+    // next cycle, and a `failed` / `skipped_no_connected_account` row must stay
+    // retryable by reconcileFailedTransfers. Only diagnostics are written, and
+    // recordPaid clears them on the eventual success.
+    await ledgerRef
+      .set(
+        {
+          error_code: 'prior_transfer_lookup_failed',
+          error_message: String((lookupError as any)?.message ?? lookupError).slice(0, 300),
+          last_attempt_at: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      )
+      .catch(() => {})
+    await reportFailure('payout-transfer-lookup', lookupError, {
+      service,
+      payee_user_id: payeeUserId,
+      source_payment: sourcePaymentId,
+      transfer_group: transferGroup,
+    }).catch(() => {})
+    return { status: 'failed', error: 'prior_transfer_lookup_failed' }
   }
 
   let transfer: Stripe.Transfer
@@ -252,8 +400,7 @@ async function executeTransfer(input: {
     return { status: 'failed', error: (errCode || 'transfer_error') as string }
   }
 
-  await recordPaid(transfer.id, amount)
-  return { status: 'paid', amount, transferId: transfer.id }
+  return settled(transfer.id, amount, await recordPaid(transfer.id, amount))
 }
 
 // DEPRECATED — DO NOT USE FOR COMMISSION.
@@ -525,6 +672,11 @@ export async function runPayoutCycle(params: {
   failed: number
   no_bank: number
   invalid: number
+  // Shares where Stripe moved the money but the ledger write failed anyway. They
+  // are NOT in `paid` (Firestore still reads them as unpaid) but their cents ARE
+  // in `amount_paid`, which reports what actually left the platform. Any non-zero
+  // value here means a `payout-ledger-write` alert is waiting on a human.
+  unrecorded: number
   amount_paid: number
   truncated: boolean
   indexed: boolean
@@ -581,6 +733,7 @@ export async function runPayoutCycle(params: {
     failed: 0,
     no_bank: 0,
     invalid: 0,
+    unrecorded: 0,
     amount_paid: 0,
     truncated: processedDocs.length >= limit,
     indexed: indexedQueryWorked,
@@ -646,6 +799,13 @@ export async function runPayoutCycle(params: {
     })
     if (result.status === 'paid') {
       summary.paid++
+      summary.amount_paid += result.amount || amount
+    } else if (result.status === 'paid_unrecorded') {
+      // The money left but the row still says `held`, so reporting this as `paid`
+      // would make the run look clean while finance and MyEarnings quietly
+      // disagree with Stripe. Counted separately, and its cents still count as
+      // money out of the platform because that is what happened.
+      summary.unrecorded++
       summary.amount_paid += result.amount || amount
     } else if (result.status === 'failed') {
       summary.failed++
@@ -907,7 +1067,16 @@ export async function reconcileFailedTransfers(params: {
   stripe: Stripe
   limit?: number
   dryRun?: boolean
-}): Promise<{ scanned: number; paid: number; still_failing: number; superseded: number; skipped: number }> {
+}): Promise<{
+  scanned: number
+  paid: number
+  still_failing: number
+  superseded: number
+  skipped: number
+  // Transfers that went through but whose ledger row could not be written — see
+  // the same field on runPayoutCycle. Non-zero means a human is being paged.
+  unrecorded: number
+}> {
   const { stripe, limit = 50, dryRun = false } = params
   // Query the two statuses SEPARATELY (each single-equality, no composite index) so
   // a backlog of never-connecting `skipped` rows can never starve the scan window
@@ -932,6 +1101,7 @@ export async function reconcileFailedTransfers(params: {
   let stillFailing = 0
   let superseded = 0
   let skipped = 0
+  let unrecorded = 0
 
   for (const doc of snap.docs) {
     const t = doc.data() as any
@@ -1014,16 +1184,19 @@ export async function reconcileFailedTransfers(params: {
       ledgerRef: doc.ref,
     })
     if (res.status === 'paid') paid++
+    else if (res.status === 'paid_unrecorded') unrecorded++ // money moved, ledger didn't record it
     else if (res.status === 'in_progress') skipped++ // another request is creating it
     else stillFailing++
   }
 
-  // Clear the ops alert once nothing is left failing in this batch.
-  if (!dryRun && paid > 0 && stillFailing === 0) {
+  // Clear the ops alert once nothing is left failing in this batch. `unrecorded`
+  // blocks the all-clear on purpose: a transfer whose ledger row was never written
+  // is an open money discrepancy, and announcing recovery would bury it.
+  if (!dryRun && paid > 0 && stillFailing === 0 && unrecorded === 0) {
     await reportSuccess('payout-transfer').catch(() => {})
   }
 
-  return { scanned: snap.docs.length, paid, still_failing: stillFailing, superseded, skipped }
+  return { scanned: snap.docs.length, paid, still_failing: stillFailing, superseded, skipped, unrecorded }
 }
 
 // Godmode "issue a payout now": transfers a FLAT amount (cents) to a user's

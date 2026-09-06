@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasEditorAccess } from '@citybeat/lib/roles'
+import { resolveEntitlements, resolveListingPatchAccess } from '@/lib/directory-entitlements'
 import { notifyUser } from '@/lib/user-notifications'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-// Answer a customer question. The listing OWNER's answer is flagged as
-// authoritative (answer_by_owner). Staff may also answer. Notifies the asker.
+// Answer a customer question. The business side — the owner of an APPROVED claim
+// and their seated managers — has its answer flagged as authoritative
+// (answer_by_owner). Staff may also answer, as the community. Notifies the asker.
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; questionId: string }> }
@@ -25,10 +27,25 @@ export async function PATCH(
   const listingSnap = await adminDb.collection('directory_listings').doc(id).get()
   if (!listingSnap.exists) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
   const listing = listingSnap.data() as any
-  const isOwner = listing.owner_id && listing.owner_id === user.id
-  if (!isOwner && !hasEditorAccess(profile)) {
+  // Who may answer. This used a raw `listing.owner_id === user.id`, which is NOT
+  // the ownership rule the rest of the directory uses: resolveListingPatchAccess
+  // additionally requires claim_status === 'approved'. owner_id is written when a
+  // claim is SUBMITTED, so someone whose claim an admin had not approved (or had
+  // rejected) could post an answer that renders on the public listing flagged as
+  // the business's own — impersonation on a page the real owner does not control
+  // yet. It also ignored the paid manager seats.
+  const entitlements = resolveEntitlements(listing)
+  const { canManage, isOwner, isManager } = resolveListingPatchAccess(listing, {
+    userId: user.id,
+    isStaff: hasEditorAccess(profile),
+    managerAllowance: entitlements.additionalManagers,
+  })
+  if (!canManage) {
     return NextResponse.json({ error: 'Only the business owner can answer questions.' }, { status: 403 })
   }
+  // "The business answered" covers the owner and their seated managers; a staff
+  // editor answering is not the business, so their answer stays a community one.
+  const answeredByBusiness = isOwner || isManager
 
   const qRef = adminDb.collection('listing_questions').doc(questionId)
   const qSnap = await qRef.get()
@@ -38,7 +55,7 @@ export async function PATCH(
 
   const now = new Date().toISOString()
   await qRef.set(
-    { answer, answer_by_owner: Boolean(isOwner), answered_by: user.id, answered_at: now },
+    { answer, answer_by_owner: answeredByBusiness, answered_by: user.id, answered_at: now },
     { merge: true }
   )
 

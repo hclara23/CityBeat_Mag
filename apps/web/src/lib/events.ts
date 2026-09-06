@@ -25,10 +25,48 @@ export function isEventVisible(e: { status?: unknown }): boolean {
 }
 const isVisible = isEventVisible
 
+// Reading the ENTIRE `events` collection ordered oldest-first and throwing away
+// all but `limit` was the same shape of bug as the homepage article read: the
+// homepage, /events and the sitemap each paid one billed Firestore read per
+// event ever created — every long-past one included — to render at most a few
+// dozen, and the bill grew every night as citybeat-sync-events pulled in more
+// Ticketmaster rows. Firestore can answer this natively: a range filter on
+// start_date plus an orderBy on the SAME field is served by the automatic
+// single-field index, so it needs no composite index (which is what the full
+// scan was avoiding in the first place).
+//
+// The bound is compared as a STRING because that is how start_date is stored,
+// in two shapes: full ISO with Z (api/events/submit, lib/events-scraper) and
+// naive local `YYYY-MM-DDTHH:mm:ss` (lib/sales-fulfillment). Both begin with
+// YYYY-MM-DD, so a date-only bound orders correctly against either, and
+// offsetDays of slack keeps the precise cutoff — plus any timezone skew between
+// the two shapes — decided in memory, exactly where it was before.
+// Consequence worth knowing: a row whose start_date does NOT begin with a date
+// now sorts outside the window instead of being kept by the NaN branch below.
+// Every writer in this repo stores an ISO-prefixed value.
+function dateBound(ms: number, offsetDays: number): string {
+  return new Date(ms + offsetDays * 86400000).toISOString().slice(0, 10)
+}
+
+// Backstop so a runaway calendar can never OOM the container. Because the read
+// is now soonest-first, hitting it means a featured (paid) event further out
+// than the next 500 upcoming events would not be pulled forward by the sort
+// below — more than a year of El Paso listings at current volume.
+const EVENTS_SCAN_CAP = 500
+
 export async function getUpcomingEvents(limit = 60): Promise<PublicEvent[]> {
   try {
-    const snap = await adminDb.collection('events').orderBy('start_date', 'asc').get()
     const cutoff = Date.now() - 12 * 60 * 60 * 1000 // keep events up to 12h past start
+    // Headroom over `limit`: the visibility allow-list and the featured-first
+    // re-sort both run after the read, so the query has to return more rows than
+    // the caller asked for.
+    const scan = Math.min(Math.max(limit * 4, 100), EVENTS_SCAN_CAP)
+    const snap = await adminDb
+      .collection('events')
+      .where('start_date', '>=', dateBound(cutoff, -2))
+      .orderBy('start_date', 'asc')
+      .limit(scan)
+      .get()
     return snap.docs
       .map((d) => ({ id: d.id, ...(d.data() as any) }))
       .filter(isVisible)
@@ -72,7 +110,17 @@ export function thisWeekendWindow(now = new Date()): { start: number; end: numbe
 export async function getThisWeekendEvents(): Promise<{ events: PublicEvent[]; label: string }> {
   const { start, end, label } = thisWeekendWindow()
   try {
-    const snap = await adminDb.collection('events').orderBy('start_date', 'asc').get()
+    // Same range-filter reasoning as getUpcomingEvents, bounded on both sides:
+    // this page needs three days of events, not the whole calendar. The \uf8ff
+    // suffix makes the upper bound include every time-of-day on the last day;
+    // the in-memory window check below still decides the exact edges.
+    const snap = await adminDb
+      .collection('events')
+      .where('start_date', '>=', dateBound(start, -1))
+      .where('start_date', '<=', `${dateBound(end, 1)}\uf8ff`)
+      .orderBy('start_date', 'asc')
+      .limit(EVENTS_SCAN_CAP)
+      .get()
     const events = snap.docs
       .map((d) => ({ id: d.id, ...(d.data() as any) }))
       .filter(isVisible)

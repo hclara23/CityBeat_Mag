@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasAdminAccess } from '@citybeat/lib/roles'
+import { privilegedDenial } from '@/lib/privileged-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,11 @@ async function requireEditor() {
   const user = await getServerUser()
   if (!user) return { error: 'Unauthorized', status: 401 as const }
   const profile = await getServerUserProfile(user.id)
-  if (!hasAdminAccess(profile)) return { error: 'Forbidden', status: 403 as const }
+  // Role AND second factor, together. This checked the role alone, so a staff
+  // password with no TOTP enrollment behind it reached this API even though the
+  // page in front of it only redirects. See lib/privileged-access.
+  const denial = privilegedDenial(profile, hasAdminAccess(profile))
+  if (denial) return denial
   return { user, profile }
 }
 

@@ -21,13 +21,73 @@ interface Listing {
   claim_contact_phone_hint?: string | null
 }
 
+// Spanish for the plans a customer is choosing between. lib/pricing.ts is the
+// single source of truth for ids, amounts and intervals and is shared with the
+// Stripe webhook, so it carries no locale — this translates only what is shown.
+// The whole purchase decision (plan names, savings, what you get) rendered in
+// English at /es, on the page that takes the card.
+const PLAN_ES: Record<PlanId, { label: string; priceLabel: string; badge?: string; savingsLabel?: string; effectiveMonthly?: string; description: string }> = {
+  founding_annual: {
+    label: 'Fundador Anual',
+    priceLabel: '$99 / año',
+    effectiveMonthly: '$8.25/mes',
+    badge: 'Mejor valor · solo 100',
+    savingsLabel: 'Fija $99/año de por vida — ahorra $140 frente al plan mensual',
+    description:
+      'La oferta de lanzamiento de los 100 Fundadores: todas las funciones Premium al precio más bajo que ofreceremos, fijo mientras mantengas tu suscripción. Galería de fotos, imagen de portada, redes sociales, horario y ubicación prioritaria.',
+  },
+  founding: {
+    label: 'Fundador Mensual',
+    priceLabel: '$9.99 / mes',
+    badge: 'Lanzamiento · solo 100',
+    description:
+      'Precio de lanzamiento de los 100 Fundadores — fijo de por vida. Todas las funciones Premium: galería de fotos, imagen de portada, redes sociales, horario y ubicación prioritaria.',
+  },
+  premium_annual: {
+    label: 'Premium Anual',
+    priceLabel: '$199 / año',
+    effectiveMonthly: '$16.58/mes',
+    savingsLabel: '2 meses gratis frente al plan mensual',
+    description:
+      'Todas las funciones Premium con cobro anual — dos meses gratis frente al mensual. Galería de fotos, imagen de portada, redes sociales, horario y ubicación prioritaria.',
+  },
+  premium_monthly: {
+    label: 'Premium Mensual',
+    priceLabel: '$19.99 / mes',
+    description:
+      'Ficha Premium: galería de fotos, imagen de portada, descripción personalizada, redes sociales, horario día por día y ubicación prioritaria en las búsquedas.',
+  },
+  featured_monthly: {
+    label: 'Destacado',
+    priceLabel: '$49 / mes',
+    badge: 'Primer lugar',
+    description:
+      'Todo lo de Premium más el primer lugar de tu categoría, insignia de Destacado y rotación en la portada para máxima visibilidad.',
+  },
+  sponsored_monthly: {
+    label: 'Patrocinado',
+    priceLabel: '$99 / mes',
+    badge: 'Portada del directorio',
+    description:
+      'Todo lo de Premium más un espacio en la cuadrícula de Fichas Patrocinadas en la portada del Directorio de CityBeat, la ubicación más visible del sitio. Solo se muestran 3 a la vez, en rotación aleatoria entre todos los patrocinadores, para que todos aparezcan.',
+  },
+}
+
+function planCopy(planId: PlanId, locale: 'en' | 'es') {
+  const plan = DIRECTORY_PLANS[planId]
+  if (locale !== 'es') return plan
+  return { ...plan, ...PLAN_ES[planId] }
+}
+
 // Plan price multiplied across all locations of a multi-location brand.
-function planTotalLabel(planId: PlanId, count?: number | null): string {
+function planTotalLabel(planId: PlanId, count: number | null | undefined, locale: 'en' | 'es'): string {
   const plan = DIRECTORY_PLANS[planId]
   const n = Math.max(1, Number(count) || 1)
-  if (n < 2) return plan.priceLabel
+  if (n < 2) return planCopy(planId, locale).priceLabel
   const whole = (plan.unitAmount * n) / 100
-  const per = plan.interval === 'year' ? '/ yr' : '/ mo'
+  const per = locale === 'es'
+    ? plan.interval === 'year' ? '/ año' : '/ mes'
+    : plan.interval === 'year' ? '/ yr' : '/ mo'
   const str =
     whole % 1 === 0
       ? whole.toLocaleString('en-US')
@@ -61,6 +121,42 @@ const translations = {
     backToDetails: '← Back to listing details',
     loading: 'Loading checkout options...',
     unclaimedStatusError: 'This listing cannot be claimed. It may already be claimed or pending review.',
+    forLabel: 'For',
+    listingNotFound: 'Listing not found',
+    loadError: 'An error occurred loading claim page details',
+    startClaimFailed: 'Failed to start claim process',
+    invalidCode: 'Invalid verification code',
+    genericError: 'An error occurred. Please try again.',
+    freeTitle: 'Option 1: Claim Free',
+    freeTitleSalesManaged: 'Claim This Listing',
+    freeDesc: 'Verify ownership to correct spelling, update phone/website, and edit basic info for free.',
+    methodLabel: 'Verification Method',
+    methodEmail: 'Email Address',
+    methodSms: 'SMS / Text Message',
+    methodPostcard: 'Mail Postcard to Business',
+    comingSoon: '(coming soon)',
+    emailHint: (address: string) =>
+      `We'll email a verification code to the address on file for this business: ${address}. You must have access to that inbox to verify ownership.`,
+    noEmailOnFile:
+      'No email is on file for this business yet, and SMS & postcard verification are coming soon. In the meantime, open the chat in the bottom-right corner and our team will verify your ownership directly.',
+    phoneHint: (phone: string) =>
+      `We'll text a verification code to the number on file for this business: ${phone}. You must have access to that line to verify ownership.`,
+    noPhoneOnFile: 'No phone number is on file for this business. Please use postcard verification instead.',
+    postcardHint: (address: string) =>
+      `A postcard with a verification code will be mailed to: ${address}. Enter the code once it arrives (5-7 days).`,
+    listedAddressFallback: 'Listed Business Address',
+    codeLabel: 'Verification Code',
+    codePlaceholder: 'Enter 6-digit code',
+    backToListing: 'Back to Listing',
+    requesting: 'Requesting...',
+    requestCode: 'Request Verification Code',
+    verifying: 'Verifying...',
+    verifyCode: 'Verify Code',
+    tryAnotherMethod: 'Try Another Method',
+    upgradeTitle: 'Option 2: Upgrade',
+    upgradeDesc:
+      'Unlock premium features, cover banners, photo gallery, priority placement, and direct social links. Choose a plan:',
+    subscribe: 'Subscribe',
   },
   es: {
     title: 'Reclamar Su Negocio',
@@ -82,6 +178,44 @@ const translations = {
     backToDetails: '← Volver a los detalles del negocio',
     loading: 'Cargando opciones de pago...',
     unclaimedStatusError: 'Este perfil no puede ser reclamado. Ya podría estar reclamado o pendiente de revisión.',
+    forLabel: 'Para',
+    listingNotFound: 'No encontramos este negocio',
+    loadError: 'Ocurrió un error al cargar la página de reclamo',
+    startClaimFailed: 'No se pudo iniciar el reclamo',
+    invalidCode: 'Código de verificación inválido',
+    genericError: 'Ocurrió un error. Inténtalo de nuevo.',
+    freeTitle: 'Opción 1: Reclamar gratis',
+    freeTitleSalesManaged: 'Reclamar este negocio',
+    freeDesc:
+      'Verifica la propiedad para corregir la ortografía, actualizar el teléfono o el sitio web y editar la información básica, gratis.',
+    methodLabel: 'Método de verificación',
+    methodEmail: 'Correo electrónico',
+    methodSms: 'SMS / Mensaje de texto',
+    methodPostcard: 'Tarjeta postal al domicilio del negocio',
+    comingSoon: '(próximamente)',
+    emailHint: (address: string) =>
+      `Enviaremos un código de verificación al correo registrado de este negocio: ${address}. Necesitas acceso a esa bandeja de entrada para comprobar la propiedad.`,
+    noEmailOnFile:
+      'Este negocio aún no tiene un correo registrado, y la verificación por SMS y por tarjeta postal está por llegar. Mientras tanto, abre el chat en la esquina inferior derecha y nuestro equipo verificará tu propiedad directamente.',
+    phoneHint: (phone: string) =>
+      `Enviaremos un código de verificación por mensaje al número registrado de este negocio: ${phone}. Necesitas acceso a esa línea para comprobar la propiedad.`,
+    noPhoneOnFile:
+      'Este negocio no tiene un número de teléfono registrado. Usa la verificación por tarjeta postal.',
+    postcardHint: (address: string) =>
+      `Enviaremos por correo una tarjeta postal con un código de verificación a: ${address}. Ingresa el código cuando llegue (5-7 días).`,
+    listedAddressFallback: 'la dirección registrada del negocio',
+    codeLabel: 'Código de verificación',
+    codePlaceholder: 'Ingresa el código de 6 dígitos',
+    backToListing: 'Volver al negocio',
+    requesting: 'Solicitando...',
+    requestCode: 'Solicitar código de verificación',
+    verifying: 'Verificando...',
+    verifyCode: 'Verificar código',
+    tryAnotherMethod: 'Probar otro método',
+    upgradeTitle: 'Opción 2: Mejorar el plan',
+    upgradeDesc:
+      'Activa las funciones premium: imagen de portada, galería de fotos, ubicación prioritaria y enlaces directos a tus redes. Elige un plan:',
+    subscribe: 'Suscribirse',
   }
 }
 
@@ -109,7 +243,7 @@ function ClaimPageInner() {
         // Fetch listing
         const resListing = await fetch(`/api/directory/${id}`)
         if (!resListing.ok) {
-          setError('Listing not found')
+          setError(t.listingNotFound)
           return
         }
         const dataListing = await resListing.json()
@@ -128,7 +262,7 @@ function ClaimPageInner() {
         }
       } catch (err) {
         console.error(err)
-        setError('An error occurred loading claim page details')
+        setError(t.loadError)
       } finally {
         setLoading(false)
       }
@@ -137,7 +271,7 @@ function ClaimPageInner() {
     if (id) {
       loadClaimData()
     }
-  }, [id, t.unclaimedStatusError])
+  }, [id, t.unclaimedStatusError, t.listingNotFound, t.loadError])
 
   const [claimMethod, setClaimMethod] = useState<'email' | 'phone' | 'postcard'>('email')
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('founding_annual')
@@ -232,11 +366,11 @@ function ClaimPageInner() {
                 : `Code sent successfully to${to}`)
         )
       } else {
-        setClaimErrorMsg(data.error || 'Failed to start claim process')
+        setClaimErrorMsg(data.error || t.startClaimFailed)
       }
     } catch (err) {
       console.error(err)
-      setClaimErrorMsg('An error occurred. Please try again.')
+      setClaimErrorMsg(t.genericError)
     } finally {
       setVerifying(false)
     }
@@ -268,11 +402,11 @@ function ClaimPageInner() {
         )
         router.refresh()
       } else {
-        setClaimErrorMsg(data.error || 'Invalid verification code')
+        setClaimErrorMsg(data.error || t.invalidCode)
       }
     } catch (err) {
       console.error(err)
-      setClaimErrorMsg('An error occurred. Please try again.')
+      setClaimErrorMsg(t.genericError)
     } finally {
       setVerifying(false)
     }
@@ -313,13 +447,13 @@ function ClaimPageInner() {
         if (data.founding_sold_out) {
           setSelectedPlan('premium_annual')
         }
-        throw new Error(data.error || 'Failed to create checkout session')
+        throw new Error(data.error || t.genericError)
       }
 
       window.location.href = (data as { url: string }).url
     } catch (err: any) {
       console.error(err)
-      alert(err.message || 'Error redirecting to Stripe')
+      alert(err.message || t.genericError)
       setRedirecting(false)
     }
   }
@@ -445,7 +579,7 @@ function ClaimPageInner() {
                 </h1>
                 
                 <p className="text-xs text-white/50 mt-1 uppercase font-bold tracking-wider">
-                  For: <span className="text-white">{listing?.name}</span>
+                  {t.forLabel}: <span className="text-white">{listing?.name}</span>
                 </p>
 
                 <p className="text-sm text-white/70 mt-4 leading-relaxed">
@@ -457,11 +591,11 @@ function ClaimPageInner() {
                     {/* Checkout Info — reflects the selected optional upgrade plan */}
                     <div className="mt-8 p-6 bg-brand-ink/80 rounded-xl border border-white/10 flex items-center justify-between">
                       <div>
-                        <p className="text-xs font-bold text-white/50 uppercase tracking-wider">{DIRECTORY_PLANS[selectedPlan].label}</p>
-                        <p className="text-2xl font-black text-brand-gold mt-1">{planTotalLabel(selectedPlan, listing?.location_count)}</p>
+                        <p className="text-xs font-bold text-white/50 uppercase tracking-wider">{planCopy(selectedPlan, locale).label}</p>
+                        <p className="text-2xl font-black text-brand-gold mt-1">{planTotalLabel(selectedPlan, listing?.location_count, locale)}</p>
                         {(listing?.location_count ?? 1) > 1 && (
                           <p className="text-[11px] text-white/50 mt-1">
-                            {listing?.location_count} {locale === 'es' ? 'ubicaciones' : 'locations'} × {DIRECTORY_PLANS[selectedPlan].priceLabel}
+                            {listing?.location_count} {locale === 'es' ? 'ubicaciones' : 'locations'} × {planCopy(selectedPlan, locale).priceLabel}
                           </p>
                         )}
                       </div>
@@ -549,17 +683,17 @@ function ClaimPageInner() {
                         <div className="citybeat-panel rounded-xl p-5 border border-white/10 flex flex-col justify-between bg-black/20">
                           <div>
                             <h3 className="font-display text-lg font-bold text-white uppercase tracking-wide mb-2">
-                              {listing?.sales_created_listing ? 'Claim This Listing' : 'Option 1: Claim Free'}
+                              {listing?.sales_created_listing ? t.freeTitleSalesManaged : t.freeTitle}
                             </h3>
                             <p className="text-xs text-white/60 leading-relaxed mb-4">
-                              Verify ownership to correct spelling, update phone/website, and edit basic info for free.
+                              {t.freeDesc}
                             </p>
 
                             {claimStep === 'select_method' && (
                               <div className="space-y-4">
                                 <div className="space-y-2">
                                   <label className="block text-[10px] font-bold uppercase tracking-wider text-brand-neon">
-                                    Verification Method
+                                    {t.methodLabel}
                                   </label>
                                   <div className="flex flex-col gap-2">
                                     <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 cursor-pointer text-xs">
@@ -570,15 +704,15 @@ function ClaimPageInner() {
                                         onChange={() => { setClaimMethod('email'); setClaimErrorMsg('') }}
                                         className="accent-brand-neon"
                                       />
-                                      <span>📧 Email Address</span>
+                                      <span>📧 {t.methodEmail}</span>
                                     </label>
                                     <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 text-xs opacity-40 cursor-not-allowed">
                                       <input type="radio" name="claim_method" disabled className="accent-brand-neon" />
-                                      <span>💬 SMS / Text Message <em className="text-white/40">(coming soon)</em></span>
+                                      <span>💬 {t.methodSms} <em className="text-white/40">{t.comingSoon}</em></span>
                                     </label>
                                     <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 text-xs opacity-40 cursor-not-allowed">
                                       <input type="radio" name="claim_method" disabled className="accent-brand-neon" />
-                                      <span>📮 Mail Postcard to Business <em className="text-white/40">(coming soon)</em></span>
+                                      <span>📮 {t.methodPostcard} <em className="text-white/40">{t.comingSoon}</em></span>
                                     </label>
                                   </div>
                                 </div>
@@ -586,11 +720,9 @@ function ClaimPageInner() {
                                 {claimMethod === 'email' && (
                                   <div className="p-3 bg-white/5 border border-white/5 rounded text-[11px] text-white/70">
                                     {listing?.claim_contact_email_hint ? (
-                                      <>We&apos;ll email a verification code to the address on file for this business: <strong className="text-white">{listing.claim_contact_email_hint}</strong>. You must have access to that inbox to verify ownership.</>
+                                      t.emailHint(listing.claim_contact_email_hint)
                                     ) : (
-                                      <span className="text-brand-gold">
-                                        No email is on file for this business yet, and SMS &amp; postcard verification are coming soon. In the meantime, open the chat in the bottom-right corner and our team will verify your ownership directly.
-                                      </span>
+                                      <span className="text-brand-gold">{t.noEmailOnFile}</span>
                                     )}
                                   </div>
                                 )}
@@ -598,16 +730,16 @@ function ClaimPageInner() {
                                 {claimMethod === 'phone' && (
                                   <div className="p-3 bg-white/5 border border-white/5 rounded text-[11px] text-white/70">
                                     {listing?.claim_contact_phone_hint ? (
-                                      <>We&apos;ll text a verification code to the number on file for this business: <strong className="text-white">{listing.claim_contact_phone_hint}</strong>. You must have access to that line to verify ownership.</>
+                                      t.phoneHint(listing.claim_contact_phone_hint)
                                     ) : (
-                                      <span className="text-brand-gold">No phone number is on file for this business. Please use postcard verification instead.</span>
+                                      <span className="text-brand-gold">{t.noPhoneOnFile}</span>
                                     )}
                                   </div>
                                 )}
 
                                 {claimMethod === 'postcard' && (
                                   <div className="p-3 bg-white/5 border border-white/5 rounded text-[11px] text-white/70">
-                                    A postcard with a verification code will be mailed to: <strong className="text-white">{listing?.address || 'Listed Business Address'}</strong>. Enter the code once it arrives (5–7 days).
+                                    {t.postcardHint(listing?.address || t.listedAddressFallback)}
                                   </div>
                                 )}
                               </div>
@@ -616,14 +748,14 @@ function ClaimPageInner() {
                             {claimStep === 'enter_code' && (
                               <div className="space-y-4">
                                 <label htmlFor="claim-verification-code" className="block text-[10px] font-bold uppercase tracking-wider text-brand-neon">
-                                  Verification Code
+                                  {t.codeLabel}
                                 </label>
                                 <input
                                   id="claim-verification-code"
                                   type="text"
                                   inputMode="numeric"
-                                  aria-label="Verification code"
-                                  placeholder="Enter 6-digit code"
+                                  aria-label={t.codeLabel}
+                                  placeholder={t.codePlaceholder}
                                   maxLength={6}
                                   value={verificationCode}
                                   onChange={(e) => setVerificationCode(e.target.value)}
@@ -640,7 +772,7 @@ function ClaimPageInner() {
                                   href={withLocale(locale, `/directory/${id}`)}
                                   className="inline-block w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3"
                                 >
-                                  Back to Listing
+                                  {t.backToListing}
                                 </Link>
                               </div>
                             )}
@@ -654,7 +786,7 @@ function ClaimPageInner() {
                                   disabled={verifying || (claimMethod === 'email' && !listing?.claim_contact_email_hint)}
                                   className="w-full text-center rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-3 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  {verifying ? 'Requesting...' : 'Request Verification Code'}
+                                  {verifying ? t.requesting : t.requestCode}
                                 </button>
                               ) : (
                                 <>
@@ -663,16 +795,14 @@ function ClaimPageInner() {
                                     disabled={verifying}
                                     className="w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3 transition hover:bg-cyan-300 disabled:opacity-50"
                                   >
-                                    {verifying
-                                      ? (locale === 'es' ? 'Verificando…' : 'Verifying…')
-                                      : (locale === 'es' ? 'Verificar código' : 'Verify Code')}
+                                    {verifying ? t.verifying : t.verifyCode}
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => { setClaimStep('select_method'); setClaimSuccessMsg(''); setClaimErrorMsg('') }}
                                     className="w-full text-center text-xs text-white/50 hover:text-white underline mt-2 block"
                                   >
-                                    Try Another Method
+                                    {t.tryAnotherMethod}
                                   </button>
                                 </>
                               )}
@@ -684,15 +814,15 @@ function ClaimPageInner() {
                           <div className="citybeat-panel rounded-xl p-5 border border-brand-gold/30 bg-gradient-to-b from-brand-charcoal to-brand-dark flex flex-col justify-between shadow-[0_0_15px_rgba(255,215,0,0.05)]">
                           <div>
                             <h3 className="font-display text-lg font-black text-brand-gold uppercase tracking-wide mb-2">
-                              Option 2: Upgrade
+                              {t.upgradeTitle}
                             </h3>
                             <p className="text-xs text-white/60 leading-relaxed mb-4">
-                              Unlock premium features, cover banners, photo gallery, priority placement, and direct social links. Choose a plan:
+                              {t.upgradeDesc}
                             </p>
 
                             <div className="flex flex-col gap-2 my-4">
                               {(['founding_annual', 'founding', 'premium_annual', 'premium_monthly', 'featured_monthly'] as PlanId[]).map((pid) => {
-                                const p = DIRECTORY_PLANS[pid]
+                                const p = planCopy(pid, locale)
                                 const active = selectedPlan === pid
                                 const isBestValue = pid === 'founding_annual'
                                 return (
@@ -746,7 +876,7 @@ function ClaimPageInner() {
                             disabled={redirecting}
                             className="w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3.5 hover:bg-cyan-300 transition shadow-[0_4px_12px_rgba(0,240,255,0.25)] disabled:opacity-50 mt-2"
                           >
-                            {redirecting ? t.redirecting : `Subscribe · ${planTotalLabel(selectedPlan, listing?.location_count)}`}
+                            {redirecting ? t.redirecting : `${t.subscribe} · ${planTotalLabel(selectedPlan, listing?.location_count, locale)}`}
                           </button>
                           </div>
                         )}

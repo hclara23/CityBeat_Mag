@@ -1,11 +1,23 @@
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getCronCursor, setCronCursor } from './cron-cursor'
-import { fetchWithTimeout } from './http'
 
 // Backfills contact data for directory listings so the sales agent can reach them.
-// Strategy: Google Places Details (place_id → website + phone) when GOOGLE_PLACES_API_KEY
-// is set, then scrape the website HTML for a public contact email. Safe no-ops without
-// the key (still attempts website-email scrape for listings that already have a website).
+// Strategy: read the business's OWN website and take a public contact email off it.
+//
+// This job used to start from Google Places Details (findplacefromtext → place
+// details → website + phone) and write those fields permanently onto the listing.
+// That is prohibited twice over by the Google Maps Platform Terms — Content may
+// not be cached indefinitely (only the place ID may be kept), and it may not be
+// used to build a competing business-listings service, which is exactly what
+// /directory is. It also made every Places-derived phone the cold-outreach and
+// SMS target, a further prohibited use. The Places path is therefore GONE, not
+// TTL'd: a stored copy and a resold copy are separate breaches, and an expiry
+// only answers the first.
+//
+// What remains is lawful and unchanged in kind: a listing that already carries a
+// website URL is fetched directly, and a contact address published on that
+// business's own pages is stored. Listings with no website are stamped as
+// attempted and left for a human or another (non-Google) source.
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
 
@@ -36,39 +48,6 @@ function scoreEmail(email: string): number {
   if (/^(info|contact|hello|hi|office|reservations|booking|sales|frontdesk)$/.test(local)) return 2
   if (/(gmail|yahoo|hotmail|outlook|aol|icloud)\.com$/i.test(email)) return 1 // personal, still usable
   return 3 // a named business-domain address — best
-}
-
-// Stored google_place_id values are OSM ids (osm:node:..), not Google place ids,
-// so we resolve a real place id from the business name + address first.
-async function findPlaceId(query: string): Promise<string | null> {
-  const key = process.env.GOOGLE_PLACES_API_KEY
-  if (!key || !query.trim()) return null
-  try {
-    const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=place_id&key=${key}`
-    const res = await fetchWithTimeout(url)
-    if (!res.ok) return null
-    const data: any = await res.json()
-    return data?.candidates?.[0]?.place_id || null
-  } catch {
-    return null
-  }
-}
-
-async function placesDetails(query: string): Promise<{ website?: string; phone?: string } | null> {
-  const key = process.env.GOOGLE_PLACES_API_KEY
-  if (!key) return null
-  const placeId = await findPlaceId(query)
-  if (!placeId) return null
-  try {
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=website,formatted_phone_number,international_phone_number&key=${key}`
-    const res = await fetchWithTimeout(url)
-    if (!res.ok) return null
-    const data: any = await res.json()
-    const r = data?.result || {}
-    return { website: r.website, phone: r.formatted_phone_number || r.international_phone_number }
-  } catch {
-    return null
-  }
 }
 
 function bestEmail(candidates: string[], siteHost?: string): string | null {
@@ -129,7 +108,9 @@ const RETRY_AFTER_MS = 30 * 86400000 // don't re-grind a failed doc for 30 days
 export async function runContactEnrichment(opts: { limit?: number; categories?: string[] } = {}) {
   const limit = Math.max(1, Math.min(opts.limit ?? 25, 100))
   const catFilter = opts.categories && opts.categories.length ? new Set(opts.categories) : null
-  const stats = { scanned: 0, places_filled: 0, emails_found: 0, updated: 0 }
+  // `places_filled` is deliberately gone from this shape: the Places lookup it
+  // counted is gone, and a stat that is always 0 reads like a broken job.
+  const stats = { scanned: 0, no_website: 0, emails_found: 0, updated: 0 }
 
   // Page through unclaimed listings collecting ones we haven't attempted
   // recently. Without the attempted-marker skip, every run re-scanned the same
@@ -183,33 +164,24 @@ export async function runContactEnrichment(opts: { limit?: number; categories?: 
     stats.scanned++
 
     const updates: Record<string, any> = {}
-    let website = l.website as string | undefined
-
-    if (!website || !l.phone) {
-      const query = [l.name, l.address].filter(Boolean).join(' ')
-      const details = await placesDetails(query)
-      if (details) {
-        if (details.website && !l.website) {
-          updates.website = details.website
-          website = details.website
-        }
-        if (details.phone && !l.phone) updates.phone = details.phone
-        if (Object.keys(updates).length) stats.places_filled++
-      }
-    }
-
+    // The listing's OWN website is the only source this job may read. A listing
+    // that has none is no longer resolvable through Google Places — that lookup
+    // was the licence breach — so it is stamped and skipped rather than filled in.
+    const website = typeof l.website === 'string' ? l.website.trim() : ''
     if (website) {
       const email = await scrapeEmail(website)
       if (email) {
         updates.email = email
         stats.emails_found++
       }
+    } else {
+      stats.no_website++
     }
 
     // Always stamp the attempt — success or not — so the next run moves on to
     // fresh docs instead of retrying this one for another 30 days.
     updates.enrich_attempted_at = new Date().toISOString()
-    if (updates.email || updates.website || updates.phone) {
+    if (updates.email) {
       updates.enriched_at = new Date().toISOString()
       stats.updated++
     }

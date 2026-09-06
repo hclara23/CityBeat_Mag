@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { SignupForm } from '@citybeat/ui/auth'
 import { signUp, createUserProfile } from '@citybeat/lib/firebase/auth-client'
 import Link from 'next/link'
@@ -24,10 +24,20 @@ const copy = {
   },
 }
 
-export default function SignupPage() {
+function SignupContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const locale = useLocale() as 'en' | 'es'
   const localeCopy = copy[locale]
+  // Registration is a detour inside a paid flow, not a destination: someone who
+  // hits "Claim your business" while signed out is sent to
+  // /login?redirectTo=/directory/<id>/claim, and if they choose to register
+  // instead the claim they came to finish has to survive the round trip. It did
+  // not — signup pushed them to a bare /login and the claim was lost.
+  // Only an internal, single-slash path is carried (no '//evil.com').
+  const redirectTo = searchParams.get('redirectTo')
+  const forwardTo = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//') ? redirectTo : null
+  const loginHref = `/${locale}/login${forwardTo ? `?redirectTo=${encodeURIComponent(forwardTo)}` : ''}`
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   // US CAN-SPAM opt-out: the newsletter box starts checked; the user can uncheck
@@ -81,9 +91,10 @@ export default function SignupPage() {
       }
 
       setMessage(result.message || localeCopy.message)
-      // Redirect to login after a delay
+      // Redirect to login after a delay, keeping the destination they were
+      // originally headed for.
       setTimeout(() => {
-        router.push(`/${locale}/login`)
+        router.push(loginHref)
       }, 3000)
 
       return {}
@@ -130,7 +141,7 @@ export default function SignupPage() {
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               {localeCopy.haveAccount}{' '}
-              <Link href={`/${locale}/login`} className="text-red-600 hover:text-red-700 font-semibold">
+              <Link href={loginHref} className="text-red-600 hover:text-red-700 font-semibold">
                 {localeCopy.signIn}
               </Link>
             </p>
@@ -138,5 +149,19 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  // useSearchParams needs a Suspense boundary to keep this route prerenderable
+  // (same shape as the login page).
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+      </div>
+    }>
+      <SignupContent />
+    </Suspense>
   )
 }

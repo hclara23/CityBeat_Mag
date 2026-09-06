@@ -24,6 +24,7 @@ import {
   referralDiscountAmount,
 } from '@/lib/referrals'
 import { directoryOrderPaymentPatch, salesDirectoryClaimStatus } from '@/lib/sales-directory'
+import { salesFulfillmentTarget } from '@/lib/sales-fulfillment'
 import { isOriginatingRefund, refundListingPatch } from '@/lib/refund-decision'
 import { getSalesProduct } from '@/lib/sales-products'
 import { purchaseConfirmationEmail } from '@/lib/buyer-emails'
@@ -82,6 +83,48 @@ async function resolveSessionChargeId(session: any): Promise<string | null> {
     /* fall back to balance-based transfer */
   }
   return null
+}
+
+// Which product documents a SELF-SERVE purchase provisioned, read back off the
+// `ad_purchases` ledger row its checkout wrote. Sales Desk orders are revoked
+// through their sales_orders `fulfillment_target`; the self-serve flows never
+// create a sales_orders row at all, so a refund or chargeback reached NOTHING
+// and the product the customer got their money back for kept running: a paid job
+// stayed on the public board (and in sitemap.ts, and on its own indexable detail
+// page) for the rest of its 30 days, and an ad campaign stayed is_active/running.
+function selfServeRefundTargets(purchase: Record<string, any>): Array<{ collection: string; id: string }> {
+  const targets: Array<{ collection: string; id: string }> = []
+  // `product_id` + `ad_type` are what the job/ad-campaign provisioning branch of
+  // checkout.session.completed writes; the collections must match the ones it
+  // provisioned into ('campaigns', NOT 'ad_campaigns').
+  const productId = typeof purchase.product_id === 'string' ? purchase.product_id : ''
+  if (productId && purchase.ad_type === 'job') targets.push({ collection: 'jobs', id: productId })
+  if (productId && purchase.ad_type === 'ad_campaign') targets.push({ collection: 'campaigns', id: productId })
+  if (purchase.ad_type === 'event_feature' && typeof purchase.event_id === 'string' && purchase.event_id) {
+    targets.push({ collection: 'events', id: purchase.event_id })
+  }
+  // The generic advertiser branch flips campaigns/<campaignId> to active.
+  if (typeof purchase.campaign_id === 'string' && purchase.campaign_id) {
+    targets.push({ collection: 'campaigns', id: purchase.campaign_id })
+  }
+  return targets
+}
+
+// Where a paid Sales Desk order's product WOULD live if the customer had ever
+// completed their brief. `fulfillment_target` is written ONLY by
+// /api/sales/orders/[orderId]/intake, so an order whose customer never opened
+// /fulfill/{orderId} had nothing for the refund handler to revoke — even though a
+// directory listing is granted its paid tier and its Sponsored slot at PAYMENT
+// time (directoryOrderPaymentPatch), deliberately independent of the brief.
+// Reuses the intake route's own pure mapping so both paths name the identical
+// document. Null for an order whose intake kind we don't recognise.
+function fallbackFulfillmentTarget(orderId: string, order: Record<string, any>) {
+  const target = salesFulfillmentTarget({
+    orderId,
+    intakeKind: order.intake_kind,
+    listingId: order.listing_id || null,
+  }) as { collection?: string; id?: string } | undefined
+  return target?.collection && target?.id ? target : null
 }
 
 async function setPaymentStatusByField(field: string, value: string, status: string) {
@@ -514,6 +557,46 @@ async function handleCheckoutCompleted(session: any) {
       { featured: true, status: 'approved', featured_at: new Date().toISOString(), updated_at: new Date().toISOString() },
       { merge: true }
     )
+
+    // This branch returns early, so — exactly like the job/ad-campaign branch
+    // below — it has to book its own revenue, and it never did. A paid Featured
+    // Event wrote NO `ad_purchases` row and produced no Stripe invoice either,
+    // so the money landed in neither ledger: invisible on the finance dashboard
+    // and in the weekly ops digest (which is how a revenue stop goes unnoticed),
+    // and the editor's share of it was never accrued.
+    //
+    // Keyed on the session id so a Stripe redelivery upserts the same row rather
+    // than double-counting the sale. `event_id` + ad_type are what lets the
+    // refund handler find the featured event again and pull the paid placement.
+    await adminDb.collection('ad_purchases').doc(session.id).set(
+      {
+        session_id: session.id,
+        event_id: metadata.event_id,
+        advertiser_email: session.customer_email || session.customer_details?.email || null,
+        ad_type: 'event_feature',
+        amount_total: session.amount_total || 0,
+        currency: session.currency || 'usd',
+        payment_status: 'completed',
+        stripe_customer_id: stripeObjectId(session.customer),
+        stripe_payment_intent_id: stripeObjectId(session.payment_intent),
+        created_at: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    )
+    // Community event submissions carry no rep (there is no payout_user_id on
+    // /api/events/submit), so this is the autonomous channel: bucketForService
+    // routes 'event_feature' to the ads split, and payoutSplit is idempotent by
+    // (service, payee, session) so a retry re-writes the same held share.
+    await payoutSplit({
+      stripe,
+      sellerUserId: metadata.payout_user_id || null,
+      service: 'event_feature',
+      amountTotal: session.amount_total,
+      currency: session.currency || 'usd',
+      sourcePaymentId: session.id,
+      sourceTransaction,
+      saleAt: session.created ? new Date(session.created * 1000) : null,
+    })
     return
   }
 
@@ -660,14 +743,21 @@ async function handleCheckoutCompleted(session: any) {
     }
   }
   if (provisionMeta.productId && provisionMeta.type) {
-    const now = new Date().toISOString()
+    // Anchor the run window to the moment the customer PAID, not to whenever
+    // this handler happens to execute. This branch is genuinely retried now (see
+    // the provisioning guard below) and Stripe delivers at-least-once, so a patch
+    // that recomputed `expires_at` from Date.now() would silently extend a paid
+    // 30-day posting by another 30 days on every redelivery. Same anchor the
+    // commission hold already uses (saleAt: session.created).
+    const paidAt = session.created ? new Date(session.created * 1000) : new Date()
+    const now = paidAt.toISOString()
     const collection = provisionMeta.type === 'job' ? 'jobs' : provisionMeta.type === 'ad_campaign' ? 'campaigns' : null
     // Only ever UPDATE an existing draft. set({merge:true}) creates the document
     // when it is absent, so a payer supplying an arbitrary id could inject a
-    // published record straight into a public collection. update() rejects a
-    // missing document instead — and a paid session with nothing to fulfil is a
-    // real anomaly, so it alerts rather than failing silently. Revenue is still
-    // recorded below either way, so the money is never lost from the ledger.
+    // published record straight into a public collection. A paid session with no
+    // draft to fulfil is a real anomaly, so it alerts rather than failing
+    // silently; the revenue + commission recorded below still run in that case,
+    // so the money is never lost from the ledger.
     if (collection && /^[A-Za-z0-9_-]{1,128}$/.test(provisionMeta.productId)) {
       const patch =
         provisionMeta.type === 'job'
@@ -677,12 +767,29 @@ async function handleCheckoutCompleted(session: any) {
               status: 'published',
               payment_status: 'paid',
               published_at: now,
-              expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+              expires_at: new Date(paidAt.getTime() + 30 * 86400000).toISOString(),
             }
           : { is_active: true, status: 'running', payment_status: 'paid', published_at: now }
-      try {
-        await adminDb.collection(collection).doc(provisionMeta.productId).update(patch)
-      } catch {
+      // "Is there a draft to fulfil?" is decided by a READ, not by catching
+      // update()'s error. The bare `catch` that used to wrap this swallowed EVERY
+      // error class: a transient Firestore failure (UNAVAILABLE /
+      // DEADLINE_EXCEEDED / ABORTED on contention) was reported to ops under the
+      // wrong cause ("no such draft"), the handler returned 200, and the event was
+      // then written to `stripe_events` — so Stripe stopped retrying AND
+      // /api/cron/reconcile-orders, which decides "did we process this?" purely
+      // from the presence of that document, could never see it as unprocessed.
+      // The customer's paid job stayed `status: draft` forever while the charge,
+      // the ledger row and the rep's commission all stood.
+      //
+      // Only a genuinely missing draft is absorbed now — no amount of retrying
+      // conjures one. Anything else propagates to the POST handler, which records
+      // the event in `stripe_failed_events`, returns 500 and leaves the event
+      // unmarked, so Stripe retries for three days.
+      const draftRef = adminDb.collection(collection).doc(provisionMeta.productId)
+      const draft = await draftRef.get()
+      if (draft.exists) {
+        await draftRef.update(patch)
+      } else {
         await reportFailure(
           'stripe-provisioning',
           new Error(`Paid ${provisionMeta.type} could not be provisioned — no such draft`),
@@ -882,6 +989,42 @@ async function handleChargeRefunded(charge: any) {
     ).catch(() => {})
   }
 
+  // Revoke the SELF-SERVE products this charge paid for. Everything below this
+  // loops `sales_orders`, which the self-serve job / ad-campaign / featured-event
+  // flows never create — so until now the only thing a refund or chargeback did
+  // to them was flip their `ad_purchases` row to 'refunded' while the product
+  // itself stayed live and public for the rest of its paid run.
+  if (doc) {
+    for (const target of selfServeRefundTargets(doc.data() as Record<string, any>)) {
+      const ref = adminDb.collection(target.collection).doc(target.id)
+      // Only ever patch a document that exists: a merge-set would otherwise
+      // CREATE a stub record in a public collection from a refund event.
+      const snapshot = await ref.get().catch(() => null)
+      if (!snapshot?.exists) continue
+      await ref.set(
+        {
+          payment_status: fullyRefunded ? 'refunded' : 'partially_refunded',
+          ...(target.collection === 'events'
+            ? // A refunded "feature this event" loses the PAID placement only.
+              // Whether the event itself stays on the moderation queue is an
+              // editorial call, not something a payment reversal should decide.
+              { featured: false }
+            : {
+                status: 'needs_attention',
+                is_active: false,
+                // Jobs: the public board, sitemap.ts and the /jobs/[id] detail
+                // page all gate on is_paid + expires_at, so deactivating is not
+                // a takedown — expire it, exactly as the fulfillment_target path
+                // below does.
+                ...(target.collection === 'jobs' ? { expires_at: now } : {}),
+              }),
+          updated_at: now,
+        },
+        { merge: true }
+      )
+    }
+  }
+
   for (const orderDocument of orders) {
     const order = orderDocument.data() as Record<string, any>
     await orderDocument.ref.set(
@@ -909,8 +1052,29 @@ async function handleChargeRefunded(charge: any) {
       )
     )
 
-    const target = order.fulfillment_target
-    if (target?.collection && target?.id) {
+    // `fulfillment_target` is stamped only when the customer SUBMITS their brief,
+    // so a paid order whose customer never opened /fulfill/{orderId} used to have
+    // nothing here and fell through every downgrade: the legacy customer-id
+    // fallback further down is gated on `!orders.length`, and nothing else in the
+    // repo writes tier:'basic' except customer.subscription.deleted — which a
+    // refund or dispute does not trigger. A rep-sold directory listing is granted
+    // its paid tier and its Sponsored slot at PAYMENT time
+    // (directoryOrderPaymentPatch), deliberately independent of the brief, so a
+    // charged-back business kept Premium/Featured and the Sponsored grid slot
+    // indefinitely and disqualifyPendingReferralForListing never ran, leaving a
+    // referral reward able to qualify off a reversed sale.
+    const target = order.fulfillment_target || fallbackFulfillmentTarget(orderDocument.id, order)
+    // Never CREATE the target from a refund: for an unfulfilled non-directory
+    // order the derived document does not exist yet, and a merge-set would write
+    // a stub into a public collection instead of revoking anything.
+    const targetExists =
+      target?.collection && target?.id
+        ? Boolean(
+            (await adminDb.collection(String(target.collection)).doc(String(target.id)).get().catch(() => null))
+              ?.exists
+          )
+        : false
+    if (targetExists) {
       await adminDb.collection(String(target.collection)).doc(String(target.id)).set(
         {
           payment_status: fullyRefunded ? 'refunded' : 'partially_refunded',

@@ -16,9 +16,10 @@ import type { Query, QueryDocumentSnapshot } from 'firebase-admin/firestore'
  * fewer documents does that — but it does bound memory, and it is what lets a
  * caller accumulate exact totals while keeping just the rows it displays.
  *
- * `cap` is a backstop against a runaway collection: `truncated` comes back true
- * if it was reached, so a caller can say so rather than quietly reporting a
- * total computed from part of the data.
+ * `cap` is a hard backstop against a runaway collection: no more than `cap`
+ * documents are read, and `truncated` comes back true only when documents were
+ * actually LEFT BEHIND — so a caller can disclaim a partial total without
+ * disclaiming a complete one.
  */
 export async function scanCollection(
   query: Query,
@@ -42,32 +43,45 @@ export async function scanCollection(
   let scanned = 0
   let ordered = true
 
-  const buildPage = (): Query => {
+  const buildPage = (limit: number): Query => {
     // If the explicit ordering is ever rejected, fall back to the implicit form
     // rather than failing the whole page. Losing the ordering guarantee is bad;
     // 500ing the operator's finance dashboard is worse.
     const base = ordered ? query.orderBy(FieldPath.documentId()) : query
-    return cursor ? base.startAfter(cursor).limit(pageSize) : base.limit(pageSize)
+    return cursor ? base.startAfter(cursor).limit(limit) : base.limit(limit)
   }
-
-  while (scanned < cap) {
-    let snap
+  const fetchPage = async (limit: number) => {
     try {
-      snap = await buildPage().get()
+      return await buildPage(limit).get()
     } catch (error) {
       if (!ordered) throw error
       ordered = false
-      snap = await buildPage().get()
+      return await buildPage(limit).get()
     }
+  }
+
+  while (scanned < cap) {
+    // Never read past the cap. A whole page used to be requested even when
+    // fewer rows than that remained under the cap, so cap 750 with 500-row
+    // pages read 1000 documents — a memory and billing bound you can overshoot
+    // by a page is not a bound.
+    const limit = Math.min(pageSize, cap - scanned)
+    const snap = await fetchPage(limit)
     if (snap.empty) return { scanned, truncated: false }
     for (const doc of snap.docs) {
       visit(doc)
       scanned++
     }
-    if (snap.docs.length < pageSize) return { scanned, truncated: false }
+    if (snap.docs.length < limit) return { scanned, truncated: false }
     cursor = snap.docs[snap.docs.length - 1]
   }
-  return { scanned, truncated: true }
+
+  // Reaching the cap is not the same as leaving documents behind: a ledger of
+  // exactly `cap` rows reported truncated:true, which made /admin/finance
+  // disclaim a total that was in fact complete and correct. One document read —
+  // only ever on the cap path — is what tells the two apart.
+  const probe = await fetchPage(1)
+  return { scanned, truncated: !probe.empty }
 }
 
 /**

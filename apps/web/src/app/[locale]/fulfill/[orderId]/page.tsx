@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { useLocale } from '@/components/TranslationProvider'
 import { intakeCompletion, type IntakeField, type IntakeSchema } from '@/lib/sales-intake'
+import { FULFILL_COPY, localizeIntakeSchema } from '../intake-i18n'
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -17,9 +18,15 @@ function formatMoney(cents: number) {
 
 export default function CustomerFulfillmentWizard({ params }: { params: { orderId: string } }) {
   const locale = useLocale() as 'en' | 'es'
+  // The intake API mails a Spanish buyer an /es/fulfill link on purpose (it
+  // reads order.locale, stamped at checkout), and this page rendered a wholly
+  // English form: the customer had paid, could not finish the brief, and the
+  // resume email is stamped sent exactly once. Chrome copy comes from
+  // FULFILL_COPY; the product-specific field copy is translated below.
+  const t = FULFILL_COPY[locale] || FULFILL_COPY.en
   const [accessToken, setAccessToken] = useState('')
   const [order, setOrder] = useState<any>(null)
-  const [schema, setSchema] = useState<IntakeSchema | null>(null)
+  const [sourceSchema, setSourceSchema] = useState<IntakeSchema | null>(null)
   const [values, setValues] = useState<Record<string, unknown>>({})
   const [step, setStep] = useState(0)
   const [completion, setCompletion] = useState(0)
@@ -31,6 +38,14 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
   const hydrated = useRef(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Display only. Field ids and select option values are what the server
+  // sanitizer matches on, so localizeIntakeSchema leaves both untouched —
+  // translating either would silently discard the customer's answers.
+  const schema = useMemo(
+    () => (sourceSchema ? localizeIntakeSchema(sourceSchema, locale) : null),
+    [sourceSchema, locale]
+  )
+
   useEffect(() => {
     const query = new URLSearchParams(window.location.search)
     const access = query.get('access') || ''
@@ -38,9 +53,9 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
     fetch(`/api/sales/orders/${encodeURIComponent(params.orderId)}/intake?${query.toString()}`, { cache: 'no-store' })
       .then(async (response) => {
         const data = await response.json().catch(() => ({}))
-        if (!response.ok) throw new Error(data.error || 'Could not open this order.')
+        if (!response.ok) throw new Error(data.error || t.errorOpen)
         setOrder(data.order)
-        setSchema(data.schema)
+        setSourceSchema(data.schema)
         setValues(data.order?.intake_data || {})
         setStep(Math.min(data.schema.sections.length - 1, Math.max(0, data.order?.intake_current_step || 0)))
         setCompletion(data.completion || 0)
@@ -57,9 +72,9 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
           window.history.replaceState({}, '', `${window.location.pathname}?${query.toString()}`)
         }
       })
-      .catch((loadError) => setError(loadError?.message || 'Could not open this order.'))
+      .catch((loadError) => setError(loadError?.message || t.errorOpen))
       .finally(() => setLoading(false))
-  }, [params.orderId])
+  }, [params.orderId, t.errorOpen])
 
   const apiUrl = useCallback(
     (resource: 'intake' | 'assets') =>
@@ -78,17 +93,17 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
           body: JSON.stringify({ values: nextValues, currentStep: nextStep }),
         })
         const data = await response.json().catch(() => ({}))
-        if (!response.ok) throw new Error(data.error || 'Could not save your progress.')
+        if (!response.ok) throw new Error(data.error || t.errorSave)
         setCompletion(data.completion ?? intakeCompletion(schema, nextValues))
         setSaveState('saved')
         return true
       } catch (saveError: any) {
         setSaveState('error')
-        if (!quiet) setError(saveError?.message || 'Could not save your progress.')
+        if (!quiet) setError(saveError?.message || t.errorSave)
         return false
       }
     },
-    [accessToken, apiUrl, schema, submitted]
+    [accessToken, apiUrl, schema, submitted, t.errorSave]
   )
 
   useEffect(() => {
@@ -119,7 +134,7 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
       form.append('file', file)
       const response = await fetch(apiUrl('assets'), { method: 'POST', body: form })
       const data = await response.json().catch(() => ({}))
-      if (!response.ok || !data.asset?.url) throw new Error(data.error || 'Could not upload this image.')
+      if (!response.ok || !data.asset?.url) throw new Error(data.error || t.errorUpload)
       if (field.type === 'images') {
         const current = Array.isArray(values[field.id]) ? (values[field.id] as string[]) : []
         change(field.id, [...current, data.asset.url].slice(0, 8))
@@ -127,7 +142,7 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
         change(field.id, data.asset.url)
       }
     } catch (uploadError: any) {
-      setError(uploadError?.message || 'Could not upload this image.')
+      setError(uploadError?.message || t.errorUpload)
     } finally {
       setUploadingField('')
     }
@@ -163,19 +178,19 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
           const target = schema.sections.findIndex((candidate) => candidate.fields.some((field) => missing.has(field.id)))
           if (target >= 0) setStep(target)
         }
-        throw new Error(data.error || 'Complete the required fields before submitting.')
+        throw new Error(data.error || t.errorRequired)
       }
       setCompletion(100)
       setSaveState('saved')
       setSubmitted(true)
     } catch (submitError: any) {
       setSaveState('error')
-      setError(submitError?.message || 'Could not submit your brief.')
+      setError(submitError?.message || t.errorSubmit)
     }
   }
 
   if (loading) {
-    return <CityBeatShell locale={locale}><main className="container-wide flex min-h-[60vh] items-center justify-center text-sm font-black uppercase tracking-[0.2em] text-white/40">Opening your paid order...</main></CityBeatShell>
+    return <CityBeatShell locale={locale}><main className="container-wide flex min-h-[60vh] items-center justify-center text-sm font-black uppercase tracking-[0.2em] text-white/40">{t.loading}</main></CityBeatShell>
   }
 
   if (error && (!order || !schema)) {
@@ -183,10 +198,13 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
       <CityBeatShell locale={locale}>
         <main className="container-wide flex min-h-[65vh] items-center justify-center py-16">
           <div className="max-w-lg border border-brand-magenta/30 bg-brand-magenta/10 p-7">
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-brand-magenta">Order access</p>
-            <h1 className="mt-2 font-display text-3xl font-black text-white">We could not open this brief.</h1>
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-brand-magenta">{t.accessEyebrow}</p>
+            <h1 className="mt-2 font-display text-3xl font-black text-white">{t.accessTitle}</h1>
             <p className="mt-3 leading-6 text-white/65">{error}</p>
-            <p className="mt-4 text-sm text-white/40">Contact CityBeat and include order reference {params.orderId}.</p>
+            {/* Name the support address instead of "contact CityBeat": a paid
+                customer who cannot open their brief and has nowhere to write is
+                exactly how a fulfillment problem becomes a card dispute. */}
+            <p className="mt-4 text-sm text-white/40">{t.accessHelp(params.orderId)}</p>
           </div>
         </main>
       </CityBeatShell>
@@ -199,10 +217,12 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
         <main className="container-wide flex min-h-[70vh] items-center justify-center py-16">
           <div className="max-w-2xl rounded-2xl border border-brand-neon/30 bg-brand-neon/[0.07] p-8 text-center sm:p-12">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-neon text-2xl font-black text-black">✓</div>
-            <p className="mt-6 text-xs font-black uppercase tracking-[0.26em] text-brand-neon">Payment and brief complete</p>
-            <h1 className="mt-2 font-display text-4xl font-black text-white">Your order is ready for CityBeat.</h1>
-            <p className="mx-auto mt-4 max-w-xl leading-7 text-white/60">Our team has the information and files needed to begin {order?.product_name || 'your order'}. We will use {order?.contact_email} if anything needs clarification.</p>
-            <p className="mt-6 text-xs text-white/35">Order reference: {params.orderId}</p>
+            <p className="mt-6 text-xs font-black uppercase tracking-[0.26em] text-brand-neon">{t.doneEyebrow}</p>
+            <h1 className="mt-2 font-display text-4xl font-black text-white">{t.doneTitle}</h1>
+            <p className="mx-auto mt-4 max-w-xl leading-7 text-white/60">
+              {t.doneBody(order?.product_name || (locale === 'es' ? 'tu pedido' : 'your order'), order?.contact_email)}
+            </p>
+            <p className="mt-6 text-xs text-white/35">{t.orderReference}: {params.orderId}</p>
           </div>
         </main>
       </CityBeatShell>
@@ -215,30 +235,30 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
         <header className="border-y border-white/10 bg-white/[0.025] px-5 py-6 sm:px-8">
           <div className="flex flex-wrap items-start justify-between gap-5">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-neon">Payment received / private order brief</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-neon">{t.headerEyebrow}</p>
               <h1 className="mt-2 font-display text-3xl font-black text-white sm:text-4xl">{schema?.title}</h1>
-              <p className="mt-2 text-sm text-white/50">Your answers save automatically. A private resume link was sent to {order?.contact_email}.</p>
+              <p className="mt-2 text-sm text-white/50">{t.autosave(order?.contact_email)}</p>
             </div>
             <div className="border-l-2 border-brand-magenta pl-4 text-right">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-white/40">{order?.product_name}</p>
               <p className="mt-1 font-display text-2xl font-black text-white">{formatMoney(order?.amount_paid || order?.amount)}</p>
-              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-brand-neon">Paid</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-brand-neon">{t.paid}</p>
             </div>
           </div>
         </header>
 
-        <div className="mt-5 h-1 bg-white/10" aria-label={`${localCompletion}% complete`}>
+        <div className="mt-5 h-1 bg-white/10" aria-label={t.progressLabel(localCompletion)}>
           <div className="h-full bg-brand-neon transition-all duration-500" style={{ width: `${localCompletion}%` }} />
         </div>
         <div className="mt-2 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.15em]">
-          <span className="text-white/35">{localCompletion}% of required details complete</span>
+          <span className="text-white/35">{t.progressText(localCompletion)}</span>
           <span className={saveState === 'error' ? 'text-red-300' : 'text-brand-neon/70'}>
-            {saveState === 'saving' ? 'Saving...' : saveState === 'error' ? 'Not saved - retrying' : 'Progress saved'}
+            {saveState === 'saving' ? t.saving : saveState === 'error' ? t.saveFailed : t.saved}
           </span>
         </div>
 
         <div className="mt-7 grid gap-7 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <nav aria-label="Order brief steps" className="space-y-px">
+          <nav aria-label={t.stepsNav} className="space-y-px">
             {schema?.sections.map((item, index) => (
               <button
                 type="button"
@@ -251,8 +271,8 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
               </button>
             ))}
             <div className="mt-4 border border-white/10 bg-black/25 p-4 text-xs leading-5 text-white/40">
-              <strong className="block text-white/70">Private and secure</strong>
-              This link opens your order brief. Card information remains with Stripe and is never stored here.
+              <strong className="block text-white/70">{t.privateTitle}</strong>
+              {t.privateBody}
             </div>
           </nav>
 
@@ -273,26 +293,26 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
                         <textarea className={`${controlClass} min-h-28 resize-y normal-case tracking-normal`} value={String(value || '')} maxLength={field.maxLength} placeholder={field.placeholder} onChange={(event) => change(field.id, event.target.value)} />
                       ) : field.type === 'select' ? (
                         <select className={`${controlClass} normal-case tracking-normal`} value={String(value || '')} onChange={(event) => change(field.id, event.target.value)}>
-                          <option value="">Choose one</option>
+                          <option value="">{t.chooseOne}</option>
                           {field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                         </select>
                       ) : field.type === 'checkbox' ? (
                         <span className="mt-2 flex items-center gap-3 border border-white/10 bg-black/25 px-3 py-3 normal-case tracking-normal">
-                          <input type="checkbox" checked={value === true} onChange={(event) => change(field.id, event.target.checked)} className="h-5 w-5 accent-cyan-300" /> Yes
+                          <input type="checkbox" checked={value === true} onChange={(event) => change(field.id, event.target.checked)} className="h-5 w-5 accent-cyan-300" /> {t.yes}
                         </span>
                       ) : field.type === 'image' || field.type === 'images' ? (
                         <span className="mt-2 block border border-dashed border-white/20 bg-black/25 p-4 normal-case tracking-normal">
                           <span className="flex flex-wrap gap-3">
                             {(field.type === 'images' ? (Array.isArray(value) ? value : []) : value ? [value] : []).map((url: any) => (
                               <span key={url} className="relative block h-28 w-28 overflow-hidden bg-black">
-                                <Image src={url} alt="Uploaded order asset" fill unoptimized className="object-cover" />
-                                {field.type === 'images' && <button type="button" onClick={() => removeImage(field.id, url)} className="absolute right-1 top-1 bg-black/80 px-2 py-1 text-[9px] font-black uppercase text-white">Remove</button>}
+                                <Image src={url} alt={t.uploadedAlt} fill unoptimized className="object-cover" />
+                                {field.type === 'images' && <button type="button" onClick={() => removeImage(field.id, url)} className="absolute right-1 top-1 bg-black/80 px-2 py-1 text-[9px] font-black uppercase text-white">{t.remove}</button>}
                               </span>
                             ))}
                           </span>
                           <span className="mt-3 flex flex-wrap items-center gap-3">
-                            <span className="bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-black">{uploadingField === field.id ? 'Uploading...' : value && field.type === 'image' ? 'Replace image' : 'Choose image'}</span>
-                            <span className="text-xs text-white/35">JPEG, PNG, WebP, or GIF / 10 MB max</span>
+                            <span className="bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-black">{uploadingField === field.id ? t.uploading : value && field.type === 'image' ? t.replaceImage : t.chooseImage}</span>
+                            <span className="text-xs text-white/35">{t.imageHint}</span>
                           </span>
                           <input className="absolute h-px w-px overflow-hidden opacity-0" type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={Boolean(uploadingField)} onChange={(event) => upload(field, event)} />
                         </span>
@@ -309,9 +329,9 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
             {error && <p role="alert" className="mt-6 border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</p>}
 
             <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
-              <button type="button" disabled={step === 0} onClick={() => { setStep((current) => Math.max(0, current - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="border border-white/20 px-4 py-2.5 text-xs font-black uppercase tracking-[0.13em] text-white/60 hover:text-white disabled:invisible">Back</button>
+              <button type="button" disabled={step === 0} onClick={() => { setStep((current) => Math.max(0, current - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="border border-white/20 px-4 py-2.5 text-xs font-black uppercase tracking-[0.13em] text-white/60 hover:text-white disabled:invisible">{t.back}</button>
               {schema && step < schema.sections.length - 1 ? (
-                <button type="button" onClick={continueForward} className="bg-brand-neon px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-black hover:bg-cyan-300">Save and continue</button>
+                <button type="button" onClick={continueForward} className="bg-brand-neon px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-black hover:bg-cyan-300">{t.saveAndContinue}</button>
               ) : (
                 <button type="button" onClick={submit} disabled={saveState === 'saving' || Boolean(uploadingField)} className="bg-brand-neon px-5 py-3 text-xs font-black uppercase tracking-[0.14em] text-black hover:bg-cyan-300 disabled:opacity-50">{schema?.completionLabel}</button>
               )}

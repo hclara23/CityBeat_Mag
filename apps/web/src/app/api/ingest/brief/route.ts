@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { rewriteSourceArticle } from '@/lib/rewrite'
+import { reportFailure } from '@/lib/alerts'
 import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
@@ -53,49 +54,70 @@ export async function POST(request: NextRequest) {
   const sourceName = typeof body.source === 'string' ? body.source : 'CityBeat Wire'
   const sourceUrl = typeof body.url === 'string' ? body.url : null
 
-  // Avoid republishing copyrighted text: rewrite the source brief into an
-  // ORIGINAL draft (own wording) plus a summary. If no LLM key is configured,
-  // fall back to a summary-and-link draft (standard low-risk aggregation).
-  const rewritten = await rewriteSourceArticle({ title: sourceTitle, sourceText, sourceName, category })
-
-  const attribution = sourceUrl
-    ? `Source: ${sourceName} — ${sourceUrl}`
-    : `Source: ${sourceName}`
-
-  let title: string
-  let excerpt: string
-  let bodyText: string
-  let needsRewrite = false
-
-  if (rewritten) {
-    title = rewritten.title
-    excerpt = rewritten.summary || rewritten.bodyText.slice(0, 160)
-    bodyText = `${rewritten.bodyText}\n\n${attribution}`
-  } else {
-    // No rewrite available — store only a short summary + attribution/link.
-    needsRewrite = true
-    title = sourceTitle
-    const summary = (sourceText || '').trim().slice(0, 280)
-    excerpt = summary.slice(0, 160)
-    bodyText = [
-      summary || 'Summary pending editorial rewrite.',
-      attribution,
-      'DRAFT: rewrite this into an original CityBeat article before publishing.',
-    ].join('\n\n')
-  }
-
   try {
-    // Dedupe: the worker fetches 5 keywords x 5 articles five times a day with
-    // no memory, so the same article re-ingested up to 5x/day — each duplicate
-    // burned a Claude rewrite, cluttered the review queue, and emailed the
-    // editors again. Same processed_news pattern the auto-articles cron uses.
-    const dedupeBasis = (sourceUrl || title || '').toLowerCase().trim()
+    // Dedupe BEFORE spending a Claude call. The worker fetches 5 keywords x 5
+    // articles five times a day with no memory, so the same article arrives up
+    // to 5x/day — each duplicate cluttered the review queue and emailed the
+    // editors again. This check used to run AFTER the rewrite, so a duplicate
+    // still paid for a rewrite whose result was then thrown away — and, with
+    // the failure path below, would raise an alert about an article we already
+    // have. Keyed on the SOURCE url/title: the rewritten headline is model
+    // output that differs run to run, so it could never match itself. Same
+    // processed_news pattern the auto-articles cron uses.
+    const dedupeBasis = (sourceUrl || sourceTitle).toLowerCase().trim()
     const dedupeRef = adminDb
       .collection('processed_news')
       .doc('ingest' + crypto.createHash('sha1').update(dedupeBasis).digest('hex').slice(0, 24))
     if ((await dedupeRef.get()).exists) {
       return NextResponse.json({ ok: true, deduped: true })
     }
+
+    // Avoid republishing copyrighted text: rewrite the source brief into an
+    // ORIGINAL draft (own wording) plus a summary.
+    const rewritten = await rewriteSourceArticle({ title: sourceTitle, sourceText, sourceName, category })
+
+    if (!rewritten) {
+      // There used to be a fallback here that stored the SOURCE's own first 280
+      // characters as the article body, appended the internal instruction
+      // "DRAFT: rewrite this into an original CityBeat article before
+      // publishing", and flagged the document `needs_rewrite: true`. Nothing
+      // read that flag — no admin query, no review-page badge, no publish guard
+      // — so in /admin the item sat in the same pending_review queue with the
+      // same layout as a finished brief, and the review page's publish control
+      // is an unconditional status flip. One click published a verbatim excerpt
+      // of someone else's article with our own to-do note printed underneath it.
+      //
+      // This is not a hypothetical branch: lib/rewrite.ts returns null on EVERY
+      // failure mode — missing ANTHROPIC_API_KEY, a 429 or 5xx from Anthropic,
+      // a timeout, and the LLM spend cap added in 692cda1.
+      //
+      // No review surface can currently tell an un-rewritten brief from a
+      // finished one, so the only safe outcome is no article at all. The dedupe
+      // marker is deliberately not written either, so the worker's next
+      // scheduled run (five a day) re-ingests this same source once Claude is
+      // answering again.
+      await reportFailure(
+        'ingest:brief',
+        new Error('Rewrite unavailable — brief not stored'),
+        { title: sourceTitle.slice(0, 160), source: sourceName },
+        // Nothing calls reportSuccess for this per-item endpoint, so setting
+        // the system_health flag would pin this source to "failing" forever and
+        // devalue the recovered-state signal for the crons that do report it.
+        { skipHealth: true }
+      )
+      return NextResponse.json(
+        { error: 'Rewrite unavailable; brief not stored', retryable: true },
+        { status: 503 }
+      )
+    }
+
+    const attribution = sourceUrl
+      ? `Source: ${sourceName} — ${sourceUrl}`
+      : `Source: ${sourceName}`
+
+    const title = rewritten.title
+    const excerpt = rewritten.summary || rewritten.bodyText.slice(0, 160)
+    const bodyText = `${rewritten.bodyText}\n\n${attribution}`
 
     const docRef = await adminDb.collection('articles').add({
       title,
@@ -104,14 +126,23 @@ export async function POST(request: NextRequest) {
       content: textToBlocks(bodyText),
       content_es: [],
       category,
-      author: sourceName,
+      // CityBeat's own byline, because CityBeat's own LLM wrote this text.
+      // `sourceName` is the outlet the brief was re-reported FROM ('Associated
+      // Press', 'El Paso Times', 'KVIA'), and this field is rendered on the
+      // story page both as the human-visible byline and as schema.org
+      // author @type Person — so bylining it to the outlet published a false
+      // authorship claim about a named news organisation, five times a day, on
+      // a monetized site. The outlet is credited where credit belongs:
+      // source_name/source_url below and the attribution line at the foot of
+      // the body. Matches the auto-articles cron, which has always written
+      // 'CityBeat Newsroom'.
+      author: 'CityBeat Newsroom',
       status: 'pending_review',
       published_at: null,
       image_url: null,
       origin: 'automation',
       source_name: sourceName,
       source_url: sourceUrl,
-      needs_rewrite: needsRewrite,
       created_at: FieldValue.serverTimestamp(),
     })
 
@@ -122,7 +153,7 @@ export async function POST(request: NextRequest) {
       article_id: docRef.id,
       at: new Date().toISOString(),
     }).catch(() => {})
-    return NextResponse.json({ ok: true, id: docRef.id, rewritten: Boolean(rewritten) }, { status: 201 })
+    return NextResponse.json({ ok: true, id: docRef.id, rewritten: true }, { status: 201 })
   } catch (error) {
     console.error('brief ingest error:', error)
     return NextResponse.json({ error: 'Failed to ingest brief' }, { status: 500 })

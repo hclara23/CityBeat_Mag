@@ -1,8 +1,9 @@
 import crypto from 'crypto'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { FieldValue } from 'firebase-admin/firestore'
+import { FieldPath, FieldValue, Timestamp } from 'firebase-admin/firestore'
 import { sendEmail as sendEmailViaProvider } from './email'
 import { isSuppressed } from './suppression'
+import { reportFailure } from './alerts'
 import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 import { getCronCursor, setCronCursor } from './cron-cursor'
 import { DIRECTORY_PLANS } from './pricing'
@@ -35,6 +36,68 @@ type Listing = {
   description?: string
   description_es?: string
   hours?: Record<string, string>
+}
+
+// ── Listing walk cursor ───────────────────────────────────────────────────
+// The new-contacts walk below pages `directory_listings` ordered by created_at
+// and used to persist the last document's created_at VALUE as its cursor.
+// Firestore positions startAfter(<value>) after EVERY document sharing that
+// value, so every listing that tied with the last one on a page boundary was
+// skipped — not deferred, skipped, and skipped again on the next cycle because
+// the walk stops at the same boundary every time.
+//
+// Ties are the normal case here, not a corner: scrapeflow/directory-sink.ts
+// computes ONE `now` for a whole insert batch and stamps every row with it, so a
+// 300-row ScrapeFlow batch cut at row 80 stranded rows 81-300 for the life of
+// the system — the same starvation cron-cursor.ts was introduced to fix.
+//
+// The cursor is therefore the FULL sort key, (created_at, __name__), which is
+// unique per document and positions after exactly one row. created_at is written
+// as an ISO string by the scraper sink and as a server Timestamp by the admin
+// create path, and Firestore orders the two types apart, so the cursor carries
+// the type too: a Timestamp re-sent as a string would land in the wrong type
+// bucket and skip everything again.
+export type ListingCursor =
+  | { kind: 'string'; value: string; id: string }
+  | { kind: 'timestamp'; seconds: number; nanoseconds: number; id: string }
+
+export function encodeListingCursor(createdAt: unknown, id: string): string | null {
+  if (typeof id !== 'string' || !id) return null
+  if (typeof createdAt === 'string' && createdAt) {
+    return JSON.stringify({ kind: 'string', value: createdAt, id })
+  }
+  const ts = createdAt as { seconds?: unknown; nanoseconds?: unknown } | null
+  if (ts && typeof ts.seconds === 'number' && typeof ts.nanoseconds === 'number') {
+    return JSON.stringify({ kind: 'timestamp', seconds: ts.seconds, nanoseconds: ts.nanoseconds, id })
+  }
+  // No usable created_at means no resumable position. Returning null restarts
+  // the walk next run, which is safe; persisting a partial cursor is what caused
+  // the bug above.
+  return null
+}
+
+export function decodeListingCursor(raw: string | null | undefined): ListingCursor | null {
+  if (!raw) return null
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    // A legacy bare-created_at cursor, written before this fix. It is precisely
+    // the poisoned value that skipped the tie group, so discard it and restart
+    // the walk: already-contacted listings are cheap no-ops via the
+    // sales_outreach guard, and the stranded ones finally get read.
+    return null
+  }
+  if (!parsed || typeof parsed !== 'object') return null
+  const c = parsed as Record<'kind' | 'id' | 'value' | 'seconds' | 'nanoseconds', unknown>
+  if (typeof c.id !== 'string' || !c.id) return null
+  if (c.kind === 'string' && typeof c.value === 'string') {
+    return { kind: 'string', value: c.value, id: c.id }
+  }
+  if (c.kind === 'timestamp' && typeof c.seconds === 'number' && typeof c.nanoseconds === 'number') {
+    return { kind: 'timestamp', seconds: c.seconds, nanoseconds: c.nanoseconds, id: c.id }
+  }
+  return null
 }
 
 function claimUrl(listingId: string, outreachId: string, locale = 'en') {
@@ -231,7 +294,55 @@ async function enhanceWithClaude(listing: Listing, base: ReturnType<typeof templ
   return base
 }
 
+// CAN-SPAM (15 U.S.C. 7704(a)(5)) requires every commercial email to carry a
+// valid PHYSICAL POSTAL ADDRESS — a street address, or a registered PO box /
+// private mailbox. The fallback below is a company name, a city and a state: it
+// names no place mail can be delivered, so every outbound send was shipping a
+// footer that only LOOKS compliant, and the env var that fixes it appears in no
+// .env.example and no runbook. Set it to the real mailing address:
+//   SALES_PHYSICAL_ADDRESS="CityBeat Media Group, 000 Example St Ste 1, El Paso, TX 79901"
+// The same variable is read by lib/unclaimed-relay-email.ts and
+// api/cron/ghost-reports; the newsletter has its own NEWSLETTER_POSTAL_ADDRESS.
 const ADDRESS = process.env.SALES_PHYSICAL_ADDRESS || 'CityBeat Media Group, El Paso, TX, USA'
+
+/**
+ * True when `address` contains a line mail could actually be delivered to: a
+ * numbered street line, or a PO box / PMB. Deliberately structural, NOT a
+ * validator — it exists to catch the city-and-state placeholder, not to certify
+ * an address as compliant. Passing it means "worth sending"; failing it means
+ * "certainly not a postal address".
+ */
+export function hasDeliverableAddressLine(address: string): boolean {
+  const s = String(address || '').trim()
+  if (!s) return false
+  if (/\b(p\.?\s?o\.?\s*box|post\s+office\s+box|pmb)\b/i.test(s)) return true
+  // A street line starts a comma-separated part with a house number:
+  // "123 N Oregon St" / "1200 Golden Key Ct Apt 4". A trailing ZIP ("El Paso,
+  // TX 79901") does not, because the digits do not open the part.
+  return /(^|,\s*)\d+[a-z]?\s+\S+/i.test(s)
+}
+
+// Alerting, not blocking: a placeholder address is a compliance defect for the
+// operator to fix, and silently halting the only outbound revenue channel is not
+// this module's call. reportFailure dedupes to 3 emails per 6h per source, and
+// the once-per-process latch keeps a warm instance from re-reporting on every
+// send. Every commercial send in this file goes through sendEmail() below, so
+// that is the one place that sees all of them.
+let postalAddressReported = false
+async function reportPlaceholderPostalAddress() {
+  if (postalAddressReported || hasDeliverableAddressLine(ADDRESS)) return
+  postalAddressReported = true
+  await reportFailure(
+    'sales-agent:postal-address',
+    new Error(
+      'SALES_PHYSICAL_ADDRESS has no street address or PO box. CAN-SPAM 7704(a)(5) requires a valid physical postal address in every commercial email; outbound sales mail is going out with a city/state placeholder.'
+    ),
+    { address: ADDRESS },
+    { skipHealth: true }
+  ).catch(() => {
+    /* alerting must never break a send */
+  })
+}
 
 // kind: o = sales_outreach, u = upsell_outreach, r = recovery_outreach — the
 // unsub route looks the id up in the matching collection and suppresses globally.
@@ -264,6 +375,7 @@ function renderHtml(listing: Listing, content: ReturnType<typeof templatePitch>,
 
 // Uses the shared provider-agnostic sender (SMTP → SendGrid → Resend).
 function sendEmail(to: string, subject: string, html: string) {
+  void reportPlaceholderPostalAddress()
   return sendEmailViaProvider(to, subject, html, FROM)
 }
 
@@ -592,18 +704,30 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
   // original backlog (new listings sort after old ones under any doc-ID-based
   // default ordering). See cron-cursor.ts.
   const cursorName = 'sales_agent_new_contacts'
-  const cursorValue = await getCronCursor(cursorName)
+  const cursor = decodeListingCursor(await getCronCursor(cursorName))
   const batchSize = limit * 4
-  let listingsQuery: FirebaseFirestore.Query = adminDb
-    .collection('directory_listings')
+  const listings = adminDb.collection('directory_listings')
+  let listingsQuery: FirebaseFirestore.Query = listings
     .where('claim_status', '==', 'unclaimed')
     .orderBy('created_at', 'asc')
+    // Explicit __name__ tiebreak so the cursor can carry both halves of the sort
+    // key (see encodeListingCursor). Firestore already applies this ordering
+    // implicitly and the existing (claim_status, created_at) composite index
+    // serves it, so this adds no index requirement.
+    .orderBy(FieldPath.documentId(), 'asc')
     .limit(batchSize)
-  if (cursorValue) listingsQuery = listingsQuery.startAfter(cursorValue)
+  if (cursor) {
+    const at =
+      cursor.kind === 'string' ? cursor.value : new Timestamp(cursor.seconds, cursor.nanoseconds)
+    listingsQuery = listingsQuery.startAfter(at, listings.doc(cursor.id))
+  }
   const listingsSnap = await listingsQuery.get()
   const lastDoc = listingsSnap.docs[listingsSnap.docs.length - 1]
   const reachedEnd = listingsSnap.docs.length < batchSize
-  await setCronCursor(cursorName, reachedEnd ? null : (lastDoc?.data() as any)?.created_at || null)
+  await setCronCursor(
+    cursorName,
+    reachedEnd || !lastDoc ? null : encodeListingCursor((lastDoc.data() as any)?.created_at, lastDoc.id)
+  )
 
   for (const lDoc of listingsSnap.docs) {
     if (results.contacted >= limit) break

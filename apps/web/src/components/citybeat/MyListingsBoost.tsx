@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
 import { useLocale } from '@/components/TranslationProvider'
+import { billingTerms } from '@/lib/billing-terms'
 
 interface Listing {
   id: string
@@ -26,6 +27,11 @@ const TIER_LABEL: Record<string, { en: string; es: string }> = {
 export function MyListingsBoost() {
   const locale = useLocale()
   const isEs = locale === 'es'
+  // Same words the claim page and the cart show before a card is charged. The
+  // dashboard buttons below start (or change) a real Stripe subscription and
+  // disclosed none of it — "I didn't know it renewed" is the dispute we cannot
+  // win without showing what the customer was told.
+  const terms = billingTerms(locale)
   const [listings, setListings] = useState<Listing[] | null>(null)
   const [busy, setBusy] = useState<string>('')
   const [error, setError] = useState('')
@@ -143,6 +149,32 @@ export function MyListingsBoost() {
                     </button>
                   )
                 })}
+              </div>
+
+              {/* Recurring-billing disclosure, in the customer's language, at
+                  ordinary body size — the card networks require the terms and
+                  the cancellation path to be shown BEFORE the purchase starts,
+                  and every button above starts or changes a subscription. */}
+              <div className="mt-4 rounded-md border border-gray-200 bg-white p-3 text-xs leading-relaxed text-gray-600">
+                <p className="font-semibold uppercase tracking-wide text-gray-500">
+                  {isEs ? 'Antes de pagar' : 'Before you pay'}
+                </p>
+                <ul className="mt-1.5 space-y-1">
+                  <li>{terms.renewal}</li>
+                  <li>{terms.cancel}</li>
+                  <li>{terms.whatHappens}</li>
+                  <li>{terms.refunds}</li>
+                  {/* Only true for a listing that is already paying: the boost
+                      calls /api/directory/change-plan, which edits the existing
+                      subscription instead of opening a second one. */}
+                  {listing.has_subscription && (
+                    <li>
+                      {isEs
+                        ? 'Cambiar de plan actualiza tu suscripción actual: Stripe prorratea la diferencia en tu próxima factura y no se crea una segunda suscripción.'
+                        : 'Changing plan updates your existing subscription: Stripe prorates the difference on your next invoice, and no second subscription is opened.'}
+                    </li>
+                  )}
+                </ul>
               </div>
             </div>
           )

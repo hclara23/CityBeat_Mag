@@ -26,9 +26,97 @@ interface Invoice {
   pdfUrl?: string
 }
 
+// /billing is the page the billing terms name as the cancellation path
+// ("Cancel any time from Billing in your dashboard" / "Cancela cuando quieras
+// desde Facturación en tu panel"), and it was English-only — so the Spanish
+// half of a ~90% Spanish-speaking market was sent to an English page to cancel.
+const copy = {
+  en: {
+    loading: 'Loading...',
+    title: 'Billing & Subscriptions',
+    loadFailed: 'Failed to load billing data',
+    portalFailed: 'Failed to open subscription manager',
+    activeTitle: 'Active Subscriptions',
+    noneTitle: 'No active subscriptions',
+    noneDesc: 'You currently do not have any active advertising subscriptions.',
+    browsePlans: 'Browse Plans',
+    active: 'Active',
+    pending: 'Pending',
+    manage: 'Manage',
+    opening: 'Loading...',
+    started: 'Started',
+    per: 'per',
+    paymentTitle: 'Payment Methods',
+    paymentManagedDesc:
+      'Your card is held by Stripe, never by CityBeat. Open the secure Stripe portal to see, update, or remove the card on your subscription, or to cancel.',
+    paymentManageBtn: 'Manage payment method',
+    paymentNoneDesc:
+      'No card is needed until you start a subscription. Stripe saves and stores it for you at checkout.',
+    historyTitle: 'Billing History',
+    noInvoices: 'No invoices yet',
+    noInvoicesDesc: 'Your invoices will appear here once you have an active subscription',
+    invoice: 'Invoice',
+    date: 'Date',
+    amount: 'Amount',
+    status: 'Status',
+    action: 'Action',
+    downloadPdf: 'Download PDF',
+    helpText: 'Need help with your billing? Contact our support team at',
+  },
+  es: {
+    loading: 'Cargando...',
+    title: 'Facturación y Suscripciones',
+    loadFailed: 'No se pudieron cargar los datos de facturación',
+    portalFailed: 'No se pudo abrir el administrador de suscripciones',
+    activeTitle: 'Suscripciones activas',
+    noneTitle: 'Sin suscripciones activas',
+    noneDesc: 'Por ahora no tienes ninguna suscripción de publicidad activa.',
+    browsePlans: 'Ver planes',
+    active: 'Activa',
+    pending: 'Pendiente',
+    manage: 'Administrar',
+    opening: 'Abriendo...',
+    started: 'Inició el',
+    per: 'por',
+    paymentTitle: 'Métodos de pago',
+    paymentManagedDesc:
+      'Tu tarjeta la guarda Stripe, nunca CityBeat. Abre el portal seguro de Stripe para ver, actualizar o quitar la tarjeta de tu suscripción, o para cancelar.',
+    paymentManageBtn: 'Administrar método de pago',
+    paymentNoneDesc:
+      'No necesitas una tarjeta hasta que inicies una suscripción. Stripe la guarda por ti al momento de pagar.',
+    historyTitle: 'Historial de facturación',
+    noInvoices: 'Todavía no hay facturas',
+    noInvoicesDesc: 'Tus facturas aparecerán aquí cuando tengas una suscripción activa',
+    invoice: 'Factura',
+    date: 'Fecha',
+    amount: 'Monto',
+    status: 'Estado',
+    action: 'Acción',
+    downloadPdf: 'Descargar PDF',
+    helpText: '¿Necesitas ayuda con tu facturación? Escribe a nuestro equipo de soporte a',
+  },
+}
+
+// billing_cycle comes from Firestore as whatever the checkout wrote. Translate
+// the values we actually write and fall through to the raw string for anything
+// else — a mis-guessed cycle on a money page is worse than an English word.
+const CYCLE_ES: Record<string, string> = {
+  month: 'mes',
+  monthly: 'mensual',
+  year: 'año',
+  yearly: 'anual',
+  annual: 'anual',
+  week: 'semana',
+  day: 'día',
+  one_time: 'pago único',
+}
+
 export default function BillingPage() {
   const router = useRouter()
   const locale = useLocale()
+  const isEs = locale === 'es'
+  const t = isEs ? copy.es : copy.en
+  const dateLocale = isEs ? 'es-MX' : 'en-US'
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
@@ -47,7 +135,7 @@ export default function BillingPage() {
         }
 
         if (!response.ok) {
-          throw new Error('Failed to load billing data')
+          throw new Error(t.loadFailed)
         }
 
         const data = (await response.json()) as {
@@ -58,14 +146,14 @@ export default function BillingPage() {
         setSubscriptions(data.subscriptions)
         setInvoices(data.invoices)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load billing data')
+        setError(err instanceof Error ? err.message : t.loadFailed)
       } finally {
         setIsLoading(false)
       }
     }
 
     loadBillingData()
-  }, [locale, router])
+  }, [locale, router, t.loadFailed])
 
   const handleManageSubscription = async (customerId: string) => {
     try {
@@ -82,23 +170,30 @@ export default function BillingPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to open customer portal')
+        throw new Error(t.portalFailed)
       }
 
       const data = (await response.json()) as { url: string }
       window.location.href = data.url
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to open subscription manager')
+      setError(err instanceof Error ? err.message : t.portalFailed)
       setManagingPortal(false)
     }
   }
+
+  // The one Stripe customer this account can be sent to the portal as. The
+  // portal is where the card actually lives, so it is also the only truthful
+  // answer this page can give about payment methods.
+  const portalCustomerId = subscriptions.find((sub) => sub.stripe_customer_id)?.stripe_customer_id
+
+  const cycleLabel = (cycle: string) => (isEs ? CYCLE_ES[cycle] || cycle : cycle)
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
         <Navigation rightSlot={<LocaleToggle />} />
         <div className="max-w-3xl mx-auto px-4 py-12">
-          <p className="text-gray-500">Loading...</p>
+          <p className="text-gray-500">{t.loading}</p>
         </div>
       </div>
     )
@@ -109,25 +204,23 @@ export default function BillingPage() {
       <Navigation rightSlot={<LocaleToggle />} />
 
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <h1 className="text-4xl font-bold mb-8">Billing & Subscriptions</h1>
+        <h1 className="text-4xl font-bold mb-8">{t.title}</h1>
 
         {error && <AuthError message={error} />}
 
         {/* Active Subscriptions */}
         <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 mb-8">
-          <h2 className="text-2xl font-bold mb-6">Active Subscriptions</h2>
+          <h2 className="text-2xl font-bold mb-6">{t.activeTitle}</h2>
 
           {subscriptions.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No active subscriptions</p>
-              <p className="text-sm text-gray-400 mt-2">
-                You currently do not have any active advertising subscriptions.
-              </p>
+              <p className="text-gray-500">{t.noneTitle}</p>
+              <p className="text-sm text-gray-400 mt-2">{t.noneDesc}</p>
               <Button
                 className="mt-4 bg-red-600 hover:bg-red-700"
                 onClick={() => router.push(`/${locale}/ads`)}
               >
-                Browse Plans
+                {t.browsePlans}
               </Button>
             </div>
           ) : (
@@ -139,13 +232,13 @@ export default function BillingPage() {
                 >
                   <div>
                     <h3 className="font-semibold text-gray-900 capitalize">
-                      {sub.ad_type} - {sub.billing_cycle}
+                      {sub.ad_type} - {cycleLabel(sub.billing_cycle)}
                     </h3>
                     <p className="text-sm text-gray-600 mt-1">
-                      ${(sub.amount_total / 100).toFixed(2)} per {sub.billing_cycle}
+                      ${(sub.amount_total / 100).toFixed(2)} {t.per} {cycleLabel(sub.billing_cycle)}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Started {new Date(sub.created_at).toLocaleDateString()}
+                      {t.started} {new Date(sub.created_at).toLocaleDateString(dateLocale)}
                     </p>
                   </div>
 
@@ -155,7 +248,7 @@ export default function BillingPage() {
                         ? 'bg-green-100 text-green-800'
                         : 'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {sub.payment_status === 'completed' ? 'Active' : 'Pending'}
+                      {sub.payment_status === 'completed' ? t.active : t.pending}
                     </span>
 
                     {sub.stripe_customer_id && (
@@ -164,7 +257,7 @@ export default function BillingPage() {
                         onClick={() => handleManageSubscription(sub.stripe_customer_id!)}
                         disabled={managingPortal}
                       >
-                        {managingPortal ? 'Loading...' : 'Manage'}
+                        {managingPortal ? t.opening : t.manage}
                       </Button>
                     )}
                   </div>
@@ -174,29 +267,53 @@ export default function BillingPage() {
           )}
         </div>
 
-        {/* Payment Methods */}
+        {/* Payment Methods.
+            This block used to be unconditional static markup telling every
+            subscriber "No payment methods on file" — false, and it reads like
+            the card was lost — under a Button with no onClick and no href, so
+            the fix it offered did nothing. The page has no payment-method data
+            to show (/api/billing returns only subscriptions and invoices), so
+            it now says the one thing that is true (the card is held by Stripe)
+            and hands the customer the control that actually works: the Stripe
+            portal, which is also the two-click cancellation path the billing
+            terms promise. */}
         <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 mb-8">
-          <h2 className="text-2xl font-bold mb-6">Payment Methods</h2>
+          <h2 className="text-2xl font-bold mb-6">{t.paymentTitle}</h2>
 
           <div className="text-center py-8">
-            <p className="text-gray-500">No payment methods on file</p>
-            <p className="text-sm text-gray-400 mt-2">
-              Add a payment method to manage subscriptions
-            </p>
-            <Button className="mt-4">Add Payment Method</Button>
+            {portalCustomerId ? (
+              <>
+                <p className="text-sm text-gray-600 max-w-md mx-auto">{t.paymentManagedDesc}</p>
+                <Button
+                  className="mt-4"
+                  onClick={() => handleManageSubscription(portalCustomerId)}
+                  disabled={managingPortal}
+                >
+                  {managingPortal ? t.opening : t.paymentManageBtn}
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600 max-w-md mx-auto">{t.paymentNoneDesc}</p>
+                <Button
+                  className="mt-4 bg-red-600 hover:bg-red-700"
+                  onClick={() => router.push(`/${locale}/ads`)}
+                >
+                  {t.browsePlans}
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
         {/* Billing History */}
         <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-          <h2 className="text-2xl font-bold mb-6">Billing History</h2>
+          <h2 className="text-2xl font-bold mb-6">{t.historyTitle}</h2>
 
           {invoices.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No invoices yet</p>
-              <p className="text-sm text-gray-400 mt-2">
-                Your invoices will appear here once you have an active subscription
-              </p>
+              <p className="text-gray-500">{t.noInvoices}</p>
+              <p className="text-sm text-gray-400 mt-2">{t.noInvoicesDesc}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -204,19 +321,19 @@ export default function BillingPage() {
                 <thead className="border-b border-gray-200">
                   <tr>
                     <th className="text-left py-3 px-4 font-semibold text-gray-900">
-                      Invoice
+                      {t.invoice}
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-900">
-                      Date
+                      {t.date}
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-900">
-                      Amount
+                      {t.amount}
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-900">
-                      Status
+                      {t.status}
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-900">
-                      Action
+                      {t.action}
                     </th>
                   </tr>
                 </thead>
@@ -225,7 +342,7 @@ export default function BillingPage() {
                     <tr key={invoice.id} className="border-b border-gray-200">
                       <td className="py-3 px-4 text-gray-900">{invoice.id}</td>
                       <td className="py-3 px-4 text-gray-600">
-                        {new Date(invoice.date).toLocaleDateString()}
+                        {new Date(invoice.date).toLocaleDateString(dateLocale)}
                       </td>
                       <td className="py-3 px-4 text-gray-900 font-semibold">
                         ${(invoice.amount / 100).toFixed(2)}
@@ -247,7 +364,7 @@ export default function BillingPage() {
                             rel="noopener noreferrer"
                             className="text-red-600 hover:text-red-700 font-medium text-sm"
                           >
-                            Download PDF
+                            {t.downloadPdf}
                           </a>
                         )}
                       </td>
@@ -262,7 +379,7 @@ export default function BillingPage() {
         {/* Billing Info */}
         <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
-            Need help with your billing? Contact our support team at{' '}
+            {t.helpText}{' '}
             <a href="mailto:support@citybeatmag.co" className="font-semibold hover:underline">
               support@citybeatmag.co
             </a>

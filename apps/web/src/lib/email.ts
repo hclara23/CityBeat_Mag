@@ -55,12 +55,29 @@ async function getSmtpTransport() {
   return smtpTransport
 }
 
+/**
+ * Extra RFC 5322 headers to put on the message.
+ *
+ * This existed for no caller until List-Unsubscribe: the sender had no way to
+ * set a header at all, so the RFC 8058 one-click POST endpoint the codebase
+ * already exposes was unreachable from every marketing email, and the Gmail /
+ * Yahoo bulk-sender rules (one-click unsubscribe honored within two days) could
+ * not be met no matter what the message body said.
+ *
+ * Headers are passed to whichever provider actually sends, because a header
+ * silently dropped on the fallback path would leave the caller believing it had
+ * shipped a compliant message.
+ */
+export type EmailHeaders = Record<string, string>
+
 export async function sendEmail(
   to: string,
   subject: string,
   html: string,
-  from: string = DEFAULT_FROM
+  from: string = DEFAULT_FROM,
+  opts: { headers?: EmailHeaders } = {}
 ): Promise<{ sent: boolean; error?: string }> {
+  const headers = opts.headers && Object.keys(opts.headers).length ? opts.headers : undefined
   // A failure to *build* the transport falls through to the next provider; a
   // failure to *send* over a configured SMTP host does not, because that host is
   // the domain-authenticated sender and silently rerouting would hurt delivery.
@@ -72,7 +89,7 @@ export async function sendEmail(
   }
   if (smtp) {
     try {
-      await withTimeout(smtp.sendMail({ from, to, subject, html }), SEND_TIMEOUT_MS, 'smtp')
+      await withTimeout(smtp.sendMail({ from, to, subject, html, ...(headers ? { headers } : {}) }), SEND_TIMEOUT_MS, 'smtp')
       return { sent: true }
     } catch (e: any) {
       return { sent: false, error: e?.message || 'smtp_failed' }
@@ -92,6 +109,7 @@ export async function sendEmail(
           from: parsed,
           subject,
           content: [{ type: 'text/html', value: html }],
+          ...(headers ? { headers } : {}),
         }),
       })
       if (res.status === 202) return { sent: true }
@@ -108,7 +126,7 @@ export async function sendEmail(
         method: 'POST',
         signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
         headers: { Authorization: `Bearer ${resend}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to, subject, html }),
+        body: JSON.stringify({ from, to, subject, html, ...(headers ? { headers } : {}) }),
       })
       if (!res.ok) return { sent: false, error: `resend_${res.status}` }
       return { sent: true }

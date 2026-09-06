@@ -3,9 +3,15 @@
 // over existing docs (a nightly upsert would reset tier/claim_status on paying
 // customers). Scraped rows get a stable `sf:<hash>` id and are additionally
 // deduped against existing listings by exact name (+ street/phone agreement).
+//
+// Second hard rule, added after the Places audit: this sink NEVER persists Google
+// Maps Platform Content (see google-content.ts). Rows a SEARCH_GOOGLE_PLACES node
+// produced are dropped here rather than stored, because the directory both caches
+// and resells them.
 
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import type { ExtractedListing, RunSummary } from './types'
+import { isGoogleMapsContent } from './google-content'
 import { inRegion, looksLikeSameBusiness, toCandidate, type DirectoryCandidate } from './normalize'
 
 export * from './normalize'
@@ -29,6 +35,7 @@ export async function deliverToDirectory(
   const inserted_ids: string[] = []
   const seen = new Set<string>()
   const candidates: DirectoryCandidate[] = []
+  let googleRefused = 0
 
   for (const listing of listings) {
     if (opts.regionFilter && !inRegion(listing)) {
@@ -40,9 +47,29 @@ export async function deliverToDirectory(
       summary.skipped_invalid++
       continue
     }
+    // Google Maps Platform Content must never be persisted here. Every SEARCH_GOOGLE_PLACES
+    // run used to write the whole Places record (address, lat/lng, phone, website) into
+    // `directory_listings` permanently and publish it for sale — breaching the no-caching
+    // term (only the place ID may be kept indefinitely) and the no-competing-listings-service
+    // term with the same write. The guard sits at the persistence boundary, not in the
+    // Places node, so no workflow, template, or manual re-run can route around it.
+    // Counted as invalid rather than skipped_existing: nothing was stored, so a later run
+    // must not read this as "already have it".
+    if (isGoogleMapsContent(candidate)) {
+      googleRefused++
+      summary.skipped_invalid++
+      continue
+    }
     if (seen.has(candidate.google_place_id)) continue
     seen.add(candidate.google_place_id)
     candidates.push(candidate)
+  }
+  if (googleRefused) {
+    log(
+      'warn',
+      `Refused ${googleRefused} Google Places-sourced listing(s): Maps Platform Content cannot be stored in the directory. ` +
+        `Disable the places-* workflows so the run stops paying for lookups it can never keep.`
+    )
   }
   summary.candidates = candidates.length
   if (!candidates.length) return { ...summary, inserted_ids, sample: [] }

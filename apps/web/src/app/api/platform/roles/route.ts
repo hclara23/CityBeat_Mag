@@ -9,6 +9,7 @@ import {
   resolvePlatformCapabilities,
   type PlatformRole,
 } from '@citybeat/lib/roles'
+import { privilegedDenial } from '@/lib/privileged-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -78,7 +79,14 @@ export async function PATCH(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const actor = await getServerUserProfile(user.id)
-  if (!hasAdminAccess(actor)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  // Granting roles is the single highest-privilege write in the system — this is
+  // how an account gets permanent godmode. It checked the role and nothing else,
+  // so a staff password with no TOTP enrollment behind it (the admin layout only
+  // redirects such an operator; it does not lock the account) could PATCH
+  // is_developer onto any profile, including a second account of the attacker's
+  // own. GET below is a self-read and stays open to any signed-in user.
+  const denial = privilegedDenial(actor, hasAdminAccess(actor))
+  if (denial) return NextResponse.json({ error: denial.error }, { status: denial.status })
 
   const body = await request.json().catch(() => ({}))
   const targetUserId = typeof body.userId === 'string' ? body.userId : ''

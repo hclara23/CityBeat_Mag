@@ -243,14 +243,62 @@ export async function promotePublicSubmission(submissionId: string) {
   return { articleId, title, created, status }
 }
 
-async function editorialProfiles() {
-  const snapshot = await adminDb.collection('profiles').get()
-  return snapshot.docs
-    .map((doc) => ({
-      ...(doc.data() as PlatformProfile & { email?: unknown }),
-      userId: doc.id,
-    }))
-    .filter((profile) => hasEditorAccess(profile))
+// The role sources hasEditorAccess accepts that Firestore can actually query:
+// the three boolean columns, `role`, and `granted_roles` (what
+// /api/platform/roles writes on every grant). Each is a single-field equality
+// or array membership, so these are served by the automatic single-field
+// indexes — no composite index to deploy.
+const EDITORIAL_ROLES = ['developer', 'admin', 'editor']
+const EDITORIAL_QUERIES: Array<[string, FirebaseFirestore.WhereFilterOp, unknown]> = [
+  ['is_developer', '==', true],
+  ['can_manage_platform', '==', true],
+  ['is_editor', '==', true],
+  ['role', 'in', EDITORIAL_ROLES],
+  ['granted_roles', 'array-contains-any', EDITORIAL_ROLES],
+]
+
+type EditorialProfile = PlatformProfile & { email?: unknown; userId: string }
+
+function toEditorialProfile(doc: FirebaseFirestore.QueryDocumentSnapshot): EditorialProfile {
+  return { ...(doc.data() as PlatformProfile & { email?: unknown }), userId: doc.id }
+}
+
+/**
+ * The editors to notify about a submission.
+ *
+ * This used to read the WHOLE `profiles` collection — every user account the
+ * site has ever created — and filter in memory. /api/contribute is
+ * unauthenticated, so a stranger's submission billed a read per account, and
+ * the admin review queue pays the same scan once per pending submission on
+ * every load.
+ *
+ * The narrow queries cannot express one grant shape hasEditorAccess honours:
+ * `profile_roles`, an array of {role, revoked_at} maps, which Firestore cannot
+ * filter on. Nothing in this codebase WRITES that field (it is a leftover of
+ * the Supabase-era join table), but rather than assume that, a roster that
+ * comes back empty falls back to the full scan — the old behaviour, and the
+ * only way a profile_roles-only editorial team still gets notified. Results are
+ * still passed through hasEditorAccess so the definition of "editor" stays in
+ * one place.
+ */
+async function editorialProfiles(): Promise<EditorialProfile[]> {
+  const snapshots = await Promise.all(
+    EDITORIAL_QUERIES.map(([field, op, value]) =>
+      adminDb.collection('profiles').where(field, op, value).get()
+    )
+  )
+
+  const byUserId = new Map<string, EditorialProfile>()
+  for (const snapshot of snapshots) {
+    for (const doc of snapshot.docs) {
+      const profile = toEditorialProfile(doc)
+      if (hasEditorAccess(profile)) byUserId.set(doc.id, profile)
+    }
+  }
+  if (byUserId.size > 0) return [...byUserId.values()]
+
+  const everyProfile = await adminDb.collection('profiles').get()
+  return everyProfile.docs.map(toEditorialProfile).filter((profile) => hasEditorAccess(profile))
 }
 
 export async function notifyEditorialTeam(articleId: string, title: string) {

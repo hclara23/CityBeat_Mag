@@ -26,6 +26,19 @@ export function buildSalesDirectoryListingRecord(input: {
     ownership_verified: false,
     is_published: true,
     is_sponsored: false,
+    // Firestore OMITS from an orderBy any document that does not contain the
+    // sort field, and the /directory landing view is
+    // `where('tier', ...).orderBy('rating', 'desc')` — so a rep-sold listing
+    // created without a `rating` key was invisible on the very page the
+    // customer had just paid for. It surfaced only under a search term or a
+    // category (those read the corpus, which has no orderBy), and only became
+    // visible in the default view once someone left the first review, since
+    // /api/directory/[id]/reviews is the one place that writes `rating`.
+    // The bulk crawlers already write `rating: null` for exactly this reason
+    // (packages/lib/src/directory/crawlee-ingest.ts, lib/scrapeflow/directory-sink.ts);
+    // null is present, sorts last under `desc`, and keeps the row in the page.
+    rating: null,
+    user_ratings_total: null,
     source: 'sales_rep',
     sold_by_rep: input.sellerUserId,
     sales_created_by: input.sellerUserId,

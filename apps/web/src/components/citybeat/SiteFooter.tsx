@@ -62,6 +62,22 @@ export function SiteFooter({ locale = 'en' }: { locale?: string }) {
               <Link href={withLocale(locale, '/login')} className="hover:text-brand-neon">
                 {locale === 'es' ? 'Escritores y Editores' : 'Writers & Editors'}
               </Link>
+              {/* The only contact affordance in the site chrome used to be the
+                  ADVERTISING address, so a paying customer with a billing
+                  problem had nowhere obvious to write — and the move after
+                  "nobody answered" is a card dispute. Support is named here in
+                  both languages, and the address is shown as text (not just as
+                  a mailto label) so it can be copied on a phone or a desktop
+                  with no mail handler configured. */}
+              <a href="mailto:support@citybeatmag.co" className="hover:text-brand-neon">
+                {locale === 'es' ? 'Soporte' : 'Support'} · support@citybeatmag.co
+              </a>
+              {/* Billing is the two-click cancellation path the billing terms
+                  promise (BILLING_TERMS_*.cancel). It was reachable only from
+                  inside the dashboard. */}
+              <Link href={withLocale(locale, '/billing')} className="hover:text-brand-neon">
+                {locale === 'es' ? 'Facturación y suscripciones' : 'Billing & subscriptions'}
+              </Link>
               <Link href={withLocale(locale, '/privacy')} className="hover:text-brand-neon">
                 {locale === 'es' ? 'Privacidad' : 'Privacy'}
               </Link>

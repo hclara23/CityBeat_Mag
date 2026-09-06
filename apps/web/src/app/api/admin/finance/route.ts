@@ -3,6 +3,7 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { hasDeveloperAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { COMMISSION_OWED_STATUSES, PAID_STATUSES, collectedCents, purchaseRowCounts } from '@/lib/finance-rollup'
+import { purchaseCollectedCents, purchaseStatusIsCollected } from '@/lib/purchase-revenue'
 import { TopN, scanCollection } from '@/lib/firestore-scan'
 
 export const dynamic = 'force-dynamic'
@@ -153,8 +154,13 @@ export async function GET() {
         // invoice in `payments`; counting both double-counts month one.
         if (!purchaseRowCounts(x)) return
         const createdAt = toIso(x.created_at)
-        const amount = Number(x.amount_total) || 0
-        if (paid.includes(x.payment_status)) {
+        // Net of any refund recorded on the row, and counting the
+        // `partially_refunded` state as the collected revenue it is: refunding
+        // $20 of a $500 banner used to strike the entire $500 from the totals
+        // and from that month, because the status gate below only accepted
+        // PAID_STATUSES. See lib/purchase-revenue.ts.
+        const amount = purchaseCollectedCents(x)
+        if (purchaseStatusIsCollected(x.payment_status)) {
           totalIncoming += amount
           totalGross += amount
           addMonth(createdAt, 'incoming', amount)

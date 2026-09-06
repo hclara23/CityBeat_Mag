@@ -10,9 +10,55 @@ interface LoginFormProps {
   onSuccess?: () => void
   isLoading?: boolean
   className?: string
+  /** Defaults to English so existing callers keep their current behaviour. */
+  locale?: string
 }
 
-export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = '' }: LoginFormProps) {
+// /es/login rendered Spanish headings from the page over an entirely English
+// form: English field labels, English validation errors, an English button.
+// Every string a signing-in customer can read now follows the locale — El Paso
+// is ~90% Spanish-speaking, and sign-in is the door to every paid surface.
+const COPY = {
+  en: {
+    emailLabel: 'Email Address',
+    emailPlaceholder: 'you@example.com',
+    emailRequired: 'Email is required',
+    emailInvalid: 'Please enter a valid email',
+    passwordLabel: 'Password',
+    passwordPlaceholder: 'Password',
+    passwordRequired: 'Password is required',
+    passwordTooShort: 'Password must be at least 6 characters',
+    show: 'Show',
+    hide: 'Hide',
+    showAria: 'Show password',
+    hideAria: 'Hide password',
+    rememberMe: 'Keep me signed in',
+    submit: 'Sign In',
+    submitting: 'Signing in...',
+    genericError: 'An error occurred',
+  },
+  es: {
+    emailLabel: 'Correo electrónico',
+    emailPlaceholder: 'tu@ejemplo.com',
+    emailRequired: 'El correo es obligatorio',
+    emailInvalid: 'Ingresa un correo válido',
+    passwordLabel: 'Contraseña',
+    passwordPlaceholder: 'Contraseña',
+    passwordRequired: 'La contraseña es obligatoria',
+    passwordTooShort: 'La contraseña debe tener al menos 6 caracteres',
+    show: 'Ver',
+    hide: 'Ocultar',
+    showAria: 'Mostrar contraseña',
+    hideAria: 'Ocultar contraseña',
+    rememberMe: 'Mantener mi sesión iniciada',
+    submit: 'Iniciar sesión',
+    submitting: 'Iniciando sesión...',
+    genericError: 'Ocurrió un error',
+  },
+}
+
+export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = '', locale = 'en' }: LoginFormProps) {
+  const t = locale === 'es' ? COPY.es : COPY.en
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -25,15 +71,15 @@ export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = 
     const errors: typeof fieldErrors = {}
 
     if (!email) {
-      errors.email = 'Email is required'
+      errors.email = t.emailRequired
     } else if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      errors.email = 'Please enter a valid email'
+      errors.email = t.emailInvalid
     }
 
     if (!password) {
-      errors.password = 'Password is required'
+      errors.password = t.passwordRequired
     } else if (password.length < 6) {
-      errors.password = 'Password must be at least 6 characters'
+      errors.password = t.passwordTooShort
     }
 
     setFieldErrors(errors)
@@ -54,7 +100,7 @@ export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = 
         onSuccess?.()
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : t.genericError)
     }
   }
 
@@ -64,8 +110,8 @@ export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = 
 
       <Input
         type="email"
-        label="Email Address"
-        placeholder="you@example.com"
+        label={t.emailLabel}
+        placeholder={t.emailPlaceholder}
         value={email}
         onChange={(e) => {
           setEmail(e.target.value)
@@ -79,8 +125,8 @@ export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = 
       <div className="relative">
         <Input
           type={showPassword ? 'text' : 'password'}
-          label="Password"
-          placeholder="Password"
+          label={t.passwordLabel}
+          placeholder={t.passwordPlaceholder}
           value={password}
           onChange={(e) => {
             setPassword(e.target.value)
@@ -96,10 +142,10 @@ export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = 
           className="absolute right-3 top-9 rounded px-2 py-1 text-xs font-semibold uppercase tracking-wide text-brand-neon transition hover:text-white disabled:cursor-not-allowed disabled:text-white/35"
           onClick={() => setShowPassword((value) => !value)}
           aria-pressed={showPassword}
-          aria-label={showPassword ? 'Hide password' : 'Show password'}
+          aria-label={showPassword ? t.hideAria : t.showAria}
           disabled={isLoading || !password}
         >
-          {showPassword ? 'Hide' : 'Show'}
+          {showPassword ? t.hide : t.show}
         </button>
       </div>
 
@@ -111,11 +157,11 @@ export function LoginForm({ onSubmit, onSuccess, isLoading = false, className = 
           disabled={isLoading}
           className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
         />
-        Keep me signed in
+        {t.rememberMe}
       </label>
 
       <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? 'Signing in...' : 'Sign In'}
+        {isLoading ? t.submitting : t.submit}
       </Button>
     </form>
   )

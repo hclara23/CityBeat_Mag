@@ -4,6 +4,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { hasDeveloperAccess } from '@citybeat/lib/roles'
 import { getClientIp } from '@/lib/auth-security'
+import { privilegedDenial } from '@/lib/privileged-access'
 import { directoryPlanForListing } from '@/lib/directory-entitlements'
 import {
   AudienceRow,
@@ -134,19 +135,26 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
 
-  // Developer-only — server-enforced, NOT the client redirect. Log unauthorized
-  // attempts through the security-alert path.
-  if (!hasDeveloperAccess(profile)) {
+  // Developer-only AND second-factor-only — server-enforced, NOT the client
+  // redirect. This checked the role alone, so a staff account that had never
+  // completed TOTP enrollment (the /developer layout only REDIRECTS them; login
+  // still issues a session on the password alone) was bounced from every page
+  // and could still pull the whole customer base as a CSV from here. Log the
+  // denial either way: a refused export attempt is exactly what the security
+  // trail exists for.
+  const denial = privilegedDenial(profile, hasDeveloperAccess(profile))
+  if (denial) {
     void adminDb
       .collection('security_events')
       .add({
         type: 'audience_access_denied',
         actor_id: user.id,
+        reason: denial.error === 'Forbidden' ? 'role' : 'mfa_not_enrolled',
         ip_present: Boolean(getClientIp(request)),
         at: new Date().toISOString(),
       })
       .catch(() => {})
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: denial.error }, { status: denial.status })
   }
 
   const params = new URL(request.url).searchParams
