@@ -6,6 +6,7 @@ import { sendEmail } from '@/lib/email'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { emailHash, isSuppressedStatus, mintUnsubToken, normalizeNewsletterEmail } from '@/lib/newsletter'
 import { loadSuppressedHashes } from '@/lib/newsletter-server'
+import { unsubHeaders } from '@/lib/unsub-headers'
 
 const POSTAL = process.env.NEWSLETTER_POSTAL_ADDRESS || 'CityBeat Mag, El Paso, TX, USA'
 
@@ -235,7 +236,13 @@ export async function GET(request: NextRequest) {
       try {
         const hash = emailHash(s._email)
         if (alreadySent.has(hash)) continue
-        const r = await sendEmail(s._email, subject, digestHtml(recent, s._email, locale, sponsor), FROM)
+        // The newsletter is the single most likely stream to be marked as spam,
+        // and the one-click header is what gives a recipient the button that is
+        // NOT 'report spam'. Same helper as every other stream, so the header is
+        // identical across campaigns.
+        const r = await sendEmail(s._email, subject, digestHtml(recent, s._email, locale, sponsor), FROM, {
+          headers: unsubHeaders(s._email, locale),
+        })
         if (r.sent) {
           sent++
           alreadySent.add(hash)

@@ -42,6 +42,7 @@ type Listing = {
 // enrich-contacts, so the fix is shared rather than copied. Re-exported here
 // because sales-agent-cursor.test.ts imports them from this module.
 import { encodeListingCursor, decodeListingCursor } from './listing-cursor'
+import { unsubHeaders } from './unsub-headers'
 export { encodeListingCursor, decodeListingCursor, type ListingCursor } from './listing-cursor'
 
 function claimUrl(listingId: string, outreachId: string, locale = 'en') {
@@ -317,10 +318,15 @@ function renderHtml(listing: Listing, content: ReturnType<typeof templatePitch>,
 </div>`
 }
 
-// Uses the shared provider-agnostic sender (SMTP → SendGrid → Resend).
-function sendEmail(to: string, subject: string, html: string) {
+// Every commercial send in this file funnels through here, which is exactly why
+// the one-click unsubscribe header belongs at this point rather than at each of
+// the seven call sites. The footer link alone does not satisfy the Gmail/Yahoo
+// bulk-sender rules, and without the header the button a recipient reaches for
+// is 'report spam' - which damages deliverability for every stream at once,
+// including the transactional mail telling a paying customer their listing is live.
+function sendEmail(to: string, subject: string, html: string, locale?: 'en' | 'es') {
   void reportPlaceholderPostalAddress()
-  return sendEmailViaProvider(to, subject, html, FROM)
+  return sendEmailViaProvider(to, subject, html, FROM, { headers: unsubHeaders(to, locale) })
 }
 
 // Sends a sample outreach email to a given address to verify the email channel.

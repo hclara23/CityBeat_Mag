@@ -5,6 +5,8 @@ import { getNotifyPrefs } from '@/lib/notify-prefs'
 import { notifyUser } from '@/lib/user-notifications'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { dayKey, daysAgoKey, totalsForRange, type DailyStatRow } from '@/lib/listing-analytics'
+import { unsubHeaders } from '@/lib/unsub-headers'
+import { isSuppressed } from '@/lib/suppression'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -172,6 +174,7 @@ export async function GET(request: NextRequest) {
     let skippedNoEmail = 0
     let skippedOptedOut = 0
     let skippedAlreadySent = 0
+    let skippedSuppressed = 0
     for (const [ownerId, ownerListings] of byOwner) {
       const profile = await adminDb.collection('profiles').doc(ownerId).get().catch(() => null)
       const p = profile?.exists ? (profile.data() as any) : null
@@ -210,7 +213,17 @@ export async function GET(request: NextRequest) {
         continue
       }
 
-      const r = await sendEmail(email, subject, reportHtml(ownerListings, locale), FROM)
+      // This stream never consulted the suppression list, so someone who had
+      // unsubscribed kept getting a monthly report indefinitely. Honouring an
+      // unsubscribe is not optional, and the one-click header below is what most
+      // recipients will actually use.
+      if (await isSuppressed(email)) {
+        skippedSuppressed++
+        continue
+      }
+      const r = await sendEmail(email, subject, reportHtml(ownerListings, locale), FROM, {
+        headers: unsubHeaders(email, locale),
+      })
       // Record delivery status/provider outcome/timestamp — never claim a send
       // that didn't happen. A failed send is left NOT 'sent' so a later run can
       // retry; a persistence failure here throws to the outer catch rather than
@@ -251,6 +264,7 @@ export async function GET(request: NextRequest) {
       skipped_no_email: skippedNoEmail,
       skipped_opted_out: skippedOptedOut,
       skipped_already_sent: skippedAlreadySent,
+      skipped_suppressed: skippedSuppressed,
     })
   } catch (error) {
     await reportFailure('cron:owner-reports', error)

@@ -9,6 +9,7 @@ import { createSalesOrderAccess } from '@/lib/sales-orders'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { isSuppressed } from '@/lib/suppression'
 import { mintUnsubToken, normalizeNewsletterEmail } from '@/lib/newsletter'
+import { unsubHeaders } from '@/lib/unsub-headers'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -87,23 +88,13 @@ ${esc(POSTAL_ADDRESS)}<br>
 </div>`
 }
 
-/**
- * RFC 8058 one-click unsubscribe headers, required by the Gmail/Yahoo bulk
- * sender rules. The URL must accept POST: `/api/track/unsub` is GET-only, so the
- * header points at `/api/newsletter/unsubscribe`, which exports POST and
- * suppresses by opaque hash — and `isSuppressed` reads BOTH suppression stores,
- * so a mailbox provider's one-click silences this stream too. The visible footer
- * link stays on the outreach route, whose confirmation page says the right thing
- * to a human.
- */
-function unsubHeaders(email: string, locale: unknown): Record<string, string> {
-  const token = mintUnsubToken(normalizeNewsletterEmail(email))
-  const url = `${APP_ORIGIN}/api/newsletter/unsubscribe?u=${encodeURIComponent(token)}${locale === 'es' ? '&l=es' : ''}`
-  return {
-    'List-Unsubscribe': `<${url}>`,
-    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-  }
-}
+// The one-click unsubscribe headers moved to lib/unsub-headers so every
+// marketing stream sends an identical header — a provider that sees it on one
+// campaign and not the next treats the sender as inconsistent. The URL must
+// accept POST, which is why it points at /api/newsletter/unsubscribe rather than
+// the GET-only /api/track/unsub; isSuppressed reads BOTH suppression stores, so
+// a provider's one-click silences this stream too. The visible footer link stays
+// on the outreach route, whose confirmation page says the right thing to a human.
 
 // Abandoned-checkout recovery.
 //

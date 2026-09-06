@@ -6,6 +6,7 @@ import { dayKey, daysAgoKey, totalsForRange, type DailyStatRow } from '@/lib/lis
 import { sendEmail } from '@/lib/email'
 import { isSuppressed } from '@/lib/suppression'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
+import { unsubHeaders } from '@/lib/unsub-headers'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -294,7 +295,9 @@ export async function GET(request: NextRequest) {
       }
 
       const { subject, html } = reportHtml(row, unsubToken)
-      const result = await sendEmail(email, subject, html, FROM)
+      const result = await sendEmail(email, subject, html, FROM, {
+        headers: unsubHeaders(email),
+      })
       await relayRef
         .set({ status: result.sent ? 'sent' : 'failed', ...(result.error ? { provider_error: result.error } : {}), sent_at: new Date().toISOString() }, { merge: true })
         .catch(() => {})
