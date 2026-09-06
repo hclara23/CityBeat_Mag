@@ -1,5 +1,7 @@
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getCronCursor, setCronCursor } from './cron-cursor'
+import { decodeListingCursor, encodeListingCursor } from './listing-cursor'
+import { FieldPath, Timestamp } from 'firebase-admin/firestore'
 
 // Backfills contact data for directory listings so the sales agent can reach them.
 // Strategy: read the business's OWN website and take a public contact email off it.
@@ -126,22 +128,42 @@ export async function runContactEnrichment(opts: { limit?: number; categories?: 
   // Firestore's default doc-ID order and never advanced past the first ~4,000
   // docs, so a whole day's worth of newly-scraped listings (higher-sorting doc
   // ids) could never be reached no matter how many times this ran.
+  // The cursor is COMPOSITE (created_at + document id), not a bare created_at.
+  // Firestore positions startAfter(<value>) after EVERY document sharing that
+  // value, so persisting only created_at skipped every listing tied with the last
+  // one on a page boundary — permanently, because the walk stopped at the same
+  // boundary on every subsequent run. Bulk-scraped rows share a created_at
+  // constantly, so entire batches were unreachable and never got a contact looked
+  // up. The identical bug was found in sales-agent; the fix is shared in
+  // ./listing-cursor rather than copied.
   const cursorName = 'enrich_contacts'
-  const startValue = await getCronCursor(cursorName)
+  const listings = adminDb.collection('directory_listings')
+  let cursor = decodeListingCursor(await getCronCursor(cursorName))
   const candidates: FirebaseFirestore.QueryDocumentSnapshot[] = []
-  let cursor: string | null = startValue
+  let nextCursor: string | null = null
   let reachedEnd = false
   const maxPages = catFilter ? 30 : 8 // scan deeper when hunting a specific vertical
   for (let page = 0; page < maxPages && candidates.length < limit * 3; page++) {
-    let q = adminDb.collection('directory_listings').where('claim_status', '==', 'unclaimed').orderBy('created_at', 'asc').limit(500)
-    if (cursor) q = q.startAfter(cursor)
+    let q = listings
+      .where('claim_status', '==', 'unclaimed')
+      .orderBy('created_at', 'asc')
+      // Firestore already orders by __name__ implicitly and the existing
+      // (claim_status, created_at) index serves it, so this adds no new index.
+      .orderBy(FieldPath.documentId(), 'asc')
+      .limit(500)
+    if (cursor) {
+      const at =
+        cursor.kind === 'string' ? cursor.value : new Timestamp(cursor.seconds, cursor.nanoseconds)
+      q = q.startAfter(at, listings.doc(cursor.id))
+    }
     const snap = await q.get()
     if (snap.empty) {
       reachedEnd = true
       break
     }
     const lastDoc = snap.docs[snap.docs.length - 1]
-    cursor = (lastDoc.data() as any)?.created_at || null
+    nextCursor = encodeListingCursor((lastDoc.data() as any)?.created_at, lastDoc.id)
+    cursor = decodeListingCursor(nextCursor)
     for (const d of snap.docs) {
       const l = d.data() as any
       if (catFilter && !catFilter.has(l.category)) continue
@@ -156,7 +178,7 @@ export async function runContactEnrichment(opts: { limit?: number; categories?: 
       break
     }
   }
-  await setCronCursor(cursorName, reachedEnd ? null : cursor)
+  await setCronCursor(cursorName, reachedEnd ? null : nextCursor)
 
   for (const doc of candidates) {
     if (stats.updated >= limit) break

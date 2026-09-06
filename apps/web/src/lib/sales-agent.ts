@@ -38,67 +38,11 @@ type Listing = {
   hours?: Record<string, string>
 }
 
-// ── Listing walk cursor ───────────────────────────────────────────────────
-// The new-contacts walk below pages `directory_listings` ordered by created_at
-// and used to persist the last document's created_at VALUE as its cursor.
-// Firestore positions startAfter(<value>) after EVERY document sharing that
-// value, so every listing that tied with the last one on a page boundary was
-// skipped — not deferred, skipped, and skipped again on the next cycle because
-// the walk stops at the same boundary every time.
-//
-// Ties are the normal case here, not a corner: scrapeflow/directory-sink.ts
-// computes ONE `now` for a whole insert batch and stamps every row with it, so a
-// 300-row ScrapeFlow batch cut at row 80 stranded rows 81-300 for the life of
-// the system — the same starvation cron-cursor.ts was introduced to fix.
-//
-// The cursor is therefore the FULL sort key, (created_at, __name__), which is
-// unique per document and positions after exactly one row. created_at is written
-// as an ISO string by the scraper sink and as a server Timestamp by the admin
-// create path, and Firestore orders the two types apart, so the cursor carries
-// the type too: a Timestamp re-sent as a string would land in the wrong type
-// bucket and skip everything again.
-export type ListingCursor =
-  | { kind: 'string'; value: string; id: string }
-  | { kind: 'timestamp'; seconds: number; nanoseconds: number; id: string }
-
-export function encodeListingCursor(createdAt: unknown, id: string): string | null {
-  if (typeof id !== 'string' || !id) return null
-  if (typeof createdAt === 'string' && createdAt) {
-    return JSON.stringify({ kind: 'string', value: createdAt, id })
-  }
-  const ts = createdAt as { seconds?: unknown; nanoseconds?: unknown } | null
-  if (ts && typeof ts.seconds === 'number' && typeof ts.nanoseconds === 'number') {
-    return JSON.stringify({ kind: 'timestamp', seconds: ts.seconds, nanoseconds: ts.nanoseconds, id })
-  }
-  // No usable created_at means no resumable position. Returning null restarts
-  // the walk next run, which is safe; persisting a partial cursor is what caused
-  // the bug above.
-  return null
-}
-
-export function decodeListingCursor(raw: string | null | undefined): ListingCursor | null {
-  if (!raw) return null
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(raw)
-  } catch {
-    // A legacy bare-created_at cursor, written before this fix. It is precisely
-    // the poisoned value that skipped the tie group, so discard it and restart
-    // the walk: already-contacted listings are cheap no-ops via the
-    // sales_outreach guard, and the stranded ones finally get read.
-    return null
-  }
-  if (!parsed || typeof parsed !== 'object') return null
-  const c = parsed as Record<'kind' | 'id' | 'value' | 'seconds' | 'nanoseconds', unknown>
-  if (typeof c.id !== 'string' || !c.id) return null
-  if (c.kind === 'string' && typeof c.value === 'string') {
-    return { kind: 'string', value: c.value, id: c.id }
-  }
-  if (c.kind === 'timestamp' && typeof c.seconds === 'number' && typeof c.nanoseconds === 'number') {
-    return { kind: 'timestamp', seconds: c.seconds, nanoseconds: c.nanoseconds, id: c.id }
-  }
-  return null
-}
+// Cursor helpers live in ./listing-cursor - the identical bug existed in
+// enrich-contacts, so the fix is shared rather than copied. Re-exported here
+// because sales-agent-cursor.test.ts imports them from this module.
+import { encodeListingCursor, decodeListingCursor } from './listing-cursor'
+export { encodeListingCursor, decodeListingCursor, type ListingCursor } from './listing-cursor'
 
 function claimUrl(listingId: string, outreachId: string, locale = 'en') {
   return `${APP_URL}/api/track/click?o=${outreachId}&to=${encodeURIComponent(`/${locale}/directory/${listingId}/claim`)}`
