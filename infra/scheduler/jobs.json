@@ -55,6 +55,23 @@
       "state": "ENABLED"
     },
     {
+      "name": "citybeat-claims-aging",
+      "schedule": "0 8 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/claims-aging",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "180s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
       "name": "citybeat-directory-ingest",
       "schedule": "0 2 * * *",
       "timeZone": "America/Chihuahua",
@@ -93,6 +110,23 @@
       "schedule": "0 10 5 * *",
       "timeZone": "America/Chihuahua",
       "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/ghost-reports?limit=25",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "180s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
+      "name": "citybeat-heartbeat",
+      "schedule": "0 */6 * * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/heartbeat",
       "httpMethod": "GET",
       "requiresCronSecret": true,
       "attemptDeadline": "180s",
