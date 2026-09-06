@@ -1,0 +1,67 @@
+rules_version = '2';
+
+// Firestore security rules for project `kerstenblueprint`.
+//
+// WHY THIS FILE EXISTS
+// These rules were live and enforcing, but existed only in the Firebase console
+// — nothing in source control described them, so nobody could review a change to
+// the single control standing between the public internet and every payment,
+// commission and claim record we hold. This file is a faithful capture of the
+// deployed ruleset (release cloud.firestore, ruleset 5fbe988b, 2026-02-03), so
+// deploying it changes nothing. From here a change to access control is a diff.
+//
+// HOW CITYBEAT ACTUALLY READS AND WRITES
+// It doesn't — not through these rules. Every CityBeat collection (articles,
+// directory_listings, sales_orders, transfers, payments, subscriptions,
+// referrals, stripe_events, …) is touched exclusively by server-side route
+// handlers using the Firebase Admin SDK, which bypasses rules entirely and
+// enforces its own auth via getServerUser + the role helpers in
+// packages/lib/roles. No browser holds a Firestore client credential.
+//
+// That makes the catch-all deny at the bottom the correct posture, and it is
+// load-bearing: it is the reason a leaked NEXT_PUBLIC_FIREBASE_API_KEY (which is
+// public by design and shipped in every page) cannot be used to read the
+// business. Any future feature that wants direct client access to a collection
+// must add an explicit match here, and adding one means deliberately moving that
+// collection's authorisation out of the server routes.
+//
+// The `responses` and `milestones` rules below predate CityBeat — they belong to
+// an earlier app sharing this project. They are kept verbatim so that deploying
+// this file is a no-op; they grant nothing on any CityBeat collection.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Admin email - only this user can access all data
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'morningstarelp@gmail.com';
+    }
+
+    // Check if user owns the document
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Responses collection - one document per user (document ID = uid)
+    match /responses/{uid} {
+      // Users can read/write their own document, admin can read all
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if isOwner(uid);
+
+      // Admin can delete for cleanup
+      allow delete: if isAdmin();
+    }
+
+    // Milestones are written by trusted server code and readable by owner/admin
+    match /milestones/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Deny all other access by default.
+    // This is what protects every CityBeat collection. Do not narrow it without
+    // moving that collection's authorisation somewhere equally enforced.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

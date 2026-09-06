@@ -60,11 +60,28 @@ const STATUS_STYLE: Record<string, string> = {
   delivered: 'bg-emerald-400/15 text-emerald-300',
 }
 
+// A customer who paid and never came back to describe what they wanted. These
+// appear on no other surface: they have no brief, so they are in none of the
+// brief queues, and only the selling rep ever saw a count of their own.
+type AwaitingIntake = {
+  id: string
+  business_name: string | null
+  contact_email: string | null
+  product_name: string | null
+  amount_paid: number
+  intake_status: string
+  intake_completion: number
+  locale: 'en' | 'es'
+  paid_at: string | null
+  days_waiting: number | null
+}
+
 export default function FulfillmentQueuePage() {
   const router = useRouter()
   const locale = useLocale() as 'en' | 'es'
   const isEs = locale === 'es'
   const [briefs, setBriefs] = useState<Brief[]>([])
+  const [awaiting, setAwaiting] = useState<AwaitingIntake[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthorized, setIsAuthorized] = useState(false)
 
@@ -79,6 +96,7 @@ export default function FulfillmentQueuePage() {
       if (res.ok) {
         const data = await res.json()
         setBriefs(data.briefs || [])
+        setAwaiting(data.awaiting_intake || [])
         setIsAuthorized(true)
       }
     } finally {
@@ -141,6 +159,50 @@ export default function FulfillmentQueuePage() {
             )}
           </p>
         </div>
+
+        {awaiting.length > 0 && (
+          <section className="mb-10">
+            <h2 className="mb-1 font-display text-xl font-black uppercase tracking-tight text-amber-300">
+              {isEs ? 'Pagado, sin brief' : 'Paid, no brief yet'}
+            </h2>
+            <p className="mb-4 text-sm text-white/50">
+              {isEs
+                ? 'Ya pagaron y todavía no nos dijeron qué quieren. Les debemos un producto — contáctalos.'
+                : 'They have paid and have not told us what they want. We owe them a product — reach out.'}
+            </p>
+            <div className="grid gap-3">
+              {awaiting.map((o) => (
+                <div key={o.id} className="citybeat-panel flex flex-wrap items-center gap-x-4 gap-y-2 border-l-2 border-amber-400/60 p-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold">{o.business_name || '(unnamed)'}</p>
+                    <p className="truncate text-xs text-white/50">
+                      {o.product_name || 'CityBeat product'}
+                      {o.contact_email ? ` · ${o.contact_email}` : ''}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono text-sm font-bold text-white/80">
+                      ${(o.amount_paid / 100).toFixed(2)}
+                    </p>
+                    {o.days_waiting !== null && (
+                      <p className={`text-[10px] font-black uppercase tracking-wider ${o.days_waiting >= 7 ? 'text-red-400' : 'text-amber-300'}`}>
+                        {o.days_waiting} {isEs ? 'días esperando' : o.days_waiting === 1 ? 'day waiting' : 'days waiting'}
+                      </p>
+                    )}
+                  </div>
+                  {o.contact_email && (
+                    <a
+                      href={`mailto:${o.contact_email}?subject=${encodeURIComponent(isEs ? 'Tu pedido de CityBeat' : 'Your CityBeat order')}`}
+                      className="rounded border border-amber-500/30 bg-amber-500/20 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-amber-200 transition hover:bg-amber-500 hover:text-black"
+                    >
+                      {isEs ? 'Contactar' : 'Email them'}
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {isLoading ? (
           <div className="py-10 text-white/50">Loading…</div>

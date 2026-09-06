@@ -170,6 +170,7 @@ async function handleCartCheckoutCompleted(session: any, metadata: Record<string
   const now = new Date().toISOString()
 
   let firstOrder: Record<string, any> | null = null
+  const paidOrders: Array<{ id: string; order: Record<string, any> }> = []
   for (const oid of orderIds) {
     const ref = adminDb.collection('sales_orders').doc(String(oid))
     const snap = await ref.get()
@@ -178,6 +179,7 @@ async function handleCartCheckoutCompleted(session: any, metadata: Record<string
     // Integrity: the order must belong to THIS session.
     if (order.stripe_checkout_session_id && order.stripe_checkout_session_id !== session.id) continue
     if (!firstOrder) firstOrder = order
+    paidOrders.push({ id: String(oid), order })
     await ref.set(
       {
         checkout_status: 'completed',
@@ -201,6 +203,46 @@ async function handleCartCheckoutCompleted(session: any, metadata: Record<string
   }
 
   if (paymentStatus !== 'paid') return true
+
+  // Book the revenue. The cart returns from this handler before any of the
+  // legacy branches below, so it never wrote an `ad_purchases` row — and a
+  // one-time cart produces no Stripe invoice either. The result was real money
+  // that appeared in NEITHER ledger: invisible on the finance dashboard and in
+  // the weekly ops digest, which is how a revenue stop goes unnoticed.
+  //
+  // One row per order, not per session, because finance attributes revenue per
+  // product and a multi-item basket must not land entirely on one line. The doc
+  // id is derived from the session and order, so a webhook retry upserts rather
+  // than duplicating. Subscription carts carry stripe_subscription_id, which is
+  // exactly what makes finance-rollup's purchaseRowCounts skip them — their
+  // money arrives as invoices, and counting both would double-count month one.
+  const cartAdvertiserEmail =
+    session.customer_details?.email || session.customer_email || metadata.contact_email || null
+  for (const { id: oid, order } of paidOrders) {
+    await adminDb
+      .collection('ad_purchases')
+      .doc(`${session.id}:${oid}`)
+      .set(
+        {
+          session_id: session.id,
+          sales_order_id: String(oid),
+          advertiser_email: cartAdvertiserEmail,
+          company_name: order.business_name || null,
+          ad_type: order.intake_kind || order.product_id || 'advertisement',
+          billing_cycle: order.billing_interval || null,
+          amount_total: Number(order.amount) || 0,
+          currency: session.currency || 'usd',
+          payment_status: 'completed',
+          source: 'cart',
+          stripe_customer_id: stripeObjectId(session.customer),
+          stripe_subscription_id: stripeObjectId(session.subscription),
+          stripe_payment_intent_id: stripeObjectId(session.payment_intent),
+          created_at: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      )
+      .catch(() => {})
+  }
 
   // One buyer confirmation for the whole basket → the order-status page (session
   // authorizes it), where they complete each item's brief. Best-effort.

@@ -54,12 +54,57 @@ export async function GET() {
       const data = d.data() as any
       return { id: d.id, kind, ...data, created_at: toIso(data.created_at) }
     }
+    // Paid, but no brief yet. The three queues above only ever contained
+    // SUBMITTED briefs, so an order where the customer paid and then never came
+    // back to describe what they wanted appeared on no operator surface at all —
+    // money taken, a product owed, and nothing showing the obligation. It could
+    // sit that way forever. A rep sees their own count on the Sales Desk; nobody
+    // saw it across the business.
+    //
+    // Single equality filter (automatic index), paid check in memory: this is a
+    // short list by nature, and a composite index that has to exist before the
+    // query works is a worse failure mode on a page an operator relies on.
+    const awaitingSnap = await adminDb
+      .collection('sales_orders')
+      .where('fulfillment_status', '==', 'awaiting_intake')
+      .limit(200)
+      .get()
+      .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+
+    const nowMs = Date.now()
+    const awaitingIntake = awaitingSnap.docs
+      .map((d) => {
+        const data = d.data() as any
+        const paidAt = toIso(data.paid_at) || toIso(data.created_at)
+        const paidMs = paidAt ? Date.parse(paidAt) : NaN
+        return {
+          id: d.id,
+          business_name: data.business_name || null,
+          contact_email: data.contact_email || null,
+          product_id: data.product_id || null,
+          product_name: data.product_name || data.product_id || null,
+          amount_paid: Number(data.amount_paid ?? data.amount ?? 0),
+          currency: data.currency || 'usd',
+          intake_status: data.intake_status || 'not_started',
+          intake_completion: Number(data.intake_completion) || 0,
+          sold_by: data.sold_by || null,
+          locale: data.locale === 'es' ? 'es' : 'en',
+          paid_at: paidAt,
+          // How long we have owed them, which is the number that decides who to
+          // chase first.
+          days_waiting: Number.isFinite(paidMs) ? Math.floor((nowMs - paidMs) / 86400000) : null,
+        }
+      })
+      .filter((row) => row.amount_paid > 0 || row.paid_at)
+      .sort((a, b) => (b.days_waiting ?? -1) - (a.days_waiting ?? -1))
+
     return NextResponse.json({
       briefs: [
         ...storiesSnap.docs.map(shape('sponsored_story')),
         ...customSnap.docs.map(shape('custom')),
         ...socialSnap.docs.map(shape('social_promotion')),
       ].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))),
+      awaiting_intake: awaitingIntake,
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 })
