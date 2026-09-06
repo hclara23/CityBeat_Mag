@@ -173,6 +173,9 @@ export function partialRefundPlan(
   originalAmount: number
   targetAmount: number
   reduceBy: number
+  /** For an already-PAID share: the debt, measured against what was actually
+   *  transferred rather than against the original split. */
+  owedAmount: number
   refundedRatio: number
 } | null {
   const chargeAmount = Math.round(Number(charge.amount) || 0)
@@ -195,16 +198,25 @@ export function partialRefundPlan(
   const reduceBy = originalAmount - targetAmount
   if (reduceBy <= 0) return null
 
+  // The debt on an already-paid share is what actually LEFT the platform minus
+  // what the share is now worth — not the reduction from the original split.
+  // A share reduced by an earlier partial refund and then paid at the reduced
+  // figure would otherwise be billed back for money the rep never received: pay
+  // out $39 of an original $65, refund further to a $26 target, and measuring
+  // from the original claims a $39 debt instead of the true $13.
+  const owedAmount = Math.max(0, current > 0 ? current - targetAmount : reduceBy)
+
   // Money already sent to a rep's bank cannot be shrunk by editing a row; the
   // difference is a real debt an operator has to net off or collect.
   if (transition.alreadyPaid) {
-    return { action: 'owe', originalAmount, targetAmount, reduceBy, refundedRatio }
+    return { action: 'owe', originalAmount, targetAmount, reduceBy, owedAmount, refundedRatio }
   }
   return {
     action: targetAmount === 0 ? 'reverse' : 'reduce',
     originalAmount,
     targetAmount,
     reduceBy,
+    owedAmount,
     refundedRatio,
   }
 }

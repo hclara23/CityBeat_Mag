@@ -256,3 +256,31 @@ test('a partial debt on a paid share shows up in the owed-back total', () => {
   const full = totalByState([{ status: 'clawback_owed', amount: 6500, clawback_owed_amount: 6500 }])
   assert.equal(full.owed_back, 6500)
 })
+
+test('a debt is measured against what was PAID, not the original split', () => {
+  // The sequence that exposed this: accrue $65, refund 40% while still held so
+  // the share drops to $39, pay out the $39, then refund further to a cumulative
+  // 60%. The share is now worth $26. Measuring the debt from the ORIGINAL $65
+  // bills the rep $39 — money they never received. The true debt is $39 - $26.
+  const paidAfterReduction = { status: 'paid', amount: 3900, original_amount: 6500 }
+  const plan = partialRefundPlan(paidAfterReduction, { amount: 10000, amount_refunded: 6000 })
+  assert.equal(plan!.action, 'owe')
+  assert.equal(plan!.targetAmount, 2600)
+  assert.equal(plan!.owedAmount, 1300, 'bill only what actually left the platform')
+
+  // A share never reduced before payout: paid == original, so the debt is the
+  // full reduction and the two measures agree.
+  const paidInFull = { status: 'paid', amount: 6500 }
+  const full = partialRefundPlan(paidInFull, { amount: 10000, amount_refunded: 6000 })
+  assert.equal(full!.owedAmount, 6500 - 2600)
+  assert.equal(full!.owedAmount, full!.reduceBy)
+})
+
+test('recording the same debt twice does not double it', () => {
+  // clawback_owed_amount is SET, not incremented, and both inputs are stable —
+  // so re-delivering the refund event lands on the same figure.
+  const row = { status: 'paid', amount: 3900, original_amount: 6500 }
+  const a = partialRefundPlan(row, { amount: 10000, amount_refunded: 6000 })
+  const b = partialRefundPlan(row, { amount: 10000, amount_refunded: 6000 })
+  assert.equal(a!.owedAmount, b!.owedAmount)
+})

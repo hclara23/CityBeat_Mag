@@ -463,13 +463,30 @@ export async function payoutSplit(params: {
     const firstEligibleAt =
       typeof existingData?.eligible_at === 'string' ? existingData.eligible_at : eligibleAt
 
+    // A PARTIAL refund shrinks a share in place and leaves it `held` — so the
+    // guard above, which only skips rows that are no longer `held`, does not
+    // protect it. Without this, a redelivered event (Stripe is at-least-once,
+    // and reconcile-orders deliberately replays) would write `amount` back to
+    // the full split and silently hand the rep commission on money that had
+    // been returned to the customer. Re-apply the recorded ratio instead of
+    // overwriting it: recompute from the authoritative split, then take the
+    // same proportion off again, which lands on the same figure every time.
+    const refundedRatio = Number(existingData?.refunded_ratio) || 0
+    const accruedAmount =
+      refundedRatio > 0
+        ? Math.max(0, Math.round(share.amountCents * (1 - refundedRatio)))
+        : share.amountCents
+
     await ledgerRef.set(
       {
         payee_user_id: share.payeeUserId,
         service,
         role: share.role,
         percent: share.percent,
-        amount: share.amountCents,
+        amount: accruedAmount,
+        // Keep the pre-refund figure so a later, larger refund still divides the
+        // original rather than an already-reduced number.
+        ...(refundedRatio > 0 ? { original_amount: share.amountCents } : {}),
         currency,
         source_payment: sourcePaymentId,
         source_transaction: sourceTransaction,
@@ -801,7 +818,7 @@ export async function reduceCommissionForPartialRefund(params: {
       // share to `clawback_owed` would overstate it as if all of it came back.
       await doc.ref.set(
         {
-          clawback_owed_amount: plan.reduceBy,
+          clawback_owed_amount: plan.owedAmount,
           clawback_reason: reason,
           clawback_at: now,
           refunded_ratio: plan.refundedRatio,
@@ -810,7 +827,7 @@ export async function reduceCommissionForPartialRefund(params: {
         { merge: true }
       )
       summary.owed++
-      summary.amount_owed += plan.reduceBy
+      summary.amount_owed += plan.owedAmount
       continue
     }
 

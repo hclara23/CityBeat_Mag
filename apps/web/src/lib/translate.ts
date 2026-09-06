@@ -22,7 +22,20 @@ async function translateViaWorker(texts: string[]): Promise<string[] | null> {
         body: JSON.stringify({ texts: chunk, target_lang: 'ES', source_lang: 'EN' }),
       })
       if (!res.ok) {
-        await traceClaudeFailure('translate.claude', prompt, `anthropic_http_${res.status}`, { items: chunk.length })
+        // This line used to pass a bare `prompt`, which does not exist in this
+        // function. It typechecked because tsconfig includes the DOM lib, where
+        // `prompt` is a global, and traceClaudeFailure takes `unknown` — so the
+        // DOM function sailed through. At runtime in Node it threw a
+        // ReferenceError, which the catch below swallowed into `return null`.
+        // The fallback to Claude still happened, so nothing looked broken; what
+        // was lost was the record that DeepL had failed at all. The label was
+        // wrong too — this is the worker/DeepL path, not the Claude one.
+        await traceClaudeFailure(
+          'translate.deepl',
+          { items: chunk.length, sample: chunk[0]?.slice(0, 200) ?? null },
+          `worker_http_${res.status}`,
+          { items: chunk.length }
+        ).catch(() => {})
         return null
       }
       const data: any = await res.json()
