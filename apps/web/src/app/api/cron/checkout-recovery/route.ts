@@ -6,7 +6,7 @@ import { getSalesProduct } from '@/lib/sales-products'
 import { planRecovery, recoveryEmail } from '@/lib/checkout-recovery'
 import { FOUNDERS_PROMO, foundersOfferEmail, isFoundersPromoEligible } from '@/lib/promo'
 import { createSalesOrderAccess } from '@/lib/sales-orders'
-import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { isSuppressed } from '@/lib/suppression'
 import { mintUnsubToken, normalizeNewsletterEmail } from '@/lib/newsletter'
 
@@ -127,7 +127,14 @@ function unsubHeaders(email: string, locale: unknown): Record<string, string> {
 //
 // `?dryRun=1` reports what both passes would do and changes nothing.
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // A rejected BEARER token is our own scheduler running against a rotated or
+  // mistyped CRON_SECRET. That silences EVERY job at once, before any of their
+  // try/catch blocks can report anything — the whole automation engine stops and
+  // the only symptom is that nothing happens. Report it from the 401 itself.
+  if (!authorized(request)) {
+    await reportCronAuthRejected('cron:checkout-recovery', request.headers.get('authorization'))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const { searchParams } = new URL(request.url)
   const dryRun = searchParams.get('dryRun') === '1'

@@ -5,7 +5,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore'
 import { dayKey, daysAgoKey, totalsForRange, type DailyStatRow } from '@/lib/listing-analytics'
 import { sendEmail } from '@/lib/email'
 import { isSuppressed } from '@/lib/suppression'
-import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -102,7 +102,14 @@ function reportHtml(row: GhostRow, unsubToken: string): { subject: string; html:
 }
 
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // A rejected BEARER token is our own scheduler running against a rotated or
+  // mistyped CRON_SECRET. That silences EVERY job at once, before any of their
+  // try/catch blocks can report anything — the whole automation engine stops and
+  // the only symptom is that nothing happens. Report it from the 401 itself.
+  if (!authorized(request)) {
+    await reportCronAuthRejected('cron:ghost-reports', request.headers.get('authorization'))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   const { searchParams } = new URL(request.url)
   const dryRun = searchParams.get('dryRun') === '1'
   const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '25', 10) || 25, 1), 100)

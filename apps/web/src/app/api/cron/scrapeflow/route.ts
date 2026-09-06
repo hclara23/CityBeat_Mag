@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ensureSeeded, runDueWorkflows } from '@/lib/scrapeflow'
 import { consolidateListings } from '@/lib/directory-consolidate'
-import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -14,6 +14,11 @@ export const maxDuration = 300
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
+    // A rejected BEARER token is our own scheduler running against a rotated or
+    // mistyped CRON_SECRET. That silences EVERY job at once, before any of their
+    // try/catch blocks can report anything — the whole automation engine stops and
+    // the only symptom is that nothing happens. Report it from the 401 itself.
+    await reportCronAuthRejected('cron:scrapeflow', request.headers.get('authorization'))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { searchParams } = new URL(request.url)

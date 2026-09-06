@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { fetchWithTimeout, FETCH_TIMEOUT_LLM } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
@@ -51,7 +51,14 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
 const MAX_PAGES = 10 // 100 events/page — a bounded read even after a long outage
 
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // A rejected BEARER token is our own scheduler running against a rotated or
+  // mistyped CRON_SECRET. That silences EVERY job at once, before any of their
+  // try/catch blocks can report anything — the whole automation engine stops and
+  // the only symptom is that nothing happens. Report it from the 401 itself.
+  if (!authorized(request)) {
+    await reportCronAuthRejected('cron:reconcile-orders', request.headers.get('authorization'))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const key = process.env.STRIPE_SECRET_KEY
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET

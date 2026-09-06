@@ -91,6 +91,14 @@ export async function POST(request: NextRequest) {
       name, category, address: address || null, phone: phone || null,
       website: website || null, description: description || null,
       tier, claim_status, is_published, is_sponsored,
+      // Firestore EXCLUDES a document from an orderBy when the sort field is
+      // absent — not "sorts it last", omits it entirely. The directory ranks with
+      // `where('tier', ...).orderBy('rating', 'desc')`, so a listing created
+      // without a `rating` key is invisible on the very page it was created for,
+      // with nothing failing. The bulk crawlers already write `rating: null` for
+      // exactly this reason; the two human-created paths (this admin form and the
+      // rep-sold path in lib/sales-directory.ts) did not.
+      rating: null,
       image_url: image_url || null,
       gallery_urls: gallery_urls || [],
       social_links: social_links || {},

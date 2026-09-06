@@ -1,4 +1,7 @@
 import { test } from 'node:test'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import {
   CRON_EXPECTATIONS,
@@ -118,20 +121,48 @@ test('stale jobs are ordered worst-first so a truncated alert still shows the wo
   )
 })
 
-test('the expectation table only lists sources that can actually stamp a run', () => {
-  // Pins the trap this table walks into: listing a job that never calls
-  // reportSuccess() (today: cron:reconcile-payouts) would alert forever, and a
-  // permanently-red alert is the same as no alert. Also guards against the
-  // duplicate-source typo that would silently shadow a job.
+test('every expected source is one a route actually stamps', () => {
+  // The trap this pins: listing a job that never calls reportSuccess() means it
+  // is reported stale forever, and a permanently-red alert is the same as no
+  // alert. The original version of this test hardcoded the one job that could not
+  // stamp (cron:reconcile-payouts) — which then had to be edited the moment that
+  // job was fixed, i.e. it tested a snapshot rather than the rule.
+  //
+  // This reads the actual routes instead, so neither adding an expectation for a
+  // job that cannot stamp NOR making a job stamp without registering it can pass
+  // unnoticed.
+  const cronDir = fileURLToPath(new URL('../app/api/cron', import.meta.url))
+  const stamped = new Set<string>()
+  for (const entry of readdirSync(cronDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    let body = ''
+    try {
+      body = readFileSync(join(cronDir, entry.name, 'route.ts'), 'utf8')
+    } catch {
+      continue
+    }
+    for (const m of body.matchAll(/reportSuccess\(\s*'([^']+)'/g)) stamped.add(m[1])
+  }
+  // The Cloudflare worker reports in over HTTP rather than from a cron route.
+  stamped.add('worker:brief-automation')
+
   const sources = CRON_EXPECTATIONS.map((e) => e.source)
   assert.equal(new Set(sources).size, sources.length, 'duplicate source in CRON_EXPECTATIONS')
-  assert.ok(!sources.includes('cron:reconcile-payouts'))
+
+  for (const source of sources) {
+    assert.ok(
+      stamped.has(source),
+      `CRON_EXPECTATIONS lists "${source}" but no cron route calls reportSuccess('${source}') — it would be reported stale forever`
+    )
+  }
+
+  // The ones whose silence costs real money must stay covered.
+  for (const must of ['cron:payout-cycle', 'reconcile-orders', 'cron:reconcile-payouts', 'cron:heartbeat']) {
+    assert.ok(sources.includes(must), `${must} must be liveness-monitored`)
+  }
+  // stripe-webhook is event-driven, not scheduled — it has no cadence to be late against.
   assert.ok(!sources.includes('stripe-webhook'))
-  // The two whose silence costs real money must stay covered.
-  assert.ok(sources.includes('cron:payout-cycle'))
-  assert.ok(sources.includes('reconcile-orders'))
-  // The watcher watches itself, so the weekly digest can catch a dead heartbeat.
-  assert.ok(sources.includes('cron:heartbeat'))
+
   for (const e of CRON_EXPECTATIONS) assert.ok(e.maxAgeHours > 0, `${e.source} needs a budget`)
 })
 

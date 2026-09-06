@@ -4,7 +4,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { fetchElPasoHeadlines, rewriteAsArticle, findArticleImage, newsroomConfigured, type NewsItem } from '@/lib/newsroom'
 import { getPlatformSettings } from '@/lib/platform-settings'
-import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { notify, NOTIFY_WORKFLOWS } from '@/lib/notify'
 import {
   nextRetryRecord,
@@ -73,7 +73,14 @@ function imageQueryFor(w: { image_query?: string; category: string }): string {
 // Params: ?limit=2 (articles to publish), ?publish=1 (force publish),
 //         ?dryRun=1 (write nothing, return previews).
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // A rejected BEARER token is our own scheduler running against a rotated or
+  // mistyped CRON_SECRET. That silences EVERY job at once, before any of their
+  // try/catch blocks can report anything — the whole automation engine stops and
+  // the only symptom is that nothing happens. Report it from the 401 itself.
+  if (!authorized(request)) {
+    await reportCronAuthRejected('cron:auto-articles', request.headers.get('authorization'))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   if (!newsroomConfigured()) {
     return NextResponse.json({ ok: true, configured: false, skipped: 'no_anthropic_key' })
   }

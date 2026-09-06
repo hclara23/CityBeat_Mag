@@ -3,6 +3,7 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { hasAdminAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
+import { privilegedDenial } from '@/lib/privileged-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,8 +83,12 @@ export async function DELETE(request: NextRequest) {
   if (!doc.exists) return NextResponse.json({ ok: true })
   // The owner can delete their own deal; admins can moderate any deal.
   if ((doc.data() as any).owner_id !== user.id) {
+    // Deliberately narrow: an owner deleting their OWN deal is a customer action
+    // and must keep working without a second factor. Only moderating someone
+    // else's content is privileged, and that branch matches the admin pages.
     const profile = await getServerUserProfile(user.id)
-    if (!hasAdminAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const denial = privilegedDenial(profile, hasAdminAccess(profile))
+    if (denial) return NextResponse.json({ error: denial.error }, { status: denial.status })
   }
   await doc.ref.delete()
   return NextResponse.json({ ok: true })

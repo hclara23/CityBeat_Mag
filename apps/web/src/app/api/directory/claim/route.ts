@@ -44,6 +44,14 @@ export async function POST(request: NextRequest) {
     // closing a deal can attribute the payout to a rep via `payout_user_id`.
     // Ignored for self-serve advertisers so they can't redirect payouts to
     // themselves. The webhook only pays out if a percent is configured.
+    //
+    // NOTE FOR FUTURE AUDITS: this route uses hasSalesAccess but is deliberately
+    // NOT behind the 2FA gate that every other hasSalesAccess API has. It is a
+    // CUSTOMER purchase endpoint — a business owner claiming their own listing —
+    // and the role check below guards only this optional attribution branch.
+    // Requiring a second factor here would block every paying customer from
+    // buying. Reps reach the attribution path through the Sales Desk, whose page
+    // group already forces 2FA enrolment.
     let payoutUserId: string | undefined
     if (typeof body.payout_user_id === 'string' && body.payout_user_id) {
       const callerProfile = await getServerUserProfile(user.id)

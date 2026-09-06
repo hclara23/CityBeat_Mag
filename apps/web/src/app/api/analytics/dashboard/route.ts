@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasAdminAccess } from '@citybeat/lib/roles'
+import { privilegedDenial } from '@/lib/privileged-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +28,10 @@ export async function GET() {
   const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
-  if (!hasAdminAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  // The admin page that calls this forces 2FA enrolment; the API behind it must
+  // not accept a password-only session, or the gate is decorative.
+  const denial = privilegedDenial(profile, hasAdminAccess(profile))
+  if (denial) return NextResponse.json({ error: denial.error }, { status: denial.status })
 
   const propertyId = process.env.GA4_PROPERTY_ID
 

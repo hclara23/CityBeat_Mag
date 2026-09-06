@@ -4,6 +4,7 @@ import { hasSalesAccess } from '@citybeat/lib/roles'
 import { checkoutLinkState } from '@/lib/checkout-recovery'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { scanCollection } from '@/lib/firestore-scan'
+import { privilegedDenial } from '@/lib/privileged-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +22,11 @@ export async function GET() {
   const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
-  if (!hasSalesAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  // The Sales Desk pages force 2FA enrolment (the (sales) route-group layout);
+  // these APIs are what actually hold the pipeline and send customer-facing
+  // messages, so a password-only session must not reach them either.
+  const denial = privilegedDenial(profile, hasSalesAccess(profile))
+  if (denial) return NextResponse.json({ error: denial.error }, { status: denial.status })
 
   try {
     // This route used to read the ENTIRE transfers ledger — every rep's every

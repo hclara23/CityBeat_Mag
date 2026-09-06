@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runDirectoryIngest } from '@citybeat/lib/directory/ingest'
-import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -31,6 +31,11 @@ function isAuthorized(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
+    // A rejected BEARER token is our own scheduler running against a rotated or
+    // mistyped CRON_SECRET. That silences EVERY job at once, before any of their
+    // try/catch blocks can report anything — the whole automation engine stops and
+    // the only symptom is that nothing happens. Report it from the 401 itself.
+    await reportCronAuthRejected('cron:directory-ingest', request.headers.get('authorization'))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

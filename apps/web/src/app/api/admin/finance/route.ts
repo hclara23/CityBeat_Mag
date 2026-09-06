@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasDeveloperAccess } from '@citybeat/lib/roles'
+import { privilegedDenial } from '@/lib/privileged-access'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { COMMISSION_OWED_STATUSES, PAID_STATUSES, collectedCents, purchaseRowCounts } from '@/lib/finance-rollup'
 import { purchaseCollectedCents, purchaseStatusIsCollected } from '@/lib/purchase-revenue'
@@ -74,7 +75,11 @@ export async function GET() {
   const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
-  if (!hasDeveloperAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  // Every revenue figure, every payee, every commission liability. The admin PAGE
+  // forces 2FA enrolment; this API is what actually holds the data, and it was one
+  // of the routes still accepting a password-only session.
+  const denial = privilegedDenial(profile, hasDeveloperAccess(profile))
+  if (denial) return NextResponse.json({ error: denial.error }, { status: denial.status })
 
   try {
     // This route used to call .get() on SEVEN whole collections at once and hold

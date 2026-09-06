@@ -7,6 +7,7 @@ import { sendEmail } from '@/lib/email'
 import { sendSms, smsConfigured } from '@/lib/sms'
 import { normalizeSalesEmail } from '@/lib/sales-checkout'
 import { salesDirectoryHandoffMatches } from '@/lib/sales-directory'
+import { privilegedDenial } from '@/lib/privileged-access'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -15,7 +16,11 @@ export async function POST(request: NextRequest) {
   const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
-  if (!hasSalesAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  // The Sales Desk pages force 2FA enrolment (the (sales) route-group layout);
+  // these APIs are what actually hold the pipeline and send customer-facing
+  // messages, so a password-only session must not reach them either.
+  const denial = privilegedDenial(profile, hasSalesAccess(profile))
+  if (denial) return NextResponse.json({ error: denial.error }, { status: denial.status })
 
   const body = await request.json().catch(() => ({}))
   const listingId = typeof body.listingId === 'string' ? body.listingId.trim() : ''

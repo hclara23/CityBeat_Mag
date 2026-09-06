@@ -70,6 +70,10 @@ export const CRON_EXPECTATIONS: CronExpectation[] = [
   { source: 'cron:scrapeflow', label: 'scrapeflow scraper', maxAgeHours: 36 },
   { source: 'reconcile-orders', label: 'Stripe order reconciliation', maxAgeHours: 36 },
   { source: 'cron:heartbeat', label: 'ops heartbeat', maxAgeHours: 36 },
+  { source: 'cron:claims-aging', label: 'paid claims awaiting approval', maxAgeHours: 36 },
+  // Daily. Completes commission transfers that failed at webhook time, so its
+  // silence withholds money a rep has already earned.
+  { source: 'cron:reconcile-payouts', label: 'commission transfer reconciliation', maxAgeHours: 36 },
   // Four times a day.
   { source: 'cron:auto-articles', label: 'autonomous newsroom', maxAgeHours: 12 },
   // Weekly jobs — 9 days, so one skipped week is unmistakable but a late run isn't.

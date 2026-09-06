@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { fetchTicketmasterEvents } from '@/lib/events-scraper'
-import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -15,6 +15,11 @@ export const maxDuration = 300
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
+    // A rejected BEARER token is our own scheduler running against a rotated or
+    // mistyped CRON_SECRET. That silences EVERY job at once, before any of their
+    // try/catch blocks can report anything — the whole automation engine stops and
+    // the only symptom is that nothing happens. Report it from the 401 itself.
+    await reportCronAuthRejected('cron:sync-events', request.headers.get('authorization'))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   try {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import {
   CLAIM_REVIEW_TARGET_HOURS,
   agingClaimsSummary,
@@ -38,7 +38,14 @@ function authorized(request: NextRequest) {
 const SCAN_LIMIT = 500
 
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // A rejected BEARER token is our own scheduler running against a rotated or
+  // mistyped CRON_SECRET. That silences EVERY job at once, before any of their
+  // try/catch blocks can report anything — the whole automation engine stops and
+  // the only symptom is that nothing happens. Report it from the 401 itself.
+  if (!authorized(request)) {
+    await reportCronAuthRejected('cron:claims-aging', request.headers.get('authorization'))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   const { searchParams } = new URL(request.url)
   const dryRun = searchParams.get('dryRun') === '1'
@@ -84,6 +91,14 @@ export async function GET(request: NextRequest) {
       } else {
         await reportSuccess('claims-aging')
       }
+
+      // Liveness is stamped on every successful run, under its own `cron:` source,
+      // and deliberately NOT conditioned on there being no backlog. The health
+      // flag above uses 'claims-aging' and stays failing while claims are overdue —
+      // which is correct — but a backlog can legitimately persist for days, and if
+      // that also suppressed the liveness stamp the job would be reported STALE on
+      // top of its real alert, as though the cron had stopped running.
+      await reportSuccess('cron:claims-aging')
 
       if (claims.length >= SCAN_LIMIT) {
         await reportFailure(

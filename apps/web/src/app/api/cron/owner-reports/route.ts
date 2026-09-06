@@ -3,7 +3,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { sendEmail } from '@/lib/email'
 import { getNotifyPrefs } from '@/lib/notify-prefs'
 import { notifyUser } from '@/lib/user-notifications'
-import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { dayKey, daysAgoKey, totalsForRange, type DailyStatRow } from '@/lib/listing-analytics'
 
 export const dynamic = 'force-dynamic'
@@ -95,7 +95,14 @@ function reportHtml(ownerListings: ListingStats[], locale: 'en' | 'es') {
 // listing over the last 30 days. Owners who can SEE the value churn less; basic
 // owners get the Premium upsell alongside their real numbers.
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // A rejected BEARER token is our own scheduler running against a rotated or
+  // mistyped CRON_SECRET. That silences EVERY job at once, before any of their
+  // try/catch blocks can report anything — the whole automation engine stops and
+  // the only symptom is that nothing happens. Report it from the 401 itself.
+  if (!authorized(request)) {
+    await reportCronAuthRejected('cron:owner-reports', request.headers.get('authorization'))
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   const { searchParams } = new URL(request.url)
   const dryRun = searchParams.get('dryRun') === '1'
 
