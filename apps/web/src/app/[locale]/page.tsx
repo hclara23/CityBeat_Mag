@@ -110,7 +110,11 @@ export default async function Home({ params }: HomePageProps) {
       directoryHeading: 'Una revista construida para los negocios que los locales realmente visitan.',
     },
   }
-  const localeCopy = copy[locale as 'en' | 'es']
+  // `copy[locale as 'en' | 'es']` asserted something that was not true: any other
+  // locale produced undefined and the next property read threw. The layout now
+  // rejects unknown locales, so this is belt-and-braces — but a cast that lies is
+  // how this became a 500 in the first place.
+  const localeCopy = locale === 'es' ? copy.es : copy.en
 
   return (
     <CityBeatShell locale={locale}>
