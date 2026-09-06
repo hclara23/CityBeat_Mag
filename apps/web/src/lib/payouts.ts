@@ -669,34 +669,35 @@ export async function runPayoutCycle(params: {
 async function findCommissionShares(params: {
   sourcePaymentId?: string | null
   sourceTransaction?: string | null
-}): Promise<Map<string, FirebaseFirestore.QueryDocumentSnapshot>> {
+}): Promise<{ byPath: Map<string, FirebaseFirestore.QueryDocumentSnapshot>; lookupFailed: boolean }> {
+  // A failed lookup used to be swallowed into an empty result, which is
+  // indistinguishable from "this sale earned no commission" — so a Firestore
+  // blip during a refund meant the clawback reversed nothing, reported success,
+  // and the rep kept commission on money that had gone back to the customer.
+  // Silence was the worst possible answer here, so the failure is now carried
+  // out and the caller alerts on it.
+  let lookupFailed = false
+  const run = async (field: string, value: string) => {
+    try {
+      return await adminDb.collection('transfers').where(field, '==', value).get()
+    } catch {
+      lookupFailed = true
+      return { docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }
+    }
+  }
+
   const queries: Promise<
     FirebaseFirestore.QuerySnapshot | { docs: FirebaseFirestore.QueryDocumentSnapshot[] }
   >[] = []
-  if (params.sourcePaymentId) {
-    queries.push(
-      adminDb
-        .collection('transfers')
-        .where('source_payment', '==', params.sourcePaymentId)
-        .get()
-        .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
-    )
-  }
-  if (params.sourceTransaction) {
-    queries.push(
-      adminDb
-        .collection('transfers')
-        .where('source_transaction', '==', params.sourceTransaction)
-        .get()
-        .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
-    )
-  }
+  if (params.sourcePaymentId) queries.push(run('source_payment', params.sourcePaymentId))
+  if (params.sourceTransaction) queries.push(run('source_transaction', params.sourceTransaction))
+
   const snaps = await Promise.all(queries)
   const byPath = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>()
   for (const snap of snaps) {
     for (const doc of snap.docs) byPath.set(doc.ref.path, doc)
   }
-  return byPath
+  return { byPath, lookupFailed }
 }
 
 // share is a no-op (see clawbackTransition).
@@ -720,7 +721,20 @@ export async function clawbackCommission(params: {
   const summary = { reversed: 0, owed: 0, amount_owed: 0, kept_paid: 0 }
   if (!sourcePaymentId && !sourceTransaction) return summary
 
-  const byPath = await findCommissionShares({ sourcePaymentId, sourceTransaction })
+  const { byPath, lookupFailed } = await findCommissionShares({ sourcePaymentId, sourceTransaction })
+
+  // Could not read the ledger, so "nothing to reverse" is unknowable and an
+  // empty result is indistinguishable from "this sale earned no commission".
+  // An unreversed clawback is money the platform refunded AND paid out.
+  if (lookupFailed) {
+    await reportFailure(
+      'commission-clawback-lookup',
+      new Error(
+        `Could not read the commission ledger during a ${reason}. Any shares for this payment were NOT reversed — check them by hand.`
+      ),
+      { source_payment: sourcePaymentId, source_transaction: sourceTransaction, reason }
+    ).catch(() => {})
+  }
 
   const now = new Date().toISOString()
   for (const doc of byPath.values()) {
@@ -804,8 +818,18 @@ export async function reduceCommissionForPartialRefund(params: {
   const summary = { reduced: 0, reversed: 0, owed: 0, amount_reduced: 0, amount_owed: 0 }
   if (!sourcePaymentId && !sourceTransaction) return summary
 
-  const byPath = await findCommissionShares({ sourcePaymentId, sourceTransaction })
+  const { byPath, lookupFailed } = await findCommissionShares({ sourcePaymentId, sourceTransaction })
   const now = new Date().toISOString()
+
+  if (lookupFailed) {
+    await reportFailure(
+      'commission-clawback-lookup',
+      new Error(
+        `Could not read the commission ledger during a partial ${reason}. Shares for this payment were NOT reduced — check them by hand.`
+      ),
+      { source_payment: sourcePaymentId, source_transaction: sourceTransaction, reason }
+    ).catch(() => {})
+  }
 
   for (const doc of byPath.values()) {
     const row = doc.data() as any

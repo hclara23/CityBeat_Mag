@@ -1335,6 +1335,12 @@ export async function POST(req: NextRequest) {
   if (!webhookSecret) {
     if (process.env.NODE_ENV === 'production') {
       console.error('STRIPE_WEBHOOK_SECRET is not set — refusing unsigned webhook.')
+      await reportFailure(
+        'stripe-webhook-config',
+        new Error('STRIPE_WEBHOOK_SECRET is not set — every incoming Stripe event is being refused, so no payment is being fulfilled'),
+        {},
+        { alertKey: 'stripe-webhook-config' }
+      ).catch(() => {})
       return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 })
     }
   }
@@ -1346,6 +1352,25 @@ export async function POST(req: NextRequest) {
       : JSON.parse(body)
   } catch (err: any) {
     console.error('⚠️ Webhook signature verification failed.', err.message)
+    // A rejected signature on a request that really came from Stripe means our
+    // signing secret does not match the endpoint's — and since this is the ONLY
+    // fulfilment path, every payment silently stops being fulfilled while the
+    // site looks perfectly healthy. Nine such deliveries were rejected over six
+    // days with nothing anywhere saying so.
+    //
+    // Gated on the Stripe user-agent so that a bot POSTing garbage at a public
+    // URL cannot page anyone; alertKey keeps it in its own dedupe bucket so a
+    // burst of retries cannot crowd out other alerts.
+    if ((req.headers.get('user-agent') || '').startsWith('Stripe/')) {
+      await reportFailure(
+        'stripe-webhook-signature',
+        new Error(
+          `Stripe delivered an event and we rejected its signature (${String(err?.message || 'invalid')}). STRIPE_WEBHOOK_SECRET almost certainly does not match the endpoint's signing secret — until it does, NO payment is being fulfilled.`
+        ),
+        { user_agent: 'Stripe' },
+        { alertKey: 'stripe-webhook-signature' }
+      ).catch(() => {})
+    }
     return NextResponse.json({ error: err.message }, { status: 400 })
   }
 
