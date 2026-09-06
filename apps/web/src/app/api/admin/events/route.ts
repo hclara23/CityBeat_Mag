@@ -11,7 +11,10 @@ function toIso(v: any): string | null {
   return typeof v === 'string' ? v : null
 }
 
-export async function GET() {
+// Upcoming plus the last week. Past events are immutable history, not a queue.
+const ADMIN_EVENT_LIMIT = 500
+
+export async function GET(request: NextRequest) {
   const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getServerUserProfile(user.id)
@@ -24,14 +27,39 @@ export async function GET() {
   }
 
   try {
-    const eventsSnap = await adminDb.collection('events').orderBy('start_date', 'asc').get()
+    // Bounded by DEFAULT, not permanently. This read the ENTIRE events
+    // collection, which grows every time the Ticketmaster sync runs and is never
+    // pruned — so an admin page load allocated the whole history to show a
+    // moderation queue, and Firestore bills per document read regardless of
+    // projection, which is the only variable cost this app has.
+    //
+    // The default window is upcoming plus the last week, because that IS the
+    // moderation queue: an event that started earlier today is still the thing
+    // most likely to need attention. Older events are housekeeping, not review.
+    //
+    // `?all=1` returns the full history. Bounding a default is fine; silently
+    // removing an operator's ability to reach a record is not, and the page has
+    // no past/upcoming filter of its own to compensate.
+    const wantAll = new URL(request.url).searchParams.get('all') === '1'
+    const since = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)
+    let query = adminDb.collection('events').orderBy('start_date', 'asc')
+    if (!wantAll) {
+      // Range filter and orderBy on the SAME field, so the automatic single-field
+      // index serves this; no composite index has to exist first.
+      query = query.where('start_date', '>=', since).orderBy('start_date', 'asc')
+    }
+    const eventsSnap = await query.limit(ADMIN_EVENT_LIMIT).get()
     const events = eventsSnap.docs.map((d) => ({ 
       id: d.id, 
       ...(d.data() as any), 
       created_at: toIso((d.data() as any).created_at) 
     }))
 
-    return NextResponse.json({ events })
+    return NextResponse.json({
+      events,
+      window: wantAll ? 'all' : `from ${since}`,
+      truncated: eventsSnap.size >= ADMIN_EVENT_LIMIT,
+    })
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 })
   }
