@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { useLocale } from '@/components/TranslationProvider'
+import { SessionRevocation } from '@/components/citybeat/SessionRevocation'
 
 // Operator console for the two observability surfaces: bugs that reported
 // themselves, and the auditable record of every AI generation.
@@ -293,6 +294,9 @@ export default function LogsPage() {
             )}
           </>
         )}
+
+        {/* Godmode only — the panel hides itself when the GET returns 403. */}
+        <SessionRevocation isEs={isEs} />
       </section>
     </CityBeatShell>
   )
