@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminAuth, adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
+import { ANALYTICS_RETENTION_DAYS, expiresInDays } from '@/lib/retention'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
 
     const now = new Date()
     await adminDb.collection('analytics_events').add({
+      expires_at: expiresInDays(ANALYTICS_RETENTION_DAYS),
       path,
       ts: now.toISOString(),
       day: now.toISOString().slice(0, 10),

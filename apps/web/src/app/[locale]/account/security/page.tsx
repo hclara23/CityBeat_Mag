@@ -84,6 +84,22 @@ export default function SecurityPage() {
     } finally { setBusy(false) }
   }
 
+  // Ends every session on this account, including this one. Before this there
+  // was no way to do that at all — a session cookie left open on a shared
+  // machine stayed valid for its full five days.
+  const signOutEverywhere = async () => {
+    if (!window.confirm('Sign out of every device, including this one?')) return
+    setBusy(true); setError('')
+    try {
+      const res = await fetch('/api/auth/revoke-sessions', { method: 'POST' })
+      if (!res.ok) throw new Error('Could not sign out your other sessions')
+      window.location.href = `/${locale}/login`
+    } catch (e: any) {
+      setError(e.message || 'Something went wrong')
+      setBusy(false)
+    }
+  }
+
   const input = 'w-full text-center tracking-[0.4em] text-lg font-bold rounded p-2.5 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none'
 
   return (
@@ -138,6 +154,22 @@ export default function SecurityPage() {
                 </button>
               </div>
             )}
+          </div>
+
+          <div className="citybeat-panel rounded-2xl p-6 border border-white/10 mt-6">
+            <h2 className="font-display text-lg font-black uppercase text-white">Active sessions</h2>
+            <p className="mt-2 text-sm text-white/70 leading-relaxed">
+              Signed in somewhere you shouldn&apos;t be — a shared computer, an old
+              phone? This ends every session on your account, including this one,
+              and you&apos;ll sign in again.
+            </p>
+            <button
+              onClick={signOutEverywhere}
+              disabled={busy}
+              className="mt-4 w-full rounded border border-white/20 text-white/80 font-black uppercase tracking-wider text-xs py-3 hover:bg-white/10 transition disabled:opacity-50"
+            >
+              {busy ? 'Working…' : 'Sign out everywhere'}
+            </button>
           </div>
         </div>
       </div>

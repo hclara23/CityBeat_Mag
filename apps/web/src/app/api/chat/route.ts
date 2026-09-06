@@ -7,6 +7,7 @@ import { traceClaude, traceClaudeFailure } from '@/lib/observability'
 import { SALES_PRODUCT_ORDER, SALES_PRODUCTS } from '@/lib/sales-products'
 import { isSelfServeCartEligible } from '@/lib/cart'
 import { fetchWithTimeout, FETCH_TIMEOUT_LLM } from '@/lib/http'
+import { CHAT_RETENTION_DAYS, expiresInDays } from '@/lib/retention'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -176,6 +177,7 @@ export async function POST(req: NextRequest) {
   try {
     const lastUser = [...userMsgs].reverse().find((m: any) => m.role === 'user')
     await adminDb.collection('chat_sessions').add({
+      expires_at: expiresInDays(CHAT_RETENTION_DAYS),
       session_id: sessionId,
       last_user_message: lastUser?.content?.slice(0, 500) || null,
       reply: reply.slice(0, 500),

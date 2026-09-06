@@ -28,6 +28,7 @@ import { isOriginatingRefund, refundListingPatch } from '@/lib/refund-decision'
 import { getSalesProduct } from '@/lib/sales-products'
 import { purchaseConfirmationEmail } from '@/lib/buyer-emails'
 import { notifyUser } from '@/lib/user-notifications'
+import { STRIPE_EVENT_RETENTION_DAYS, expiresInDays } from '@/lib/retention'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -1428,7 +1429,13 @@ export async function POST(req: NextRequest) {
 
   // Mark processed only after success, so a partial failure can still be retried.
   await eventRef
-    .set({ type: event.type, processed_at: new Date().toISOString() })
+    .set({
+      type: event.type,
+      processed_at: new Date().toISOString(),
+      // Far past any point where re-processing this event could still be
+      // correct: Stripe retries for 3 days and reconcile-orders looks back 30.
+      expires_at: expiresInDays(STRIPE_EVENT_RETENTION_DAYS),
+    })
     .catch(() => {})
 
   return NextResponse.json({ received: true })

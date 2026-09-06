@@ -46,6 +46,11 @@
     "./directory/ingest": {
       "import": "./src/directory/crawlee-ingest.ts",
       "types": "./src/directory/crawlee-ingest.ts"
+    },
+    "./auth/revocation": {
+      "import": "./src/auth/revocation.ts",
+      "require": "./src/auth/revocation.ts",
+      "types": "./src/auth/revocation.ts"
     }
   },
   "scripts": {

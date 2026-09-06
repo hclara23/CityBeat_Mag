@@ -1,6 +1,7 @@
 import { createHash } from 'crypto'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
+import { RATE_LIMIT_GRACE_MS } from './retention'
 
 // ── Client IP ────────────────────────────────────────────────────────────────
 // X-Forwarded-For is APPENDED to by each proxy, so the LEFTMOST entry is whatever
@@ -51,7 +52,13 @@ export async function checkRateLimit(
       const snap = await tx.get(ref)
       const data = snap.exists ? (snap.data() as any) : null
       if (!data || typeof data.reset_at !== 'number' || data.reset_at <= now) {
-        tx.set(ref, { count: 1, reset_at: now + opts.windowMs })
+        tx.set(ref, {
+          count: 1,
+          reset_at: now + opts.windowMs,
+          // Dead the moment the window closes; a TTL policy on this field is
+          // what actually removes it (see lib/retention.ts).
+          expires_at: new Date(now + opts.windowMs + RATE_LIMIT_GRACE_MS),
+        })
         return { ok: true }
       }
       if (data.count >= opts.max) {
