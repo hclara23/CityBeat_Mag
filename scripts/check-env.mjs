@@ -16,7 +16,7 @@
 //   node scripts/check-env.mjs            compare live against the manifest
 //   node scripts/check-env.mjs --names    list live variable names, nothing else
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -55,7 +55,33 @@ if (process.argv.includes('--names')) {
 const required = Object.keys(manifest.required || {})
 const degrades = Object.keys(manifest.degradesQuietly || {})
 const optional = Object.keys(manifest.optional || {})
-const known = new Set([...required, ...degrades, ...optional])
+const platform = Object.keys(manifest.platformProvided || {})
+const known = new Set([...required, ...degrades, ...optional, ...platform])
+
+// Every process.env.X the code actually reads. Without this the manifest is just
+// a snapshot that silently falls behind — exactly how the hand-maintained test
+// list ended up never running a committed test file. A variable the code depends
+// on but nothing declares is precisely the one nobody thinks to set.
+function envNamesReferencedInCode(dir, out = new Set()) {
+  let entries
+  try {
+    entries = readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return out
+  }
+  for (const entry of entries) {
+    if (['node_modules', '.next', '.git', 'dist', 'build'].includes(entry.name)) continue
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) envNamesReferencedInCode(full, out)
+    else if (/\.(ts|tsx)$/.test(entry.name)) {
+      const body = readFileSync(full, 'utf8')
+      for (const m of body.matchAll(/process\.env\.([A-Z0-9_]+)/g)) out.add(m[1])
+    }
+  }
+  return out
+}
+const referenced = envNamesReferencedInCode(join(ROOT, 'apps/web/src'))
+const undeclaredInCode = [...referenced].filter((n) => !known.has(n)).sort()
 
 const missingRequired = required.filter((n) => !live.has(n))
 const missingQuiet = degrades.filter((n) => !live.has(n))
@@ -76,8 +102,13 @@ if (undeclared.length) {
   for (const n of undeclared) console.warn(`  ${n}`)
 }
 
-if (!missingRequired.length && !missingQuiet.length && !undeclared.length) {
-  console.log('No drift. Every declared variable is set and every set variable is declared.')
+if (undeclaredInCode.length) {
+  console.warn('\nREAD BY CODE BUT NOT DECLARED — add them to infra/cloud-run/env.json:')
+  for (const n of undeclaredInCode) console.warn(`  ${n}`)
+}
+
+if (!missingRequired.length && !missingQuiet.length && !undeclared.length && !undeclaredInCode.length) {
+  console.log('No drift. Every declared variable is set, every set variable is declared, and every variable the code reads is documented.')
 }
 
 // Only a missing REQUIRED variable is a failure. A quiet degradation and an
