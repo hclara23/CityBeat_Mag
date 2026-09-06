@@ -88,6 +88,8 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 
 | `citybeat-reconcile-orders` | 03:00 | `/api/cron/reconcile-orders?hours=72` | **the safety net under the Stripe webhook.** The webhook is the only fulfilment path; if a delivery fails Stripe retries for ~3 days then gives up permanently, and nothing else ever looked back. Walks Stripe's event log for the window and compares it against `stripe_events` (the webhook's own idempotency key, written only on full success), so "did we process this?" has an exact answer. Detection is the default; `?replay=1` re-delivers an unprocessed event to our own webhook with a genuine signature, reusing the production path rather than duplicating money logic. `?dryRun=1` to look without alerting. |
 | `citybeat-ghost-reports` | 16:00 | `/api/cron/ghost-reports` | emails unclaimed-listing owners a "here is what your free listing did this week" report (views, leads, searches) — one of the five claim-growth tactics. Honours the suppression list and one-report-per-listing stamps. |
+| `citybeat-claims-aging` | 08:00 | `/api/cron/claims-aging` | **a business paid and nobody approved their claim.** Paid claims sit in `pending_approval` waiting on a human; the card was charged at checkout. Alerts past a 48h review target, flags anything past 5 days as breached, and lists the worst ten with names, ages and contact addresses. The clock runs from `claimed_at`, never `updated_at` — any admin action would otherwise reset it and hide the longest-waiting claim. Free Basic claims are excluded: nobody was charged. `?dryRun=1`, `?hours=N`. |
+| `citybeat-heartbeat` | every 6h | `/api/cron/heartbeat` | **notices a scheduled job that has stopped running.** Until this existed, a cron could simply die and the only symptom was that its work quietly stopped happening. Compares every source in `CRON_EXPECTATIONS` (`lib/ops-health.ts`) against its last `reportSuccess` stamp in `system_health`. A `tracking_since` marker stops the first deploy paging about jobs that merely have not run yet. **A source only counts as live if a route actually calls `reportSuccess('<source>')`** — `ops-health.test.ts` reads the cron routes and fails if the expectation table and the code disagree in either direction. |
 
 Manage with `gcloud scheduler jobs list/run/pause --location us-central1`.
 
@@ -137,7 +139,23 @@ npm run lint
 
 # Type-check all apps
 npm run type-check
+
+# Run every test. DISCOVERS *.test.ts — there is no list to keep up to date.
+# Grouped by nearest tsconfig and run from that directory, because path aliases
+# (`@/lib/...`) only resolve against the tsconfig that declares them.
+npm test
+npm run test:list        # what would run, without running it
+
+# Diff live infrastructure against what the repo declares. Both are read-only.
+npm run scheduler:check  # missing/undeclared/paused jobs, schedule drift, no-retry jobs
+npm run scheduler:capture# rewrite the manifest AFTER a deliberate change
+npm run env:check        # missing or undeclared env vars — NAMES only, never values
 ```
+
+> The test gate used to be a hand-maintained list of ~43 paths inside
+> `package.json`. It had already drifted: a committed test file with 7 passing
+> tests had never run in CI once, so it could have been failing for weeks behind a
+> green gate. Do not reintroduce a list — write a `*.test.ts` anywhere and it runs.
 
 ### Web App (apps/web)
 
@@ -310,6 +328,48 @@ through the CDN, and **rolls traffic back automatically** if that fails. A build
 that fails its smoke test is simply never promoted, so no customer sees it. The
 smoke test asserts `/xx`, `/xx/directory` and an unmatched path all return **404** —
 both of those regressions have actually shipped.
+
+### Customer support and privacy requests
+
+`/[locale]/contact` is the support path, in both languages. It **stores the message
+before anything else can fail**, into `quote_requests` — the inbox `/admin/leads`
+already renders — so it cannot be lost to a bounce or an unwatched mailbox. Four
+different addresses are published across the site (`hello@`, `support@`, `contact@`,
+`ads@`) and a customer has no way to tell which are monitored; a message landing in
+an unread inbox looks exactly like being ignored, and the next move after "nobody
+answered" is a card dispute.
+
+Two topics are **escalated immediately** via `reportFailure`, not merely filed:
+- `billing` — someone has been charged and needs help
+- `privacy` — the published policy promises a response within 30 days, and that
+  clock starts whether or not anyone has opened the queue
+
+The Terms' refund clause, the billing terms shown at checkout, the privacy policy
+and the footer all point here, so the promise made at the moment of payment matches
+what actually exists.
+
+### Google Places ingest is DISABLED
+
+`SEARCH_GOOGLE_PLACES` refuses to run (`lib/scrapeflow/executors.ts`) and the
+directory sink refuses to persist Places-derived rows (`lib/scrapeflow/google-content.ts`).
+Storing Places fields indefinitely breaches the No-Caching term and publishing them
+as a searchable business directory breaches No-Re-Creating-Google-Features; the
+remedy Google applies is killing `GOOGLE_PLACES_API_KEY`, which also feeds contact
+enrichment and the sales pipeline.
+
+The refusal is at the EXECUTOR on purpose: the 16 Places workflows were already
+seeded into Firestore with `enabled: true`, and the template file is only consulted
+when seeding, so disabling the templates alone would not have stopped them.
+`ALLOW_GOOGLE_PLACES_INGEST=true` exists solely so re-enabling is an explicit
+decision — it needs a licensing answer, not a code change.
+
+Rows written before the guard are removed from **/admin/scrapeflow → "Places
+cleanup"**. It reports first (read-only) and requires a confirmation showing real
+names. **Nothing protected is ever touched**: any claim at any stage, any owner, any
+subscription or paid tier, any rep-sold row, and a named allowlist (currently
+Varsity Roofing). Those rules are pure and tested in `lib/places-cleanup.test.ts`,
+each row is re-checked against its CURRENT document immediately before deletion, and
+every deletion is archived to `deleted_listings` first, so it is reversible.
 
 ### Monitoring, and what pages a human
 
