@@ -86,8 +86,28 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 | `citybeat-reconcile-payouts` | 01:00 | `/api/cron/reconcile-payouts?limit=50` | completes commission transfers that didn't go through at webhook time — `transfers` rows in `failed` (funds hadn't settled / Stripe error) or `skipped_no_connected_account` (payee hadn't connected a bank yet). Idempotent: skips already-`paid` shares (ledger check + `transfer_group` backstop), retries with a per-row idempotency key so it never double-pays. Dry-run with `?dryRun=1`. Commission transfers use Stripe `source_transaction` (the charge id) so they succeed against still-pending funds; this cron is the safety net for the residual cases. |
 | `citybeat-scrapeflow` | 02:30 | `/api/cron/scrapeflow?limit=3` | **ScrapeFlow** directory-growth scraper (`apps/web/src/lib/scrapeflow/`, admin UI at `/admin/scrapeflow`): a port of the open-source ScrapeFlow workflow engine (Launch browser → Get HTML/Text → Extract links → Crawl pages → Extract listings with AI (Claude) → Deliver to directory). Workflows live in Firestore `scrapeflow_workflows` (JSON node definitions, seeded from `lib/scrapeflow/templates.ts`), runs with per-phase logs in `scrapeflow_runs`. Runs up to `limit` enabled workflows whose `interval_hours` elapsed; `?dryRun=1` previews. Directory sink is **insert-only** (`sf:<hash>` ids, name+street/phone dedupe, El Paso/Doña Ana region filter). Browser backend: plain fetch → Crawl4AI when `CRAWLER_URL` set → Puppeteer locally (`SCRAPEFLOW_BROWSER=puppeteer`). Needs `ANTHROPIC_API_KEY`. Non-browser entry nodes: `FETCH_JSON` + `MAP_JSON_TO_LISTINGS` (open data, e.g. TDLR electrician licenses `data.texas.gov/resource/7358-krk7`) and `SEARCH_GOOGLE_PLACES` (`GOOGLE_PLACES_API_KEY`, real place ids as doc ids). The sink auto-**consolidates** same-brand rows into one multi-location card (`lib/directory-consolidate.ts`, port of `scripts/consolidate-listings.js`; also `GET/POST /api/admin/directory/consolidate`, button on `/admin/scrapeflow`). Seeded verticals: Electrical Contractors (TDLR + Places), Automation & Controls, Industrial Supply, El Paso Hispanic Chamber |
 
-Manage with `gcloud scheduler jobs list/run/pause --location us-central1`. To add a
-new cron: create the route with the `CRON_SECRET` check, then add a scheduler job.
+| `citybeat-reconcile-orders` | 03:00 | `/api/cron/reconcile-orders?hours=72` | **the safety net under the Stripe webhook.** The webhook is the only fulfilment path; if a delivery fails Stripe retries for ~3 days then gives up permanently, and nothing else ever looked back. Walks Stripe's event log for the window and compares it against `stripe_events` (the webhook's own idempotency key, written only on full success), so "did we process this?" has an exact answer. Detection is the default; `?replay=1` re-delivers an unprocessed event to our own webhook with a genuine signature, reusing the production path rather than duplicating money logic. `?dryRun=1` to look without alerting. |
+| `citybeat-ghost-reports` | 16:00 | `/api/cron/ghost-reports` | emails unclaimed-listing owners a "here is what your free listing did this week" report (views, leads, searches) — one of the five claim-growth tactics. Honours the suppression list and one-report-per-listing stamps. |
+
+Manage with `gcloud scheduler jobs list/run/pause --location us-central1`.
+
+**The 19 jobs are declared in `infra/scheduler/jobs.json`.** Run `npm run
+scheduler:check` to diff live against that manifest — it reports missing jobs,
+undeclared jobs, paused jobs, schedule drift and any job with no retries, and
+changes nothing. After a deliberate change, `npm run scheduler:capture` rewrites
+the manifest. `Authorization` header VALUES are never stored there, only the fact
+that the header must be present.
+
+**Verify a new or changed job by its OWN recorded outcome, not by calling it by
+hand.** `gcloud scheduler jobs list --format="csv(name.basename(),state,lastAttemptTime,status.code)"`
+— a non-empty `status.code` means the last run FAILED (13 = INTERNAL). A hand-run
+dry-run with different query params proves nothing about what the scheduler
+executes: `citybeat-reconcile-orders` was verified that way and had in fact 500'd
+on every scheduled run since creation.
+
+To add a
+new cron: create the route with the `CRON_SECRET` check, then add a scheduler job,
+then add it to `infra/scheduler/jobs.json` (or run `scheduler:capture`).
 For referral rewards, deploy the route first, then create `citybeat-referrals` as
 an HTTP GET job at `30 0 * * *` with the same `Authorization: Bearer
 ${CRON_SECRET}` header used by the other CityBeat cron jobs.
@@ -193,11 +213,22 @@ See `END_TO_END_TESTING_GUIDE.md` for detailed procedures.
 ### Worker Secrets (services/worker/.env.production)
 
 ```text
-INGEST_SECRET   # auths POSTs to the web app's /api/ingest/brief
+INGEST_SECRET   # auths POSTs to the web app's /api/ingest/brief, AND auths the
+                # web app's own POSTs to the worker's /api/translate
 RESEND_API_KEY
 NEWS_API_KEY
-# (Stripe/DeepL/Sanity secrets were removed from the worker on 2026-08-28)
+DEEPL_API_KEY   # REQUIRED. The worker is where the DeepL key lives.
+# (Stripe and Sanity secrets were removed from the worker on 2026-08-28.)
 ```
+
+> **DeepL is NOT gone from the worker** — an earlier revision of this file said it
+> was, and that was wrong in a way that would bite whoever acted on it. The worker
+> still holds `DEEPL_API_KEY` and serves `POST /api/translate`
+> (`services/worker/src/handlers/translate.ts`); the web app's `lib/translate.ts`
+> calls it as the PRIMARY translation path and only falls back to Claude when the
+> worker is unreachable. Drop that secret and every listing, article and event
+> quietly stops being translated by DeepL and starts costing Anthropic tokens
+> instead — with nothing failing loudly enough to notice.
 
 ### Web App (apps/web/.env.local)
 
@@ -271,6 +302,43 @@ Prod runs on **Google Cloud Run** in GCP project `kerstenblueprint` (region `us-
 - **Worker**: `cd services/worker && npm run deploy`
 
 > Note: the session cookie MUST stay named `__session` — Firebase Hosting strips every other cookie before forwarding to Cloud Run. Symptom of a regression: auth works on the `*.run.app` URL but 401s on `citybeatmag.co`.
+
+The pipeline is a **canary, not a straight-to-production push**: it deploys with
+`--no-traffic --tag candidate`, smoke-tests the candidate on its own tagged URL
+while the previous revision keeps serving, promotes only on success, re-verifies
+through the CDN, and **rolls traffic back automatically** if that fails. A build
+that fails its smoke test is simply never promoted, so no customer sees it. The
+smoke test asserts `/xx`, `/xx/directory` and an unmatched path all return **404** —
+both of those regressions have actually shipped.
+
+### Monitoring, and what pages a human
+
+| Probe | Question it answers | On failure |
+|---|---|---|
+| `/api/health` | is the site up? (real bounded Firestore read; 503 when the DB is unreachable) | uptime `citybeat-health` → alert **"CityBeat site down"** |
+| `/api/health/payments` | **can we take money?** (Stripe key authenticates) | uptime `citybeat-payments` → alert **"CityBeat CANNOT TAKE PAYMENTS"** |
+| `/en` | does the homepage render? | uptime `citybeat-homepage` → same site-down alert |
+
+`/api/health/payments` is deliberately **separate** from `/api/health`, which stays
+200 during a payments outage: the site being up and the business being able to
+charge a card are different questions with different urgencies, and `/api/health`
+is also the deploy pipeline's smoke test — folding them together would block the
+very deploy that fixes payments. It fails **only** on a Stripe AUTHENTICATION
+error; a Stripe outage or a network blip is reported in `detail` and still returns
+200, so nobody is paged for someone else's incident.
+
+This exists because the live Stripe key was rejected for two days
+("Expired API Key provided") while every other surface stayed green — the site
+served news, directory, search and sign-in perfectly and simply could not take a
+payment. Nothing watched for that.
+
+> **Never create or update a gcloud uptime check from Git Bash** — MSYS mangles
+> `--path` into `/C:/Program Files/Git/...`, which is how two checks silently
+> probed a nonexistent path for three months. Use PowerShell. And note that
+> `gcloud monitoring uptime create --port=443` does **NOT** set `useSsl`: the check
+> then does plain HTTP to 443 and fails 100%, looking exactly like a real outage.
+> Pass `--protocol=https` at create, or PATCH `httpCheck.useSsl` via the Monitoring
+> REST API. **Confirm the check actually reports PASS before trusting it.**
 
 ### Rollback
 
