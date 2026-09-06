@@ -19,7 +19,18 @@ export async function storePublicSubmissionImage(submissionId: string, file: Fil
   const validationError = validatePublicSubmissionImage(file)
   if (validationError) throw new Error(validationError)
 
-  const optimized = await sharp(Buffer.from(await file.arrayBuffer()))
+  const optimized = await sharp(Buffer.from(await file.arrayBuffer()), {
+    // A 10 MB upload cap does NOT bound the DECODED bitmap: that is what a
+    // decompression bomb is. sharp does default to ~268 megapixels, but 268 MP
+    // of RGBA is roughly a gigabyte of RAM — on a 2Gi Cloud Run instance
+    // serving up to 80 concurrent requests, one such image is most of the
+    // container and two are an OOM kill, which drops every in-flight request
+    // on that instance including checkouts and Stripe webhook deliveries.
+    // 50 MP is far beyond any real photograph and cheap to decode.
+    // sequentialRead keeps large JPEGs from being buffered whole.
+    limitInputPixels: 50_000_000,
+    sequentialRead: true,
+  })
     .rotate()
     .resize(1600, null, { withoutEnlargement: true })
     .webp({ quality: 82 })

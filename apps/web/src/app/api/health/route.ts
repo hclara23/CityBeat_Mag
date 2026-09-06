@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { checkStripe } from '@/lib/stripe-health'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -15,11 +16,12 @@ export const dynamic = 'force-dynamic'
 // Bounded on purpose: a 2s timeout means a slow Firestore surfaces as unhealthy
 // rather than hanging the probe until the uptime check's own 30s timeout.
 const DB_TIMEOUT_MS = 2000
-
 export async function GET() {
   const started = Date.now()
   let dbOk = false
   let dbError: string | null = null
+
+  const stripePromise = checkStripe()
 
   try {
     // Cheapest possible real read: one doc, one field.
@@ -35,18 +37,25 @@ export async function GET() {
     dbError = error instanceof Error ? error.message : 'unknown'
   }
 
+  const stripe = await stripePromise.catch(() => ({ ok: true, error: 'probe_failed', checked: false }))
+  // Liveness is the database. Payments are reported, not gated — see above.
+  const healthy = dbOk
+
   const body = {
-    status: dbOk ? 'healthy' : 'degraded',
+    status: healthy ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
     latency_ms: Date.now() - started,
     revision: process.env.K_REVISION || null,
     checks: {
       app: 'ok',
       firestore: dbOk ? 'ok' : `fail:${dbError}`,
+      // 'ok' means the key authenticates. Reported here; alerted on separately
+      // at /api/health/payments, which is what an uptime check should watch.
+      stripe: stripe.ok ? (stripe.error ? `ok:${stripe.error}` : 'ok') : `fail:${stripe.error}`,
     },
   }
 
   // 503 when a dependency is down, so the uptime check and any load balancer
   // treat it as unhealthy instead of silently serving a broken app.
-  return NextResponse.json(body, { status: dbOk ? 200 : 503 })
+  return NextResponse.json(body, { status: healthy ? 200 : 503 })
 }

@@ -10,29 +10,24 @@ import { validatePublicSubmissionImage } from '@/lib/public-submissions'
 // Shared helper: this file used to define its own copy that read the LEFTMOST
 // X-Forwarded-For entry (caller-controlled), leaving its rate limit bypassable
 // with a rotating header even after the shared one was fixed.
-import { getClientIp } from '@/lib/auth-security'
+import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Simple in-memory rate limiter: 5 submissions per IP per hour
-const submissionCounts = new Map<string, { count: number; resetAt: number }>()
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const entry = submissionCounts.get(ip)
-  if (entry && entry.resetAt > now) {
-    if (entry.count >= 5) return false
-    entry.count++
-    return true
-  }
-  submissionCounts.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 })
-  return true
-}
+// The limiter used to be a per-process Map. Cloud Run runs as many instances as
+// it likes, so an attacker's requests simply land on different ones and the cap
+// never binds — and nothing ever evicted an entry, so it grew for the life of the
+// process. The shared limiter is backed by Firestore, so the count is the same
+// count on every instance, and its rows now expire (see lib/retention.ts).
+// This endpoint is UNAUTHENTICATED and does image decoding, so its limit is the
+// only thing standing between a stranger and the instance's memory.
 
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request)
-  if (!checkRateLimit(ip)) {
+  const rl = await checkRateLimit(`contribute:ip:${ip}`, { max: 5, windowMs: 60 * 60 * 1000 })
+  if (!rl.ok) {
     return NextResponse.json(
       { error: 'Too many submissions. Please try again later.' },
       { status: 429, headers: { 'Retry-After': '3600' } }
