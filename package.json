@@ -17,7 +17,8 @@
     "test": "node scripts/run-tests.mjs",
     "test:list": "node scripts/run-tests.mjs --list",
     "scheduler:check": "node scripts/check-scheduler.mjs",
-    "scheduler:capture": "node scripts/check-scheduler.mjs --capture"
+    "scheduler:capture": "node scripts/check-scheduler.mjs --capture",
+    "env:check": "node scripts/check-env.mjs"
   },
   "devDependencies": {
     "cypress": "^15.17.0",
