@@ -11,6 +11,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      # Exposed at job level so steps can check whether deployment is even possible.
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
     permissions:
       contents: read
@@ -22,28 +26,52 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # wrangler requires Node 22+. On 20 it refuses to start, so every worker
+          # change since that requirement landed has failed to deploy — which is
+          # how the alerting fix in handlers/automation.ts sat undeployed.
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
+      # `|| true` meant a worker that does not compile still "passed" and went
+      # straight to deploy. The web pipeline gates on its type check; this one
+      # pretended to.
       - name: Type check
-        run: cd services/worker && npm run type-check || true
+        run: cd services/worker && npm run type-check
 
       # wrangler.toml is a single flat env (no [env.production]); deploy without --env.
       # Secrets (DEEPL_API_KEY, INGEST_SECRET, STRIPE_*, …) persist across deploys and
       # are managed out-of-band via `wrangler secret put`. Do NOT reset them here — a
       # missing/empty GitHub secret would clobber the live value.
+      # Neither Cloudflare secret is configured on this repo, so this workflow has
+      # never been able to deploy anything — it just went red on every worker
+      # change. A pipeline that cannot possibly succeed should say so plainly
+      # rather than failing forever, because a permanently-red workflow is one
+      # nobody reads, and a REAL failure then hides inside the noise.
+      #
+      # To arm it: add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID as repo
+      # secrets. Until then the worker is deployed by hand:
+      #   cd services/worker && npm run deploy
+      - name: Check Cloudflare credentials
+        id: creds
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "armed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "armed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not set, so the worker was NOT deployed. It still needs a manual 'cd services/worker && npm run deploy'. Add those repo secrets to automate it."
+          fi
+
       - name: Deploy to Cloudflare
+        if: steps.creds.outputs.armed == 'true'
         run: |
           cd services/worker
           npx wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Test Worker
+        if: steps.creds.outputs.armed == 'true'
         run: |
           # Wait for deployment to propagate
           sleep 10
