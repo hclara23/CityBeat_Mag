@@ -94,12 +94,29 @@ jobs:
 
           # Record what is serving RIGHT NOW, before anything is promoted — this
           # is the rollback target if the live check below fails.
+          #
+          # gcloud's list-extract returns ['https://...'] — brackets AND single
+          # quotes. Stripping only the brackets leaves the quotes inside the
+          # variable, so every later curl gets a malformed URL and exits 3. That
+          # is exactly what happened on this pipeline's first run: the smoke test
+          # "failed", the candidate was correctly not promoted, and the failure was
+          # this line rather than anything wrong with the build.
+          strip() { tr -d "[]'" | tr -d '\r'; }
           LIVE_REVISION=$(gcloud run services describe "$SERVICE" \
             --project "$GCP_PROJECT" --region "$GCP_REGION" \
-            --format='value(status.traffic.filter("percent:100").extract(revisionName))' | tr -d '[]')
+            --format='value(status.traffic.filter("percent:100").extract(revisionName))' | strip)
           CANDIDATE_URL=$(gcloud run services describe "$SERVICE" \
             --project "$GCP_PROJECT" --region "$GCP_REGION" \
-            --format='value(status.traffic.filter("tag:candidate").extract(url))' | tr -d '[]')
+            --format='value(status.traffic.filter("tag:candidate").extract(url))' | strip)
+
+          # A URL that is not a bare https:// origin means the extraction changed
+          # shape again. Fail here, where the cause is obvious, rather than letting
+          # every subsequent curl fail for a reason that looks like a broken app.
+          case "$CANDIDATE_URL" in
+            https://*) ;;
+            *) echo "Candidate URL did not parse cleanly: [$CANDIDATE_URL]"; exit 1 ;;
+          esac
+
           echo "candidate_url=$CANDIDATE_URL" >> "$GITHUB_OUTPUT"
           echo "live_revision=$LIVE_REVISION" >> "$GITHUB_OUTPUT"
           echo "Candidate URL: $CANDIDATE_URL"
