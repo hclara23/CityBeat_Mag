@@ -238,6 +238,58 @@ export default function AdminScrapeFlowPage() {
     }
   }
 
+  // Google Places cleanup. Deliberately a two-step: the report is read-only and
+  // always runs first, because a bare count is not something anyone can
+  // sanity-check before authorising thousands of deletions. The confirm shows
+  // real names, and says out loud what is being PROTECTED as well as removed.
+  const placesCleanup = async () => {
+    setBusy('places')
+    try {
+      const r = await fetch('/api/admin/directory/places-cleanup', { cache: 'no-store' })
+      const rep = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(rep?.error || 'Report failed')
+
+      if (!rep.removable) {
+        flash(
+          `Nothing to remove. ${rep.googleDerived} Google-derived row(s) found, all of them protected` +
+            ` (${JSON.stringify(rep.protectionBreakdown)}).`
+        )
+        return
+      }
+
+      const sample = (rep.sample_removable || []).slice(0, 10).map((x: any) => `• ${x.name}`).join('\n')
+      const prot = Object.entries(rep.protectionBreakdown || {})
+        .map(([k, v]) => `${v} ${k}`)
+        .join(', ')
+      const ok = confirm(
+        `Delete ${rep.removable} Google Places-derived directory listing(s)?` + '\n' + '\n' +
+          `PROTECTED and untouched: ${rep.protectedGoogleDerived} Google-derived row(s)` +
+          (prot ? ` (${prot})` : '') + '.' + '\n' +
+          'Claimed listings, owners, subscriptions, paid tiers, rep-sold rows and Varsity Roofing are never removed.' + '\n' + '\n' +
+          `Sample of what WILL be deleted:` + '\n' + sample +
+          ((rep.sample_removable || []).length > 10 ? '\n' + '…' : '') + '\n' + '\n' +
+          'Every row is archived to `deleted_listings` first, so this is reversible.'
+      )
+      if (!ok) return
+
+      const res = await fetch('/api/admin/directory/places-cleanup?confirm=DELETE_PLACES_ROWS', {
+        method: 'DELETE',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Cleanup failed')
+      flash(
+        `Removed ${data.deleted} listing(s), archived ${data.archived} to deleted_listings.` +
+          ` Protected and untouched: ${data.protectedGoogleDerived}.` +
+          (data.failed ? ` ${data.failed} failed — see alerts.` : '') +
+          (data.remaining_removable ? ` ${data.remaining_removable} remaining, run again.` : '')
+      )
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Places cleanup failed')
+    } finally {
+      setBusy('')
+    }
+  }
+
   const remove = async (w: Workflow) => {
     if (!confirm(`Delete workflow "${w.name}"? Runs history stays; listings already inserted are untouched.`)) return
     await fetch(`/api/admin/scrapeflow/${w.id}`, { method: 'DELETE' })
@@ -260,6 +312,14 @@ export default function AdminScrapeFlowPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
+            <button
+              disabled={busy === 'places'}
+              onClick={placesCleanup}
+              className="rounded-md border border-red-500/50 px-3 py-2 font-bold uppercase tracking-wider text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+              title="Report, then optionally remove, directory listings built from Google Places content. Claimed listings are never touched."
+            >
+              {busy === 'places' ? 'Checking…' : 'Places cleanup'}
+            </button>
             <button
               disabled={busy === 'consolidate'}
               onClick={consolidateAll}
