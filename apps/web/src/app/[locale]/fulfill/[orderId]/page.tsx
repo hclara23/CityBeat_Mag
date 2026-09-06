@@ -24,6 +24,15 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
   // resume email is stamped sent exactly once. Chrome copy comes from
   // FULFILL_COPY; the product-specific field copy is translated below.
   const t = FULFILL_COPY[locale] || FULFILL_COPY.en
+  // Server error strings from the intake API are English-only. Preferring them
+  // over the translated fallback (`data.error || t.errorOpen`) meant a Spanish
+  // buyer - who was deliberately emailed an /es/ link because order.locale said
+  // so - hit an English error in the middle of a form they had already paid for,
+  // with a resume email that is only ever sent once.
+  //
+  // For /es the translated message wins. The server detail is not discarded: it
+  // still reaches the error reporter, where it is useful to whoever debugs it,
+  // rather than to a customer who may not read it.
   const [accessToken, setAccessToken] = useState('')
   const [order, setOrder] = useState<any>(null)
   const [sourceSchema, setSourceSchema] = useState<IntakeSchema | null>(null)
@@ -53,7 +62,7 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
     fetch(`/api/sales/orders/${encodeURIComponent(params.orderId)}/intake?${query.toString()}`, { cache: 'no-store' })
       .then(async (response) => {
         const data = await response.json().catch(() => ({}))
-        if (!response.ok) throw new Error(data.error || t.errorOpen)
+        if (!response.ok) throw new Error(locale === 'es' ? t.errorOpen : data.error || t.errorOpen)
         setOrder(data.order)
         setSourceSchema(data.schema)
         setValues(data.order?.intake_data || {})
@@ -72,9 +81,9 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
           window.history.replaceState({}, '', `${window.location.pathname}?${query.toString()}`)
         }
       })
-      .catch((loadError) => setError(loadError?.message || t.errorOpen))
+      .catch((loadError) => setError(locale === 'es' ? t.errorOpen : loadError?.message || t.errorOpen))
       .finally(() => setLoading(false))
-  }, [params.orderId, t.errorOpen])
+  }, [params.orderId, locale, t.errorOpen])
 
   const apiUrl = useCallback(
     (resource: 'intake' | 'assets') =>
@@ -93,17 +102,17 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
           body: JSON.stringify({ values: nextValues, currentStep: nextStep }),
         })
         const data = await response.json().catch(() => ({}))
-        if (!response.ok) throw new Error(data.error || t.errorSave)
+        if (!response.ok) throw new Error(locale === 'es' ? t.errorSave : data.error || t.errorSave)
         setCompletion(data.completion ?? intakeCompletion(schema, nextValues))
         setSaveState('saved')
         return true
       } catch (saveError: any) {
         setSaveState('error')
-        if (!quiet) setError(saveError?.message || t.errorSave)
+        if (!quiet) setError(locale === 'es' ? t.errorSave : saveError?.message || t.errorSave)
         return false
       }
     },
-    [accessToken, apiUrl, schema, submitted, t.errorSave]
+    [accessToken, apiUrl, locale, schema, submitted, t.errorSave]
   )
 
   useEffect(() => {
@@ -134,7 +143,7 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
       form.append('file', file)
       const response = await fetch(apiUrl('assets'), { method: 'POST', body: form })
       const data = await response.json().catch(() => ({}))
-      if (!response.ok || !data.asset?.url) throw new Error(data.error || t.errorUpload)
+      if (!response.ok || !data.asset?.url) throw new Error(locale === 'es' ? t.errorUpload : data.error || t.errorUpload)
       if (field.type === 'images') {
         const current = Array.isArray(values[field.id]) ? (values[field.id] as string[]) : []
         change(field.id, [...current, data.asset.url].slice(0, 8))
@@ -142,7 +151,7 @@ export default function CustomerFulfillmentWizard({ params }: { params: { orderI
         change(field.id, data.asset.url)
       }
     } catch (uploadError: any) {
-      setError(uploadError?.message || t.errorUpload)
+      setError(locale === 'es' ? t.errorUpload : uploadError?.message || t.errorUpload)
     } finally {
       setUploadingField('')
     }
