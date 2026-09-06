@@ -170,7 +170,18 @@ export async function GET(request: NextRequest) {
       events: unprocessed.slice(0, 25),
     })
   } catch (error: any) {
-    await reportFailure('reconcile-orders', error, { window_hours: hours }).catch(() => {})
-    return NextResponse.json({ error: 'Reconciliation failed' }, { status: 500 })
+    await reportFailure('reconcile-orders', error, { window_hours: hours, scanned }).catch(() => {})
+    // The caller is CRON_SECRET-authorized, so return the real reason. A generic
+    // "Reconciliation failed" is what made two days of failures undiagnosable
+    // without Firestore access.
+    return NextResponse.json(
+      {
+        error: 'Reconciliation failed',
+        reason: String(error?.message || error).slice(0, 500),
+        type: error?.type || error?.name || null,
+        scanned,
+      },
+      { status: 500 }
+    )
   }
 }

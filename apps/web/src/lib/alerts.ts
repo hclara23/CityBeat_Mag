@@ -61,6 +61,19 @@ export async function reportFailure(
   const message = error instanceof Error ? error.message : String(error)
   const stack = error instanceof Error ? (error.stack || '').slice(0, 2000) : null
 
+  // Put it in the logs FIRST, before anything that can itself fail.
+  //
+  // Every cron catches its own errors and calls this — and not one of the 17 of
+  // them logged anything, so a failure left Cloud Run showing a bare 500 with no
+  // reason. The only signal was the alert email, which is fair-weather: it needs
+  // Firestore and the mail provider to both be up, which is exactly what may be
+  // broken. reconcile-orders — the safety net under the Stripe webhook — failed
+  // every scheduled run for two days and the logs said nothing at all about why.
+  //
+  // One console.error here covers every caller, which is the point of putting it
+  // in the shared helper rather than in 17 catch blocks.
+  console.error(`[alert:${source}] ${message}`, { context, stack })
+
   // Mark the source failing so the next success can announce recovery.
   if (!opts?.skipHealth) {
     try {
