@@ -938,8 +938,19 @@ async function handleChargeRefunded(charge: any) {
   const fullyRefunded = Boolean(charge.refunded) || Number(charge.amount_refunded || 0) >= Number(charge.amount || 0)
   const doc = (await findOne('ad_purchases', 'stripe_payment_intent_id', pi)) || (await findOne('ad_purchases', 'session_id', charge.id))
   if (doc) {
+    // Record the refunded CENTS, not just the state. purchaseCollectedCents
+    // subtracts amount_refunded but nothing had ever written it onto a purchase
+    // row, so a partially refunded purchase still counted gross in finance and in
+    // the ops digest. This lookup is by payment_intent / session, so it is the one
+    // row for this charge and the charge's cumulative total is exactly its refund.
     await doc.ref.set(
-      { payment_status: fullyRefunded ? 'refunded' : 'partially_refunded', updated_at: new Date().toISOString() },
+      {
+        payment_status: fullyRefunded ? 'refunded' : 'partially_refunded',
+        amount_refunded: fullyRefunded
+          ? Number((doc.data() as any)?.amount_total) || Number(charge.amount_refunded || 0)
+          : Number(charge.amount_refunded || 0),
+        updated_at: new Date().toISOString(),
+      },
       { merge: true }
     )
   }
@@ -1043,10 +1054,27 @@ async function handleChargeRefunded(charge: any) {
       .collection('ad_purchases')
       .where('sales_order_id', '==', orderDocument.id)
       .get()
+    // One charge can back SEVERAL purchase rows (a multi-item cart), so the
+    // charge's cumulative amount_refunded must not be written onto each of them —
+    // that would subtract the same refund once per row. A full refund is exact per
+    // row (each lost its own amount_total); a partial refund across several rows
+    // cannot be attributed from the charge alone, so no amount is written and the
+    // row stays gross. The partial-refund alert further down already tells a human
+    // to reconcile it, and counting gross is wrong by the refunded amount where
+    // counting nothing would be wrong by the entire sale.
+    const singlePurchase = purchases.docs.length === 1
     await Promise.all(
       purchases.docs.map((purchase) =>
         purchase.ref.set(
-          { payment_status: fullyRefunded ? 'refunded' : 'partially_refunded', updated_at: now },
+          {
+            payment_status: fullyRefunded ? 'refunded' : 'partially_refunded',
+            ...(fullyRefunded
+              ? { amount_refunded: Number((purchase.data() as any)?.amount_total) || 0 }
+              : singlePurchase
+                ? { amount_refunded: Number(charge.amount_refunded || 0) }
+                : {}),
+            updated_at: now,
+          },
           { merge: true }
         )
       )

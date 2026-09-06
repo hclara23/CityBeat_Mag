@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { collectedCents, purchaseRowCounts } from '@/lib/finance-rollup'
+import { purchaseCollectedCents, purchaseStatusIsCollected } from '@/lib/purchase-revenue'
 import { scanCollection } from '@/lib/firestore-scan'
 
 // ad_purchases created_at is a Firestore Timestamp (serverTimestamp), unlike
@@ -173,9 +174,15 @@ export async function GET(request: NextRequest) {
       trackRevenueScan(
         scanCollection(adminDb.collection('ad_purchases'), (d) => {
           const p = d.data() as any
-          if (p.payment_status !== 'completed' || !purchaseRowCounts(p)) return
+          // Same rule the finance dashboard uses. Gating on === 'completed' meant
+          // a partially refunded purchase counted as ZERO here: refunding $20 of a
+          // $500 banner erased the whole $500 from the week's revenue. That is not
+          // just a wrong figure — this number feeds the revenue-stall detector, so
+          // a few partial refunds could fake a revenue collapse and page an
+          // operator about a business that is selling perfectly well.
+          if (!purchaseStatusIsCollected(p.payment_status) || !purchaseRowCounts(p)) return
           const createdAt = toIsoLike(p.created_at)
-          const cents = Number(p.amount_total) || 0
+          const cents = purchaseCollectedCents(p)
           if (inWindow(createdAt)) revenueOneTime += cents
           else if (inPriorWindow(createdAt)) revenuePrior += cents
           recordPaid(toMs(createdAt))
