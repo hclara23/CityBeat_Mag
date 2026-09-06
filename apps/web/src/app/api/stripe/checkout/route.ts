@@ -31,7 +31,17 @@ export async function POST(req: NextRequest) {
   if (!rl.ok) return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 })
 
   try {
-    const { productId, type, returnUrl } = await req.json()
+    // A malformed body is the CALLER's mistake, so it must not be reported as
+    // ours. Unguarded, req.json() threw into the catch-all below and answered 500
+    // — which puts a client bug (or a bot POSTing junk at a public URL) into the
+    // 5xx logs and the error budget, where it is indistinguishable from the
+    // server actually being broken. That noise is precisely what hid two days of
+    // real reconciliation failures earlier today.
+    const body = await req.json().catch(() => null)
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
+    }
+    const { productId, type, returnUrl } = body as Record<string, unknown>
 
     // Strict allowlist. `type` used to fall through to job pricing for ANY
     // unrecognised value, so a typo or a crafted value charged the customer $50

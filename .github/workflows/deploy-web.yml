@@ -127,6 +127,61 @@ jobs:
             echo "GET $path -> $code"
             [ "$code" = "404" ] || { echo "  FAILED (expected 404)"; fail=1; }
           done
+
+          # Privileged endpoints must refuse an anonymous caller. The unit suite is
+          # all pure functions and cannot see a route that simply forgot its guard —
+          # /api/analytics/dashboard shipped with NO authentication of any kind and
+          # served real traffic data plus a 5,000-document Firestore read to anyone.
+          echo "-- authorization --"
+          for path in "/api/analytics/dashboard" "/api/admin/security/revoke" "/api/admin/finance" "/api/sales/me" "/api/admin/fulfillment"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL$path")
+            echo "GET $path -> $code"
+            case "$code" in
+              401|403) ;;
+              *) echo "  FAILED (expected 401/403, got $code)"; fail=1 ;;
+            esac
+          done
+
+          # Cron routes must reject a caller with no CRON_SECRET.
+          for path in "/api/cron/payout-cycle" "/api/cron/reconcile-orders" "/api/cron/claims-aging"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL$path")
+            echo "GET $path -> $code"
+            [ "$code" = "401" ] || { echo "  FAILED (expected 401, got $code)"; fail=1; }
+          done
+
+          # The money path, end to end, with no charge created. Checkout must refuse
+          # a product type it cannot fulfil and an id shaped like a Firestore path.
+          # The first of those used to charge $50 and provision nothing.
+          echo "-- checkout guards --"
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST "$URL/api/stripe/checkout" \
+            -H "Content-Type: application/json" -d '{"type":"not_a_real_product","productId":"x"}')
+          echo "POST /api/stripe/checkout (bad type) -> $code"
+          [ "$code" = "400" ] || { echo "  FAILED (expected 400 — an unfulfillable type must not be sold)"; fail=1; }
+
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST "$URL/api/stripe/checkout" \
+            -H "Content-Type: application/json" -d '{"type":"job","productId":"a/b/c"}')
+          echo "POST /api/stripe/checkout (path-shaped id) -> $code"
+          [ "$code" = "400" ] || { echo "  FAILED (expected 400 — a '/' addresses a subcollection)"; fail=1; }
+
+          # An unsigned Stripe webhook must be refused outright.
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST "$URL/api/stripe/webhook" \
+            -H "Content-Type: application/json" -d '{"type":"checkout.session.completed"}')
+          echo "POST /api/stripe/webhook (unsigned) -> $code"
+          case "$code" in
+            400|500) ;;
+            *) echo "  FAILED (an unsigned event must never be accepted, got $code)"; fail=1 ;;
+          esac
+
+          # Payments health is REPORTED, never gating. A dead Stripe key is a real
+          # incident with its own alert, but blocking deploys on it would also block
+          # the deploy that fixes it.
+          pay=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL/api/health/payments")
+          if [ "$pay" = "200" ]; then
+            echo "payments: OK"
+          else
+            echo "::warning::/api/health/payments returned $pay — the site cannot take money. Not blocking this deploy; see the CANNOT TAKE PAYMENTS alert."
+          fi
+
           exit $fail
 
       # Only now does a paying customer see it.
