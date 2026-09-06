@@ -13,6 +13,7 @@ import {
   clawbackTransition,
   commissionEligibleAt,
   isCommissionDue,
+  partialRefundPlan,
 } from './commission-schedule'
 import { reportFailure, reportSuccess } from './alerts'
 
@@ -642,6 +643,45 @@ export async function runPayoutCycle(params: {
 // it flips to `reversed` and no money ever leaves. If the cycle already paid
 // it, the share becomes `clawback_owed`: a debt recorded against the rep that
 // nets off their next payout. Idempotent — re-running on an already-reversed
+
+// Every accrued share for one payment, by either handle. `source_payment` is the
+// checkout session (what payoutSplit stores for the originating sale) and
+// `source_transaction` is the charge id — the only handle that works for
+// SELF-SERVE sales, which have no sales_orders row to recover a session from.
+// The two lookups can return the same row, so results are deduped by path.
+async function findCommissionShares(params: {
+  sourcePaymentId?: string | null
+  sourceTransaction?: string | null
+}): Promise<Map<string, FirebaseFirestore.QueryDocumentSnapshot>> {
+  const queries: Promise<
+    FirebaseFirestore.QuerySnapshot | { docs: FirebaseFirestore.QueryDocumentSnapshot[] }
+  >[] = []
+  if (params.sourcePaymentId) {
+    queries.push(
+      adminDb
+        .collection('transfers')
+        .where('source_payment', '==', params.sourcePaymentId)
+        .get()
+        .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+    )
+  }
+  if (params.sourceTransaction) {
+    queries.push(
+      adminDb
+        .collection('transfers')
+        .where('source_transaction', '==', params.sourceTransaction)
+        .get()
+        .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+    )
+  }
+  const snaps = await Promise.all(queries)
+  const byPath = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>()
+  for (const snap of snaps) {
+    for (const doc of snap.docs) byPath.set(doc.ref.path, doc)
+  }
+  return byPath
+}
+
 // share is a no-op (see clawbackTransition).
 export async function clawbackCommission(params: {
   // The checkout session id the commission was accrued against.
@@ -663,31 +703,7 @@ export async function clawbackCommission(params: {
   const summary = { reversed: 0, owed: 0, amount_owed: 0, kept_paid: 0 }
   if (!sourcePaymentId && !sourceTransaction) return summary
 
-  const queries: Promise<FirebaseFirestore.QuerySnapshot | { docs: FirebaseFirestore.QueryDocumentSnapshot[] }>[] = []
-  if (sourcePaymentId) {
-    queries.push(
-      adminDb
-        .collection('transfers')
-        .where('source_payment', '==', sourcePaymentId)
-        .get()
-        .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
-    )
-  }
-  if (sourceTransaction) {
-    queries.push(
-      adminDb
-        .collection('transfers')
-        .where('source_transaction', '==', sourceTransaction)
-        .get()
-        .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
-    )
-  }
-  const snaps = await Promise.all(queries)
-  // The two lookups can return the same row; dedupe by document path.
-  const byPath = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>()
-  for (const snap of snaps) {
-    for (const doc of snap.docs) byPath.set(doc.ref.path, doc)
-  }
+  const byPath = await findCommissionShares({ sourcePaymentId, sourceTransaction })
 
   const now = new Date().toISOString()
   for (const doc of byPath.values()) {
@@ -736,6 +752,103 @@ export async function clawbackCommission(params: {
         `${summary.owed} already-paid commission share(s) totalling $${(summary.amount_owed / 100).toFixed(2)} must be clawed back after a ${reason}`
       ),
       { source_payment: sourcePaymentId, source_transaction: sourceTransaction, reason }
+    ).catch(() => {})
+  }
+
+  return summary
+}
+
+// Proportionally shrinks accrued commission after a PARTIAL refund.
+//
+// The full-refund path (clawbackCommission) reverses a share outright. A partial
+// refund used to do nothing but raise an alert, so a rep kept commission
+// calculated on the full price of a sale the customer only half paid for — and
+// at 65-70% split rates, refunding much more than a third of a sale made the
+// transaction net-negative for the platform.
+//
+// Idempotent by construction: `amount_refunded` is Stripe's CUMULATIVE total and
+// each share's target is derived from its stamped `original_amount`, so
+// re-delivering the same event, or a second refund on the same charge, converges
+// on the correct figure instead of compounding (see partialRefundPlan).
+export async function reduceCommissionForPartialRefund(params: {
+  sourcePaymentId?: string | null
+  sourceTransaction?: string | null
+  chargeAmount: number
+  amountRefunded: number
+  reason: 'refund' | 'dispute'
+}): Promise<{
+  reduced: number
+  reversed: number
+  owed: number
+  amount_reduced: number
+  amount_owed: number
+}> {
+  const { sourcePaymentId, sourceTransaction, chargeAmount, amountRefunded, reason } = params
+  const summary = { reduced: 0, reversed: 0, owed: 0, amount_reduced: 0, amount_owed: 0 }
+  if (!sourcePaymentId && !sourceTransaction) return summary
+
+  const byPath = await findCommissionShares({ sourcePaymentId, sourceTransaction })
+  const now = new Date().toISOString()
+
+  for (const doc of byPath.values()) {
+    const row = doc.data() as any
+    const plan = partialRefundPlan(row, { amount: chargeAmount, amount_refunded: amountRefunded })
+    if (!plan) continue
+
+    if (plan.action === 'owe') {
+      // The money is already in the rep's bank. Leave the row `paid` — that is
+      // what actually happened — and record the debt on it. Flipping the whole
+      // share to `clawback_owed` would overstate it as if all of it came back.
+      await doc.ref.set(
+        {
+          clawback_owed_amount: plan.reduceBy,
+          clawback_reason: reason,
+          clawback_at: now,
+          refunded_ratio: plan.refundedRatio,
+          original_amount: plan.originalAmount,
+        },
+        { merge: true }
+      )
+      summary.owed++
+      summary.amount_owed += plan.reduceBy
+      continue
+    }
+
+    await doc.ref.set(
+      {
+        // Stamped once and never recomputed, so later refunds on the same charge
+        // divide the original rather than an already-reduced figure.
+        original_amount: plan.originalAmount,
+        amount: plan.targetAmount,
+        refunded_ratio: plan.refundedRatio,
+        partial_refund_at: now,
+        ...(plan.action === 'reverse'
+          ? { status: 'reversed', clawback_reason: reason, clawback_at: now }
+          : {}),
+      },
+      { merge: true }
+    )
+    if (plan.action === 'reverse') summary.reversed++
+    else summary.reduced++
+    summary.amount_reduced += plan.reduceBy
+  }
+
+  // A debt against an already-transferred share is not something the code can
+  // settle — runPayoutCycle only reads `held` rows and never nets a debt off a
+  // future cycle. It is a conversation an operator has to have, so page them.
+  if (summary.owed > 0) {
+    await reportFailure(
+      'commission-partial-refund',
+      new Error(
+        `A partial refund reduced ${summary.owed} already-paid commission share(s) by $${(summary.amount_owed / 100).toFixed(2)} — that money has already been transferred and must be netted off or collected manually`
+      ),
+      {
+        source_payment: sourcePaymentId,
+        source_transaction: sourceTransaction,
+        reason,
+        charge_amount: chargeAmount,
+        amount_refunded: amountRefunded,
+      }
     ).catch(() => {})
   }
 

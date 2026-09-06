@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
-import { payoutSplit, getPayoutSettings, clawbackCommission } from '@/lib/payouts'
+import {
+  payoutSplit,
+  getPayoutSettings,
+  clawbackCommission,
+  reduceCommissionForPartialRefund,
+} from '@/lib/payouts'
 import { notify, NOTIFY_WORKFLOWS } from '@/lib/notify'
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
@@ -936,20 +941,34 @@ async function handleChargeRefunded(charge: any) {
   // (the checkout session), which is what payoutSplit stored as source_payment —
   // recover it from the matched sales orders, since a charge/invoice id will not
   // match. Best-effort: a clawback failure must never wedge the refund handler.
-  // A PARTIAL refund reversed nothing at all: the whole clawback lived inside
-  // `if (fullyRefunded)`. With split rates reaching 65-70% on rep-sold deals,
-  // refunding much more than a third of a sale made that transaction
-  // net-negative for the platform, silently. Proportional reduction of held
-  // shares is the proper fix; until then, make sure a human is told rather than
-  // letting it pass unnoticed.
+  // A PARTIAL refund used to reverse nothing at all — the whole clawback lived
+  // inside `if (fullyRefunded)` — so a rep kept commission calculated on the full
+  // price of a sale the customer only half paid for. Shares are now shrunk in
+  // proportion to the cumulative refund; a share already transferred cannot be
+  // shrunk, so the difference is recorded as a debt on the row and ops is paged.
   if (!fullyRefunded && Number(charge.amount_refunded || 0) > 0) {
-    await reportFailure(
-      'commission-partial-refund',
-      new Error(
-        `Partial refund of $${(Number(charge.amount_refunded || 0) / 100).toFixed(2)} on a $${(Number(charge.amount || 0) / 100).toFixed(2)} charge — commission was NOT reduced and may now exceed the net revenue. Adjust the ledger manually.`
-      ),
-      { charge_id: charge.id, amount_refunded: charge.amount_refunded, amount: charge.amount }
-    ).catch(() => {})
+    const partial = {
+      chargeAmount: Number(charge.amount || 0),
+      amountRefunded: Number(charge.amount_refunded || 0),
+      reason: 'refund' as const,
+    }
+    // Same two handles the full-refund path uses: the charge id covers
+    // self-serve sales, which have no sales_orders row to recover a session from.
+    await reduceCommissionForPartialRefund({ sourceTransaction: charge.id, ...partial }).catch(
+      () => {}
+    )
+    // The session-id pass only makes sense for the ORIGINATING charge — a
+    // refunded renewal month must not shrink the first sale's commission.
+    if (isOriginatingCharge) {
+      const sessionIds = new Set<string>()
+      for (const orderDocument of orders) {
+        const order = orderDocument.data() as Record<string, any>
+        if (order.stripe_checkout_session_id) sessionIds.add(String(order.stripe_checkout_session_id))
+      }
+      for (const sourcePaymentId of sessionIds) {
+        await reduceCommissionForPartialRefund({ sourcePaymentId, ...partial }).catch(() => {})
+      }
+    }
   }
 
   if (fullyRefunded) {

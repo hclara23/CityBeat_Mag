@@ -145,6 +145,70 @@ export function clawbackTransition(status: unknown): {
   }
 }
 
+/**
+ * What a PARTIAL refund does to one accrued commission share.
+ *
+ * A full refund reverses a share outright (`clawbackTransition`). A partial one
+ * has to reduce it in proportion — and used to do nothing at all, because the
+ * whole clawback sat inside `if (fullyRefunded)`. With split rates reaching
+ * 65-70% on rep-sold deals, refunding much more than a third of a sale made that
+ * transaction net-negative for the platform, silently.
+ *
+ * Stripe's `amount_refunded` is CUMULATIVE over every refund on the charge, and
+ * a `charge.refunded` event fires for each one. So the target is computed from
+ * the share's ORIGINAL amount, never its current amount: two successive 25%
+ * refunds must land on 50%, not compound to 43.75%. `original_amount` is stamped
+ * on the first reduction, which makes replaying the same event a no-op.
+ *
+ * Returns null when there is nothing to do — an unusable charge total, a share
+ * already reversed or already written off, or a refund too small to move it.
+ */
+export function partialRefundPlan(
+  row: { status?: unknown; amount?: unknown; original_amount?: unknown },
+  charge: { amount?: unknown; amount_refunded?: unknown }
+): {
+  /** reduce = shrink an unpaid share; reverse = the refund consumed it entirely;
+   *  owe = it was already transferred, so the difference becomes a debt. */
+  action: 'reduce' | 'reverse' | 'owe'
+  originalAmount: number
+  targetAmount: number
+  reduceBy: number
+  refundedRatio: number
+} | null {
+  const chargeAmount = Math.round(Number(charge.amount) || 0)
+  const refunded = Math.round(Number(charge.amount_refunded) || 0)
+  if (!Number.isFinite(chargeAmount) || chargeAmount <= 0) return null
+  if (!Number.isFinite(refunded) || refunded <= 0) return null
+
+  // Reuses the full-refund status rules, so a share that is already `reversed`
+  // or `clawback_owed` is left alone exactly as it would be there.
+  const transition = clawbackTransition(row.status)
+  if (!transition) return null
+
+  const stamped = Math.round(Number(row.original_amount) || 0)
+  const current = Math.round(Number(row.amount) || 0)
+  const originalAmount = stamped > 0 ? stamped : current
+  if (!Number.isFinite(originalAmount) || originalAmount <= 0) return null
+
+  const refundedRatio = Math.min(1, refunded / chargeAmount)
+  const targetAmount = Math.max(0, Math.round(originalAmount * (1 - refundedRatio)))
+  const reduceBy = originalAmount - targetAmount
+  if (reduceBy <= 0) return null
+
+  // Money already sent to a rep's bank cannot be shrunk by editing a row; the
+  // difference is a real debt an operator has to net off or collect.
+  if (transition.alreadyPaid) {
+    return { action: 'owe', originalAmount, targetAmount, reduceBy, refundedRatio }
+  }
+  return {
+    action: targetAmount === 0 ? 'reverse' : 'reduce',
+    originalAmount,
+    targetAmount,
+    reduceBy,
+    refundedRatio,
+  }
+}
+
 /** Rep-facing state for one ledger row, for My Earnings / the Sales Desk. */
 export function commissionDisplayState(
   row: { status?: unknown; eligible_at?: unknown },
@@ -167,14 +231,27 @@ export function commissionDisplayState(
 
 /** Sum of shares a payee is actually owed (matured but not yet paid). */
 export function totalByState(
-  rows: Array<{ status?: unknown; eligible_at?: unknown; amount?: unknown }>,
+  rows: Array<{
+    status?: unknown
+    eligible_at?: unknown
+    amount?: unknown
+    clawback_owed_amount?: unknown
+  }>,
   now: Date | string = new Date()
 ): { held: number; due: number; paid: number; owed_back: number } {
   const totals = { held: 0, due: 0, paid: 0, owed_back: 0 }
   for (const row of rows) {
     const cents = Math.max(0, Math.round(Number(row.amount) || 0))
-    if (!cents) continue
     const { state } = commissionDisplayState(row, now)
+    // A partial refund of an ALREADY-PAID share cannot shrink money that has
+    // left the account, so the difference is recorded as a debt while the row
+    // stays `paid`. Without counting it here a rep's dashboard shows the full
+    // commission with no sign that part of it is owed back. A row that went
+    // fully `clawback_owed` is counted by amount below instead, not twice.
+    if (state !== 'clawback_owed') {
+      totals.owed_back += Math.max(0, Math.round(Number(row.clawback_owed_amount) || 0))
+    }
+    if (!cents) continue
     if (state === 'paid') totals.paid += cents
     // `no_bank` is money the rep has EARNED — it is only waiting on them to
     // finish connecting a bank, and reconcileFailedTransfers pays it once they
@@ -202,7 +279,7 @@ export const PAYOUT_POLICY_EN = {
   hold: `Commission is held for ${COMMISSION_HOLD_DAYS} days after the customer pays. This is the refund window.`,
   cycle: 'After that, it is paid on the next payout cycle — the 1st and the 15th of each month.',
   clawback:
-    'If the customer refunds or disputes the charge, the commission is reversed. If it had not been paid out yet, it simply never is. If it had, we will contact you to settle it.',
+    'If the customer refunds or disputes the charge, the commission is reversed. A partial refund reduces it by the same proportion. If it had not been paid out yet, it simply never is. If it had, we will contact you to settle it.',
 }
 
 export const PAYOUT_POLICY_ES = {
@@ -210,5 +287,5 @@ export const PAYOUT_POLICY_ES = {
   hold: `La comisión se retiene ${COMMISSION_HOLD_DAYS} días después de que el cliente paga. Es el periodo de reembolso.`,
   cycle: 'Después se paga en el siguiente ciclo de pago: el día 1 y el día 15 de cada mes.',
   clawback:
-    'Si el cliente pide reembolso o disputa el cargo, la comisión se revierte. Si aún no se había pagado, simplemente no se paga. Si ya se te había pagado, te contactamos para resolverlo.',
+    'Si el cliente pide reembolso o disputa el cargo, la comisión se revierte. Un reembolso parcial la reduce en la misma proporción. Si aún no se había pagado, simplemente no se paga. Si ya se te había pagado, te contactamos para resolverlo.',
 }

@@ -131,6 +131,51 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         link: `/dashboard/listings/${id}`,
       }).catch(() => {})
     }
+    // A rejected claim used to end in silence. The person who claimed the
+    // listing was told nothing — their dashboard simply stopped showing it —
+    // and if they had PAID, the money stayed taken: cancelling the subscription
+    // stops the next charge, it does not return the one already made. Nobody
+    // was told that a refund decision was outstanding, so it was never made.
+    if (action === 'reject') {
+      const bizName = String(data?.name || 'this business')
+      if (ownerId) {
+        await notifyUser({
+          userId: String(ownerId),
+          type: 'claim_rejected',
+          title: `We could not approve your claim for ${bizName}`,
+          title_es: `No pudimos aprobar tu reclamo de ${bizName}`,
+          body: 'We were unable to verify that you represent this business. Any subscription for it has been cancelled. Reply to this message if you believe this is a mistake.',
+          body_es: 'No pudimos verificar que representas a este negocio. Se canceló cualquier suscripción asociada. Responde a este mensaje si crees que es un error.',
+          link: `/directory/${id}`,
+        }).catch(() => {})
+      }
+
+      // Whether they paid is what makes this urgent. Refunding is a judgement an
+      // operator has to make — a claim rejected as fraudulent is not the same
+      // case as one rejected for a failed address check — so this surfaces the
+      // decision with the handles to act on it rather than deciding it in code.
+      // Refunding in Stripe is enough: charge.refunded reverses the commission
+      // and downgrades the listing through the existing webhook path.
+      const paidClaim = Boolean(data?.stripe_subscription_id || data?.pending_tier || data?.tier === 'premium' || data?.tier === 'featured')
+      if (paidClaim) {
+        await reportFailure(
+          'claim-rejected-paid',
+          new Error(
+            `A PAID directory claim was rejected — decide whether to refund. Billing is cancelled but money already collected has NOT been returned. Refunding in Stripe will also reverse the rep commission automatically.`
+          ),
+          {
+            listing_id: id,
+            listing_name: String(data?.name || ''),
+            owner_id: ownerId || null,
+            contact_email: String(data?.contact_email || ''),
+            subscription_id: data?.stripe_subscription_id ? String(data.stripe_subscription_id) : null,
+            stripe_customer_id: data?.stripe_customer_id ? String(data.stripe_customer_id) : null,
+            claimed_tier: String(data?.pending_tier || data?.tier || ''),
+          }
+        ).catch(() => {})
+      }
+    }
+
     const doc = await ref.get()
     return NextResponse.json({
       success: true,

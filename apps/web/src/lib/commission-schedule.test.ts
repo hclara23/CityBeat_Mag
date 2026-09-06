@@ -2,6 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   COMMISSION_HOLD_DAYS,
+  PAYOUT_POLICY_EN,
+  PAYOUT_POLICY_ES,
   clawbackTransition,
   commissionDisplayState,
   commissionEligibleAt,
@@ -10,9 +12,8 @@ import {
   isPayoutCycleDay,
   localDateParts,
   nextPayoutRunOn,
+  partialRefundPlan,
   totalByState,
-  PAYOUT_POLICY_EN,
-  PAYOUT_POLICY_ES,
 } from './commission-schedule'
 
 test('commission matures exactly seven days after the customer pays', () => {
@@ -122,6 +123,10 @@ test('rep-facing payout terms describe what the code actually does', () => {
   }
   assert.match(PAYOUT_POLICY_EN.hold, /7 days/)
   assert.match(PAYOUT_POLICY_EN.cycle, /1st and the 15th/)
+  // Partial refunds now shrink commission proportionally. A rep must not be
+  // surprised by that, so both languages have to say it.
+  assert.match(PAYOUT_POLICY_EN.clawback, /partial refund reduces it/i)
+  assert.match(PAYOUT_POLICY_ES.clawback, /reembolso parcial la reduce/i)
 })
 
 test('display state tells the rep exactly when money arrives', () => {
@@ -175,4 +180,79 @@ test('totals separate what is banked, coming, still held, and owed back', () => 
     owed_back: 125,
   })
   assert.deepEqual(totalByState([], now), { paid: 0, due: 0, held: 0, owed_back: 0 })
+})
+
+// ---- partial refunds --------------------------------------------------------
+// A partial refund used to reduce commission by nothing at all. These pin the
+// arithmetic, and above all its idempotency: Stripe fires charge.refunded for
+// EVERY refund on a charge and `amount_refunded` is cumulative, so a rule that
+// worked off the current share amount would compound.
+
+test('a partial refund shrinks an unpaid share in proportion', () => {
+  const plan = partialRefundPlan(
+    { status: 'held', amount: 6500 },
+    { amount: 10000, amount_refunded: 4000 }
+  )
+  assert.ok(plan)
+  assert.equal(plan!.action, 'reduce')
+  assert.equal(plan!.refundedRatio, 0.4)
+  assert.equal(plan!.originalAmount, 6500)
+  assert.equal(plan!.targetAmount, 3900) // 6500 * 60%
+  assert.equal(plan!.reduceBy, 2600)
+})
+
+test('replaying the same refund event converges instead of compounding', () => {
+  // First delivery: 25% refunded.
+  const first = partialRefundPlan({ status: 'held', amount: 4000 }, { amount: 10000, amount_refunded: 2500 })
+  assert.equal(first!.targetAmount, 3000)
+
+  // The row after that write, then the SAME event again (Stripe retries).
+  const row = { status: 'held', amount: first!.targetAmount, original_amount: first!.originalAmount }
+  const replay = partialRefundPlan(row, { amount: 10000, amount_refunded: 2500 })
+  assert.equal(replay!.targetAmount, 3000, 'a replay must land on the same figure')
+
+  // A SECOND refund of another 25%: cumulative 50%, so the share is halved —
+  // not 3000 * 75% = 2250, which is what compounding would produce.
+  const second = partialRefundPlan(row, { amount: 10000, amount_refunded: 5000 })
+  assert.equal(second!.targetAmount, 2000)
+  assert.equal(second!.originalAmount, 4000)
+})
+
+test('a refund that consumes the whole charge reverses the share', () => {
+  const plan = partialRefundPlan({ status: 'held', amount: 4000 }, { amount: 10000, amount_refunded: 10000 })
+  assert.equal(plan!.action, 'reverse')
+  assert.equal(plan!.targetAmount, 0)
+})
+
+test('an already-paid share becomes a debt, never a silent edit', () => {
+  // Money has left the platform; the row must keep saying it was paid.
+  const plan = partialRefundPlan({ status: 'paid', amount: 6500 }, { amount: 10000, amount_refunded: 4000 })
+  assert.equal(plan!.action, 'owe')
+  assert.equal(plan!.reduceBy, 2600)
+})
+
+test('a resolved or unusable share is left alone', () => {
+  const charge = { amount: 10000, amount_refunded: 4000 }
+  // Already reversed / already written off — idempotent no-op.
+  assert.equal(partialRefundPlan({ status: 'reversed', amount: 6500 }, charge), null)
+  assert.equal(partialRefundPlan({ status: 'clawback_owed', amount: 6500 }, charge), null)
+  // Nothing accrued.
+  assert.equal(partialRefundPlan({ status: 'held', amount: 0 }, charge), null)
+  // A charge total we cannot form a ratio from must never produce a write.
+  assert.equal(partialRefundPlan({ status: 'held', amount: 6500 }, { amount: 0, amount_refunded: 4000 }), null)
+  assert.equal(partialRefundPlan({ status: 'held', amount: 6500 }, { amount: null, amount_refunded: 4000 }), null)
+  assert.equal(partialRefundPlan({ status: 'held', amount: 6500 }, { amount: 10000, amount_refunded: 0 }), null)
+  // A refund too small to move a rounded cent is not worth a write either.
+  assert.equal(partialRefundPlan({ status: 'held', amount: 1 }, { amount: 100000, amount_refunded: 1 }), null)
+})
+
+test('a partial debt on a paid share shows up in the owed-back total', () => {
+  // The row stays `paid` (that is what happened) with the debt recorded on it.
+  const totals = totalByState([{ status: 'paid', amount: 6500, clawback_owed_amount: 2600 }])
+  assert.equal(totals.paid, 6500)
+  assert.equal(totals.owed_back, 2600)
+
+  // A fully clawed-back row is counted once, by its amount — not twice.
+  const full = totalByState([{ status: 'clawback_owed', amount: 6500, clawback_owed_amount: 6500 }])
+  assert.equal(full.owed_back, 6500)
 })

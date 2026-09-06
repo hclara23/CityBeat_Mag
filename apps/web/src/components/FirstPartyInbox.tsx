@@ -24,6 +24,7 @@ const TYPE_ICON: Record<string, string> = {
   review: '⭐',
   lead: '📬',
   claim_approved: '✅',
+  claim_rejected: '⛔',
   manager_added: '👥',
   report: '📈',
   article_submission: '📰',

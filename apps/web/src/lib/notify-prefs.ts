@@ -39,6 +39,7 @@ export const NOTIFICATION_TYPES = [
   'review',
   'lead',
   'claim_approved',
+  'claim_rejected',   // a rejection used to be delivered as silence
   'manager_added',
   'report',
   'article_submission',
