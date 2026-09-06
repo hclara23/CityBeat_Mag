@@ -92,9 +92,15 @@ export async function resetPassword(email: string, _redirectTo?: string): Promis
   }
 }
 
-export async function updatePassword(newPassword: string): Promise<AuthResult> {
+// `currentPassword` is required by the API: changing a password without proving
+// you know the old one turned a stolen session cookie into a permanent account
+// takeover. A successful change signs every session out, including this one.
+export async function updatePassword(newPassword: string, currentPassword: string): Promise<AuthResult> {
   try {
-    const { ok, data } = await postJson('/api/auth/update-password', { password: newPassword })
+    const { ok, data } = await postJson('/api/auth/update-password', {
+      password: newPassword,
+      currentPassword,
+    })
     if (!ok) return { error: data.error || 'Could not update password' }
     return { success: true }
   } catch (e: any) {

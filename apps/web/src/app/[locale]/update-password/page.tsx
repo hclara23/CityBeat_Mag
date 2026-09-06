@@ -12,6 +12,7 @@ import { useLocale } from '@/components/TranslationProvider'
 export default function UpdatePasswordPage() {
   const router = useRouter()
   const locale = useLocale()
+  const [currentPassword, setCurrentPassword] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
@@ -20,6 +21,11 @@ export default function UpdatePasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (!currentPassword) {
+      setError('Please enter your current password')
+      return
+    }
 
     if (!password) {
       setError('Password is required')
@@ -38,7 +44,7 @@ export default function UpdatePasswordPage() {
 
     setIsLoading(true)
     try {
-      const result = await updatePassword(password)
+      const result = await updatePassword(password, currentPassword)
       if (result.error) {
         setError(result.error)
       } else {
@@ -64,6 +70,19 @@ export default function UpdatePasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && <AuthError message={error} />}
 
+            {/* Proving you know the current password is what makes this a
+                decision by the account owner rather than by whoever happens to
+                hold a session cookie. */}
+            <Input
+              type="password"
+              label="Current Password"
+              placeholder="••••••••"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              disabled={isLoading}
+              autoComplete="current-password"
+            />
+
             <Input
               type="password"
               label="New Password"
@@ -83,6 +102,10 @@ export default function UpdatePasswordPage() {
               disabled={isLoading}
               autoComplete="new-password"
             />
+
+            <p className="text-xs text-gray-500">
+              Changing your password signs you out on every device, including this one.
+            </p>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Updating...' : 'Update Password'}

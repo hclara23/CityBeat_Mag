@@ -1,6 +1,8 @@
 import { BetaAnalyticsDataClient } from '@google-analytics/data'
 import { NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { hasAdminAccess } from '@citybeat/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +15,20 @@ function fmt(n: number) {
 // otherwise our first-party `analytics_events` (logged by /api/track/pageview),
 // so the numbers are always real — never mock.
 export async function GET() {
+  // This had NO authentication of any kind. Its only caller is the admin
+  // dashboard, but anyone on the internet could read the site's traffic — total
+  // views, and the exact top pages by popularity. Two problems, and the second is
+  // the expensive one: it is also an unauthenticated Firestore read of up to
+  // 5,000 documents plus a count aggregate, on a database where per-document
+  // reads are the only cost that scales with traffic. Anyone could run up the
+  // bill by holding down refresh.
+  //
+  // Gated to the same role as the page that calls it (admin/(protected)).
+  const user = await getServerUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const profile = await getServerUserProfile(user.id)
+  if (!hasAdminAccess(profile)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   const propertyId = process.env.GA4_PROPERTY_ID
 
   // ── Google Analytics 4 (preferred when configured) ──────────────────────────

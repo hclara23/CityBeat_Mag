@@ -17,10 +17,16 @@ export const runtime = 'nodejs'
 // subscription in place: Stripe prorates the difference on the next invoice,
 // the card on file keeps working, and exactly one subscription ever exists.
 //
-// The tier change applies immediately: the payer already passed ownership
-// review when their claim was approved (this route requires owner_id === the
-// signed-in user), so there is no fraud window — unlike a first-time claim,
-// which stays admin-gated.
+// The tier change applies immediately, which is only safe once ownership has
+// actually been reviewed. `owner_id === the signed-in user` does NOT establish
+// that: the webhook stamps owner_id at CLAIM time, together with
+// claim_status:'pending_approval' and pending_tier — deliberately withholding
+// `tier` until an admin confirms the claimant represents the business. So a
+// pending claimant satisfied the owner check and could call this route to grant
+// themselves the paid tier and the Sponsored homepage slot, walking straight
+// through the review that exists to stop exactly that. The guard below closes
+// it; the comment that used to sit here asserted the invariant instead of
+// enforcing it.
 export async function POST(request: NextRequest) {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY
   if (!stripeSecretKey) return NextResponse.json({ error: 'Stripe configuration missing' }, { status: 500 })
@@ -53,6 +59,18 @@ export async function POST(request: NextRequest) {
     // Only the approved owner can change the plan they are paying for.
     if (listing.owner_id !== user.id) {
       return NextResponse.json({ error: 'Only the listing owner can change its plan.' }, { status: 403 })
+    }
+    // Explicitly still under review — refuse. Checked as "is pending" rather
+    // than "is approved" so a legacy listing with no claim_status, whose owner
+    // is already paying, keeps working.
+    if (listing.claim_status === 'pending_approval') {
+      return NextResponse.json(
+        {
+          error: 'This claim is still being reviewed. We will email you as soon as it is approved, and you can change plans then.',
+          code: 'claim_pending',
+        },
+        { status: 409 }
+      )
     }
     const subscriptionId = typeof listing.stripe_subscription_id === 'string' ? listing.stripe_subscription_id : ''
     if (!subscriptionId) {
