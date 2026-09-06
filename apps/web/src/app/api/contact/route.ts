@@ -24,13 +24,14 @@ export const runtime = 'nodejs'
 // renders, rather than inventing a second place for an operator to remember to
 // check. A `source` distinguishes it.
 
-const TOPICS = ['billing', 'listing', 'advertising', 'press', 'other'] as const
+const TOPICS = ['billing', 'privacy', 'listing', 'advertising', 'press', 'other'] as const
 type Topic = (typeof TOPICS)[number]
 
-// Anything touching money is escalated, not just filed. Someone who has been
-// charged and needs help is the one message that must not wait for a dashboard
-// visit.
-const URGENT: Topic[] = ['billing']
+// Escalated, not just filed. Money and privacy both carry a clock: someone who
+// has been charged and needs help must not wait for a dashboard visit, and a
+// privacy request has a 30-day statutory deadline that starts whether or not
+// anyone has opened the queue.
+const URGENT: Topic[] = ['billing', 'privacy']
 
 function clean(value: unknown, max: number): string {
   return String(value ?? '').trim().slice(0, max)
@@ -113,11 +114,15 @@ export async function POST(request: NextRequest) {
   // notification path (Firestore + email, deduped) — reusing it means a support
   // message cannot be lost to a channel nobody has wired up yet.
   if (URGENT.includes(topic)) {
+    const what =
+      topic === 'privacy'
+        ? 'A PRIVACY REQUEST was submitted (access, correction, deletion, or listing removal). The published policy promises a response within 30 days and that clock has started'
+        : 'A customer needs help with billing'
     await reportFailure(
-      'contact-billing',
-      new Error(`A customer needs help with billing: ${message.slice(0, 200)}`),
+      `contact-${topic}`,
+      new Error(`${what}: ${message.slice(0, 200)}`),
       { from: email, name: name || null, locale, topic },
-      { skipHealth: true, alertKey: 'contact-billing' }
+      { skipHealth: true, alertKey: `contact-${topic}` }
     ).catch(() => {})
   }
 

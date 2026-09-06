@@ -30,6 +30,7 @@ import { getSalesProduct } from '@/lib/sales-products'
 import { purchaseConfirmationEmail } from '@/lib/buyer-emails'
 import { notifyUser } from '@/lib/user-notifications'
 import { STRIPE_EVENT_RETENTION_DAYS, expiresInDays } from '@/lib/retention'
+import { selfServeRefundTargets } from '@/lib/refund-targets'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -92,23 +93,6 @@ async function resolveSessionChargeId(session: any): Promise<string | null> {
 // and the product the customer got their money back for kept running: a paid job
 // stayed on the public board (and in sitemap.ts, and on its own indexable detail
 // page) for the rest of its 30 days, and an ad campaign stayed is_active/running.
-function selfServeRefundTargets(purchase: Record<string, any>): Array<{ collection: string; id: string }> {
-  const targets: Array<{ collection: string; id: string }> = []
-  // `product_id` + `ad_type` are what the job/ad-campaign provisioning branch of
-  // checkout.session.completed writes; the collections must match the ones it
-  // provisioned into ('campaigns', NOT 'ad_campaigns').
-  const productId = typeof purchase.product_id === 'string' ? purchase.product_id : ''
-  if (productId && purchase.ad_type === 'job') targets.push({ collection: 'jobs', id: productId })
-  if (productId && purchase.ad_type === 'ad_campaign') targets.push({ collection: 'campaigns', id: productId })
-  if (purchase.ad_type === 'event_feature' && typeof purchase.event_id === 'string' && purchase.event_id) {
-    targets.push({ collection: 'events', id: purchase.event_id })
-  }
-  // The generic advertiser branch flips campaigns/<campaignId> to active.
-  if (typeof purchase.campaign_id === 'string' && purchase.campaign_id) {
-    targets.push({ collection: 'campaigns', id: purchase.campaign_id })
-  }
-  return targets
-}
 
 // Where a paid Sales Desk order's product WOULD live if the customer had ever
 // completed their brief. `fulfillment_target` is written ONLY by

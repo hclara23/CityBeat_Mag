@@ -24,6 +24,7 @@ const COPY = {
     topic: 'What is this about?',
     topics: {
       billing: 'A payment or my subscription',
+      privacy: 'My data — a copy, a correction, or deletion',
       listing: 'My business listing',
       advertising: 'Advertising with CityBeat',
       press: 'Press or a story',
@@ -37,7 +38,8 @@ const COPY = {
     sending: 'Sending…',
     sentTitle: 'Message received.',
     sentBody: 'We have it. If it is about a payment, someone is already being notified.',
-    urgent: 'Payments are treated as urgent — this notifies someone immediately.',
+    urgentBilling: 'Payments are treated as urgent — this notifies someone immediately.',
+    urgentPrivacy: 'Data requests are treated as urgent — this notifies someone immediately, and we aim to respond within 30 days.',
     fallback: 'Prefer email? Write to hello@citybeatmag.co.',
     required: 'We need your email and a message.',
   },
@@ -48,6 +50,7 @@ const COPY = {
     topic: '¿De qué se trata?',
     topics: {
       billing: 'Un pago o mi suscripción',
+      privacy: 'Mis datos — una copia, una corrección o eliminación',
       listing: 'La ficha de mi negocio',
       advertising: 'Anunciarme en CityBeat',
       press: 'Prensa o una nota',
@@ -61,7 +64,8 @@ const COPY = {
     sending: 'Enviando…',
     sentTitle: 'Mensaje recibido.',
     sentBody: 'Ya lo tenemos. Si se trata de un pago, ya se notificó a alguien.',
-    urgent: 'Los pagos se tratan como urgentes — esto notifica a alguien de inmediato.',
+    urgentBilling: 'Los pagos se tratan como urgentes — esto notifica a alguien de inmediato.',
+    urgentPrivacy: 'Las solicitudes de datos se tratan como urgentes — esto notifica a alguien de inmediato, y respondemos dentro de 30 días.',
     fallback: '¿Prefieres correo? Escribe a hello@citybeatmag.co.',
     required: 'Necesitamos tu correo y un mensaje.',
   },
@@ -143,7 +147,11 @@ export default function ContactPage() {
                 </select>
               </label>
 
-              {topic === 'billing' && <p className="text-xs text-brand-gold">{t.urgent}</p>}
+              {(topic === 'billing' || topic === 'privacy') && (
+                <p className="text-xs text-brand-gold">
+                  {topic === 'privacy' ? t.urgentPrivacy : t.urgentBilling}
+                </p>
+              )}
 
               <label className="block">
                 <span className="text-xs font-black uppercase tracking-wider text-white/50">{t.name}</span>
