@@ -87,18 +87,29 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 | `citybeat-scrapeflow` | 02:30 | `/api/cron/scrapeflow?limit=3` | **ScrapeFlow** directory-growth scraper (`apps/web/src/lib/scrapeflow/`, admin UI at `/admin/scrapeflow`): a port of the open-source ScrapeFlow workflow engine (Launch browser → Get HTML/Text → Extract links → Crawl pages → Extract listings with AI (Claude) → Deliver to directory). Workflows live in Firestore `scrapeflow_workflows` (JSON node definitions, seeded from `lib/scrapeflow/templates.ts`), runs with per-phase logs in `scrapeflow_runs`. Runs up to `limit` enabled workflows whose `interval_hours` elapsed; `?dryRun=1` previews. Directory sink is **insert-only** (`sf:<hash>` ids, name+street/phone dedupe, El Paso/Doña Ana region filter). Browser backend: plain fetch → Crawl4AI when `CRAWLER_URL` set → Puppeteer locally (`SCRAPEFLOW_BROWSER=puppeteer`). Needs `ANTHROPIC_API_KEY`. Non-browser entry nodes: `FETCH_JSON` + `MAP_JSON_TO_LISTINGS` (open data, e.g. TDLR electrician licenses `data.texas.gov/resource/7358-krk7`) and `SEARCH_GOOGLE_PLACES` (`GOOGLE_PLACES_API_KEY`, real place ids as doc ids). The sink auto-**consolidates** same-brand rows into one multi-location card (`lib/directory-consolidate.ts`, port of `scripts/consolidate-listings.js`; also `GET/POST /api/admin/directory/consolidate`, button on `/admin/scrapeflow`). Seeded verticals: Electrical Contractors (TDLR + Places), Automation & Controls, Industrial Supply, El Paso Hispanic Chamber |
 
 | `citybeat-reconcile-orders` | 03:00 | `/api/cron/reconcile-orders?hours=72` | **the safety net under the Stripe webhook.** The webhook is the only fulfilment path; if a delivery fails Stripe retries for ~3 days then gives up permanently, and nothing else ever looked back. Walks Stripe's event log for the window and compares it against `stripe_events` (the webhook's own idempotency key, written only on full success), so "did we process this?" has an exact answer. Detection is the default; `?replay=1` re-delivers an unprocessed event to our own webhook with a genuine signature, reusing the production path rather than duplicating money logic. `?dryRun=1` to look without alerting. |
-| `citybeat-ghost-reports` | 16:00 | `/api/cron/ghost-reports` | emails unclaimed-listing owners a "here is what your free listing did this week" report (views, leads, searches) — one of the five claim-growth tactics. Honours the suppression list and one-report-per-listing stamps. |
+| `citybeat-ghost-reports` | **monthly, 5th 10:00** | `/api/cron/ghost-reports?limit=25` | emails unclaimed-listing owners a "here is what your free listing did this week" report (views, leads, searches) — one of the five claim-growth tactics. Honours the suppression list and one-report-per-listing stamps. **This row said "16:00" (daily) for months and the job has never run daily** — its cron is `0 10 5 * *`, one transposition away from `0 10 * * 5` (Fridays), which is what the report's own "this week" copy implies. At `limit=25` monthly that is ≤300 reports/year across the whole unclaimed directory. Left as-is deliberately: changing it sends materially more customer email, which is an operator decision. `cron-cadence.test.ts` now fails if the heartbeat budget and the real schedule ever disagree again. |
 | `citybeat-claims-aging` | 08:00 | `/api/cron/claims-aging` | **a business paid and nobody approved their claim.** Paid claims sit in `pending_approval` waiting on a human; the card was charged at checkout. Alerts past a 48h review target, flags anything past 5 days as breached, and lists the worst ten with names, ages and contact addresses. The clock runs from `claimed_at`, never `updated_at` — any admin action would otherwise reset it and hide the longest-waiting claim. Free Basic claims are excluded: nobody was charged. `?dryRun=1`, `?hours=N`. |
 | `citybeat-heartbeat` | every 6h | `/api/cron/heartbeat` | **notices a scheduled job that has stopped running.** Until this existed, a cron could simply die and the only symptom was that its work quietly stopped happening. Compares every source in `CRON_EXPECTATIONS` (`lib/ops-health.ts`) against its last `reportSuccess` stamp in `system_health`. A `tracking_since` marker stops the first deploy paging about jobs that merely have not run yet. **A source only counts as live if a route actually calls `reportSuccess('<source>')`** — `ops-health.test.ts` reads the cron routes and fails if the expectation table and the code disagree in either direction. |
 
 Manage with `gcloud scheduler jobs list/run/pause --location us-central1`.
 
-**The 19 jobs are declared in `infra/scheduler/jobs.json`.** Run `npm run
+**The 21 jobs are declared in `infra/scheduler/jobs.json`.** Run `npm run
 scheduler:check` to diff live against that manifest — it reports missing jobs,
 undeclared jobs, paused jobs, schedule drift and any job with no retries, and
 changes nothing. After a deliberate change, `npm run scheduler:capture` rewrites
 the manifest. `Authorization` header VALUES are never stored there, only the fact
 that the header must be present.
+
+> **The manifest alone cannot catch a job that was created wrong.** It is
+> captured FROM live, so a bad schedule becomes the declared intent and
+> `scheduler:check` reports "no drift" forever after — which is exactly how
+> `citybeat-ghost-reports` ran monthly for months while this file said daily.
+> The second, independent description of each job's cadence is `CRON_EXPECTATIONS`
+> in `lib/ops-health.ts` (the heartbeat's staleness budget), and
+> `cron-cadence.test.ts` now reads BOTH real files and fails when a budget
+> contradicts the schedule the job actually runs on — e.g. a monthly job with a
+> nine-day budget, which pages every six hours for three weeks out of four about
+> a healthy job and teaches whoever reads those alerts to ignore them.
 
 **Verify a new or changed job by its OWN recorded outcome, not by calling it by
 hand.** `gcloud scheduler jobs list --format="csv(name.basename(),state,lastAttemptTime,status.code)"`

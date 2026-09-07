@@ -81,10 +81,19 @@ export const CRON_EXPECTATIONS: CronExpectation[] = [
   { source: 'cron:newsletter-digest', label: 'newsletter digest', maxAgeHours: 216 },
   { source: 'cron:upsell', label: 'Premium→Featured upsell', maxAgeHours: 216 },
   { source: 'cron:account-manager', label: 'AI account manager', maxAgeHours: 216 },
-  // Cadence is not declared anywhere in the repo for ghost-reports (it rate-limits
-  // itself to one report per listing per quarter), so this is the loose bound that
-  // still catches a permanently dead job without inventing a schedule.
-  { source: 'cron:ghost-reports', label: 'ghost traffic reports', maxAgeHours: 216 },
+  // Monthly, on the 5th — `0 10 5 * *`. The previous 216h (9-day) budget here was
+  // written from CLAUDE.md, which described this job as DAILY at 16:00; the job has
+  // never run daily. The heartbeat would therefore have paged "ghost traffic
+  // reports has stopped running" every six hours for twenty-two days of every
+  // month about a perfectly healthy job. cron-cadence.test.ts now reads the real
+  // scheduler manifest and fails if any budget here contradicts a real schedule
+  // again — including this one, so 840 cannot be quietly wrong either.
+  //
+  // NOTE FOR THE OPERATOR: monthly may not be the intended cadence. `0 10 5 * *`
+  // is one transposition away from `0 10 * * 5` (Fridays), and the report's own
+  // copy says "what your listing did this week". Changing it sends materially
+  // more customer email, so it is a decision, not a fix.
+  { source: 'cron:ghost-reports', label: 'ghost traffic reports', maxAgeHours: 840 },
   // 1st and 15th — 17 days covers the longest gap (15th → 1st) plus slack.
   // This is the one whose silence costs a rep their commission.
   { source: 'cron:payout-cycle', label: 'commission payout cycle', maxAgeHours: 408 },
