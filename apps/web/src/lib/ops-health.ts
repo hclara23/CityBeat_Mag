@@ -71,6 +71,8 @@ export const CRON_EXPECTATIONS: CronExpectation[] = [
   { source: 'reconcile-orders', label: 'Stripe order reconciliation', maxAgeHours: 36 },
   { source: 'cron:heartbeat', label: 'ops heartbeat', maxAgeHours: 36 },
   { source: 'cron:claims-aging', label: 'paid claims awaiting approval', maxAgeHours: 36 },
+  // Daily. Ends complimentary Premium grants; silent means free tiers never end.
+  { source: 'cron:comp-expiry', label: 'complimentary tier expiry', maxAgeHours: 36 },
   // Daily. Completes commission transfers that failed at webhook time, so its
   // silence withholds money a rep has already earned.
   { source: 'cron:reconcile-payouts', label: 'commission transfer reconciliation', maxAgeHours: 36 },

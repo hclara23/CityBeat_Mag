@@ -6,6 +6,7 @@ import { notifyUser } from '@/lib/user-notifications'
 import { directoryApprovalTier } from '@/lib/sales-directory'
 import { getStripe } from '@/lib/platform/stripe-connect'
 import { reportFailure } from '@/lib/alerts'
+import { activeCompTier } from '@/lib/directory-comp'
 
 export const dynamic = 'force-dynamic'
 
@@ -156,7 +157,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       // decision with the handles to act on it rather than deciding it in code.
       // Refunding in Stripe is enough: charge.refunded reverses the commission
       // and downgrades the listing through the existing webhook path.
-      const paidClaim = Boolean(data?.stripe_subscription_id || data?.pending_tier || data?.tier === 'premium' || data?.tier === 'featured')
+      // A tier that is a complimentary grant (lib/directory-comp.ts) was never
+      // paid for, so it must not page ops with a refund decision.
+      const paidTier = (data?.tier === 'premium' || data?.tier === 'featured') && !activeCompTier(data || {})
+      // pending_tier is 'basic' on every free claim, so its mere presence is not
+      // payment — only a purchased tier waiting for this review is.
+      const pendingPaid = data?.pending_tier === 'premium' || data?.pending_tier === 'featured'
+      const paidClaim = Boolean(data?.stripe_subscription_id || pendingPaid || paidTier)
       if (paidClaim) {
         await reportFailure(
           'claim-rejected-paid',

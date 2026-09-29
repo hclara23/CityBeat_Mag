@@ -15,6 +15,7 @@
 // `featured`, so a requested (but unpaid) plan can never unlock paid controls.
 
 import { getPlan, type ListingTier } from './pricing'
+import { compEnded } from './directory-comp'
 
 // The brief's plan taxonomy. Named `DirectoryPlanKey` to avoid colliding with
 // pricing.ts's existing `DirectoryPlan` interface. `founders` shares Premium's
@@ -109,6 +110,10 @@ export type ListingEntitlementInput = {
   // as a legacy alias.
   founding_member?: boolean | null
   founding?: boolean | null
+  // Complimentary grant (lib/directory-comp.ts). Only consulted to end one.
+  comp_tier?: unknown
+  comp_until?: unknown
+  stripe_subscription_id?: unknown
 }
 
 // Normalize an arbitrary stored value to a known activated tier. Only `premium`
@@ -143,8 +148,13 @@ export function entitlementsForPlan(plan: DirectoryPlanKey): DirectoryEntitlemen
 // its activated tier. Founders (tier `premium`) transparently receives the full
 // Premium set. Never key this off `plan` — only the paid `tier` is authoritative.
 export function resolveEntitlements(
-  listing: ListingEntitlementInput | null | undefined
+  listing: ListingEntitlementInput | null | undefined,
+  now: Date = new Date()
 ): DirectoryEntitlements {
+  // A free grant that has run out stops unlocking anything immediately, rather
+  // than whenever the daily comp-expiry cron next runs. A subscription, if the
+  // business started paying meanwhile, is what governs the tier instead.
+  if (listing && !listing.stripe_subscription_id && compEnded(listing, now)) return BASIC
   const tier = normalizeListingTier(listing?.tier)
   if (tier === 'featured') return FEATURED
   if (tier === 'premium') return PREMIUM

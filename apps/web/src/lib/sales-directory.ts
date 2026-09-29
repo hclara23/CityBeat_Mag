@@ -1,4 +1,5 @@
 import type { SalesProductId } from './sales-products'
+import { activeCompTier } from './directory-comp'
 
 export function buildSalesDirectoryListingRecord(input: {
   businessName: string
@@ -119,12 +120,18 @@ const TIER_RANK: Record<string, number> = { basic: 1, premium: 2, featured: 3 }
  * billing one. A cancelled subscription already resets `tier` to basic in the
  * webhook, so taking the higher of the two cannot strand a stale paid tier.
  */
-export function directoryApprovalTier(listing: Record<string, unknown>): string {
+export function directoryApprovalTier(listing: Record<string, unknown>, now: Date = new Date()): string {
   const pending = typeof listing.pending_tier === 'string' ? listing.pending_tier : ''
   const current = typeof listing.tier === 'string' ? listing.tier : ''
-  const resolved = pending || current || 'premium'
-  if (!listing.stripe_subscription_id) return resolved
-  return (TIER_RANK[current] || 0) > (TIER_RANK[resolved] || 0) ? current : resolved
+  let resolved = pending || current || 'premium'
+  if (listing.stripe_subscription_id && (TIER_RANK[current] || 0) > (TIER_RANK[resolved] || 0)) resolved = current
+  // A complimentary grant (lib/directory-comp.ts) is unpaid, so the claim itself
+  // is a free Basic claim — but approving ownership must not take away the free
+  // period we gave. The promotion asks businesses to claim; without this, doing
+  // so would erase the gift.
+  const comp = activeCompTier(listing, now)
+  if (comp && (TIER_RANK[comp] || 0) > (TIER_RANK[resolved] || 0)) resolved = comp
+  return resolved
 }
 
 /**
