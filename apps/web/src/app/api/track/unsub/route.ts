@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { suppress } from '@/lib/suppression'
+import { unsubConfirmPage, unsubResultPage } from '@/lib/unsub-confirm-page'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +12,22 @@ export const dynamic = 'force-dynamic'
 // looked up by a RANDOM unsub_token field (relay doc ids embed event ids, so
 // the doc id itself is not the token there). The doc is marked AND the email is
 // added to the global suppression list so no other marketing stream emails it.
+// GET only CONFIRMS; POST unsubscribes — mail scanners fetch every link on
+// delivery, so a GET that acted would unsubscribe businesses that never saw the
+// email (see lib/unsub-confirm-page.ts).
 export async function GET(request: NextRequest) {
+  const url = new URL(request.url)
+  const isEs = url.searchParams.get('l') === 'es'
+  const hasToken = ['o', 'u', 'x', 'r'].some((k) => url.searchParams.get(k))
+  if (!hasToken) {
+    return new NextResponse(unsubResultPage('invalid', isEs), { status: 400, headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+  }
+  return new NextResponse(unsubConfirmPage(`${url.pathname}${url.search}`, isEs), {
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+  })
+}
+
+export async function POST(request: NextRequest) {
   const params = new URL(request.url).searchParams
   const targets: Array<{ collection: string; id: string }> = []
   // o/u are random Firestore auto-ids, so the doc id is itself an unguessable
@@ -54,11 +70,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return new NextResponse(
-    `<!doctype html><html><head><meta charset="utf-8"><title>Unsubscribed</title></head>
-     <body style="font-family:system-ui;background:#0b0f17;color:#fff;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center">
-     <div><h1 style="color:#22d3ee">You're unsubscribed</h1>
-     <p style="color:#9aa">You won't receive further CityBeat outreach emails.</p></div></body></html>`,
-    { headers: { 'Content-Type': 'text/html' } }
-  )
+  return new NextResponse(unsubResultPage('success', params.get('l') === 'es'), {
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  })
 }

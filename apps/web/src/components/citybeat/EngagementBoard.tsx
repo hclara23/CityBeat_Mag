@@ -23,7 +23,7 @@ type Followup = { loading?: boolean; email_subject?: string; email_body?: string
 export function EngagementBoard() {
   const locale = useLocale() as 'en' | 'es'
   const [rows, setRows] = useState<Row[] | null>(null)
-  const [summary, setSummary] = useState<{ engaged: number; hot: number; warm: number } | null>(null)
+  const [summary, setSummary] = useState<{ engaged: number; hot: number; warm: number; scanner_only?: number } | null>(null)
   const [followups, setFollowups] = useState<Record<string, Followup>>({})
   const [copied, setCopied] = useState('')
 
@@ -73,6 +73,18 @@ export function EngagementBoard() {
           <p className="text-xs text-white/50">
             🔥 {summary.hot} {locale === 'es' ? 'clic' : 'clicked'} · 👀 {summary.warm}{' '}
             {locale === 'es' ? 'abrió' : 'opened'}
+            {summary.scanner_only ? (
+              <span
+                className="block text-[11px] text-white/35"
+                title={
+                  locale === 'es'
+                    ? 'Filtros de seguridad de correo que abren cada enlace al recibir el mensaje. No es una persona.'
+                    : 'Mail security scanners that open every link the moment a message arrives. Not a person.'
+                }
+              >
+                🤖 {summary.scanner_only} {locale === 'es' ? 'solo escáner de correo (ocultos)' : 'mail-scanner only (hidden)'}
+              </span>
+            ) : null}
           </p>
         )}
       </div>

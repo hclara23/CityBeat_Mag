@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
+import { isScannerHit } from '@/lib/lead-heat'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,11 +21,19 @@ export async function GET(request: NextRequest) {
       const ref = adminDb.collection('sales_outreach').doc(o)
       const doc = await ref.get()
       if (doc.exists) {
-        const cur = (doc.data() as any).status
-        await ref.set(
-          { clicks: FieldValue.increment(1), status: cur === 'converted' ? cur : 'clicked', last_click_at: FieldValue.serverTimestamp() },
-          { merge: true }
-        )
+        const data = doc.data() as any
+        const cur = data.status
+        // Mail scanners follow every link seconds after delivery; that is not
+        // a hot lead (lib/lead-heat.ts). The redirect still happens either way.
+        const update = isScannerHit(data.last_sent_at)
+          ? { scanner_clicks: FieldValue.increment(1), last_scanner_at: FieldValue.serverTimestamp() }
+          : {
+              clicks: FieldValue.increment(1),
+              scanner_clicks: FieldValue.increment(0),
+              status: cur === 'converted' ? cur : 'clicked',
+              last_click_at: FieldValue.serverTimestamp(),
+            }
+        await ref.set(update, { merge: true })
       }
     } catch {
       /* never block the redirect */

@@ -52,16 +52,45 @@ function scoreEmail(email: string): number {
   return 3 // a named business-domain address — best
 }
 
-function bestEmail(candidates: string[], siteHost?: string): string | null {
+const FREEMAIL = /@(gmail|googlemail|yahoo|ymail|hotmail|outlook|live|msn|aol|icloud|me|mac|proton|protonmail)\.[a-z.]+$/i
+
+/** Registrable-ish base of a host: "www.shop.example.co.uk" → "example.co.uk",
+ *  "mail.example.com" → "example.com". Good enough to compare an email domain
+ *  with a website host without a public-suffix list. */
+function baseDomain(host: string): string {
+  const parts = host.toLowerCase().replace(/^www\./, '').split('.').filter(Boolean)
+  const twoLevelTld = parts.length >= 3 && parts[parts.length - 2].length <= 3 && parts[parts.length - 1].length === 2
+  return parts.slice(twoLevelTld ? -3 : -2).join('.')
+}
+
+/**
+ * Is this address plausibly the business's own inbox, given its website host?
+ * Own domain (or a subdomain of it) → yes. A personal mailbox (Gmail etc.) →
+ * yes; small businesses really do run on those. ANY OTHER company's domain → no:
+ * on a small-business site that is the web agency's credit line ("site by
+ * clients@townsquareinteractive.com"), a sponsor, a parent charity or a
+ * neighbouring business. September 2026: 5 of 17 real sales leads had exactly
+ * that kind of address, so outreach — and one free-Premium offer — would have
+ * gone to someone else entirely. Without a known site host we cannot tell, and
+ * keep the old behaviour.
+ */
+export function isOwnInbox(email: string, siteHost?: string): boolean {
+  if (!siteHost) return true
+  if (FREEMAIL.test(email)) return true
+  const domain = email.split('@')[1] || ''
+  return baseDomain(domain) === baseDomain(siteHost)
+}
+
+export function bestEmail(candidates: string[], siteHost?: string): string | null {
   const clean = candidates
     .map((e) => e.trim().toLowerCase())
-    .filter((e) => e.includes('@') && !SKIP_EMAIL.test(e))
+    .filter((e) => e.includes('@') && !SKIP_EMAIL.test(e) && isOwnInbox(e, siteHost))
   if (clean.length === 0) return null
   // Prefer an address on the business's own domain, then by role score.
   const host = (siteHost || '').replace(/^www\./, '')
   const ranked = [...new Set(clean)].sort((a, b) => {
-    const aOwn = host && a.endsWith('@' + host) ? 10 : 0
-    const bOwn = host && b.endsWith('@' + host) ? 10 : 0
+    const aOwn = host && !FREEMAIL.test(a) ? 10 : 0
+    const bOwn = host && !FREEMAIL.test(b) ? 10 : 0
     return bOwn + scoreEmail(b) - (aOwn + scoreEmail(a))
   })
   return ranked[0] || null
