@@ -27,6 +27,9 @@ export async function GET() {
   try {
     const snap = await adminDb.collection('quote_requests').get()
     const leads = snap.docs
+      // status 'spam' is set on bot submissions (see lib/form-spam.ts); kept in
+      // the collection rather than deleted so a misclassification is reversible.
+      .filter((d) => (d.data() as any).status !== 'spam')
       .map((d) => {
         const x = d.data() as any
         return {

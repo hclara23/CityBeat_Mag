@@ -154,7 +154,8 @@ export async function GET(request: NextRequest) {
       }).catch(() => null),
 
       scanCollection(adminDb.collection('quote_requests'), (d) => {
-        if (inWindow((d.data() as any).created_at)) weekLeads++
+        const x = d.data() as any
+        if (x.status !== 'spam' && inWindow(x.created_at)) weekLeads++
       }).catch(() => null),
 
       scanCollection(adminDb.collection('newsletter_subscribers'), (d) => {

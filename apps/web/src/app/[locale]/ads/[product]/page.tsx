@@ -11,6 +11,7 @@ import { getAdProducts, withLocale, AD_KEY_TO_SALES_PRODUCT, type Locale } from 
 import type { AdProductKey } from '@/components/citybeat/content'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
+import { isBotSubmission } from '@/lib/form-spam'
 
 type ProductPageProps = {
   params: {
@@ -92,6 +93,13 @@ async function submitAdInquiry(formData: FormData) {
   const notes = str('notes', 2000)
 
   if (!EMAIL_PATTERN.test(email)) redirect(`${base}?contact=email`)
+
+  // Every enquiry this form had ever stored was from one botnet (random-token
+  // fields + a real stranger's email). Answer a bot exactly as we answer a
+  // person, so it learns nothing, but store nothing and email nobody.
+  if (isBotSubmission({ honeypot: formData.get('website'), fields: [campaignName, notes] })) {
+    redirect(`${base}?contact=ok`)
+  }
 
   // getClientIp only reads request.headers, and a Server Action has no Request.
   // Hand it the incoming headers rather than re-deriving the trusted-proxy hop
@@ -254,6 +262,11 @@ export default function ProductPage({ params, searchParams }: ProductPageProps) 
             <p className="text-sm font-black uppercase tracking-wider text-white/75">{t.heading}</p>
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="product" value={productKey} />
+            {/* Honeypot: off-screen rather than display:none, which some bots skip. */}
+            <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+              <label htmlFor="website">Website</label>
+              <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+            </div>
             <div>
               <label htmlFor="campaignName" className="text-sm font-bold text-white/75">{t.campaignName}</label>
               <input id="campaignName" name="campaignName" maxLength={140} className="mt-2 w-full rounded-md border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-brand-neon" placeholder={t.campaignPlaceholder} />
