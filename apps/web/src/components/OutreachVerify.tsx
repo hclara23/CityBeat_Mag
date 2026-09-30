@@ -40,6 +40,8 @@ function write(key: string, value: string | null) {
 }
 
 let memoryPending: string | null = null
+// Shared by every mounted instance, so one interaction reports exactly once.
+const reported = new Set<string>()
 
 export function OutreachVerify() {
   useEffect(() => {
@@ -68,6 +70,11 @@ export function OutreachVerify() {
     const report = () => {
       if (sent || document.visibilityState !== 'visible') return
       sent = true
+      if (reported.has(id) || read(DONE(id))) {
+        cleanup()
+        return
+      }
+      reported.add(id)
       write(DONE(id), '1')
       write(PENDING, null)
       memoryPending = null
