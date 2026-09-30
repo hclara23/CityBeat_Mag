@@ -3,6 +3,7 @@ import { Space_Grotesk } from 'next/font/google'
 import { getMessages, locales } from '@/i18n'
 import { TranslationProvider } from '@/components/TranslationProvider'
 import { Analytics } from '@/components/Analytics'
+import { OutreachVerify } from '@/components/OutreachVerify'
 import { PostHogProvider } from '@/components/PostHogProvider'
 import { SiteJsonLd } from '@/components/SiteJsonLd'
 import { ReactNode } from 'react'
@@ -57,6 +58,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           <TranslationProvider locale={locale} messages={messages}>
             <SiteJsonLd locale={lang} />
             <Analytics />
+            <OutreachVerify />
             <div className="citybeat-app">{children}</div>
           </TranslationProvider>
         </PostHogProvider>

@@ -28,6 +28,17 @@ test('the old board called scanner traffic HOT; now it is cold', () => {
   assert.equal(leadHeat({ opens: 1, clicks: 1, last_sent_at: SENT, last_open_at: at(2), last_click_at: at(2.1) }), 'cold')
 })
 
+test('an open within the first hour is not enough to be warm', () => {
+  // "Mariachi": opens 11 minutes after the send — an Apple Mail preload looks
+  // exactly like this.
+  assert.equal(leadHeat({ opens: 4, clicks: 0, scanner_opens: 0, last_sent_at: SENT, last_open_at: at(11) }), 'cold')
+})
+
+test('interacting with the landing page is verified, whatever else happened', () => {
+  assert.equal(leadHeat({ opens: 0, clicks: 0, verified_human_at: at(30) }), 'verified')
+  assert.equal(leadHeat({ opens: 1, clicks: 1, last_sent_at: SENT, last_click_at: at(1), verified_human_at: at(40) }), 'verified')
+})
+
 test('a person re-opening days later is warm', () => {
   // "Twisted Fork": 4 opens, last one 11 days after sending.
   assert.equal(leadHeat({ opens: 4, clicks: 0, last_sent_at: SENT, last_open_at: at(16251) }), 'warm')

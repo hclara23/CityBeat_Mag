@@ -6,6 +6,7 @@ import { useLocale } from '@/components/TranslationProvider'
 
 interface Row {
   id: string
+  collection: string
   listing_id: string | null
   business: string
   email: string | null
@@ -13,17 +14,24 @@ interface Row {
   clicks: number
   status: string
   last_activity: string | null
-  heat: 'hot' | 'warm' | 'cold'
+  heat: 'verified' | 'hot' | 'warm'
+  verified?: boolean
 }
 
-// Warm-leads board for reps: businesses that opened or clicked outreach, hottest
-// first. A click means genuine interest — call them today.
+type Hidden = { scanner: number; unconfirmed: number; bad_contact: number; unsubscribed: number; dismissed: number; duplicate: number }
+type Summary = { engaged: number; verified?: number; hot: number; warm: number; hidden?: Hidden }
+
+// Warm-leads board for reps: businesses where a PERSON engaged with outreach,
+// strongest evidence first (lib/lead-board.ts). VERIFIED = clicked through and
+// used the page; HOT = clicked (not a scanner); WARM = came back to the email an
+// hour or more later. Everything else is hidden and counted in the header.
 type Followup = { loading?: boolean; email_subject?: string; email_body?: string; call_script?: string }
 
 export function EngagementBoard() {
   const locale = useLocale() as 'en' | 'es'
   const [rows, setRows] = useState<Row[] | null>(null)
-  const [summary, setSummary] = useState<{ engaged: number; hot: number; warm: number; scanner_only?: number } | null>(null)
+  const [summary, setSummary] = useState<Summary | null>(null)
+  const [dismissing, setDismissing] = useState('')
   const [followups, setFollowups] = useState<Record<string, Followup>>({})
   const [copied, setCopied] = useState('')
 
@@ -36,6 +44,31 @@ export function EngagementBoard() {
       })
       .catch(() => setRows([]))
   }, [])
+
+  // "Not real": hides the lead from the board (reversible server-side). It does
+  // not unsubscribe or stop the sequence — that is the recipient's call, not ours.
+  const dismiss = async (r: Row) => {
+    setDismissing(r.id)
+    const res = await fetch('/api/admin/outreach-engagement', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: r.id, collection: r.collection, action: 'dismiss' }),
+    }).catch(() => null)
+    setDismissing('')
+    if (res?.ok) {
+      setRows((cur) => (cur || []).filter((x) => x.id !== r.id))
+      setSummary((cur) =>
+        cur
+          ? {
+              ...cur,
+              engaged: cur.engaged - 1,
+              [r.heat]: Math.max(0, ((cur as any)[r.heat] || 0) - 1),
+              hidden: cur.hidden ? { ...cur.hidden, dismissed: cur.hidden.dismissed + 1 } : cur.hidden,
+            }
+          : cur
+      )
+    }
+  }
 
   const getFollowup = async (r: Row) => {
     if (followups[r.id] && !followups[r.id].loading) {
@@ -70,22 +103,27 @@ export function EngagementBoard() {
           {locale === 'es' ? 'Prospectos interesados' : 'Warm leads'}
         </h2>
         {summary && (
-          <p className="text-xs text-white/50">
-            🔥 {summary.hot} {locale === 'es' ? 'clic' : 'clicked'} · 👀 {summary.warm}{' '}
-            {locale === 'es' ? 'abrió' : 'opened'}
-            {summary.scanner_only ? (
-              <span
-                className="block text-[11px] text-white/35"
+          <div className="text-right text-xs text-white/50">
+            <p>
+              ✅ {summary.verified || 0} {locale === 'es' ? 'verificados' : 'verified'} · 🔥 {summary.hot}{' '}
+              {locale === 'es' ? 'clic' : 'clicked'} · 👀 {summary.warm} {locale === 'es' ? 'volvió a abrir' : 're-opened'}
+            </p>
+            {summary.hidden && (
+              <p
+                className="text-[11px] text-white/35"
                 title={
                   locale === 'es'
-                    ? 'Filtros de seguridad de correo que abren cada enlace al recibir el mensaje. No es una persona.'
-                    : 'Mail security scanners that open every link the moment a message arrives. Not a person.'
+                    ? 'Ocultos: escáneres de correo que abren cada enlace al llegar, aperturas solo en la primera hora (precarga de Apple Mail), contactos equivocados, bajas, marcados como no reales y duplicados.'
+                    : 'Hidden: mail scanners that open every link on arrival, opens only in the first hour (Apple Mail preloading), wrong contacts, unsubscribes, leads marked Not real, and duplicates.'
                 }
               >
-                🤖 {summary.scanner_only} {locale === 'es' ? 'solo escáner de correo (ocultos)' : 'mail-scanner only (hidden)'}
-              </span>
-            ) : null}
-          </p>
+                {locale === 'es' ? 'Ocultos' : 'Hidden'}: 🤖 {summary.hidden.scanner} {locale === 'es' ? 'escáner' : 'scanner'} · ⏱{' '}
+                {summary.hidden.unconfirmed} {locale === 'es' ? 'sin confirmar' : 'unconfirmed'} · ✉️ {summary.hidden.bad_contact}{' '}
+                {locale === 'es' ? 'contacto erróneo' : 'wrong contact'} · 🚫 {summary.hidden.unsubscribed + summary.hidden.dismissed}{' '}
+                {locale === 'es' ? 'baja / no real' : 'unsub / not real'}
+              </p>
+            )}
+          </div>
         )}
       </div>
 
@@ -123,7 +161,14 @@ export function EngagementBoard() {
                     {r.email && <span className="block text-[11px] text-white/40">{r.email}</span>}
                   </td>
                   <td className="py-2.5 px-3">
-                    {r.heat === 'hot' ? (
+                    {r.heat === 'verified' ? (
+                      <span
+                        className="rounded bg-emerald-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-400"
+                        title={locale === 'es' ? 'Hizo clic y usó la página: es una persona.' : 'Clicked through and used the page — a person.'}
+                      >
+                        ✅ {locale === 'es' ? 'Verificado' : 'Verified'}
+                      </span>
+                    ) : r.heat === 'hot' ? (
                       <span className="rounded bg-red-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-red-400">🔥 {locale === 'es' ? 'Caliente' : 'Hot'}</span>
                     ) : (
                       <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-400">👀 {locale === 'es' ? 'Tibio' : 'Warm'}</span>
@@ -132,7 +177,15 @@ export function EngagementBoard() {
                   <td className="py-2.5 px-3 text-center font-bold">{r.opens}</td>
                   <td className="py-2.5 px-3 text-center font-bold">{r.clicks}</td>
                   <td className="py-2.5 px-3 text-white/60">{r.last_activity ? new Date(r.last_activity).toLocaleString() : '—'}</td>
-                  <td className="py-2.5 pl-3 text-right">
+                  <td className="py-2.5 pl-3 text-right whitespace-nowrap">
+                    <button
+                      onClick={() => dismiss(r)}
+                      disabled={dismissing === r.id}
+                      title={locale === 'es' ? 'Ocultar: no es una persona real o no es el negocio correcto' : 'Hide: not a real person, or not the right business'}
+                      className="mr-2 rounded border border-white/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white/50 hover:border-red-400/50 hover:text-red-300 disabled:opacity-40"
+                    >
+                      {dismissing === r.id ? '…' : locale === 'es' ? 'No es real' : 'Not real'}
+                    </button>
                     <button
                       onClick={() => getFollowup(r)}
                       className="rounded border border-brand-neon/40 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-brand-neon hover:bg-brand-neon/10"
@@ -182,8 +235,8 @@ export function EngagementBoard() {
       )}
       <p className="mt-3 text-[11px] text-white/30">
         {locale === 'es'
-          ? 'Nota: algunos "abrió" pueden ser escáneres de correo corporativo. Un clic es señal real de interés.'
-          : 'Note: some opens can be corporate mail scanners. A click is the reliable buying signal.'}
+          ? '✅ Verificado es prueba: la persona usó la página. 🔥 y 👀 son muy probables pero no seguros — los reclamos de corporativos (helpdesk@, QA@) rara vez son el dueño local.'
+          : '✅ Verified is proof: the person used the page. 🔥 and 👀 are likely but not certain — corporate inboxes (helpdesk@, qa@) are rarely the local owner.'}
       </p>
     </section>
   )

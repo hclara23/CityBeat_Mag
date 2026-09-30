@@ -19,7 +19,17 @@
 
 export const SCANNER_WINDOW_MS = 3 * 60_000
 
-export type Heat = 'hot' | 'warm' | 'cold'
+// Opens are the weakest signal there is: Apple Mail Privacy Protection and some
+// corporate gateways fetch images when the message syncs to a device, which can
+// be many minutes after delivery. An open only counts as WARM when the reader
+// came back to it — the last open at least an hour after the send.
+export const WARM_OPEN_AFTER_MS = 60 * 60_000
+
+// VERIFIED: the recipient clicked through AND then interacted with the page (a
+// tap, a key, a real scroll after dwelling) — see components/OutreachVerify.
+// Scanners follow links; they do not use the page. This is the only tier that
+// is proof rather than inference.
+export type Heat = 'verified' | 'hot' | 'warm' | 'cold'
 
 export function toMs(v: unknown): number | null {
   if (!v) return null
@@ -54,6 +64,8 @@ export type OutreachSignals = {
   // clicks already exclude scanner hits.
   scanner_opens?: unknown
   scanner_clicks?: unknown
+  // Set by /api/track/engaged when the person interacted with the landing page.
+  verified_human_at?: unknown
 }
 
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(v) || 0)
@@ -80,6 +92,14 @@ export function humanSignals(row: OutreachSignals): { opens: number; clicks: num
 }
 
 export function leadHeat(row: OutreachSignals): Heat {
+  if (toMs(row.verified_human_at) !== null) return 'verified'
   const { opens, clicks } = humanSignals(row)
-  return clicks > 0 ? 'hot' : opens > 0 ? 'warm' : 'cold'
+  if (clicks > 0) return 'hot'
+  const sent = toMs(row.last_sent_at)
+  const openAt = toMs(row.last_open_at)
+  if (opens > 0 && openAt !== null && (sent === null || openAt - sent >= WARM_OPEN_AFTER_MS)) return 'warm'
+  return 'cold'
 }
+
+/** Rank for sorting and for picking the strongest of duplicate rows. */
+export const HEAT_RANK: Record<Heat, number> = { verified: 3, hot: 2, warm: 1, cold: 0 }

@@ -40,5 +40,11 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(`${APP_URL}${safePath}`, 302)
+  // Hand the landing page the outreach id so it can confirm a PERSON arrived:
+  // components/OutreachVerify reports back only after a real interaction, which
+  // scanners that merely follow the link never produce. Firestore auto-ids only.
+  const dest = o && /^[A-Za-z0-9]{10,40}$/.test(o)
+    ? `${safePath}${safePath.includes('?') ? '&' : '?'}cb_o=${encodeURIComponent(o)}`
+    : safePath
+  return NextResponse.redirect(`${APP_URL}${dest}`, 302)
 }
