@@ -16,6 +16,8 @@ interface Row {
   last_activity: string | null
   heat: 'verified' | 'hot' | 'warm'
   verified?: boolean
+  // Set when the listing holds a free Premium grant (lib/directory-comp.ts).
+  comp_until?: string | null
 }
 
 type Hidden = { scanner: number; unconfirmed: number; bad_contact: number; unsubscribed: number; dismissed: number; duplicate: number }
@@ -159,6 +161,24 @@ export function EngagementBoard() {
                       <span className="font-bold text-white">{r.business}</span>
                     )}
                     {r.email && <span className="block text-[11px] text-white/40">{r.email}</span>}
+                    {r.comp_until && (
+                      <span
+                        className="mt-1 inline-block rounded bg-brand-neon/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-brand-neon"
+                        title={
+                          locale === 'es'
+                            ? 'Ya tiene Premium gratis. No se lo ofrezcas de nuevo; al terminar, ofrece Premium a $19.99/mes.'
+                            : 'Already has free Premium — do not offer it again. When it ends, pitch Premium at $19.99/mo.'
+                        }
+                      >
+                        🎁 {locale === 'es' ? 'Premium gratis hasta' : 'Free Premium until'}{' '}
+                        {new Date(r.comp_until).toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          timeZone: 'America/Denver',
+                        })}
+                      </span>
+                    )}
                   </td>
                   <td className="py-2.5 px-3">
                     {r.heat === 'verified' ? (

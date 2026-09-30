@@ -3,6 +3,7 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { boardLeads } from '@/lib/lead-board'
+import { activeCompTier } from '@/lib/directory-comp'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +42,27 @@ export async function GET() {
     const suppressionSnap = await adminDb.collection('email_suppressions').select().get().catch(() => ({ docs: [] as any[] }))
     const suppressed = new Set<string>((suppressionSnap.docs as any[]).map((d) => String(d.id).toLowerCase()))
     const { rows, summary } = boardLeads(docs, suppressed)
-    return NextResponse.json({ rows: rows.slice(0, 100), summary })
+    const shown = rows.slice(0, 100)
+
+    // Which of these businesses already hold a complimentary Premium grant
+    // (lib/directory-comp.ts), so a rep does not pitch them a free period they
+    // already have. One batched read of just the listings on screen.
+    const listingIds = [...new Set(shown.map((r) => r.listing_id).filter(Boolean) as string[])]
+    const compUntil = new Map<string, string>()
+    if (listingIds.length) {
+      const listings = await adminDb
+        .getAll(...listingIds.map((id) => adminDb.collection('directory_listings').doc(id)))
+        .catch(() => [] as FirebaseFirestore.DocumentSnapshot[])
+      for (const l of listings) {
+        const data = l.exists ? (l.data() as any) : null
+        const tier = data ? activeCompTier(data) : null
+        if (tier) compUntil.set(l.id, String(data.comp_until))
+      }
+    }
+    return NextResponse.json({
+      rows: shown.map((r) => ({ ...r, comp_until: (r.listing_id && compUntil.get(r.listing_id)) || null })),
+      summary,
+    })
   } catch {
     return NextResponse.json({ error: 'Could not load engagement' }, { status: 500 })
   }
