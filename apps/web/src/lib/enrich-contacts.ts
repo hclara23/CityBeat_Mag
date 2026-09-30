@@ -92,6 +92,25 @@ export function isOwnInbox(email: string, siteHost?: string): boolean {
   return common >= 5 && common >= 0.6 * Math.min(la.length, lb.length)
 }
 
+/**
+ * Is this "website" really a chain's store-locator page
+ * (wingstop.com/location/…, pepboys.com/stores/…, mcdonalds.com/…/location/…)?
+ * Then every address on it belongs to head office — helpdesk@, guestrelations@,
+ * a QA inbox — never the local franchise owner who could buy a listing. In
+ * September 2026, 56 chain listings had such an address and the sales agent had
+ * been cold-emailing them: Wingstop's helpdesk alone was on 8 outreach rows.
+ */
+const STORE_LOCATOR_PATH = /\/(locations?|stores?|restaurants?|store-locator|storelocator|find-a-store|storedetails)(\/|$)/i
+export function isChainLocatorUrl(website: unknown): boolean {
+  if (typeof website !== 'string' || !website.trim()) return false
+  try {
+    const url = new URL(/^https?:/i.test(website) ? website : `https://${website}`)
+    return STORE_LOCATOR_PATH.test(url.pathname)
+  } catch {
+    return false
+  }
+}
+
 export function bestEmail(candidates: string[], siteHost?: string): string | null {
   const clean = candidates
     .map((e) => e.trim().toLowerCase())
@@ -230,7 +249,10 @@ export async function runContactEnrichment(opts: { limit?: number; categories?: 
     // that has none is no longer resolvable through Google Places — that lookup
     // was the licence breach — so it is stamped and skipped rather than filled in.
     const website = typeof l.website === 'string' ? l.website.trim() : ''
-    if (website) {
+    if (website && isChainLocatorUrl(website)) {
+      // Head-office site: nothing on it reaches the local owner. Stamped like
+      // any other attempt so the job does not keep coming back to it.
+    } else if (website) {
       const email = await scrapeEmail(website)
       if (email) {
         updates.email = email

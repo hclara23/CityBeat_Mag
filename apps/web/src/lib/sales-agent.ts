@@ -43,6 +43,7 @@ type Listing = {
 // because sales-agent-cursor.test.ts imports them from this module.
 import { encodeListingCursor, decodeListingCursor } from './listing-cursor'
 import { unsubHeaders } from './unsub-headers'
+import { isChainLocatorUrl } from './enrich-contacts'
 export { encodeListingCursor, decodeListingCursor, type ListingCursor } from './listing-cursor'
 
 function claimUrl(listingId: string, outreachId: string, locale = 'en') {
@@ -683,6 +684,12 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
     if (results.contacted >= limit) break
     const l = { id: lDoc.id, ...(lDoc.data() as any) } as Listing
     if (!l.email) {
+      results.skipped_no_email++
+      continue
+    }
+    // A chain store whose "website" is head office's store locator: the email we
+    // hold is a corporate inbox, not the local owner (lib/enrich-contacts.ts).
+    if (isChainLocatorUrl((l as any).website)) {
       results.skipped_no_email++
       continue
     }

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { bestEmail, isOwnInbox } from './enrich-contacts'
+import { bestEmail, isChainLocatorUrl, isOwnInbox } from './enrich-contacts'
 
 // Real September 2026 cases: the address on file belonged to someone else.
 test("another company's address on a business's site is rejected", () => {
@@ -39,4 +39,18 @@ test('two different El Paso businesses never match on the shared prefix', () => 
   assert.equal(isOwnInbox('dave@elpasobiergarten.com', 'elpasoplumbing.com'), false)
   assert.equal(isOwnInbox('purchasingsuppliers@brinker.com', 'www.chilis.com'), false)
   assert.equal(isOwnInbox('hi@mystore.com', 'barbacoalos4vientos.square.site'), false)
+})
+
+test('a chain store-locator page is recognised as head office, not the local business', () => {
+  assert.equal(isChainLocatorUrl('https://www.wingstop.com/location/wingstop-248-el-paso-tx-79902/menu?y_source=1'), true)
+  assert.equal(isChainLocatorUrl('https://www.pepboys.com/stores/tx/el-paso/9345-dyer-st'), true)
+  assert.equal(isChainLocatorUrl('www.mcdonalds.com/us/en-us/location/tx/el-paso/123.html'), true)
+})
+
+test("an independent business's own site is not a store locator", () => {
+  assert.equal(isChainLocatorUrl('https://takotakotacos.com/'), false)
+  assert.equal(isChainLocatorUrl('https://www.oaknantler.com/menu'), false)
+  // "store" as part of a word, or a shop page, is not a locator.
+  assert.equal(isChainLocatorUrl('https://mystorefront.com/storefront'), false)
+  assert.equal(isChainLocatorUrl(undefined), false)
 })
