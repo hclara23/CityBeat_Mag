@@ -5,6 +5,7 @@ import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
 import { notifyUser } from '@/lib/user-notifications'
 import { sendUnclaimedRelay } from '@/lib/unclaimed-relay'
+import { genuineProbability, isJevSpam } from '@/lib/jev'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,6 +61,17 @@ export async function POST(request: NextRequest) {
   // dashboard (basic) or behind the claim flow (unclaimed).
   const gated = !isPremium
 
+  // Jev (lib/jev.ts) as a hint. A confident "not genuine" is still stored, as
+  // status 'spam' (reversible), but it is NOT delivered: forwarding spam to a
+  // business owner is worse than useless — it teaches them our leads are junk,
+  // and for an unclaimed listing it spends the one free lead we give them.
+  const jevGenuine = await genuineProbability('request-a-quote form on a local business directory listing', {
+    business: String(listing?.name || ''),
+    name,
+    message,
+  })
+  const jevSpam = isJevSpam(jevGenuine)
+
   let quoteId = ''
   try {
     const quoteRef = await adminDb.collection('quote_requests').add({
@@ -69,7 +81,8 @@ export async function POST(request: NextRequest) {
       name,
       contact,
       message: message || null,
-      status: 'new',
+      status: jevSpam ? 'spam' : 'new',
+      jev_genuine: jevGenuine,
       gated,
       listing_tier_at_capture: listing?.tier || 'basic',
       created_at: FieldValue.serverTimestamp(),
@@ -78,6 +91,10 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Could not submit request' }, { status: 500 })
   }
+
+  // Same answer as a real submission, so a spammer learns nothing — but no lead
+  // count, no owner notification, no email, no unclaimed relay.
+  if (jevSpam) return NextResponse.json({ ok: true })
 
   // Listing analytics: count the lead in the per-day aggregate (server-derived —
   // never client-reported). Best effort.

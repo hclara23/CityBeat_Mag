@@ -12,6 +12,7 @@ import type { AdProductKey } from '@/components/citybeat/content'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
 import { isBotSubmission } from '@/lib/form-spam'
+import { genuineProbability, isJevSpam } from '@/lib/jev'
 
 type ProductPageProps = {
   params: {
@@ -110,6 +111,18 @@ async function submitAdInquiry(formData: FormData) {
 
   const message = [campaignName && `Campaign: ${campaignName}`, notes].filter(Boolean).join('\n\n')
 
+  // Second opinion from Jev (lib/jev.ts) for what the rules above cannot see —
+  // SEO/link spam and off-topic sales pitches written in real words. A hint
+  // only: null (no key, over cap, slow, error) changes nothing. A confident
+  // "not genuine" is still STORED, as status 'spam', so a misjudgement is
+  // recoverable — it just does not email the ads inbox.
+  const jevGenuine = await genuineProbability('advertising enquiry form on a local news site', {
+    campaign_name: campaignName,
+    notes,
+    product: productKey,
+  })
+  const jevSpam = isJevSpam(jevGenuine)
+
   let stored = false
   try {
     // Deterministic id, not .add(): a double-click, a refresh of the POST, or a
@@ -133,7 +146,8 @@ async function submitAdInquiry(formData: FormData) {
           name: campaignName || email,
           contact: email,
           message: message || null,
-          status: 'new',
+          status: jevSpam ? 'spam' : 'new',
+          jev_genuine: jevGenuine,
           gated: false,
           source: 'ads_product_page',
           ad_product: productKey,
@@ -147,7 +161,7 @@ async function submitAdInquiry(formData: FormData) {
     stored = false
   }
 
-  if (stored) {
+  if (stored && !jevSpam) {
     // Best effort on top of the stored record — the row is the durable part.
     await sendEmail(
       ADS_INBOX,

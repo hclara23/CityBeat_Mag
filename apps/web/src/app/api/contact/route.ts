@@ -4,6 +4,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { reportFailure } from '@/lib/alerts'
+import { genuineProbability, isJevSpam } from '@/lib/jev'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -71,6 +72,17 @@ export async function POST(request: NextRequest) {
   // rather than filling the inbox with duplicates of one person's problem.
   const id = `contact_${createHash('sha256').update(`${email}|${topic}|${message}`).digest('hex').slice(0, 40)}`
 
+  // Jev (lib/jev.ts) as a hint: a confident "not genuine" LABELS the row spam so
+  // it drops out of the support inbox. Billing and privacy are never labelled —
+  // a real customer in either must not be hidden by a classifier; they still
+  // page a human, with the score attached for context. Stored either way.
+  const jevGenuine = await genuineProbability('customer support contact form on a local news and business directory site', {
+    topic,
+    name,
+    message,
+  })
+  const jevSpam = isJevSpam(jevGenuine) && !URGENT.includes(topic)
+
   try {
     await adminDb
       .collection('quote_requests')
@@ -88,7 +100,8 @@ export async function POST(request: NextRequest) {
           message,
           topic,
           locale,
-          status: 'new',
+          status: jevSpam ? 'spam' : 'new',
+          jev_genuine: jevGenuine,
           gated: false,
           source: 'contact_page',
           created_at: FieldValue.serverTimestamp(),
@@ -121,7 +134,7 @@ export async function POST(request: NextRequest) {
     await reportFailure(
       `contact-${topic}`,
       new Error(`${what}: ${message.slice(0, 200)}`),
-      { from: email, name: name || null, locale, topic },
+      { from: email, name: name || null, locale, topic, jev_genuine: jevGenuine },
       { skipHealth: true, alertKey: `contact-${topic}` }
     ).catch(() => {})
   }

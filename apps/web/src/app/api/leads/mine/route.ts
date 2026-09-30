@@ -55,6 +55,9 @@ export async function GET() {
     }
 
     const leads = docs
+      // Rows classified as spam (lib/form-spam.ts, lib/jev.ts) are kept for
+      // review but never shown to the business as a customer.
+      .filter((d) => (d.data() as any).status !== 'spam')
       .map((d) => {
         const x = d.data() as any
         const tier = tierById.get(x.listing_id) || 'basic'
