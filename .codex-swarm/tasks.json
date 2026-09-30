@@ -8349,12 +8349,105 @@
       "doc_updated_by": "agentctl",
       "description": "Preserve the existing public submission, make public contributions appear idempotently in the Developer and Editor review queue, retain uploaded images, notify eligible staff without leaking contributor PII, add regression coverage, and deploy the verified fix.",
       "doc": "## Summary\n\nPreserve every public article submission as a private source record, create an idempotent review copy, and notify all editorial staff through the CityBeat inbox and email channel.\n\n## Context\n\nThe public contribution endpoint stored records in the Firestore submissions collection with status pending, while Developer and Editor queues read only the articles collection with status pending_review. No bridge or staff notification existed, and uploaded image bytes were discarded.\n\n## Scope\n\nSave the source record before downstream work; validate and persist optional images; promote with deterministic article ids; recover legacy pending submissions newest-first on authenticated queue reads; search only Storage paths scoped to the exact submission id; classify image recovery as found, not attached, missing, or check failed; join contributor contact details only inside authenticated admin APIs; synchronize review outcomes back to the source record; add deduplicated staff notifications and inbox polling; and show editors the recovered contributor image or an actionable warning.\n\n## Risks\n\nThe existing legacy upload may retain only its filename because the former endpoint discarded the file bytes. Recovery never deletes or overwrites the original submission, never searches the whole bucket by filename, and never attaches an object unless its path is scoped to the submission id. Review-copy retries do not overwrite editorial images or edits, contributor email and source IP remain outside publishable article documents, and Storage failures are labeled check failed rather than incorrectly labeled missing.\n\n## Verify Steps\n\nRun npx tsx --test apps/web/src/lib/public-submissions.test.ts apps/web/src/lib/notify-prefs.test.ts; npm test; npm run type-check --workspace=apps/web; npm run build --workspace=apps/web; and git diff --check. After deployment, load /en/admin. The pending legacy submission must appear in Review Queue, its recovered image must display when stored, otherwise the exact original filename or Storage-check warning must display, and each Developer or Editor must receive one deduplicated inbox item.\n\n## Rollback Plan\n\nRevert the task commit and redeploy. Original submissions documents remain intact; recovery only adds deterministic articles/submission-<id> review copies and merge-only status/link metadata, so any review copy can be removed independently if required.\n\n## Notes\n\nProduction Firestore could not be inspected directly with the current local Google credential because it returned PERMISSION_DENIED. Recovery therefore runs under the deployed CityBeat service identity during the first authenticated queue read. The second pass also rechecks review copies that were already promoted before image recovery was added. Commit ebd706a deployed successfully through Test and Lint run 32076251639 and Deploy Web App run 32076251847; the Cloud Run smoke test and live /api/health check passed. Unrelated payout, partner-sales, and package.json workspace changes were preserved and excluded from this task."
+    },
+    {
+      "id": "202608172324-W1RHSN",
+      "title": "Verify production article image submission pipeline",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "production",
+        "testing",
+        "articles"
+      ],
+      "verify": [
+        "Invoke-RestMethod -Uri https://citybeatmag.co/api/health -Method Get"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: run one traceable production image submission, verify the created submission and image through the public response and authenticated review flow, and clean up only the uniquely labeled test data after preserving evidence."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-08-17T23:24:17+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Submit one clearly labeled production test article with a real image, confirm intake, storage, review-queue promotion, and image retrieval, preserve evidence, then remove only the temporary test record without affecting the real contributor submission."
+    },
+    {
+      "id": "202608172342-BETCQD",
+      "title": "Add Wisco Supply to the CityBeat directory",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "production"
+      ],
+      "verify": [
+        "Invoke-WebRequest -Uri https://citybeatmag.co/en/directory -UseBasicParsing"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: create one free Wisco Supply directory listing from verified official-site details, keep normal owner verification, generate no payment checkout, and validate the public listing URL without modifying other businesses."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-08-17T23:42:52+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Create a free basic, publicly claimable Wisco Supply, Inc. directory listing from official website data, use normal owner verification, avoid payment checkout, and verify the resulting public listing URL."
+    },
+    {
+      "id": "202608180022-BB7Q07",
+      "title": "Link CityBeat catalog to Elevate Sales Desk",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "sales",
+        "frontend",
+        "backend",
+        "training"
+      ],
+      "verify": [
+        "npm run type-check",
+        "npm test",
+        "npm run build"
+      ],
+      "commit": {
+        "hash": "8e9d9e34b413738344b4ceecd67718aac0ac835a",
+        "message": "🔐 202608180022-BB7Q07 deliver partner secret to Cloud Run"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Approved plan: connect all CityBeat products to Elevate's personalized Sales Desk and teach representatives how to position and close CityBeat offers."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: audit the canonical catalog, finish the signed partner checkout contract, then implement Elevate UI, training, tests, documentation, and deployment verification."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Verified: CityBeat CI and Cloud Run deployment succeeded; the signed production catalog returns all 12 products. Elevate PR 15 passed audit, type, unit, integration, build, E2E, and accessibility gates, merged as 17d2323, deployed healthy, and passed the full public smoke suite with zero failures."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-08-18T00:39:28+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Expose CityBeat's authoritative sellable catalog to Elevate sales agents through a signed partner API, support checkout links and QR handoff including manager-approved custom pricing, add CityBeat-specific sales training, tests, documentation, production configuration, deployment, and live smoke verification.",
+      "doc": "## Summary\n\nExpose CityBeat's complete canonical catalog to Elevate through a signed server-to-server partner endpoint, including paid checkout and free listing handoff.\n\n## Scope\n\nCityBeat partner product projection, HMAC request verification, checkout and listing handoff, shared founding availability helper, contract tests, environment documentation, and operator runbook. Elevate consumer, Sales Desk UI, and training are committed in the Elevate repository.\n\n## Risks\n\nA mismatched partner secret disables the integration. Directory products require a category. Fixed prices cannot be discounted or multiplied. Partners cannot bypass ownership verification, merge listings, or receive CityBeat payout attribution.\n\n## Verify Steps\n\nRun npm run type-check, npm test, and npm run build. In production, confirm 12 products, free Basic listing handoff, one paid checkout, directory category enforcement, and signed-request rejection.\n\n## Rollback Plan\n\nRemove CITYBEAT_API_URL or CITYBEAT_PARTNER_SECRET from Elevate to disable partner sales without affecting CityBeat's first-party Sales Desk. Revert the CityBeat integration commit if the endpoint itself must be removed.\n\n## Notes\n\nAll 12 canonical products are projected dynamically. Basic Free returns checkoutRequired false and a listing handoff URL; paid products return CityBeat-hosted Stripe Checkout."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "11f2befa35a9ecab06eab432d353346d32acf82cfd443d6ebec24d5245d7283c"
+    "checksum": "db84fe144577fc12fc5f3c33ffbea7554eca7035f84816582b16fc8efebdd707"
   }
 }
