@@ -3,6 +3,12 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasDeveloperAccess } from '@citybeat/lib/roles'
 import { FieldValue } from 'firebase-admin/firestore'
+import {
+  NEWSLETTER_SLOT_CONFLICT_CODE,
+  newsletterSlotConflict,
+  newsletterSlotConflictMessage,
+  newsletterSlotLabel,
+} from '@/lib/newsletter-slot'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,6 +52,43 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => ({}))
   const placement = PLACEMENTS.includes(body.placement) ? body.placement : 'home_top'
+  const isActive = body.is_active !== false
+
+  // Creating a SECOND live newsletter banner is the same mistake admin/campaigns
+  // already refuses when it approves a sponsorship: the weekly digest has exactly
+  // one "Sponsored by" unit, so whichever banner loses is billed for a placement
+  // that never renders. That check only ever guarded the campaign-approval path,
+  // and this route can reach the same collection directly — so the invariant held
+  // or not depending on which screen an admin happened to use. Same rule, same
+  // 409, one definition in lib/newsletter-slot.
+  //
+  // Fails OPEN on a read error, exactly as the campaign path does: an admin must
+  // not be locked out of banner management by a Firestore hiccup, and the digest
+  // now detects and reports a collision that slips through rather than silently
+  // rendering an arbitrary one of them.
+  if (placement === 'newsletter' && isActive) {
+    const occupied = await adminDb
+      .collection('ad_banners')
+      .where('placement', '==', 'newsletter')
+      .where('is_active', '==', true)
+      .limit(5)
+      .get()
+      .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+    const docs = occupied.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+    // A document being created has no id yet, so nothing is excluded from the check.
+    const [conflictId] = newsletterSlotConflict(docs, null)
+    if (conflictId) {
+      return NextResponse.json(
+        {
+          error: newsletterSlotConflictMessage(
+            newsletterSlotLabel(docs.find((d) => d.id === conflictId) || null)
+          ),
+          code: NEWSLETTER_SLOT_CONFLICT_CODE,
+        },
+        { status: 409 }
+      )
+    }
+  }
 
   const ref = await adminDb.collection('ad_banners').add({
     sponsor_name: body.sponsor_name || null,
@@ -56,7 +99,7 @@ export async function POST(request: NextRequest) {
     placement,
     locale: body.locale === 'en' || body.locale === 'es' ? body.locale : 'all',
     priority: Number(body.priority) || 0,
-    is_active: body.is_active !== false,
+    is_active: isActive,
     created_at: FieldValue.serverTimestamp(),
     updated_at: FieldValue.serverTimestamp(),
   })

@@ -28,6 +28,10 @@ const TYPE_ICON: Record<string, string> = {
   manager_added: '👥',
   report: '📈',
   article_submission: '📰',
+  sale_paid: '💵',
+  brief_submitted: '📝',
+  sale_approved: '🎉',
+  sale_rejected: '🚫',
 }
 
 export function FirstPartyInbox() {

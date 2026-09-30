@@ -3,6 +3,12 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasDeveloperAccess } from '@citybeat/lib/roles'
 import { FieldValue } from 'firebase-admin/firestore'
+import {
+  NEWSLETTER_SLOT_CONFLICT_CODE,
+  newsletterSlotConflict,
+  newsletterSlotConflictMessage,
+  newsletterSlotLabel,
+} from '@/lib/newsletter-slot'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +40,45 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   const ref = adminDb.collection('ad_banners').doc(params.id)
   const existing = await ref.get()
   if (!existing.exists) return NextResponse.json({ error: 'Banner not found' }, { status: 404 })
+
+  // Judge the doc this PATCH would PRODUCE, not the body it was given. Both of
+  // the moves that break the invariant are partial edits: flipping is_active on
+  // a paused newsletter banner while another is live, and moving an already-live
+  // banner's placement to 'newsletter'. Neither sends both fields, so anything
+  // that only inspected the body would wave them through — and the digest sells
+  // exactly one "Sponsored by" unit, so the loser is billed for a placement that
+  // never renders. Same rule and same 409 the campaign-approval path returns.
+  const current = existing.data() as Record<string, any>
+  const nextPlacement = 'placement' in updates ? updates.placement : current?.placement
+  // Strictly `=== true`, because that is what the production query
+  // `.where('is_active','==',true)` matches — anything else is not live.
+  const nextActive = 'is_active' in updates ? updates.is_active === true : current?.is_active === true
+  if (nextPlacement === 'newsletter' && nextActive) {
+    const occupied = await adminDb
+      .collection('ad_banners')
+      .where('placement', '==', 'newsletter')
+      .where('is_active', '==', true)
+      .limit(5)
+      .get()
+      .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+    const docs = occupied.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+    // Excluding this document is what lets the sitting sponsor be edited in
+    // place — renaming it or swapping its creative must not read as a second
+    // sponsor conflicting with itself.
+    const [conflictId] = newsletterSlotConflict(docs, params.id)
+    if (conflictId) {
+      return NextResponse.json(
+        {
+          error: newsletterSlotConflictMessage(
+            newsletterSlotLabel(docs.find((d) => d.id === conflictId) || null)
+          ),
+          code: NEWSLETTER_SLOT_CONFLICT_CODE,
+        },
+        { status: 409 }
+      )
+    }
+  }
+
   await ref.set(updates, { merge: true })
   const doc = await ref.get()
   return NextResponse.json({ banner: { id: doc.id, ...doc.data() } })

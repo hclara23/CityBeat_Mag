@@ -51,6 +51,7 @@ export const NOTIFICATION_TYPES = [
   'sale_paid',          // rep: your sale was paid
   'brief_submitted',    // rep: your customer completed their brief
   'sale_approved',      // rep: your sale went live
+  'sale_rejected',      // rep: the claim you sold was refused in review
   'points_awarded',     // contributor: you earned points
 ] as const
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]

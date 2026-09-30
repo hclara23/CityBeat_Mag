@@ -1,6 +1,6 @@
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { FieldValue } from 'firebase-admin/firestore'
+import { FieldPath, FieldValue } from 'firebase-admin/firestore'
 import {
   allocateShareCents,
   buildTransferRequest,
@@ -15,6 +15,13 @@ import {
   isCommissionDue,
   partialRefundPlan,
 } from './commission-schedule'
+import {
+  RECONCILE_CURSOR_DOC,
+  cursorAfterPage,
+  cursorFieldFor,
+  readStoredCursor,
+  type ReconcileCursorStatus,
+} from './payout-reconcile-cursor'
 import { reportFailure, reportSuccess } from './alerts'
 
 export {
@@ -1076,26 +1083,69 @@ export async function reconcileFailedTransfers(params: {
   // Transfers that went through but whose ledger row could not be written — see
   // the same field on runPayoutCycle. Non-zero means a human is being paged.
   unrecorded: number
+  // Per-status window state, so `?dryRun=1` answers the question the counters
+  // cannot: `truncated` means this status filled its whole budget and there is
+  // more behind it. `next_cursor` is where the following run resumes (null = the
+  // sweep reached the end and wraps to the front).
+  backlog: Record<
+    ReconcileCursorStatus,
+    { scanned: number; truncated: boolean; next_cursor: string | null }
+  >
+  cursor_advanced: boolean
 }> {
   const { stripe, limit = 50, dryRun = false } = params
-  // Query the two statuses SEPARATELY (each single-equality, no composite index) so
-  // a backlog of never-connecting `skipped` rows can never starve the scan window
-  // and hide a recoverable `failed` row — each status gets its own `limit` budget.
-  const [failedSnap, skippedSnap] = await Promise.all([
-    adminDb
+
+  // Resume where the last run stopped. Without this the two queries below fall
+  // back to Firestore's implicit __name__ ordering and re-read the SAME first
+  // `limit` documents every night — see lib/payout-reconcile-cursor.ts for what
+  // that starves and why the ordering key must be __name__ and not a data field.
+  // A cursor we cannot read is treated as "no cursor": the sweep restarts from
+  // the front, which costs a duplicated pass and pays exactly the same rows.
+  const cursorRef = adminDb.collection('system_health').doc(RECONCILE_CURSOR_DOC)
+  const storedCursor = await cursorRef
+    .get()
+    .then((doc) => (doc.exists ? doc.data() : null))
+    .catch(() => null)
+
+  // Query the two statuses SEPARATELY (each one equality filter plus
+  // orderBy(__name__), served by the automatic index — no composite index to
+  // deploy) so a backlog of never-connecting `skipped` rows can never starve the
+  // scan window and hide a recoverable `failed` row: each status gets its own
+  // `limit` budget AND its own cursor.
+  const scanStatus = (status: ReconcileCursorStatus) => {
+    let query = adminDb
       .collection('transfers')
-      .where('status', '==', 'failed')
+      .where('status', '==', status)
+      .orderBy(FieldPath.documentId())
       .limit(limit)
-      .get()
-      .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] })),
-    adminDb
-      .collection('transfers')
-      .where('status', '==', 'skipped_no_connected_account')
-      .limit(limit)
-      .get()
-      .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] })),
-  ])
+    const after = readStoredCursor(storedCursor, status)
+    if (after) query = query.startAfter(after)
+    return query.get()
+  }
+
+  let failedSnap: FirebaseFirestore.QuerySnapshot
+  let skippedSnap: FirebaseFirestore.QuerySnapshot
+  try {
+    ;[failedSnap, skippedSnap] = await Promise.all([
+      scanStatus('failed'),
+      scanStatus('skipped_no_connected_account'),
+    ])
+  } catch (error) {
+    // These reads used to degrade to an empty result, which made a permission or
+    // index error indistinguishable from "nothing to reconcile" — the job then
+    // stamped itself healthy while every unpaid commission stayed unpaid. Alert
+    // with the specific source (its own dedupe bucket, so it is not swallowed by
+    // a noisy `payout-transfer` run) and rethrow: the caller must NOT record a
+    // successful cycle for a pass that never read anything.
+    await reportFailure('payout-reconcile-scan', error, {
+      hint: 'transfers status + __name__ scan failed (index, permission or connectivity)',
+    }).catch(() => {})
+    throw error
+  }
   const snap = { docs: [...failedSnap.docs, ...skippedSnap.docs] }
+
+  const failedWindow = cursorAfterPage({ pageIds: failedSnap.docs.map((d) => d.id), limit })
+  const skippedWindow = cursorAfterPage({ pageIds: skippedSnap.docs.map((d) => d.id), limit })
 
   let paid = 0
   let stillFailing = 0
@@ -1196,7 +1246,45 @@ export async function reconcileFailedTransfers(params: {
     await reportSuccess('payout-transfer').catch(() => {})
   }
 
-  return { scanned: snap.docs.length, paid, still_failing: stillFailing, superseded, skipped, unrecorded }
+  // Advance the window. A dry run NEVER writes it: an operator probe must be able
+  // to look at the head of the backlog without silently skipping those rows on the
+  // real run that follows — same reason the route withholds reportSuccess on a dry
+  // run. A failed write just means the next run re-reads this page, which is
+  // wasteful and harmless; it must not fail a pass that already moved money.
+  if (!dryRun) {
+    await cursorRef
+      .set(
+        {
+          [cursorFieldFor('failed')]: failedWindow.next,
+          [cursorFieldFor('skipped_no_connected_account')]: skippedWindow.next,
+          updated_at: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      )
+      .catch(() => {})
+  }
+
+  return {
+    scanned: snap.docs.length,
+    paid,
+    still_failing: stillFailing,
+    superseded,
+    skipped,
+    unrecorded,
+    backlog: {
+      failed: {
+        scanned: failedSnap.docs.length,
+        truncated: failedWindow.truncated,
+        next_cursor: failedWindow.next,
+      },
+      skipped_no_connected_account: {
+        scanned: skippedSnap.docs.length,
+        truncated: skippedWindow.truncated,
+        next_cursor: skippedWindow.next,
+      },
+    },
+    cursor_advanced: !dryRun,
+  }
 }
 
 // Godmode "issue a payout now": transfers a FLAT amount (cents) to a user's

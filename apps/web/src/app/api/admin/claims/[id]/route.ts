@@ -45,6 +45,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const data = existing.data() as any
     const ownerId = data?.owner_id
+    // Read the selling rep from the PRE-update snapshot. Rejection blanks
+    // owner_id, the tier and the subscription link, so anything resolved after
+    // the write describes a listing the sale no longer visibly belongs to.
+    const repId = data?.sold_by_rep ? String(data.sold_by_rep) : null
 
     const updates =
       action === 'approve'
@@ -122,8 +126,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         ).catch(() => {})
       }
       const bizName = String(data?.name || 'your business')
+      // A stable id per listing and verdict. An admin double-clicking Approve
+      // used to send the owner two identical messages and two emails for one
+      // decision; dedupe is per-user, so a different claimant later still hears
+      // about their own claim.
       await notifyUser({
         userId: String(ownerId),
+        notificationId: `claim_approved:${id}`,
         type: 'claim_approved',
         title: `Your claim for ${bizName} was approved!`,
         title_es: `¡Tu reclamo de ${bizName} fue aprobado!`,
@@ -142,6 +151,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       if (ownerId) {
         await notifyUser({
           userId: String(ownerId),
+          notificationId: `claim_rejected:${id}`,
           type: 'claim_rejected',
           title: `We could not approve your claim for ${bizName}`,
           title_es: `No pudimos aprobar tu reclamo de ${bizName}`,
@@ -180,6 +190,47 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             claimed_tier: String(data?.pending_tier || data?.tier || ''),
           }
         ).catch(() => {})
+      }
+    }
+
+    // The rep who sold this claim was never told how the review ended — they
+    // found out by reopening the Sales Desk and guessing from the tier. This is
+    // keyed on repId ALONE, deliberately: a rep-sold listing normally has no
+    // owner attached until an admin attaches one at approval, so nesting it in
+    // the owner branches above would skip exactly the case it exists for. The
+    // repId !== ownerId guard stops a rep who claimed their own listing from
+    // getting two messages about one decision.
+    if (repId && repId !== ownerId) {
+      const bizName = String(data?.name || 'this business')
+      if (action === 'approve') {
+        await notifyUser({
+          userId: repId,
+          notificationId: `sale_approved:${id}`,
+          type: 'sale_approved',
+          title: `Your sale is live: ${bizName}`,
+          title_es: `Tu venta está en vivo: ${bizName}`,
+          body: 'The claim you sold was approved and the listing is now live.',
+          body_es: 'El reclamo que vendiste fue aprobado y la ficha ya está en vivo.',
+          link: '/admin/sales/me',
+          emailChannel: false,
+        }).catch(() => {})
+      } else {
+        // State only what this route actually did. Rejection cancels billing
+        // and files the refund decision for a human; it does NOT touch the
+        // commission ledger — clawbackCommission runs off refund and dispute
+        // events in the Stripe webhook. Telling a rep their commission was
+        // reversed here would be false at the moment the message is sent.
+        await notifyUser({
+          userId: repId,
+          notificationId: `sale_rejected:${id}`,
+          type: 'sale_rejected',
+          title: `Not approved: ${bizName}`,
+          title_es: `No aprobado: ${bizName}`,
+          body: 'The claim you sold was not approved in review, so the listing is unclaimed again. This does not change your commission by itself — only a refund would, and that decision is still open.',
+          body_es: 'El reclamo que vendiste no fue aprobado en la revisión, así que la ficha vuelve a estar sin reclamar. Esto por sí solo no cambia tu comisión — solo un reembolso lo haría, y esa decisión sigue pendiente.',
+          link: '/admin/sales/me',
+          emailChannel: false,
+        }).catch(() => {})
       }
     }
 

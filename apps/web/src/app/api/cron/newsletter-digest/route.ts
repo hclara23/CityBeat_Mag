@@ -6,6 +6,7 @@ import { sendEmail } from '@/lib/email'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { emailHash, isSuppressedStatus, mintUnsubToken, normalizeNewsletterEmail } from '@/lib/newsletter'
 import { loadSuppressedHashes } from '@/lib/newsletter-server'
+import { pickNewsletterSponsor } from '@/lib/newsletter-slot'
 import { unsubHeaders } from '@/lib/unsub-headers'
 
 const POSTAL = process.env.NEWSLETTER_POSTAL_ADDRESS || 'CityBeat Mag, El Paso, TX, USA'
@@ -24,19 +25,34 @@ function authorized(request: NextRequest) {
 
 type Sponsor = { sponsor_name?: string; title?: string; link_url?: string; image_url?: string } | null
 
-// A single sellable "Sponsored by" unit: the first active ad_banners doc with
+// A single sellable "Sponsored by" unit: the active ad_banners doc with
 // placement 'newsletter'. Absent → the digest renders without it.
-async function getNewsletterSponsor(): Promise<Sponsor> {
+//
+// This used to be `.limit(1)` with no orderBy, which is not a choice — Firestore
+// returns those rows in unspecified order, so with two active banners the
+// rendered sponsor was arbitrary and could change from one Friday to the next.
+// The other sponsor was billed for a placement that never went out, and nothing
+// anywhere said so. Read a bounded window instead and let newsletter-slot decide
+// deterministically (incumbent wins), reporting anyone it had to leave out.
+//
+// limit(5) is the bound, not a cap on correctness: the invariant enforced on
+// every write path is at most ONE, so anything past a handful is already a data
+// emergency and the read stays cheap. The query itself is unchanged, so no new
+// composite index is required.
+async function getNewsletterSponsor(): Promise<{ sponsor: Sponsor; conflictIds: string[] }> {
   try {
     const snap = await adminDb
       .collection('ad_banners')
       .where('placement', '==', 'newsletter')
       .where('is_active', '==', true)
-      .limit(1)
+      .limit(5)
       .get()
-    return snap.empty ? null : (snap.docs[0].data() as any)
+    const { sponsor, conflictIds } = pickNewsletterSponsor(
+      snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+    )
+    return { sponsor: (sponsor as Sponsor) || null, conflictIds }
   } catch {
-    return null
+    return { sponsor: null, conflictIds: [] }
   }
 }
 
@@ -169,7 +185,31 @@ export async function GET(request: NextRequest) {
     ? `CityBeat: ${recent[0].title}`
     : 'CityBeat — this week in the borderland'
 
-  const sponsor = await getNewsletterSponsor()
+  const { sponsor, conflictIds } = await getNewsletterSponsor()
+
+  // Two sponsors are live in a slot that only holds one, so someone is paying
+  // for a placement this send will not contain. Tell a human — and SEND ANYWAY.
+  // The newsletter is not held hostage to a billing dispute, and refusing to
+  // mail would punish the subscribers and the incumbent sponsor for an admin
+  // mistake. Which one renders is no longer in question (incumbent wins); the
+  // only open item is a refund or a schedule, and that is a person's call.
+  //
+  // skipHealth because the run itself is fine: this handler calls
+  // reportSuccess('cron:newsletter-digest') a few lines below on a clean send,
+  // which would clear a "failing" flag inside the same request and leave the
+  // signal meaningless in both directions. Its own alertKey for the same reason
+  // reportCronAuthRejected has one — the 3-per-6h email bucket is per key, and a
+  // slot collision must not crowd out a delivery-failure alert.
+  if (conflictIds.length > 0) {
+    await reportFailure(
+      'cron:newsletter-digest',
+      new Error(
+        `more than one active newsletter sponsor: rendering the incumbent, ${conflictIds.length} paid banner(s) did NOT go out — ${conflictIds.join(', ')}`
+      ),
+      { rendered: (sponsor as any)?.sponsor_name || (sponsor as any)?.title || null, not_rendered: conflictIds },
+      { skipHealth: true, alertKey: 'newsletter-slot' }
+    )
+  }
 
   // Send journal: without it, a mid-blast crash or a scheduler retry re-sent
   // early subscribers and skipped late ones. One doc per RUN DAY holding the
@@ -291,6 +331,9 @@ export async function GET(request: NextRequest) {
     failed,
     ...(journalBroken ? { halted: 'journal_unwritable' } : {}),
     sponsored: Boolean(sponsor),
+    // Surfaced in the response too, so `?dryRun=1` shows the collision without
+    // waiting for the alert email to arrive.
+    ...(conflictIds.length ? { sponsor_conflicts: conflictIds } : {}),
     ...(dryRun ? { preview_subject: subject, preview_html: digestHtml(recent, 'preview@citybeatmag.co', 'en', sponsor) } : {}),
   })
 }

@@ -4,6 +4,12 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { sendEmail } from '@/lib/email'
 import { moderationOutcomeEmail } from '@/lib/buyer-emails'
+import {
+  NEWSLETTER_SLOT_CONFLICT_CODE,
+  newsletterSlotConflict,
+  newsletterSlotConflictMessage,
+  newsletterSlotLabel,
+} from '@/lib/newsletter-slot'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,12 +71,16 @@ export async function PATCH(request: NextRequest) {
     const existing = await ref.get()
     if (!existing.exists) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
 
-    // The newsletter has exactly ONE "Sponsored by" slot and the digest reads
-    // one banner with no ordering — so approving a second concurrent
-    // sponsorship silently buried one paying sponsor behind the other,
-    // $50/mo for a placement that never rendered. Refuse instead: the slot
-    // must be freed (reject/cancel the current occupant) before a new
+    // The newsletter has exactly ONE "Sponsored by" slot, so approving a second
+    // concurrent sponsorship silently buried one paying sponsor behind the
+    // other, $50/mo for a placement that never rendered. Refuse instead: the
+    // slot must be freed (reject/cancel the current occupant) before a new
     // sponsor is approved.
+    //
+    // Who counts as an occupant now comes from lib/newsletter-slot, which the
+    // banner admin routes and the digest itself also use. Three write paths
+    // reach this collection and they were not all guarded; one definition means
+    // they cannot drift into disagreeing about the same rows.
     if (action === 'approve') {
       const occupied = await adminDb
         .collection('ad_banners')
@@ -79,12 +89,16 @@ export async function PATCH(request: NextRequest) {
         .limit(5)
         .get()
         .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
-      const conflict = occupied.docs.find((d) => d.id !== `campaign:${id}`)
-      if (conflict) {
+      const docs = occupied.docs.map((d) => ({ id: d.id, ...(d.data() as any) }))
+      // Re-approving the same campaign must not collide with its own mirror.
+      const [conflictId] = newsletterSlotConflict(docs, `campaign:${id}`)
+      if (conflictId) {
         return NextResponse.json(
           {
-            error: `The newsletter sponsor slot is already occupied (${(conflict.data() as any)?.sponsor_name || conflict.id}). Deactivate that banner first — approving a second sponsorship would bill them for a placement that never appears.`,
-            code: 'newsletter_slot_occupied',
+            error: newsletterSlotConflictMessage(
+              newsletterSlotLabel(docs.find((d) => d.id === conflictId) || null)
+            ),
+            code: NEWSLETTER_SLOT_CONFLICT_CODE,
           },
           { status: 409 }
         )

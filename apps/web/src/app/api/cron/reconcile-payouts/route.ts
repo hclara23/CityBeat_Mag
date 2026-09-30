@@ -16,6 +16,13 @@ function authorized(request: NextRequest) {
 // whose funds hadn't settled, or a payee whose bank wasn't connected yet). Idempotent
 // and safe to run repeatedly — an already-`paid` share is skipped and the stable
 // idempotency key prevents any double-pay. Dry-run with `?dryRun=1`.
+//
+// Each run sweeps the NEXT `limit` rows per status and remembers where it stopped,
+// so the backlog drains instead of the same head rows being re-read every night
+// (see lib/payout-reconcile-cursor.ts). `?dryRun=1` advances nothing — neither the
+// cursor nor the liveness stamp — so an operator can inspect the queue without
+// causing the real run to skip the rows they just looked at. The response's
+// `backlog` block reports, per status, whether more is waiting behind this page.
 export async function GET(request: NextRequest) {
   // A rejected BEARER token is our own scheduler running against a rotated or
   // mistyped CRON_SECRET. That silences EVERY job at once, before any of their

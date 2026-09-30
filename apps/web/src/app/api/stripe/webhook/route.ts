@@ -31,6 +31,7 @@ import { purchaseConfirmationEmail } from '@/lib/buyer-emails'
 import { notifyUser } from '@/lib/user-notifications'
 import { STRIPE_EVENT_RETENTION_DAYS, expiresInDays } from '@/lib/retention'
 import { selfServeRefundTargets } from '@/lib/refund-targets'
+import { isFullyRefunded, refundPatchForPurchaseRows } from '@/lib/refund-attribution'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -919,25 +920,8 @@ async function payResidualCommissionIfDue(invoice: any) {
 
 async function handleChargeRefunded(charge: any) {
   const pi = typeof charge.payment_intent === 'string' ? charge.payment_intent : ''
-  const fullyRefunded = Boolean(charge.refunded) || Number(charge.amount_refunded || 0) >= Number(charge.amount || 0)
+  const fullyRefunded = isFullyRefunded(charge)
   const doc = (await findOne('ad_purchases', 'stripe_payment_intent_id', pi)) || (await findOne('ad_purchases', 'session_id', charge.id))
-  if (doc) {
-    // Record the refunded CENTS, not just the state. purchaseCollectedCents
-    // subtracts amount_refunded but nothing had ever written it onto a purchase
-    // row, so a partially refunded purchase still counted gross in finance and in
-    // the ops digest. This lookup is by payment_intent / session, so it is the one
-    // row for this charge and the charge's cumulative total is exactly its refund.
-    await doc.ref.set(
-      {
-        payment_status: fullyRefunded ? 'refunded' : 'partially_refunded',
-        amount_refunded: fullyRefunded
-          ? Number((doc.data() as any)?.amount_total) || Number(charge.amount_refunded || 0)
-          : Number(charge.amount_refunded || 0),
-        updated_at: new Date().toISOString(),
-      },
-      { merge: true }
-    )
-  }
   let orders: FirebaseFirestore.QueryDocumentSnapshot[] = []
   // Whether the refunded charge is the one that ORIGINATED these orders, rather
   // than a later renewal that merely shares their subscription. Commission is
@@ -1020,6 +1004,33 @@ async function handleChargeRefunded(charge: any) {
     }
   }
 
+  // Record the refund on every ad_purchases row behind this charge — ONCE, over
+  // the union of both lookups. The rows are found two ways (by payment_intent /
+  // session above, and per sales_order below) and the two used to decide
+  // independently, so a multi-item cart could end up with one arbitrary row
+  // carrying the whole cart's refund while its siblings stayed gross. The amounts
+  // come from lib/refund-attribution (pure, unit-tested); purchaseCollectedCents
+  // subtracts them, so finance and the ops digest report revenue net of this.
+  const purchaseRows = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>()
+  if (doc) purchaseRows.set(doc.id, doc)
+  for (const orderDocument of orders) {
+    const purchases = await adminDb.collection('ad_purchases').where('sales_order_id', '==', orderDocument.id).get()
+    for (const purchase of purchases.docs) purchaseRows.set(purchase.id, purchase)
+  }
+  const purchasePatches = refundPatchForPurchaseRows({
+    fullyRefunded,
+    chargeAmountRefunded: Number(charge.amount_refunded || 0),
+    rows: [...purchaseRows.values()].map((row) => ({ id: row.id, amount_total: (row.data() as any)?.amount_total })),
+  })
+  await Promise.all(
+    purchasePatches.map(({ id, patch }) =>
+      purchaseRows.get(id)!.ref.set(
+        { payment_status: fullyRefunded ? 'refunded' : 'partially_refunded', ...patch, updated_at: now },
+        { merge: true }
+      )
+    )
+  )
+
   for (const orderDocument of orders) {
     const order = orderDocument.data() as Record<string, any>
     await orderDocument.ref.set(
@@ -1033,35 +1044,6 @@ async function handleChargeRefunded(charge: any) {
         updated_at: now,
       },
       { merge: true }
-    )
-    const purchases = await adminDb
-      .collection('ad_purchases')
-      .where('sales_order_id', '==', orderDocument.id)
-      .get()
-    // One charge can back SEVERAL purchase rows (a multi-item cart), so the
-    // charge's cumulative amount_refunded must not be written onto each of them —
-    // that would subtract the same refund once per row. A full refund is exact per
-    // row (each lost its own amount_total); a partial refund across several rows
-    // cannot be attributed from the charge alone, so no amount is written and the
-    // row stays gross. The partial-refund alert further down already tells a human
-    // to reconcile it, and counting gross is wrong by the refunded amount where
-    // counting nothing would be wrong by the entire sale.
-    const singlePurchase = purchases.docs.length === 1
-    await Promise.all(
-      purchases.docs.map((purchase) =>
-        purchase.ref.set(
-          {
-            payment_status: fullyRefunded ? 'refunded' : 'partially_refunded',
-            ...(fullyRefunded
-              ? { amount_refunded: Number((purchase.data() as any)?.amount_total) || 0 }
-              : singlePurchase
-                ? { amount_refunded: Number(charge.amount_refunded || 0) }
-                : {}),
-            updated_at: now,
-          },
-          { merge: true }
-        )
-      )
     )
 
     // `fulfillment_target` is stamped only when the customer SUBMITS their brief,
