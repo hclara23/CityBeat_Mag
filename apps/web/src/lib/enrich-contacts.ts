@@ -78,7 +78,18 @@ export function isOwnInbox(email: string, siteHost?: string): boolean {
   if (!siteHost) return true
   if (FREEMAIL.test(email)) return true
   const domain = email.split('@')[1] || ''
-  return baseDomain(domain) === baseDomain(siteHost)
+  const a = baseDomain(domain)
+  const b = baseDomain(siteHost)
+  if (a === b) return true
+  // Same business on a variant domain ("desertoakbbq.com" mailing for
+  // "desertoakbarbecue.com", "chihua.com" for "chihuatacosusa.com"): the names
+  // share most of the shorter one as a prefix. A proportional bar, not a fixed
+  // length, so two different "elpaso…" businesses never match each other.
+  const la = a.split('.')[0]
+  const lb = b.split('.')[0]
+  let common = 0
+  while (common < la.length && common < lb.length && la[common] === lb[common]) common++
+  return common >= 5 && common >= 0.6 * Math.min(la.length, lb.length)
 }
 
 export function bestEmail(candidates: string[], siteHost?: string): string | null {

@@ -29,3 +29,14 @@ test('the agency credit never wins over a real inbox, and alone yields nothing',
 test('an own-domain address beats a personal one', () => {
   assert.equal(bestEmail(['owner@gmail.com', 'info@takotakotacos.com'], 'takotakotacos.com'), 'info@takotakotacos.com')
 })
+
+test('the same business on a variant domain is still its own inbox', () => {
+  assert.equal(isOwnInbox('stephenortiz@desertoakbbq.com', 'www.desertoakbarbecue.com'), true)
+  assert.equal(isOwnInbox('info@chihua.com', 'chihuatacosusa.com'), true)
+})
+
+test('two different El Paso businesses never match on the shared prefix', () => {
+  assert.equal(isOwnInbox('dave@elpasobiergarten.com', 'elpasoplumbing.com'), false)
+  assert.equal(isOwnInbox('purchasingsuppliers@brinker.com', 'www.chilis.com'), false)
+  assert.equal(isOwnInbox('hi@mystore.com', 'barbacoalos4vientos.square.site'), false)
+})
