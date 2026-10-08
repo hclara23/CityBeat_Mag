@@ -39,6 +39,7 @@ const categoryLabels: Record<string, { en: string; es: string }> = {
   business: { en: 'Business', es: 'Negocios' },
   events: { en: 'Events', es: 'Eventos' },
   culture: { en: 'Culture', es: 'Cultura' },
+  sports: { en: 'Sports', es: 'Deportes' },
 }
 
 export default async function StoriesPage({ params, searchParams }: Props) {

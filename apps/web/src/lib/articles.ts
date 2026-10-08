@@ -27,7 +27,7 @@ export type Article = {
   imageIllustrative: boolean
 }
 
-export const CATEGORY_IDS = ['news', 'business', 'events', 'culture'] as const
+export const CATEGORY_IDS = ['news', 'business', 'events', 'culture', 'sports'] as const
 
 // Article `content` may be either a flat block array
 // ([{ type:'paragraph', content:[{ text }] }]) or a TipTap/ProseMirror document

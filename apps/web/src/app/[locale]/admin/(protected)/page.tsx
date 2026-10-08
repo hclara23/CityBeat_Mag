@@ -19,6 +19,8 @@ interface PendingArticle {
 }
 
 const primaryAdminLinks = [
+  { href: '/admin/social-queue', label: 'Social Image Queue', description: 'Upload images for automatic captions, independent review, and Facebook posting.' },
+  { href: '/admin/sports', label: 'Sports Desk', description: 'Publish authorized sports updates and inspect source permissions.' },
   { href: '/creator', label: 'Creator Studio', description: 'Manage drafts, review status, and submitted work.' },
   { href: '/admin', label: 'Review Queue', description: 'Approve, reject, and publish submitted articles.' },
   { href: '/admin/claims', label: 'Claims Queue', description: 'Review, approve, or reject business directory claims.' },

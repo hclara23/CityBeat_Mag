@@ -12,6 +12,7 @@ import { dashboardPathFor } from '@citybeat/lib/roles'
 function getNavItems(locale: string) {
   return [
     { label: locale === 'es' ? 'Boletines' : 'Stories', href: '/stories' },
+    { label: locale === 'es' ? 'Deportes' : 'Sports', href: '/sports' },
     { label: locale === 'es' ? 'Eventos' : 'Events', href: '/events' },
     { label: locale === 'es' ? 'Empleos' : 'Jobs', href: '/jobs' },
     { label: locale === 'es' ? 'Directorio' : 'Directory', href: '/directory' },

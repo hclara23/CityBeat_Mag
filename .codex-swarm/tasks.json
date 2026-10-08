@@ -8458,16 +8458,36 @@
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-08T21:48:44+00:00",
+      "doc_updated_at": "2026-10-08T21:53:29+00:00",
       "doc_updated_by": "agentctl",
       "description": "Determine current CityBeat app health, identify the source of failure/error notifications, trace lead capture end-to-end, and report actionable leads and remediation priorities without modifying production data.",
-      "doc": "## Summary\n\nAudit production health, investigate failure notifications, and trace lead capture without mutating production data.\n\n## Context\n\nThe owner reports receiving many failed/error emails and needs the current application status plus visibility into captured leads.\n\n## Scope\n\nInspect repository configuration, recent deployment and runtime evidence, public endpoints, notification sources, and lead storage/delivery paths. Produce a severity-ranked report and lead follow-up list. No production writes or purchases.\n\n## Risks\n\nDiagnostics may encounter unavailable credentials, third-party service access limits, or sensitive lead data. Avoid exposing secrets or personal data and perform only read-only external checks.\n\n## Verify Steps\n\nConfirm repository and deployment configuration; run safe local checks; verify public endpoints; inspect available read-only runtime evidence; trace each lead intake destination; reconcile recent lead records and delivery failures.\n\n## Rollback Plan\n\nThis is a read-only audit. Rollback is limited to reverting the task-planning commit if requested; no production state will be changed.\n\n## Notes\n\nUser approved the four-step audit plan on 2026-10-08."
+      "doc": "## Summary\n\nAudit production health, investigate failure notifications, and trace lead capture without mutating production data.\n\n## Context\n\nThe owner reports receiving many failed/error emails and needs the current application status plus visibility into captured leads.\n\n## Scope\n\nInspect repository configuration, recent deployment and runtime evidence, public endpoints, notification sources, and lead storage/delivery paths. Produce a severity-ranked report and lead follow-up list. No production writes or purchases.\n\n## Risks\n\nDiagnostics may encounter unavailable credentials, third-party service access limits, or sensitive lead data. Avoid exposing secrets or personal data and perform only read-only external checks.\n\n## Verify Steps\n\nConfirm repository and deployment configuration; run safe local checks; verify public endpoints; inspect available read-only runtime evidence; trace each lead intake destination; reconcile recent lead records and delivery failures.\n\n## Rollback Plan\n\nThis is a read-only audit. Rollback is limited to reverting the task-planning commit if requested; no production state will be changed.\n\n## Notes\n\n2026-10-08 findings: public homepage and directory return HTTP 200; /api/health reports healthy with app, Firestore, and Stripe OK on revision citybeat-web-00290-gus; /api/health/payments reports can_take_payments=true. api.citybeatmag.co does not resolve. Recent GitHub Test & Lint and Deploy Web App runs are successful. Production lead dashboard shows 2 verified, 2 hot/clicked, and 17 warm/re-opened prospects; 0 captured quote requests and 0 active deals. Local validation passed 554 tests, lint, type-check, and production build. gcloud account elevatelepaso@gmail.com lacks IAM permission for kerstenblueprint logs, Cloud Run describe, and Scheduler list. Roundcube session expired, so exact alert-email subjects remain unconfirmed pending user sign-in."
+    },
+    {
+      "id": "202610082331-2FM719",
+      "title": "Launch reviewed image queue and automated sports section",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: Build approved image review queue and authorized sports automation with a five-dollar monthly AI ceiling."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-08T23:32:00+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Build admin image queue with independent caption review, sports source controls and public page; test and deploy with explicit spending and source permission gates.",
+      "doc": "## Summary\n\nImplement reviewed image posting queue and permission-gated sports aggregation for production.\n\n## Scope\n\nAdmin image uploads, two independent vision passes, retry and duplicate protection, public sports page, licensed feed controls, tests and deployment preparation. Live paid usage requires explicit budget approval.\n\n## Risks\n\nAI hallucinations, image rights, feed licensing, duplicate public posts, external API costs and uncertain network outcomes. Fail closed and require review when uncertain.\n\n## Verify Steps\n\nRun npm test, web lint/type-check/build; verify admin authentication, review rejection, spending gate and production routes before enabling.\n\n## Rollback Plan\n\nDisable new automation flags; roll back Cloud Run revision while preserving existing Facebook credentials and queue records."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "0b5069d58a945cf2a21bbf5aacfc723176d8f75349504a4441a288eed46d010e"
+    "checksum": "7dbff65752bd3cb73102034351d712bda70e1d48fe35497a254fbc6fa28f4167"
   }
 }

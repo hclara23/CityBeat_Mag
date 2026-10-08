@@ -5,6 +5,7 @@ import { getPublishedArticles } from '@/lib/articles'
 import { postArticleToSocial, postThisWeekendToSocial, socialConfigured } from '@/lib/social'
 import { getThisWeekendEvents } from '@/lib/events'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
+import { drainImageQueue } from '@/lib/social-queue'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
     .slice(0, max)
 
   try {
+    await drainImageQueue()
     let posted = 0
     const results: any[] = []
     for (const a of recent) {
