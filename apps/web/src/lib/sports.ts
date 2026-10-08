@@ -24,10 +24,22 @@ export async function ingestSportsUpdate(sourceId: string, input: Record<string,
 }
 
 export async function getSportsUpdates() {
-  const [updates, sources] = await Promise.all([
-    adminDb.collection('sports_updates').orderBy('published_at', 'desc').limit(80).get(), sportsSources().limit(100).get(),
-  ])
+  const sources = await sportsSources().limit(100).get()
   const allowed = new Set(sources.docs.filter(doc => permittedSource(doc.data() as SportsSource)).map(doc => doc.id))
-  return updates.docs.filter(doc => allowed.has(doc.data().source_id) && doc.data().status === 'published')
-    .map(doc => ({ id: doc.id, ...doc.data() } as { id: string; title: string; body: string; author: string; source_name: string; source_url: string | null; published_at: string })).slice(0, 40)
+  type Row = { id: string; title: string; body: string; author: string; source_name: string; source_url: string | null; published_at: string }
+  const rows: Row[] = []
+  if (!allowed.size) return rows
+  const base = adminDb.collection('sports_updates').orderBy('published_at', 'desc').limit(80)
+  let query = base
+  // Continue past withdrawn/expired rows instead of mistaking a filtered first
+  // page for an empty sports desk. Bound work for a very large historical archive.
+  for (let page = 0; page < 12 && rows.length < 40; page++) {
+    const updates = await query.get()
+    for (const doc of updates.docs) {
+      if (allowed.has(doc.data().source_id) && doc.data().status === 'published') rows.push({ id: doc.id, ...doc.data() } as Row)
+    }
+    if (updates.size < 80) break
+    query = base.startAfter(updates.docs[updates.docs.length - 1])
+  }
+  return rows.slice(0, 40)
 }

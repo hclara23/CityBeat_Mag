@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import sharp from 'sharp'
 import { adminDb, adminStorage } from '@citybeat/lib/firebase/admin'
 import { automationAdmin } from '@/lib/admin-automation-auth'
@@ -42,26 +42,35 @@ export async function POST(request: NextRequest) {
     const ref = queueCollection().doc(id)
     const bucket = adminStorage.bucket(process.env.MEDIA_BUCKET || 'kerstenblueprint-media')
     const path = `social-queue/${id}.jpg`
+    const uploadId = randomUUID()
     // Daily intake cap is global/transactional, not an instance-local counter.
     const intake = adminDb.collection('automation_budgets').doc(`social-intake-${new Date().toISOString().slice(0, 10)}`)
     const created = await adminDb.runTransaction(async tx => {
       const [existing, daily] = await Promise.all([tx.get(ref), tx.get(intake)])
-      if (existing.exists) return 'duplicate'
+      const old = existing.data()
+      const recoverable = old?.status === 'upload_failed' || (old?.status === 'uploading' && old.updated_at < Date.now() - 10 * 60_000)
+      if (existing.exists && !recoverable) return 'duplicate'
       const count = daily.data()?.count || 0
       if (count >= 10) return 'limit'
       tx.set(intake, { count: count + 1 })
-      tx.create(ref, { status: 'uploading', notes, created_at: Date.now(), updated_at: Date.now(),
+      tx.set(ref, { status: 'uploading', upload_id: uploadId, notes, created_at: Date.now(), updated_at: Date.now(),
         created_by: auth.user!.id, rights_confirmed: true, rights_confirmed_at: Date.now(),
         storage_path: path, image_url: `https://storage.googleapis.com/${bucket.name}/${path}` })
       return 'created'
     })
     if (created === 'duplicate') return NextResponse.json({ error: 'This image is already in the queue.', id }, { status: 409 })
     if (created === 'limit') return NextResponse.json({ error: 'Daily limit of 10 uploads reached.' }, { status: 429 })
+    const finishUpload = (fields: Record<string, unknown>) => adminDb.runTransaction(async tx => {
+      const current = (await tx.get(ref)).data()
+      if (current?.status !== 'uploading' || current?.upload_id !== uploadId) return false
+      tx.update(ref, { ...fields, updated_at: Date.now() })
+      return true
+    })
     try {
       await bucket.file(path).save(buffer, { metadata: { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000, immutable' } })
-      await ref.update({ status: 'queued', updated_at: Date.now() })
+      if (!await finishUpload({ status: 'queued' })) return NextResponse.json({ id, status: 'superseded' })
     } catch {
-      await ref.update({ status: 'upload_failed', reason: 'Storage upload failed. Contact an administrator.', updated_at: Date.now() })
+      await finishUpload({ status: 'upload_failed', reason: 'Storage upload failed. You can upload this same image again.' })
       return NextResponse.json({ error: 'Image storage failed', id }, { status: 503 })
     }
     // Await the worker; never fire-and-forget on a serverless instance. If this

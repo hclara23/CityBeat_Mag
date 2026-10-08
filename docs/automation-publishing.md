@@ -16,7 +16,9 @@ Before any calls, a Firestore transaction reserves **10 cents** from a **500-cen
 
 Duplicate normalized images share a SHA-256 queue ID. Transactional state claims prevent simultaneous workers. State is persisted as `publishing` **before** Facebook is called. Timeout, interrupted process or ambiguous provider response becomes `publish_uncertain` and is never automatically retried. Inspect the Page manually. Never reset that state without resolving whether the post exists.
 
-Kill switch: set `SOCIAL_IMAGE_QUEUE_ENABLED=false`. Cancelling a reviewing item prevents its eventual publish; cancellation cannot undo an already-started Facebook request. Existing article publishing is independent.
+Kill switch for new workers: set `SOCIAL_IMAGE_QUEUE_ENABLED=false`. Existing Cloud Run revisions retain their environment during in-flight requests: also cancel queued/reviewing items for an immediate per-item stop. Cancellation cannot undo an already-started Facebook request. Existing article publishing is independent.
+
+Failed storage uploads can be re-uploaded with the same image; an interrupted `uploading` item becomes reclaimable after ten minutes. Run-scoped upload completion prevents an old worker overwriting its replacement.
 
 ## Sports
 
