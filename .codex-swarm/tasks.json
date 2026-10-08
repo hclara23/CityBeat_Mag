@@ -8442,12 +8442,32 @@
       "doc_updated_by": "agentctl",
       "description": "Expose CityBeat's authoritative sellable catalog to Elevate sales agents through a signed partner API, support checkout links and QR handoff including manager-approved custom pricing, add CityBeat-specific sales training, tests, documentation, production configuration, deployment, and live smoke verification.",
       "doc": "## Summary\n\nExpose CityBeat's complete canonical catalog to Elevate through a signed server-to-server partner endpoint, including paid checkout and free listing handoff.\n\n## Scope\n\nCityBeat partner product projection, HMAC request verification, checkout and listing handoff, shared founding availability helper, contract tests, environment documentation, and operator runbook. Elevate consumer, Sales Desk UI, and training are committed in the Elevate repository.\n\n## Risks\n\nA mismatched partner secret disables the integration. Directory products require a category. Fixed prices cannot be discounted or multiplied. Partners cannot bypass ownership verification, merge listings, or receive CityBeat payout attribution.\n\n## Verify Steps\n\nRun npm run type-check, npm test, and npm run build. In production, confirm 12 products, free Basic listing handoff, one paid checkout, directory category enforcement, and signed-request rejection.\n\n## Rollback Plan\n\nRemove CITYBEAT_API_URL or CITYBEAT_PARTNER_SECRET from Elevate to disable partner sales without affecting CityBeat's first-party Sales Desk. Revert the CityBeat integration commit if the endpoint itself must be removed.\n\n## Notes\n\nAll 12 canonical products are projected dynamically. Basic Free returns checkoutRequired false and a listing handoff URL; paid products return CityBeat-hosted Stripe Checkout."
+    },
+    {
+      "id": "202610082148-JRZJR5",
+      "title": "Audit production health and recover leads",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: audit confirmed public health and mapped production leads; email root-cause confirmation is waiting on renewed webmail or production-log access."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-08T21:48:44+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Determine current CityBeat app health, identify the source of failure/error notifications, trace lead capture end-to-end, and report actionable leads and remediation priorities without modifying production data.",
+      "doc": "## Summary\n\nAudit production health, investigate failure notifications, and trace lead capture without mutating production data.\n\n## Context\n\nThe owner reports receiving many failed/error emails and needs the current application status plus visibility into captured leads.\n\n## Scope\n\nInspect repository configuration, recent deployment and runtime evidence, public endpoints, notification sources, and lead storage/delivery paths. Produce a severity-ranked report and lead follow-up list. No production writes or purchases.\n\n## Risks\n\nDiagnostics may encounter unavailable credentials, third-party service access limits, or sensitive lead data. Avoid exposing secrets or personal data and perform only read-only external checks.\n\n## Verify Steps\n\nConfirm repository and deployment configuration; run safe local checks; verify public endpoints; inspect available read-only runtime evidence; trace each lead intake destination; reconcile recent lead records and delivery failures.\n\n## Rollback Plan\n\nThis is a read-only audit. Rollback is limited to reverting the task-planning commit if requested; no production state will be changed.\n\n## Notes\n\nUser approved the four-step audit plan on 2026-10-08."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "db84fe144577fc12fc5f3c33ffbea7554eca7035f84816582b16fc8efebdd707"
+    "checksum": "0b5069d58a945cf2a21bbf5aacfc723176d8f75349504a4441a288eed46d010e"
   }
 }
