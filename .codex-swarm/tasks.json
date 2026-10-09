@@ -8957,12 +8957,36 @@
       "doc_updated_by": "agentctl",
       "description": "Approved header fix: separate logo, navigation and actions; collapse before collisions; verify signed-in/out desktop tablet mobile; deploy within remaining combined USD1 build cap. Dependencies none.",
       "doc": "## Summary\n\nFix header collisions; move Leaderboard and Submit to footer per user request.\n\n## Scope\n\nSeparate nonshrinking logo/nav/action groups; wider header; compact menu below1536px; preserve EN/ES toggle and account controls; footer EN/ES links; resize clears open overlay.\n\n## Risks\n\nVerify both auth states and EN/ES including320px; menu focus and body scroll must recover across breakpoint. No auth or billing changes. Deploy within approved remaining USD1 combined cap.\n\n## Verify Steps\n\nType-check/lint/tests; isolated browser24cases across EN/ES signed-in/out widths320,390,768,1280,1536,1920; menu open/Escape/resize; production screenshot and link checks.\n\n## Rollback Plan\n\nRestore traffic to citybeat-web-machelle-ba00b28 and revert scoped header/footer changes.\n\n## Notes\n\nLIVE citybeat-web-header-555b19b at100%. Buildbcce923f-be48-4ebd-a4e4-14ad7fb725e6 SUCCESS digestsha256:ea587ce1ad491e6e27758680ba858f2398099bcf70319593bfa5a4d1107e0868. EN/ES footer links verified; header removes both links. Public signed-in desktop no group overlap/overflow and320px header content305px fits305px. Candidate Spanish signed-out desktop passes. Local menu Escape returns focus and resize clears scroll lock. Full tests/typecheck/lint pass; Machelle public regression passes. Within approved combined USD1 cap."
+    },
+    {
+      "id": "202610090458-Z7HW01",
+      "title": "Bulk social image queue with reviewed timed publishing",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: implement approved batch intake and separated review and scheduled delivery; verify temporal and authorization safeguards then deploy within existing cap"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: ship bulk graphics intake and independent review calendar | details: reserve unique 6 AM noon and 6 PM El Paso slots; enforce due-time claims pause controls safe retries and 5 dollar AI ceiling; add DST and worker regression tests"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T05:07:41+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved bulk intake, independent caption review, 6 AM/noon/6 PM America Denver slots, editable queue and safe delivery. Reuse existing OpenAI key with 5 USD monthly cap and existing 1 USD total build cap. No task dependencies.",
+      "doc": "## Summary\n\nBulk graphics queue with independent AI caption review and daily 06:00, 12:00 and 18:00 America/Denver publication. Existing key reuse approved.\n\n## Scope\n\nCODER: durable bulk intake, schedule allocation, controls and worker. TESTER: deterministic timing, budget and review tests. REVIEWER: inspect concurrency and safety. INTEGRATOR: deploy and verify public admin route and existing scheduler.\n\n## Risks\n\nPublic posts irreversible; no early publication or uncertain retry. Preserve monthly 500 cent ceiling and remaining 1 dollar combined build allowance. Schedule handles daylight saving. Missed slots held rather than burst-posted.\n\n## Verify Steps\n\nRun social policy and scheduler tests, repository test suite, typecheck and lint; verify candidate then production and scheduler configuration without printing credentials.\n\n## Rollback Plan\n\nPause queue and scheduler before reverting traffic; old revision publishes queued items immediately and must not be resumed with new queue data.\n\n## Notes\n\n603 automated tests pass across 83 files; typecheck and lint pass. Graphify contains no social/queue nodes and installed structural search finds zero symbols, so direct source inspection used. Read-only Facebook identity verification succeeded for official Page. Production image queue empty before migration. Standard OpenAI pricing verified; four-cent bound supports 93 monthly posts without raising 5 dollar ceiling."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "2bfa00b7e803e09e90d5fb4ae966ff075e5d377a268f0906e227910c11a3c57b"
+    "checksum": "455b45e647066307127e3eb7a48e31f675233c97ff79febe1f444c8a46749cdd"
   }
 }

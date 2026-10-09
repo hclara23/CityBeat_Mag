@@ -1,10 +1,13 @@
 export const OFFICIAL_PAGE_ID = '112338362142224'
 export const QUEUE_MODEL = 'gpt-4.1-mini-2025-04-14'
 export const MONTHLY_LIMIT_CENTS = 500
-// Reserve, never refund, 10 cents per item before any request. Each item makes
+// Reserve, never refund, 4 cents per item before any request. Each item makes
 // at most four calls, each <= 8K text bytes + one 1024px image + 600 output tokens.
 // At the approved snapshot pricing this substantially exceeds worst-case cost.
-export const ITEM_RESERVATION_CENTS = 10
+// <= 8000 text-byte tokens + 1659 image tokens + schema overhead per call;
+// four calls at $0.40/M input and $1.60/M output remain below $0.04.
+// Explicit standard service tier prevents an account priority default surcharge.
+export const ITEM_RESERVATION_CENTS = 4
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
 export function canReserve(used: number): boolean {

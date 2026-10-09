@@ -6,6 +6,7 @@ import { postArticleToSocial, postThisWeekendToSocial, socialConfigured } from '
 import { getThisWeekendEvents } from '@/lib/events'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { drainImageQueue } from '@/lib/social-queue'
+import { slotParts } from '@/lib/social-schedule'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -31,6 +32,18 @@ export async function GET(request: NextRequest) {
   if (!socialConfigured()) return NextResponse.json({ ok: true, configured: false, skipped: 'no_social_credentials' })
 
   const { searchParams } = new URL(request.url)
+  // Reuse the existing scheduler. Keep article/roundup posts daily.
+  const local = slotParts(Date.now())
+  if (searchParams.get('queue') === '1' && !(local.hour === 11 && local.minute < 10)) {
+    try {
+      const queue = await drainImageQueue()
+      await reportSuccess('cron:social')
+      return NextResponse.json({ ok: true, queue })
+    } catch (error) {
+      await reportFailure('cron:social', error)
+      return NextResponse.json({ error: 'Queue worker failed' }, { status: 500 })
+    }
+  }
   const max = Math.min(Number(searchParams.get('limit')) || 5, 20)
 
   const all = await getPublishedArticles().catch(() => [])

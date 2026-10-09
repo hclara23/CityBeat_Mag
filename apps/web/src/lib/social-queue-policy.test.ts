@@ -4,8 +4,8 @@ import { canReserve, parseCaption, parseReview, safeNotes, OFFICIAL_PAGE_ID } fr
 
 test('monthly reservation fails closed at the approved ceiling', () => {
   assert.equal(canReserve(0), true)
-  assert.equal(canReserve(490), true)
-  for (const value of [491, 500, NaN, Infinity, -1]) assert.equal(canReserve(value), false)
+  assert.equal(canReserve(496), true)
+  for (const value of [497, 500, NaN, Infinity, -1]) assert.equal(canReserve(value), false)
   assert.equal(OFFICIAL_PAGE_ID, '112338362142224')
 })
 test('review is a strict boolean, not truthy text', () => {
