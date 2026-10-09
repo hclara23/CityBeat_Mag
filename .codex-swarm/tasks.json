@@ -9025,12 +9025,32 @@
       "doc_updated_by": "agentctl",
       "description": "Approved black white cyan app-branded Facebook cover with El Paso imagery and circle-safe square profile logo. Generate two separate downloadable assets; no Facebook account changes.",
       "doc": "## Summary\n\nCreated coordinated Facebook cover and square profile artwork using the built-in image generator.\n\n## Scope\n\nTwo PNG assets and exact prompt documentation under assets/social-brand. No website or Facebook account changes.\n\n## Risks\n\nGenerated lettering is a visual interpretation of the app wordmark. Facebook device crops vary; preview before applying.\n\n## Verify Steps\n\nVisually inspected both generated outputs for spelling, palette and safe margins. Verified both saved PNG dimensions with System.Drawing.\n\n## Rollback Plan\n\nRemove the new asset files if unused. No deployed application or social account needs rollback."
+    },
+    {
+      "id": "202610090536-ZV94WJ",
+      "title": "Draft verified Facebook product offers",
+      "status": "DOING",
+      "priority": "med",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: prepare four concise Facebook product offer drafts with verified catalog prices and explicit publication blockers."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T05:37:18+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Inspect public products and draft offers under 150 characters for user review. Do not publish.",
+      "doc": "## Summary\n\nPrepared four Facebook offer drafts; three prices verified on public catalog, Founders terms from prior approval.\n\n## Scope\n\nDraft copy only in docs/facebook-product-offer-drafts.md. No publishing or code changes.\n\n## Risks\n\nProduct pages return HTTP 500. Founders availability and print rates unverified. Hold promotion pending checks.\n\n## Verify Steps\n\nFetched public catalog and product routes. All four descriptions counted below 150 characters.\n\n## Rollback Plan\n\nDiscard draft document; no external state changed."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "284fb25c8f53bde4caf60c2631427684819a51a86d267d6f73b4d3a4debb1b49"
+    "checksum": "3d7fbd4c6b5e5fed64c6864c325e8353f76ac1a12704dc607ea8d83f2c4649dd"
   }
 }
