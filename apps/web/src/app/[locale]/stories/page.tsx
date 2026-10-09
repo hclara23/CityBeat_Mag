@@ -5,6 +5,7 @@ import { withLocale, type Locale } from '@/components/citybeat/content'
 import { getPublishedArticles, CATEGORY_IDS } from '@/lib/articles'
 import type { Metadata } from 'next'
 import { localeAlternates } from '@/lib/seo'
+import { MachelleStoryCard } from '@/components/citybeat/MachelleStoryCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,6 +52,7 @@ export default async function StoriesPage({ params, searchParams }: Props) {
 
   const articles = await getPublishedArticles({ category: selected, limit: 60 })
   const tabs = ['all', ...CATEGORY_IDS]
+  const showIssueProfile = !selected || selected === 'culture'
 
   return (
     <CityBeatShell locale={locale}>
@@ -82,12 +84,13 @@ export default async function StoriesPage({ params, searchParams }: Props) {
           })}
         </div>
 
-        {articles.length === 0 ? (
+        {articles.length === 0 && !showIssueProfile ? (
           <p className="mt-16 text-white/55">
             {locale === 'es' ? 'No hay historias todavía.' : 'No stories yet.'}
           </p>
         ) : (
           <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {showIssueProfile && <MachelleStoryCard locale={locale} />}
             {articles.map((article) => (
               <Link
                 key={article._id}

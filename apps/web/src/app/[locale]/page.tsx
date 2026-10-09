@@ -4,6 +4,7 @@ import { getAdProducts, getEvents, getTopStories, withLocale, type Locale } from
 import { getPublishedArticles } from '@/lib/articles'
 import { getUpcomingEvents } from '@/lib/events'
 import { CoverStoryFeature } from '@/components/citybeat/CoverStoryFeature'
+import { MachelleStoryCard } from '@/components/citybeat/MachelleStoryCard'
 import { NewsletterForm } from '@/components/NewsletterForm'
 import { AdBanner } from '@/components/citybeat/AdBanner'
 import { ArticleVisual } from '@/components/citybeat/ArticleVisual'
@@ -51,7 +52,7 @@ export default async function Home({ params }: HomePageProps) {
     href: `/stories/${article.slug}`,
   }))
   const stories = importedStories.length > 0 ? importedStories : getTopStories(locale)
-  const secondaryStories = stories.slice(0, 3)
+  const secondaryStories = stories.slice(0, 2)
   const adProducts = getAdProducts(locale)
 
   // Upcoming, publicly-visible events (excludes pending submissions + past events).
@@ -126,6 +127,7 @@ export default async function Home({ params }: HomePageProps) {
 
       <section className="border-y border-white/10 bg-brand-dark py-16">
         <div className="container-wide grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <MachelleStoryCard locale={locale} />
           {secondaryStories.map((story) => (
             <Link key={story.title} href={withLocale(locale, story.href)} className="group">
               <article className="grid gap-4">
