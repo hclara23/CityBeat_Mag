@@ -11,7 +11,8 @@ COPY package.json package-lock.json* ./
 COPY turbo.json ./
 COPY apps ./apps
 COPY packages ./packages
-RUN npm install
+# Browser-test binaries are not used to compile or serve the production image.
+RUN CYPRESS_INSTALL_BINARY=0 npm install --no-audit --no-fund
 
 # Public Firebase web config (kerstenblueprint project). These NEXT_PUBLIC_* values
 # are shipped to the browser by design, so it is safe to bake them into the image.

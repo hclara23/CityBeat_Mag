@@ -8,6 +8,7 @@ import { LocaleToggle } from '@/components/citybeat/LocaleToggle'
 import { getUser, getUserProfile, updateProfile, signOut } from '@citybeat/lib/firebase/auth-client'
 import { AuthError } from '@citybeat/ui/auth'
 import { levelForPoints, levelProgress } from '@/lib/points'
+import { PremierPromotion } from '@/components/citybeat/PremierPromotion'
 
 interface UserProfile {
   id: string
@@ -187,6 +188,8 @@ export default function AccountPage() {
 
       <div className="max-w-3xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">Account Settings</h1>
+
+        <PremierPromotion locale={locale} />
 
         {error && <AuthError message={error} />}
 
