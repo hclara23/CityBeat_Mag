@@ -9,6 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implement approved batch intake and separated review and scheduled delivery; verify temporal and authorization safeguards then deploy within existing cap" }
   - { author: "ORCHESTRATOR", body: "start: ship bulk graphics intake and independent review calendar | details: reserve unique 6 AM noon and 6 PM El Paso slots; enforce due-time claims pause controls safe retries and 5 dollar AI ceiling; add DST and worker regression tests" }
+  - { author: "ORCHESTRATOR", body: "start: add queue API boundary regression tests | details: verify concurrent intake duplicate suppression rights checks slot conflicts and review invalidation without external publication" }
 doc_version: 2
 doc_updated_at: "2026-10-09T05:07:41+00:00"
 doc_updated_by: "agentctl"
