@@ -1,13 +1,15 @@
 ---
 id: "202610090010-KWNM65"
 title: "CityBeat legal documents"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: []
 tags: []
+commit: { hash: "d961cb87f83856526c94bed113777596c4dca275", message: "⚖️ KWNM65 publish bilingual cookie and updated legal terms" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: audit the live CityBeat legal disclosures against current data, AI, analytics, directory, contribution, and billing behavior; add any missing public notice and validate locally." }
+  - { author: "ORCHESTRATOR", body: "verified: CityBeat TypeScript, 564 tests, and the production build passed with the new bilingual cookie notice and updated privacy and terms pages." }
 doc_version: 2
 doc_updated_at: "2026-10-09T00:20:02+00:00"
 doc_updated_by: "agentctl"

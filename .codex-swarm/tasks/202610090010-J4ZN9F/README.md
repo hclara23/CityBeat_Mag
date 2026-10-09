@@ -1,11 +1,12 @@
 ---
 id: "202610090010-J4ZN9F"
 title: "CYO Studio legal documents"
-status: "TODO"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: []
 tags: []
+commit: { hash: "672ffaa9153ff453ca70f7de6dce227b73b5a6e2", message: "📝 WKDD0X record legal audit results across external apps" }
 doc_version: 2
 doc_updated_at: "2026-10-09T00:24:57+00:00"
 doc_updated_by: "agentctl"

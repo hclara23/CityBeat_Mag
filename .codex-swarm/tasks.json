@@ -8490,11 +8490,15 @@
     {
       "id": "202610082359-WKDD0X",
       "title": "Audit published app legal documents",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "672ffaa9153ff453ca70f7de6dce227b73b5a6e2",
+        "message": "📝 WKDD0X record legal audit results across external apps"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
@@ -8506,126 +8510,183 @@
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T00:00:07+00:00",
+      "doc_updated_at": "2026-10-09T00:25:44+00:00",
       "doc_updated_by": "agentctl",
       "description": "Inventory every publicly deployed application under C:\\dev, reconcile privacy, cookie, and terms documents with actual product behavior using General Legal CC0 templates, update affected repositories, and validate links and builds. Edge0 evaluation was cancelled before installation.",
-      "doc": "## Summary\n\nEvaluate Edge0 safely on this Windows workstation and review the General-Legal template repository.\n\n## Scope\n\nUse an ignored, removable sandbox; cap storage at 8 GB; install no paid service or system-wide dependency; test the smallest practical Edge0 model; provide cleanup instructions; perform read-only research on General-Legal/legal-templates.\n\n## Risks\n\nWindows/Vulkan hardware or build prerequisites may be incompatible; model downloads are large; legal templates are not legal advice and may not fit CityBeat jurisdictions.\n\n## Verify Steps\n\nConfirm sandbox is git-ignored, record installed files and sizes, run Edge0 smoke generation if compatible, verify CityBeat tracked files remain unchanged apart from workflow records, and validate repository claims against upstream documentation.\n\n## Rollback Plan\n\nStop Edge0 processes and remove the single sandbox directory; no system-wide packages, services, or CityBeat runtime changes are permitted."
+      "doc": "## Summary\n\nAudited eight publicly reachable applications under C:\\dev and published tailored privacy, cookie, and terms disclosures in each source repository without deploying.\n\n## Scope\n\nCompleted Arcoiris Fine Bakery, Arturo CampaignOS, CYO Studio, El Paso Tax Watch, eMOTION Talk, CityBeat, TruccoPRO/HearthOS, and Concordia Heritage Association. Reconciled legal text with inspected authentication, data storage, analytics, AI, payments, user content, communications, education, health-adjacent, and nonprofit workflows.\n\n## Risks\n\nThese are implementation-aligned operational drafts, not legal advice. Qualified counsel should review each app for entity names, jurisdictions, regulated data, retention obligations, consumer subscriptions, and translations before the next production release.\n\n## Verify Steps\n\nRepository-specific type checks, tests, builds, syntax checks, and route checks are recorded in the eight downstream task documents. Concordia's full database-backed suite remains unrun because local PostgreSQL port 55433 was offline; direct legal-route and syntax checks passed.\n\n## Rollback Plan\n\nRevert the listed repository commits individually: Arcoiris 1210876; Arturo 04d4d05; CYO 46bec4b; El Paso Tax Watch db7eba9; eMOTION Talk c601f42; CityBeat d961cb8; TruccoPRO 964adb8; Concordia e640e93.\n\n## Notes\n\nNo application was deployed and no purchase or paid commitment was made. Edge0 remains on hold."
     },
     {
       "id": "202610090010-3983ZF",
       "title": "Concordia legal documents",
-      "status": "TODO",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "672ffaa9153ff453ca70f7de6dce227b73b5a6e2",
+        "message": "📝 WKDD0X record legal audit results across external apps"
+      },
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T00:10:10+00:00",
+      "doc_updated_at": "2026-10-09T00:25:11+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Audit and update legal documents for the publicly reachable Concordia Heritage Association application in C:\\dev\\Concordia Heritage Association."
+      "description": "Audit and update legal documents for the publicly reachable Concordia Heritage Association application in C:\\dev\\Concordia Heritage Association.",
+      "doc": "## Summary\n\nAdded public privacy, cookie, and terms routes for Concordia Heritage Association.\n\n## Scope\n\nCovered member accounts and sessions, association records, meeting audio, Cloud services, telemetry, optional Anthropic minutes drafting, donations and memberships, archives, and authorized portal use.\n\n## Risks\n\nNonprofit, archival, donation, and cemetery-record obligations should be reviewed by qualified counsel. Full database-backed tests require the local PostgreSQL test service.\n\n## Verify Steps\n\nnpm run check passed; direct GET checks for /privacy, /cookies, and /terms returned 200. Full npm test was blocked by ECONNREFUSED on local PostgreSQL port 55433; 13 database-independent tests passed before cancellation.\n\n## Rollback Plan\n\nRevert Concordia commit e640e93.\n\n## Notes\n\nExternal repository commit: e640e93."
     },
     {
       "id": "202610090010-72N02C",
       "title": "Arcoiris legal documents",
-      "status": "TODO",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "672ffaa9153ff453ca70f7de6dce227b73b5a6e2",
+        "message": "📝 WKDD0X record legal audit results across external apps"
+      },
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_at": "2026-10-09T00:24:55+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Audit and update legal documents for the publicly reachable Arcoiris Fine Bakery application in C:\\dev\\arcoiris."
+      "description": "Audit and update legal documents for the publicly reachable Arcoiris Fine Bakery application in C:\\dev\\arcoiris.",
+      "doc": "## Summary\n\nAdded tailored privacy, cookie, and terms pages to the live Arcoiris Fine Bakery app.\n\n## Scope\n\nDisclosed Firebase account and loyalty data, local drafts, consultations and orders, demo-only payments, local concierge behavior, referrals, and allergen limitations; linked all notices from the footer.\n\n## Risks\n\nEnglish legal text is shown with a Spanish notice; qualified bilingual counsel should review before treating it as a final Spanish legal translation.\n\n## Verify Steps\n\nnpm run typecheck; npm test -- --run; npm run build — all passed in C:\\dev\\arcoiris.\n\n## Rollback Plan\n\nRevert Arcoiris commit 1210876.\n\n## Notes\n\nExternal repository commit: 1210876."
     },
     {
       "id": "202610090010-DB36F9",
       "title": "eMOTION Talk legal documents",
-      "status": "TODO",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "672ffaa9153ff453ca70f7de6dce227b73b5a6e2",
+        "message": "📝 WKDD0X record legal audit results across external apps"
+      },
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_at": "2026-10-09T00:25:10+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Audit and update legal documents for the publicly reachable eMOTION Talk application in C:\\dev\\emotion_talk."
+      "description": "Audit and update legal documents for the publicly reachable eMOTION Talk application in C:\\dev\\emotion_talk.",
+      "doc": "## Summary\n\nFinalized eMOTION Talk privacy and terms and added a consent-accurate cookie notice.\n\n## Scope\n\nRemoved draft labeling and covered health-adjacent questions and audits, Firebase, consent-gated analytics, account controls, sponsorship handoff, Stripe, push data, and the existing medical disclaimer.\n\n## Risks\n\nThe service is medical-adjacent but not a patient portal; qualified health-privacy counsel should confirm the final boundary.\n\n## Verify Steps\n\nnpm run typecheck; npm test; npm run build — 49 tests passed, five skipped, and 90-page build passed in C:\\dev\\emotion_talk\\web.\n\n## Rollback Plan\n\nRevert eMOTION Talk commit c601f42.\n\n## Notes\n\nExternal repository commit: c601f42."
     },
     {
       "id": "202610090010-HTBBGN",
       "title": "HearthOS legal documents",
-      "status": "TODO",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "672ffaa9153ff453ca70f7de6dce227b73b5a6e2",
+        "message": "📝 WKDD0X record legal audit results across external apps"
+      },
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T00:10:10+00:00",
+      "doc_updated_at": "2026-10-09T00:25:11+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Audit and update legal documents for the publicly reachable HearthOS application in C:\\dev\\Prime_Time_OS."
+      "description": "Audit and update legal documents for the publicly reachable HearthOS application in C:\\dev\\Prime_Time_OS.",
+      "doc": "## Summary\n\nReplaced TruccoPRO's placeholder policy and added bilingual cookie and terms pages.\n\n## Scope\n\nCovered student records, Firebase authentication and Firestore, attendance, communications, polls, minors, Google services, and accurately disclosed that live Stripe, Twilio, push, and AI features are not enabled.\n\n## Risks\n\nEducation, minor-student, licensing, and record-retention requirements need qualified Texas counsel review before production reliance.\n\n## Verify Steps\n\nnpm run lint; npm run build — passed with pre-existing lint warnings and 28 generated pages in C:\\dev\\Prime_Time_OS.\n\n## Rollback Plan\n\nRevert HearthOS/TruccoPRO commit 964adb8.\n\n## Notes\n\nExternal repository commit: 964adb8. Existing unrelated package-lock.json modification was preserved."
     },
     {
       "id": "202610090010-J4ZN9F",
       "title": "CYO Studio legal documents",
-      "status": "TODO",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "672ffaa9153ff453ca70f7de6dce227b73b5a6e2",
+        "message": "📝 WKDD0X record legal audit results across external apps"
+      },
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_at": "2026-10-09T00:24:57+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Audit and update legal documents for the publicly reachable CYO Studio application in C:\\dev\\CYO."
+      "description": "Audit and update legal documents for the publicly reachable CYO Studio application in C:\\dev\\CYO.",
+      "doc": "## Summary\n\nUpdated CYO Studio privacy and terms and added a cookie notice.\n\n## Scope\n\nCovered memberships, Stripe, attendance, bikes, waitlists, ride metrics, emergency contacts, waivers, incidents, staff notes, Firebase, and data rights.\n\n## Risks\n\nWaivers and membership terms remain subject to applicable local law and counsel review.\n\n## Verify Steps\n\nnpm test; npm run build — 12 tests and build passed in C:\\dev\\CYO.\n\n## Rollback Plan\n\nRevert CYO commit 46bec4b.\n\n## Notes\n\nExternal repository commit: 46bec4b."
     },
     {
       "id": "202610090010-KWNM65",
       "title": "CityBeat legal documents",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "d961cb87f83856526c94bed113777596c4dca275",
+        "message": "⚖️ KWNM65 publish bilingual cookie and updated legal terms"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: audit the live CityBeat legal disclosures against current data, AI, analytics, directory, contribution, and billing behavior; add any missing public notice and validate locally."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: CityBeat TypeScript, 564 tests, and the production build passed with the new bilingual cookie notice and updated privacy and terms pages."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_at": "2026-10-09T00:20:02+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Audit and update legal documents for the publicly reachable CityBeat application in C:\\dev\\CityBeat_Mag."
+      "description": "Audit and update legal documents for the publicly reachable CityBeat application in C:\\dev\\CityBeat_Mag.",
+      "doc": "## Summary\n\nReconciled CityBeat's public privacy and terms disclosures with the live application's data, AI, publishing, subscription, contribution, and referral behavior; added a bilingual Cookie Notice.\n\n## Scope\n\nUpdated the English and Spanish privacy effective dates; added bilingual cookie disclosures for session, referral, analytics, and local storage; linked the notice from the footer and sitemap; expanded terms for user contributions, AI-assisted features, changes, and termination.\n\n## Risks\n\nLegal text reflects the inspected implementation but is not a substitute for review by qualified counsel. Future data processors, retention changes, or tracking changes require a matching policy update.\n\n## Verify Steps\n\nnpm run type-check --workspace=@citybeat/web; npm test -- --runInBand; npm run build --workspace=@citybeat/web\n\n## Rollback Plan\n\nRevert the implementation commit to remove the Cookie Notice and restore the prior privacy dates, terms copy, footer links, and sitemap entries."
     },
     {
       "id": "202610090010-QK38Z6",
       "title": "Arturo CampaignOS legal documents",
-      "status": "TODO",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "672ffaa9153ff453ca70f7de6dce227b73b5a6e2",
+        "message": "📝 WKDD0X record legal audit results across external apps"
+      },
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_at": "2026-10-09T00:24:56+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Audit and update legal documents for the publicly reachable Arturo CampaignOS application in C:\\dev\\Arturo_Campaig_OS."
+      "description": "Audit and update legal documents for the publicly reachable Arturo CampaignOS application in C:\\dev\\Arturo_Campaig_OS.",
+      "doc": "## Summary\n\nPublished privacy, cookie, and terms disclosures for Arturo CampaignOS.\n\n## Scope\n\nCovered sensitive campaign records, Firebase, Stripe, Anthropic and Google AI processing, field location, subscriptions, evidence, and authorized-use restrictions.\n\n## Risks\n\nCampaign, election, and payment obligations vary; qualified campaign counsel should review the text.\n\n## Verify Steps\n\nnpm run typecheck; npm test; npm run build — all passed in C:\\dev\\Arturo_Campaig_OS\\web.\n\n## Rollback Plan\n\nRevert Arturo commit 04d4d05.\n\n## Notes\n\nExternal repository commit: 04d4d05."
     },
     {
       "id": "202610090010-VC3S2H",
       "title": "El Paso Tax Watch legal documents",
-      "status": "TODO",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "672ffaa9153ff453ca70f7de6dce227b73b5a6e2",
+        "message": "📝 WKDD0X record legal audit results across external apps"
+      },
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_at": "2026-10-09T00:24:57+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Audit and update legal documents for the publicly reachable El Paso Tax Watch application in C:\\dev\\ElPasoTaxWatch.com."
+      "description": "Audit and update legal documents for the publicly reachable El Paso Tax Watch application in C:\\dev\\ElPasoTaxWatch.com.",
+      "doc": "## Summary\n\nAdded public privacy, cookie, and terms routes to El Paso Tax Watch.\n\n## Scope\n\nDisclosed subscriber data, local unsubscribe storage, active GA4 analytics, correspondence, public records, source limitations, and informational-use disclaimers.\n\n## Risks\n\nPublic-record and tax analysis is informational; qualified counsel should review the final policy posture.\n\n## Verify Steps\n\nnpm run typecheck; npm test; npm run build — all passed in C:\\dev\\ElPasoTaxWatch.com.\n\n## Rollback Plan\n\nRevert El Paso Tax Watch commit db7eba9.\n\n## Notes\n\nExternal repository commit: db7eba9."
+    },
+    {
+      "id": "202610090023-R64WEQ",
+      "title": "Publish Premier Clinic premium directory listing",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T00:23:51+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Verify existing listing, update three locations and hours, use provided Premier assets excluding Nayeli, set main domain and hosted-app action links, publish premium presentation without charges."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "c14abe91327533ee49b347252fad60a7031d19846a5937a4315deb86755ac5c3"
+    "checksum": "46646a990893939a72f0e4731e363a4672d642a7c26dbb2b6109a32c0b1f1755"
   }
 }
