@@ -9,6 +9,7 @@ import { activeCompTier } from '@/lib/directory-comp'
 import { canAccessPremierOffer, premierOfferOpen, PREMIER_LISTING, PREMIER_PROMO, PREMIER_MONTHLY_CENTS } from '@/lib/premier-promotion'
 import { blocksReplacementSubscription } from '@/lib/sales-checkout'
 import { foundingOfferAvailable } from '@/lib/sales-founding'
+import { createFoundingCheckout } from '@/lib/founding-checkout'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
     })
     const metadata = { listing_id: PREMIER_LISTING, owner_id: ctx.user.id, plan: 'founding', tier: 'premium',
       founding: 'true', sponsored: 'false', location_count: '3', billing_quantity: '1', billing_cycle: 'month', promo_id: PREMIER_PROMO }
-    const session = await stripe.checkout.sessions.create({
+    const session = await createFoundingCheckout(stripe, PREMIER_LISTING, {
       mode: 'subscription', payment_method_types: ['card'], customer_email: ctx.user.email,
       line_items: [{ price_data: { currency: 'usd', unit_amount: PREMIER_MONTHLY_CENTS, recurring: { interval: 'month' },
         product_data: { name: 'Premier Clinic — CityBeat Founders Premium', description: 'Founders is limited to the first 100 businesses. Regular Premium: $19.99/month per location. Premier special: $9.99/month TOTAL for all three locations, locked while subscribed. Renews monthly until canceled from Billing.' } }, quantity: 1 }],
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
       expires_at: attempt.expires,
       metadata, subscription_data: { metadata },
       custom_text: { submit: { message: 'First payment: $9.99 today. Renews at $9.99/month total for all three locations until canceled. Cancel from Billing in your CityBeat dashboard.' } },
-    }, { idempotencyKey: `premier-founders-${ctx.user.id}-${attempt.id}` })
+    })
     await ctx.ref.set({ promo_checkout_session_id: session.id }, { merge: true })
     return NextResponse.json({ url: session.url })
   } catch (error: any) {

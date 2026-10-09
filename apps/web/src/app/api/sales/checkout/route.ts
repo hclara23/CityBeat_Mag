@@ -29,6 +29,7 @@ import {
   salesDirectoryListingUrl,
 } from '@/lib/sales-directory'
 import { foundingOfferAvailable } from '@/lib/sales-founding'
+import { createFoundingCheckout } from '@/lib/founding-checkout'
 import { getClientIp } from '@/lib/auth-security'
 import {
   validateBypass,
@@ -400,7 +401,9 @@ export async function POST(request: NextRequest) {
           : { customer_email: contactEmail }
         : { customer_email: contactEmail }
 
-    const session = await stripe!.checkout.sessions.create({
+    const createCheckout = (params: Stripe.Checkout.SessionCreateParams) => product.founding
+      ? createFoundingCheckout(stripe!, listingId || `order:${orderRef!.id}`, params) : stripe!.checkout.sessions.create(params)
+    const session = await createCheckout({
       ...(product.billing === 'subscription'
         ? recurringCheckoutDefaults(priceLabel, product.interval || 'month')
         : oneTimeCheckoutDefaults()),

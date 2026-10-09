@@ -15,6 +15,7 @@ import {
   salesOrderTokenMatches,
 } from '@/lib/sales-orders'
 import { foundingOfferAvailable } from '@/lib/sales-founding'
+import { createFoundingCheckout } from '@/lib/founding-checkout'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -114,7 +115,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const amount = Number(order.amount) || plan.unitAmount
-    const session = await stripe.checkout.sessions.create({
+    const createCheckout = (params: Stripe.Checkout.SessionCreateParams) => plan.founding
+      ? createFoundingCheckout(stripe, order.listing_id || `order:${orderId}`, params) : stripe.checkout.sessions.create(params)
+    const session = await createCheckout({
       ...recurringCheckoutDefaults(plan.priceLabel, plan.interval),
       ...recurringCustomerParams({
         customerId: undefined,

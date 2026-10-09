@@ -24,6 +24,7 @@ import {
   salesDirectoryListingUrl,
 } from "@/lib/sales-directory";
 import { foundingOfferAvailable } from "@/lib/sales-founding";
+import { createFoundingCheckout } from "@/lib/founding-checkout";
 import { partnerSalesProducts } from "@/lib/partner-catalog";
 import { verifyPartnerRequest } from "@/lib/partner-signing";
 import Stripe from "stripe";
@@ -358,7 +359,9 @@ async function partnerCheckout(
           }),
     };
 
-    const session = await stripe!.checkout.sessions.create({
+    const createCheckout = (params: Stripe.Checkout.SessionCreateParams) => product.founding
+      ? createFoundingCheckout(stripe!, listingId || `order:${orderRef!.id}`, params) : stripe!.checkout.sessions.create(params);
+    const session = await createCheckout({
       ...(product.billing === "subscription"
         ? recurringCheckoutDefaults(priceLabel, product.interval || "month")
         : oneTimeCheckoutDefaults()),

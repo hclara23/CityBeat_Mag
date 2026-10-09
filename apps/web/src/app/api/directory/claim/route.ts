@@ -4,6 +4,7 @@ import { hasSalesAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getPlan } from '@/lib/pricing'
 import { foundingOfferAvailable } from '@/lib/sales-founding'
+import { createFoundingCheckout } from '@/lib/founding-checkout'
 import { REFERRAL_COOKIE } from '@/lib/referrals'
 import { resolveReferralForCheckout } from '@/lib/referrals-server'
 import { salesDirectoryCheckoutIsManaged } from '@/lib/sales-directory'
@@ -172,7 +173,9 @@ export async function POST(request: NextRequest) {
         : {}),
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const createCheckout = (params: Stripe.Checkout.SessionCreateParams) => plan.founding
+      ? createFoundingCheckout(stripe, listing.id, params) : stripe.checkout.sessions.create(params)
+    const session = await createCheckout({
       mode: 'subscription',
       payment_method_types: ['card'],
       customer_email: user.email,

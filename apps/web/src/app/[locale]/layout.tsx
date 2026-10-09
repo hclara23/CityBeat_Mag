@@ -26,14 +26,17 @@ type Props = {
 }
 
 export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }))
+  // Generate locale pages on first request with runtime database credentials.
+  // Prebuilding them queried Firestore inside credential-free Docker builds and
+  // timed out. Individual page revalidation/cache policies remain unchanged.
+  return [] as Array<{ locale: string }>
 }
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params
 
-  // Reject anything that is not a real locale. generateStaticParams lists only
-  // en/es, but it does not RESTRICT anything — the pages under here render
+  // Reject anything that is not a real locale. generateStaticParams does not
+  // RESTRICT anything — the pages under here render
   // dynamically, so [locale] was accepting any string at all. Two live bugs came
   // out of that: /xx/directory returned 200 and rendered the whole directory
   // under a garbage prefix (unbounded indexable duplicate content, and a full

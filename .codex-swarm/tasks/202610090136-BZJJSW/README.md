@@ -9,7 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: user approved clear first100 pricing disclosure and limit audit within same USD1 release cap." }
 doc_version: 2
-doc_updated_at: "2026-10-09T01:38:26+00:00"
+doc_updated_at: "2026-10-09T01:46:00+00:00"
 doc_updated_by: "agentctl"
 description: "Approved bilingual signup/checkout disclosure: Founders USD9.99/month limited to first100 businesses, regular Premium USD19.99/month. Verify cap enforcement; preserve Premier USD9.99 total for3locations. Include rebuild within same USD1 total release cap."
 ---
@@ -19,7 +19,7 @@ Make every Founders offer disclose first100 businesses and regular USD19.99/mont
 
 ## Scope
 
-Shared plan descriptions, Spanish claim copy, Premier popup/banner and dedicated checkout. Check existing cap paths, fail closed on unavailable counts. Preserve annual USD99/year and Premier USD9.99 total all3locations. Same USD1 total build cap approved.
+Approved extension: hard100-business capacity across all5 Founders checkout paths, shared Firestore transaction reservations, stable Stripe retries and confirmed unpaid-expiry release. Bilingual first100/regular19.99 copy, annual99/year preserved, Premier999cents total3locations. Build database-backed locale pages at runtime to avoid credential-free prerender timeouts. All work within same USD1 build cap.
 
 ## Risks
 
@@ -35,5 +35,5 @@ Revert only scoped copy/availability changes and restore prior Cloud Run traffic
 
 ## Notes
 
-Shared EN plan descriptions and ES claim copy disclose first100 businesses and regular USD19.99/month; annual99/year stays distinct; Premier all3locations999cents preserved with comparison per location. Self-serve cap now reuses shared fail-closed count including paid unfulfilled orders; Premier checkout also checks it. Audit found concurrent checkout oversell risk: no atomic spot reservation; user separately asked whether to extend scope to hard-cap reservations. 582 tests, typecheck and lint pass. No prices or subscriptions changed.
+User explicitly approved hard atomic limit. Implemented shared capacity transaction, imports legacy Stripe history, reconciles paid listings/orders, reserves distinct business not location, persists exact checkout parameters/idempotency, releases known checkouts only after confirmed expired unpaid. All5 routes use helper; cart excludes directory. Unknown legacy or provider outcomes conservatively held for staff reconciliation. 584 tests/typecheck/lint/diff-check pass. External reviewer unavailable; main review completed. No real payment/checkout created. Combined production build next.
 
