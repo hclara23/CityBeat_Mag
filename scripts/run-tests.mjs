@@ -28,7 +28,7 @@ import { join, relative, sep, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const SKIP = new Set(['node_modules', '.next', '.git', 'dist', 'build', '.turbo', 'coverage'])
+const SKIP = new Set(['node_modules', '.next', '.git', '.tmp', '.codex-swarm', 'dist', 'build', '.turbo', 'coverage'])
 
 function findTests(dir, out = []) {
   let entries

@@ -28,6 +28,7 @@ export type CompListing = {
   comp_tier?: unknown
   comp_until?: unknown
   comp_reminder_sent_at?: unknown
+  comp_reminders_enabled?: unknown
   stripe_subscription_id?: unknown
 }
 
@@ -123,6 +124,7 @@ export function needsCompReminder(
   daysBefore: number = WARM_LEADS_PROMO.reminderDaysBefore
 ): boolean {
   if (!activeCompTier(listing, now) || hasSubscription(listing)) return false
+  if (listing.comp_reminders_enabled === false) return false
   if (listing.comp_reminder_sent_at) return false
   const until = untilMs(listing)!
   return until - now.getTime() <= daysBefore * DAY_MS

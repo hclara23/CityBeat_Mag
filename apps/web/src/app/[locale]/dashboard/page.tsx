@@ -8,6 +8,7 @@ import { LocaleToggle } from '@/components/citybeat/LocaleToggle'
 import { hasAdvertiserAccess } from '@citybeat/lib/roles'
 import { AuthError } from '@citybeat/ui/auth'
 import { MyListingsBoost } from '@/components/citybeat/MyListingsBoost'
+import { PremierPromotion } from '@/components/citybeat/PremierPromotion'
 import { MyDeals } from '@/components/citybeat/MyDeals'
 import { LeadsPanel } from '@/components/citybeat/LeadsPanel'
 import { AIAssistantPanel } from '@/components/citybeat/AIAssistantPanel'
@@ -125,6 +126,7 @@ export default function DashboardPage() {
         </div>
 
         {error && <AuthError message={error} />}
+        <PremierPromotion locale={locale} />
 
         <ReferralProgramCard programs={referralPrograms} />
         <AIAssistantPanel />

@@ -3,7 +3,15 @@
 // this so the strip-lists can't drift apart (a divergence previously leaked the
 // verification-bypass token fields and contact/stripe ids on some surfaces).
 
+import { compEnded, compExpiryPatch } from './directory-comp'
+
 export const PUBLIC_LISTING_STRIP_FIELDS = [
+  'promotion_recipient_email',
+  'promo_checkout_session_id',
+  'promo_checkout_attempt',
+  'promo_checkout_locale',
+  'promo_checkout_expires',
+  'comp_reminders_enabled',
   'email',
   'contact_email',
   'stripe_customer_id',
@@ -25,6 +33,11 @@ export const PUBLIC_LISTING_STRIP_FIELDS = [
 
 // Mutating strip (the callers build a throwaway plain object first).
 export function stripInternalListingFields<T extends Record<string, any>>(listing: T): T {
+  // Enforce the exact deadline, even before the daily scheduled cleanup.
+  if (compEnded(listing) && !listing.stripe_subscription_id) {
+    const patch = compExpiryPatch(listing, new Date())
+    if (patch.tier === 'basic') Object.assign(listing, { tier: 'basic', is_sponsored: false })
+  }
   for (const field of PUBLIC_LISTING_STRIP_FIELDS) delete (listing as Record<string, any>)[field]
   return listing
 }

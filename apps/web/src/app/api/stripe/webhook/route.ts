@@ -299,6 +299,15 @@ async function handleCartCheckoutCompleted(session: any, metadata: Record<string
 
 async function handleCheckoutCompleted(session: any) {
   const metadata = session.metadata || {}
+  if (metadata.promo_id === 'premier_cover_30day') {
+    const { premierPaymentConfirmed } = await import('@/lib/premier-promotion')
+    if (!premierPaymentConfirmed(session)) throw new Error('Premier payment confirmation failed validation')
+    const sub = await stripe.subscriptions.retrieve(String(stripeObjectId(session.subscription)))
+    if (sub.metadata.promo_id !== metadata.promo_id || sub.metadata.listing_id !== metadata.listing_id ||
+        sub.metadata.owner_id !== metadata.owner_id || !['active', 'trialing'].includes(sub.status)) {
+      throw new Error('Premier subscription association failed validation')
+    }
+  }
 
   // Self-serve multi-item cart runs its own lifecycle and returns.
   if (await handleCartCheckoutCompleted(session, metadata)) return
@@ -641,7 +650,16 @@ async function handleCheckoutCompleted(session: any) {
         .catch(() => ({ empty: true }) as any)
       ownershipVerified = !vSnap.empty
     }
+    const alreadyApprovedOwner = Boolean(effectiveOwnerId && currentListing.owner_id === effectiveOwnerId &&
+      currentListing.claim_status === 'approved' && currentListing.ownership_verified === true)
+    ownershipVerified = ownershipVerified || alreadyApprovedOwner
     listingPatch.ownership_verified = ownershipVerified
+    if (metadata.promo_id === 'premier_cover_30day' && metadata.listing_id === 'premier-clinic' && alreadyApprovedOwner) {
+      listingPatch.comp_tier = null
+      listingPatch.comp_until = null
+      listingPatch.comp_converted_at = new Date().toISOString()
+      listingPatch.is_sponsored = false
+    }
 
     // Instant approval (godmode opt-in): a self-serve owner who paid gets approved
     // immediately, skipping manual review — but ONLY if they also verified
@@ -649,7 +667,7 @@ async function handleCheckoutCompleted(session: any) {
     // Rep field sales (sold_by, no account) always stay pending so an admin can
     // attach the real owner.
     const settings = await getPlatformSettings()
-    if (settings.auto_approve_claims && metadata.owner_id && !metadata.sold_by && ownershipVerified) {
+    if ((settings.auto_approve_claims || alreadyApprovedOwner) && metadata.owner_id && !metadata.sold_by && ownershipVerified) {
       listingPatch.claim_status = 'approved'
       listingPatch.tier = pendingTier
       listingPatch.pending_tier = null

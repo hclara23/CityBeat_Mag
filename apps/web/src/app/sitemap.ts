@@ -3,10 +3,12 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { localArticles } from '@/lib/localArticles'
 import { getNonEmptyCombos } from '@/lib/local-seo'
 import { getUpcomingEvents } from '@/lib/events'
+import { unstable_cache } from 'next/cache'
 
 // ISR: regenerate at most hourly (was force-dynamic, so every /sitemap.xml hit
 // ran full scans of listings + articles + events + jobs + the 24 category reads).
-export const revalidate = 3600
+// Runtime-only DB scans keep image builds credential-free. Cache hourly below.
+export const dynamic = 'force-dynamic'
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
 
@@ -30,7 +32,7 @@ function toDate(v: any): Date | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d
 }
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
     '', '/stories', '/directory', '/best', '/events', '/this-weekend', '/deals', '/jobs', '/ads', '/contribute', '/privacy', '/cookies', '/terms',
     '/leaderboard', '/guide',
@@ -100,4 +102,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   return urls
+}
+
+const cachedSitemap = unstable_cache(buildSitemap, ['public-sitemap-v2'], { revalidate: 3600 })
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  return cachedSitemap()
 }

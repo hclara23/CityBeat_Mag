@@ -7,6 +7,7 @@ import { mintUnsubToken, normalizeNewsletterEmail } from '@/lib/newsletter'
 import { isSuppressed } from '@/lib/suppression'
 import { unsubHeaders } from '@/lib/unsub-headers'
 import { sendEmail } from '@/lib/email'
+import { premierExpiryExtras } from '@/lib/premier-promotion'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -57,7 +58,16 @@ export async function GET(request: NextRequest) {
 
       if (compEnded(listing, now)) {
         expired.push(doc.id)
-        if (!dryRun) await doc.ref.set(compExpiryPatch(listing, now), { merge: true })
+        if (!dryRun) await adminDb.runTransaction(async tx => {
+          const current = (await tx.get(doc.ref)).data()
+          // Payment may arrive after the scan. Never apply an unpaid snapshot
+          // over a concurrently activated subscription.
+          if (!current || !compEnded(current, now)) return
+          tx.set(doc.ref, { ...compExpiryPatch(current, now), ...premierExpiryExtras(current) }, { merge: true })
+          tx.set(adminDb.collection('directory_audit_log').doc(), { listing_id: doc.id,
+            action: 'complimentary_tier_expired', actor: 'comp-expiry', created_at: now.toISOString(),
+            previous_tier: current.tier || null, retained_subscription: Boolean(current.stripe_subscription_id) })
+        })
         continue
       }
 
