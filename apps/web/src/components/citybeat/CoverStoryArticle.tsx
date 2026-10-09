@@ -25,7 +25,7 @@ export function CoverStoryArticle({ locale }: { locale: string }) {
           </aside>
           <p className="mt-8 text-xs font-bold uppercase tracking-widest text-white/50">{copy.original}</p>
           <figure className="mt-6 max-w-3xl">
-            <ImageGlare><Image {...coverStory.photos.team} alt={locale === 'es' ? 'Retrato de grupo en Premier Primary Care Clinic' : 'Group portrait at Premier Primary Care Clinic'} sizes="(max-width: 1024px) 100vw, 768px" className="h-auto w-full rounded-md" /></ImageGlare>
+            <ImageGlare tilt><Image {...coverStory.photos.team} alt={locale === 'es' ? 'Retrato de grupo en Premier Primary Care Clinic' : 'Group portrait at Premier Primary Care Clinic'} sizes="(max-width: 1024px) 100vw, 768px" className="h-auto w-full rounded-md" /></ImageGlare>
             <figcaption className="mt-2 text-xs leading-5 text-white/60">{locale === 'es' ? 'Foto proporcionada para este reportaje. El personal retratado puede haber cambiado desde que se tomó la imagen.' : 'Photo supplied for this feature. Staff pictured may have changed since the photograph was taken.'}</figcaption>
           </figure>
           <div lang="en" className="mt-6 max-w-3xl space-y-10">
@@ -36,7 +36,7 @@ export function CoverStoryArticle({ locale }: { locale: string }) {
                   {section.paragraphs.map((paragraph, j) => <p key={j}>{paragraph}</p>)}
                 </div>
                 {i === 4 && <figure lang={locale === 'es' ? 'es' : 'en'} className="mx-auto mt-8 max-w-lg">
-                  <ImageGlare><Image {...coverStory.photos.community} alt={locale === 'es' ? 'Grupo detrás de una mesa de Premier Primary Care Clinic en un evento comunitario' : 'Group behind a Premier Primary Care Clinic table at a community event'} sizes="(max-width: 600px) 100vw, 512px" className="h-auto w-full rounded-md" /></ImageGlare>
+                  <ImageGlare tilt><Image {...coverStory.photos.community} alt={locale === 'es' ? 'Grupo detrás de una mesa de Premier Primary Care Clinic en un evento comunitario' : 'Group behind a Premier Primary Care Clinic table at a community event'} sizes="(max-width: 600px) 100vw, 512px" className="h-auto w-full rounded-md" /></ImageGlare>
                   <figcaption className="mt-2 text-xs leading-5 text-white/60">{locale === 'es' ? 'Premier Primary Care en la comunidad. Foto proporcionada para este reportaje.' : 'Premier Primary Care in the community. Photo supplied for this feature.'}</figcaption>
                 </figure>}
               </section>
