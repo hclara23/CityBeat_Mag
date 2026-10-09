@@ -8910,6 +8910,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: add Machelle Wood issue profile with exact source text | details: retain Premier cover prominence; optimize supplied photos and add sharing, tilt, index card and SEO metadata."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: include dedicated Machelle article route with responsive photos, social metadata and full profile text."
         }
       ],
       "doc_version": 2,
@@ -8923,6 +8927,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "f5d9e13db7dc30c7264008d2af451811857c3dbf2cb42af50cb7241991aa4a7e"
+    "checksum": "5602cb786885e21f26bab844c5dcf5ce68b924d8c91b02a584b338567d530649"
   }
 }

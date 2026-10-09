@@ -9,6 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "start: plan source-faithful Machelle issue story below Premier cover with optimized photos and verified public deployment." }
   - { author: "ORCHESTRATOR", body: "start: add Machelle Wood issue profile with exact source text | details: retain Premier cover prominence; optimize supplied photos and add sharing, tilt, index card and SEO metadata." }
+  - { author: "ORCHESTRATOR", body: "start: include dedicated Machelle article route with responsive photos, social metadata and full profile text." }
 doc_version: 2
 doc_updated_at: "2026-10-09T03:45:28+00:00"
 doc_updated_by: "agentctl"
