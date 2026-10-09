@@ -8765,16 +8765,36 @@
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T01:17:49+00:00",
+      "doc_updated_at": "2026-10-09T01:35:19+00:00",
       "doc_updated_by": "agentctl",
       "description": "Approved Premier-only 30-day complimentary Premium grant. $9.99 per month total for all three locations via customer opt-in checkout. Automatic Basic fallback without paid subscription; retain ownership and print recognition. Dr. Karina Mendoza recipient; draft messages require confirmation before sending. Reuse existing expiry scheduler and total $1 release build cap.",
-      "doc": "## Summary\n\nPremier-only 30-day complimentary Premium with an explicit $9.99 monthly total Founders offer and automatic Basic fallback without losing ownership or historical print recognition.\n\n## Scope\n\nCODER extends existing complimentary tier helpers, expiry scheduler and checkout with a private Premier offer for all three locations. TESTER checks exact expiry, paid-state race safety, flat checkout quantity, UI terms and preserved owner/badge fields. REVIEWER audits; ORCHESTRATOR deploys within combined USD1 approved cap and activates bounded grant. Recipient Dr. Karina Mendoza; prepare invitation and reminder for confirmation before sending.\n\n## Risks\n\nNever charge automatically, create subscriptions, assign ownership without verified acceptance, change location count for billing, leak recipient email, overwrite a simultaneous paid subscription, or remove print recognition. Existing public pricing is per-location; private offer must explicitly bill quantity1 while retaining three business locations. Invitations/reminders stay disabled until approved.\n\n## Verify Steps\n\nPure tests for exact 30-day expiry, flat $9.99 pricing eligibility and preservation of ownership/print fields; typecheck, lint, all tests, cloud build; live listing/API promotion terms and anonymous checkout denial; scheduler enabled and dry-run.\n\n## Rollback Plan\n\nRestore only promotion fields from atomic audit snapshot; revert promotion code commit and route traffic to prior healthy release. Never cancel an existing customer subscription or remove owner/print records."
+      "doc": "## Summary\n\nPremier-only 30-day complimentary Premium with an explicit $9.99 monthly total Founders offer and automatic Basic fallback without losing ownership or historical print recognition.\n\n## Scope\n\nCODER extends existing complimentary tier helpers, expiry scheduler and checkout with a private Premier offer for all three locations. TESTER checks exact expiry, paid-state race safety, flat checkout quantity, UI terms and preserved owner/badge fields. REVIEWER audits; ORCHESTRATOR deploys within combined USD1 approved cap and activates bounded grant. Recipient Dr. Karina Mendoza; prepare invitation and reminder for confirmation before sending.\n\n## Risks\n\nNever charge automatically, create subscriptions, assign ownership without verified acceptance, change location count for billing, leak recipient email, overwrite a simultaneous paid subscription, or remove print recognition. Existing public pricing is per-location; private offer must explicitly bill quantity1 while retaining three business locations. Invitations/reminders stay disabled until approved.\n\n## Verify Steps\n\nPure tests for exact 30-day expiry, flat $9.99 pricing eligibility and preservation of ownership/print fields; typecheck, lint, all tests, cloud build; live listing/API promotion terms and anonymous checkout denial; scheduler enabled and dry-run.\n\n## Rollback Plan\n\nRestore only promotion fields from atomic audit snapshot; revert promotion code commit and route traffic to prior healthy release. Never cancel an existing customer subscription or remove owner/print records.\n\n## Notes\n\nApproved persistent countdown requirement: after dismissal banner remains and derives remaining days from actual deadline, updates each minute, reopens offer on CTA. Browser-isolated actual component test confirmed 29-day banner after dismissal, CTA reopens popup, paid state replaces reminder, Spanish expired state retains Basic/cover. Screenshots local .tmp/premier-ui/countdown-test.jpg (simulated, not live). 581 tests plus typecheck/lint pass. Implementations093ac96 and54bdde9. Final ownership revalidation is transactional. Build7da6e511 running; c301e00f canceled before revised source; first91e2187d failed sitemap timeout. Same total USD1 cap approved. No customer charge, checkout or email created; activation waits for live release."
+    },
+    {
+      "id": "202610090136-BZJJSW",
+      "title": "Clarify Founders first-100 offer and regular Premium pricing",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: user approved clear first100 pricing disclosure and limit audit within same USD1 release cap."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T01:36:58+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved bilingual signup/checkout disclosure: Founders USD9.99/month limited to first100 businesses, regular Premium USD19.99/month. Verify cap enforcement; preserve Premier USD9.99 total for3locations. Include rebuild within same USD1 total release cap.",
+      "doc": "## Summary\n\nMake every Founders offer disclose first100 businesses and regular USD19.99/month Premium price, with bilingual copy and no automatic later price increase.\n\n## Scope\n\nShared plan descriptions, Spanish claim copy, Premier popup/banner and dedicated checkout. Check existing cap paths, fail closed on unavailable counts. Preserve annual USD99/year and Premier USD9.99 total all3locations. Same USD1 total build cap approved.\n\n## Risks\n\nDo not imply Founders rises to standard rate after signup. Generic directory checkout is per location; Premier remains explicitly bundled. Existing cap uses count checks, not atomic reservations; audit concurrency separately.\n\n## Verify Steps\n\nRun pricing and full unit tests, web typecheck and lint. Inspect all Founders checkout sources and rendered bilingual copy. Production smoke after combined release.\n\n## Rollback Plan\n\nRevert only scoped copy/availability changes and restore prior Cloud Run traffic; do not alter existing paid subscriptions or prices."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "c85d70b27f87e210f5bd46864a78db6805b89d226eec4f3f3cdd637bf25b3cdc"
+    "checksum": "126091b5647f7928ce51eb33b3df0aa417c9405b59c8ec79aa8013c7e66d7a6c"
   }
 }

@@ -34,14 +34,14 @@ const PLAN_ES: Record<PlanId, { label: string; priceLabel: string; badge?: strin
     badge: 'Mejor valor · solo 100',
     savingsLabel: 'Fija $99/año de por vida — ahorra $140 frente al plan mensual',
     description:
-      'La oferta de lanzamiento de los 100 Fundadores: todas las funciones Premium al precio más bajo que ofreceremos, fijo mientras mantengas tu suscripción. Galería de fotos, imagen de portada, redes sociales, horario y ubicación prioritaria.',
+      'Limitado a los primeros 100 negocios. Fundadores Anual: $99/año. Precio regular Premium: $19.99/mes o $199/año. Tu tarifa de Fundador se mantiene mientras tu suscripción siga activa. Incluye todas las funciones Premium.',
   },
   founding: {
     label: 'Fundador Mensual',
     priceLabel: '$9.99 / mes',
     badge: 'Lanzamiento · solo 100',
     description:
-      'Precio de lanzamiento de los 100 Fundadores — fijo de por vida. Todas las funciones Premium: galería de fotos, imagen de portada, redes sociales, horario y ubicación prioritaria.',
+      'Fundadores: $9.99/mes para los primeros 100 negocios. Precio regular Premium: $19.99/mes. Tu tarifa de Fundador se mantiene mientras tu suscripción siga activa. Incluye fotos, portada, redes sociales, horario y ubicación prioritaria.',
   },
   premium_annual: {
     label: 'Premium Anual',

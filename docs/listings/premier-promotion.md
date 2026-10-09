@@ -17,7 +17,10 @@ final 30 minutes, because Stripe requires at least 30 minutes of checkout lifeti
 
 The existing comp-expiry scheduler persists the downgrade; public serializers
 and entitlement checks enforce it at read time. Existing paid plans are protected.
-The targeted approved offer is separate from generic Founders campaign availability.
+The targeted bundle uses the shared Founders availability check (first 100
+businesses), but preserves the approved total price instead of per-location billing.
+Standard Premium is $19.99/month per location; no automatic price increase is
+scheduled for an active Founders subscription.
 
 Run `npx tsx scripts/activate-premier-promotion.ts` for a no-write summary; add
 `--activate` only after production deployment. The script uses a short-lived OAuth

@@ -3,6 +3,15 @@ import assert from 'node:assert/strict'
 import { DIRECTORY_PLANS, PlanId, getPlan, FOUNDING_LIMIT } from './pricing'
 
 const PLAN_IDS = Object.keys(DIRECTORY_PLANS) as PlanId[]
+test('Founders copy discloses the first100 limit and regular monthly price without changing charges', () => {
+  for (const id of ['founding', 'founding_annual'] as const) {
+    assert.match(DIRECTORY_PLANS[id].description, /first 100 businesses/)
+    assert.match(DIRECTORY_PLANS[id].description, /\$19\.99\/month/)
+    assert.match(DIRECTORY_PLANS[id].description, /while your subscription remains active/)
+  }
+  assert.equal(DIRECTORY_PLANS.founding.unitAmount, 999)
+  assert.equal(DIRECTORY_PLANS.premium_monthly.unitAmount, 1999)
+})
 
 // The money-safety invariant: the price we SHOW (priceLabel) must equal the
 // price we CHARGE (unitAmount). Editing one without the other would display one

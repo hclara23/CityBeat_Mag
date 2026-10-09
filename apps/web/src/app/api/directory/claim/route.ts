@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { getPlan, FOUNDING_LIMIT } from '@/lib/pricing'
+import { getPlan } from '@/lib/pricing'
+import { foundingOfferAvailable } from '@/lib/sales-founding'
 import { REFERRAL_COOKIE } from '@/lib/referrals'
 import { resolveReferralForCheckout } from '@/lib/referrals-server'
 import { salesDirectoryCheckoutIsManaged } from '@/lib/sales-directory'
@@ -126,14 +127,7 @@ export async function POST(request: NextRequest) {
 
     // Founding 100: enforce the launch-promo cap server-side.
     if (plan.founding) {
-      const count = await adminDb
-        .collection('directory_listings')
-        .where('founding_member', '==', true)
-        .count()
-        .get()
-        .then((s: any) => s.data().count)
-        .catch(() => 0)
-      if (count >= FOUNDING_LIMIT) {
+      if (!(await foundingOfferAvailable())) {
         return NextResponse.json(
           { error: 'The Founding 100 launch offer is sold out. Please choose another plan.', founding_sold_out: true },
           { status: 409 }

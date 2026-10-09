@@ -8,6 +8,7 @@ import { trustedSignInOrigin } from '@/lib/google-signin-policy'
 import { activeCompTier } from '@/lib/directory-comp'
 import { canAccessPremierOffer, premierOfferOpen, PREMIER_LISTING, PREMIER_PROMO, PREMIER_MONTHLY_CENTS } from '@/lib/premier-promotion'
 import { blocksReplacementSubscription } from '@/lib/sales-checkout'
+import { foundingOfferAvailable } from '@/lib/sales-founding'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
       if (existing.status === 'complete') return NextResponse.json({ error: 'Payment is being confirmed. Return to your dashboard.' }, { status: 409 })
       expiredSession = existing.id
     }
+    if (!(await foundingOfferAvailable())) return NextResponse.json({ error: 'The Founders offer is limited to the first 100 businesses and is currently unavailable. Your Basic listing remains yours.' }, { status: 409 })
     const attempt = await adminDb.runTransaction(async tx => {
       const fresh = { ...(await tx.get(ctx.ref)).data(), id: PREMIER_LISTING } as Record<string, any>
       if (!canAccessPremierOffer(fresh, ctx.user) || fresh.owner_id !== ctx.user.id || !premierOfferOpen(fresh)) throw new Error('Invitation changed. Refresh your dashboard.')
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription', payment_method_types: ['card'], customer_email: ctx.user.email,
       line_items: [{ price_data: { currency: 'usd', unit_amount: PREMIER_MONTHLY_CENTS, recurring: { interval: 'month' },
-        product_data: { name: 'Premier Clinic — CityBeat Founders Premium', description: '$9.99/month total for all three Premier Clinic locations. Renews monthly until canceled from Billing.' } }, quantity: 1 }],
+        product_data: { name: 'Premier Clinic — CityBeat Founders Premium', description: 'Founders is limited to the first 100 businesses. Regular Premium: $19.99/month per location. Premier special: $9.99/month TOTAL for all three locations, locked while subscribed. Renews monthly until canceled from Billing.' } }, quantity: 1 }],
       success_url: `${APP}/${attempt.locale}/dashboard?premier_checkout=success`, cancel_url: `${APP}/${attempt.locale}/dashboard?premier_checkout=cancelled`,
       expires_at: attempt.expires,
       metadata, subscription_data: { metadata },
