@@ -14,6 +14,11 @@ export function premierPaymentConfirmed(session: Record<string, any>) {
     session.currency === 'usd' && Boolean(session.subscription)
 }
 
+export function canActivatePremierPayment(listing: Record<string, any>, ownerId: unknown) {
+  return isPremierPromotion(listing) && typeof ownerId === 'string' && Boolean(ownerId) &&
+    listing.owner_id === ownerId && listing.claim_status === 'approved' && listing.ownership_verified === true
+}
+
 export function premierGrant(now: Date) {
   const until = new Date(now.getTime() + PREMIER_PROMO_DAYS * 86400000).toISOString()
   return { tier: 'premium', comp_tier: 'premium', comp_source: PREMIER_PROMO,

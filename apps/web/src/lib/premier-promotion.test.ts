@@ -1,12 +1,19 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { canAccessPremierOffer, premierGrant, premierOfferOpen, premierExpiryExtras, PREMIER_MONTHLY_CENTS, promotionDaysLeft, premierPaymentConfirmed } from './premier-promotion'
+import { canAccessPremierOffer, premierGrant, premierOfferOpen, premierExpiryExtras, PREMIER_MONTHLY_CENTS, promotionDaysLeft, premierPaymentConfirmed, canActivatePremierPayment } from './premier-promotion'
 import { compExpiryPatch } from './directory-comp'
 import { resolveEntitlements, filterEntitledListingUpdate, resolveListingPatchAccess } from './directory-entitlements'
 import { stripInternalListingFields } from './listing-fields'
 
 const now = new Date('2026-10-09T01:00:00Z')
 const listing = { id: 'premier-clinic', ...premierGrant(now), promotion_recipient_email: 'doctor@example.com', location_count: 3 }
+test('a paid checkout cannot undo ownership revocation or reassignment', () => {
+  const owned = { ...listing, owner_id: 'doctor', claim_status: 'approved', ownership_verified: true }
+  assert.equal(canActivatePremierPayment(owned, 'doctor'), true)
+  for (const patch of [{ owner_id: 'new-owner' }, { owner_id: null }, { claim_status: 'revoked' }, { ownership_verified: false }, { comp_source: 'revoked' }]) {
+    assert.equal(canActivatePremierPayment({ ...owned, ...patch }, 'doctor'), false)
+  }
+})
 test('dashboard countdown is live, rounds partial days up, and never goes negative', () => {
   assert.equal(promotionDaysLeft(listing.comp_until, now.getTime()), 30)
   assert.equal(promotionDaysLeft(listing.comp_until, now.getTime() + 86400000), 29)

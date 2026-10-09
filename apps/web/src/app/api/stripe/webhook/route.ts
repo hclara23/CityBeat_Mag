@@ -679,7 +679,21 @@ async function handleCheckoutCompleted(session: any) {
       listingPatch.pending_sponsored = null
     }
 
-    await adminDb.collection('directory_listings').doc(metadata.listing_id).set(listingPatch, { merge: true })
+    const listingRef = adminDb.collection('directory_listings').doc(metadata.listing_id)
+    if (metadata.promo_id === 'premier_cover_30day') {
+      const { canActivatePremierPayment } = await import('@/lib/premier-promotion')
+      await adminDb.runTransaction(async tx => {
+        const fresh = { ...(await tx.get(listingRef)).data(), id: metadata.listing_id }
+        if (!canActivatePremierPayment(fresh, metadata.owner_id)) {
+          // Fail/retry and alert operations; payment must not undo an ownership
+          // revocation or reassignment made after checkout was opened.
+          throw new Error('Premier paid checkout requires staff reconciliation: ownership changed')
+        }
+        tx.set(listingRef, listingPatch, { merge: true })
+      })
+    } else {
+      await listingRef.set(listingPatch, { merge: true })
+    }
 
     await linkDirectorySubscription({
       subscriptionId: directorySubscriptionId,
