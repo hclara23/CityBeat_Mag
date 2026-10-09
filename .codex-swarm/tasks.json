@@ -8862,6 +8862,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: publish source-faithful Premier cover feature | details: retain uncropped cover and original PDF; add archive article with responsive layout and sitemap"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: add cover feature and article components | details: preserve full print transcription and asset tests"
         }
       ],
       "doc_version": 2,
@@ -8875,6 +8879,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "c4077f1dc05d0faeb8c02deb8b2495c4dd8cde6ef1adcab5313543f98148afa7"
+    "checksum": "46ee21b7668dba285f9a417df9a40636f2d74159e70c67d0099f997e5e3db1a0"
   }
 }
