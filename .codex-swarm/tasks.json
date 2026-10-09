@@ -8813,12 +8813,36 @@
       "doc_updated_by": "agentctl",
       "description": "Approved bilingual signup/checkout disclosure: Founders USD9.99/month limited to first100 businesses, regular Premium USD19.99/month. Verify cap enforcement; preserve Premier USD9.99 total for3locations. Include rebuild within same USD1 total release cap.",
       "doc": "## Summary\n\nMake every Founders offer disclose first100 businesses and regular USD19.99/month Premium price, with bilingual copy and no automatic later price increase.\n\n## Scope\n\nApproved extension: hard100-business capacity across all5 Founders checkout paths, shared Firestore transaction reservations, stable Stripe retries and confirmed unpaid-expiry release. Bilingual first100/regular19.99 copy, annual99/year preserved, Premier999cents total3locations. Build database-backed locale pages at runtime to avoid credential-free prerender timeouts. All work within same USD1 build cap.\n\n## Risks\n\nDo not imply Founders rises to standard rate after signup. Generic directory checkout is per location; Premier remains explicitly bundled. Existing cap uses count checks, not atomic reservations; audit concurrency separately.\n\n## Verify Steps\n\nRun pricing and full unit tests, web typecheck and lint. Inspect all Founders checkout sources and rendered bilingual copy. Production smoke after combined release.\n\n## Rollback Plan\n\nRevert only scoped copy/availability changes and restore prior Cloud Run traffic; do not alter existing paid subscriptions or prices.\n\n## Notes\n\nFirst-100 disclosures and atomic business reservations live on citybeat-web-founders-714aca9 at 100 percent traffic. Build36fb762e-c9d6-4556-98ae-08aeaee213f7 succeeded. 587 tests, typecheck and lint passed, including competing last-slot and retry tests. Public production smoke checks passed. Combined estimated builder usage about USD0.11 within approved USD1 cap. No real checkout/payment created."
+    },
+    {
+      "id": "202610090215-AQFGN6",
+      "title": "Make Premier promotion a compact dashboard overlay",
+      "status": "DOING",
+      "priority": "med",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: implement approved compact dashboard overlay"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: compact dashboard promotion overlay | details: lighten backdrop and add accessible close button; verify dismissal retains countdown"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T02:16:55+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved correction: compact translucent modal over existing dashboard; retain dismissal and countdown; verify and commit. No new paid deployment authorized.",
+      "doc": "## Summary\n\nCompact translucent Premier promotion overlay over the existing dashboard.\n\n## Scope\n\nPresentation only: reduce modal width and spacing, lighten backdrop, add accessible close button; preserve pricing, claim, checkout and countdown.\n\n## Risks\n\nSmall screens must remain scrollable; close controls must not trigger payment.\n\n## Verify Steps\n\nRun web typecheck and lint; inspect rendered popup and dismissal in local browser.\n\n## Rollback Plan\n\nRevert task-scoped component change; no data or payment migrations.\n\n## Notes\n\nImplemented compact 384px modal with 25-percent backdrop, translucent card, accessible close button and viewport scroll bounds. Local browser confirms popup overlays content and closing it preserves countdown. Typecheck, lint and diff check pass. Preview uses simulated account, not real dashboard data. Deployment pending cost approval."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "23444b6eebdb14dcf96e70f171bb80f48b5332ef903613e77bc03c62610f25d8"
+    "checksum": "8524314e6a4a43bbf5a0eb9648a13b96aed5ab9cd37c726fdf1171c81f6139ef"
   }
 }

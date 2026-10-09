@@ -8,8 +8,9 @@ depends_on: []
 tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "start: implement approved compact dashboard overlay" }
+  - { author: "ORCHESTRATOR", body: "start: compact dashboard promotion overlay | details: lighten backdrop and add accessible close button; verify dismissal retains countdown" }
 doc_version: 2
-doc_updated_at: "2026-10-09T02:15:45+00:00"
+doc_updated_at: "2026-10-09T02:16:55+00:00"
 doc_updated_by: "agentctl"
 description: "Approved correction: compact translucent modal over existing dashboard; retain dismissal and countdown; verify and commit. No new paid deployment authorized."
 ---
@@ -35,5 +36,5 @@ Revert task-scoped component change; no data or payment migrations.
 
 ## Notes
 
-User approved correction. Local implementation only until deployment spending is approved.
+Implemented compact 384px modal with 25-percent backdrop, translucent card, accessible close button and viewport scroll bounds. Local browser confirms popup overlays content and closing it preserves countdown. Typecheck, lint and diff check pass. Preview uses simulated account, not real dashboard data. Deployment pending cost approval.
 

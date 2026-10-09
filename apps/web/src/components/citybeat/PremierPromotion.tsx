@@ -82,19 +82,20 @@ export function PremierPromotion({ locale }: { locale: string }) {
       {!offer.owned && <button disabled={busy} onClick={() => act('claim')} className="block mt-3 text-sm underline">{es ? 'Aceptar la invitación y administrar mi ficha gratis' : 'Accept invitation and manage my listing for free'}</button>}
       {error && <p role="alert" className="mt-3 text-red-700">{error}</p>}
     </section>
-    <dialog ref={dialog} onCancel={dismiss} aria-labelledby="premier-promo-title" className="w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-cyan-300 bg-white p-7 text-gray-900 shadow-2xl backdrop:bg-black/70">
-      <p className="text-xs font-black uppercase tracking-widest text-cyan-700">CityBeat · Premier Clinic</p>
-      <h2 id="premier-promo-title" className="mt-3 text-3xl font-black">{es ? 'Conserva tu lugar Premium' : 'Keep your Premium presence'}</h2>
-      <p className="mt-4">{es ? 'Tu promoción incluye 30 días gratis de Premium.' : 'Your promotion includes 30 free days of Premium.'}</p>
+    <dialog ref={dialog} onCancel={dismiss} aria-labelledby="premier-promo-title" className="fixed inset-0 m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%_-_2rem)] max-w-sm overflow-y-auto rounded-2xl border border-cyan-300 bg-white/95 p-5 text-gray-900 shadow-2xl backdrop:bg-black/25">
+      <button type="button" onClick={dismiss} aria-label={es ? 'Cerrar promoción' : 'Close promotion'} className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full text-2xl text-gray-600 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-700">×</button>
+      <p className="pr-7 text-xs font-black uppercase tracking-widest text-cyan-700">CityBeat · Premier Clinic</p>
+      <h2 id="premier-promo-title" className="mt-2 text-xl font-black">{es ? 'Conserva tu lugar Premium' : 'Keep your Premium presence'}</h2>
+      <p className="mt-3 text-sm">{es ? 'Tu promoción incluye 30 días gratis de Premium.' : 'Your promotion includes 30 free days of Premium.'}</p>
       <p className="mt-2 text-sm font-semibold">{es ? 'Termina:' : 'Ends:'} {date} · {es ? 'hora de El Paso' : 'El Paso time'}</p>
-      <p className="my-5 text-3xl font-black text-cyan-700">$9.99<span className="text-base font-semibold">/{es ? 'mes' : 'month'}</span></p>
-      <p className="font-semibold">{es ? 'Precio total Founders para tus tres ubicaciones.' : 'Founders total price for all three locations.'}</p>
+      <p className="my-3 text-3xl font-black text-cyan-700">$9.99<span className="text-base font-semibold">/{es ? 'mes' : 'month'}</span></p>
+      <p className="text-sm font-semibold">{es ? 'Precio total Founders para tus tres ubicaciones.' : 'Founders total price for all three locations.'}</p>
       <p className="mt-2 text-sm font-semibold">{es ? 'Limitado a los primeros 100 negocios. Precio regular Premium: $19.99/mes por ubicación. Tu tarifa especial se mantiene mientras tu suscripción siga activa.' : 'Limited to the first 100 businesses. Regular Premium price: $19.99/month per location. Your special rate stays locked while your subscription remains active.'}</p>
       <p className="mt-3 text-sm text-gray-600">{es ? 'Sin una suscripción de pago, la ficha vuelve automáticamente a Básica al terminar la promoción. Conservas el control de tu negocio y la insignia de portada.' : 'Without a paid subscription, the listing automatically returns to Basic when the promotion ends. You keep business control and the cover badge.'}</p>
       <p className="mt-4 text-xs text-gray-600">{es ? 'Si te suscribes ahora: $9.99 hoy y cada mes hasta cancelar. Cancela desde Facturación. No se cobra por cerrar este aviso. Al continuar aceptas administrar esta ficha mediante la invitación de CityBeat.' : 'If you subscribe now: $9.99 today and each month until canceled. Cancel from Billing. Closing this notice never charges you. By continuing, you accept CityBeat’s invitation to manage this listing.'}</p>
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
-      <button disabled={busy} onClick={() => act('checkout')} className="mt-5 w-full rounded-lg bg-cyan-700 py-3 font-bold text-white hover:bg-cyan-800 disabled:opacity-50">{busy ? (es ? 'Abriendo…' : 'Opening…') : (es ? 'Conservar Premium · $9.99/mes →' : 'Keep Premium · $9.99/month →')}</button>
-      <button disabled={busy} onClick={dismiss} className="mt-3 w-full py-2 text-sm underline">{es ? 'Ahora no' : 'Not now'}</button>
+      <button disabled={busy} onClick={() => act('checkout')} className="mt-4 w-full rounded-lg bg-cyan-700 py-3 text-sm font-bold text-white hover:bg-cyan-800 disabled:opacity-50">{busy ? (es ? 'Abriendo…' : 'Opening…') : (es ? 'Conservar Premium · $9.99/mes →' : 'Keep Premium · $9.99/month →')}</button>
+      <button onClick={dismiss} className="mt-1 w-full py-2 text-sm underline">{es ? 'Ahora no' : 'Not now'}</button>
     </dialog>
   </>
 }
