@@ -3,7 +3,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { getAdProducts, getEvents, getTopStories, withLocale, type Locale } from '@/components/citybeat/content'
 import { getPublishedArticles } from '@/lib/articles'
 import { getUpcomingEvents } from '@/lib/events'
-import { adminDb } from '@citybeat/lib/firebase/admin'
+import { CoverStoryFeature } from '@/components/citybeat/CoverStoryFeature'
 import { NewsletterForm } from '@/components/NewsletterForm'
 import { AdBanner } from '@/components/citybeat/AdBanner'
 import { ArticleVisual } from '@/components/citybeat/ArticleVisual'
@@ -51,8 +51,7 @@ export default async function Home({ params }: HomePageProps) {
     href: `/stories/${article.slug}`,
   }))
   const stories = importedStories.length > 0 ? importedStories : getTopStories(locale)
-  const featured = stories[0]
-  const secondaryStories = stories.slice(1)
+  const secondaryStories = stories.slice(0, 3)
   const adProducts = getAdProducts(locale)
 
   // Upcoming, publicly-visible events (excludes pending submissions + past events).
@@ -118,43 +117,7 @@ export default async function Home({ params }: HomePageProps) {
 
   return (
     <CityBeatShell locale={locale}>
-      <section className="relative min-h-[86svh] overflow-hidden">
-        <div className="absolute inset-0">
-          <ArticleVisual
-            identifier={featured.href}
-            title={featured.title}
-            category={featured.category}
-            image={featured.image}
-            priority
-            sizes="100vw"
-            className="h-full w-full"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/72 to-black/15" />
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-transparent to-transparent" />
-        </div>
-
-        <div className="container-wide relative z-10 flex min-h-[86svh] items-end pb-16 pt-28">
-          <div className="max-w-4xl">
-            <p className="mb-5 inline-flex max-w-full whitespace-normal rounded-md border border-brand-neon/30 bg-black/35 px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-brand-neon sm:text-xs sm:tracking-[0.3em]">
-              {localeCopy.regionTag}
-            </p>
-            <h1 className="text-balance font-display text-5xl font-black leading-[0.88] tracking-tight text-white sm:text-7xl lg:text-8xl">
-              {localeCopy.headline}
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/72 md:text-xl">
-              {localeCopy.subhead}
-            </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link href={withLocale(locale, featured?.href || '/')} className="rounded-md bg-brand-neon px-6 py-3 text-center text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300">
-                {localeCopy.readLatest}
-              </Link>
-              <Link href={withLocale(locale, '/ads')} className="rounded-md border border-white/20 px-6 py-3 text-center text-sm font-black uppercase tracking-wider text-white transition hover:bg-white/10">
-                {localeCopy.advertise}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <CoverStoryFeature locale={locale} />
 
       {/* Sponsored banner (renders only when an active banner exists) */}
       <div className="container-wide mt-10">
@@ -162,7 +125,7 @@ export default async function Home({ params }: HomePageProps) {
       </div>
 
       <section className="border-y border-white/10 bg-brand-dark py-16">
-        <div className="container-wide grid gap-8 md:grid-cols-3">
+        <div className="container-wide grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {secondaryStories.map((story) => (
             <Link key={story.title} href={withLocale(locale, story.href)} className="group">
               <article className="grid gap-4">

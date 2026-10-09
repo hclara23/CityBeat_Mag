@@ -4,6 +4,7 @@ import { localArticles } from '@/lib/localArticles'
 import { getNonEmptyCombos } from '@/lib/local-seo'
 import { getUpcomingEvents } from '@/lib/events'
 import { unstable_cache } from 'next/cache'
+import { coverStory } from '@/lib/cover-story'
 
 // ISR: regenerate at most hourly (was force-dynamic, so every /sitemap.xml hit
 // ran full scans of listings + articles + events + jobs + the 24 category reads).
@@ -35,7 +36,7 @@ function toDate(v: any): Date | undefined {
 async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
     '', '/stories', '/directory', '/best', '/events', '/this-weekend', '/deals', '/jobs', '/ads', '/contribute', '/privacy', '/cookies', '/terms',
-    '/leaderboard', '/guide',
+    '/leaderboard', '/guide', coverStory.path,
     '/topics/news', '/topics/business', '/topics/events', '/topics/culture',
   ]
   const urls: MetadataRoute.Sitemap = staticPaths.map((p) => entry(p))

@@ -8858,19 +8858,23 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: feature Premier print cover and full source article | details: preserve archive context and current listing links"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: publish source-faithful Premier cover feature | details: retain uncropped cover and original PDF; add archive article with responsive layout and sitemap"
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T02:48:49+00:00",
+      "doc_updated_at": "2026-10-09T02:53:33+00:00",
       "doc_updated_by": "agentctl",
       "description": "Approved: extract supplied Premier PDF; feature approved October-November cover and full article on homepage; verify desktop and mobile. Preserve archive context; no unapproved paid deployment.",
-      "doc": "## Summary\n\nFeature Premier Clinic October-November cover story on the homepage with complete readable print article.\n\n## Scope\n\nHomepage cover feature and article route with archival label, original PDF, existing optimized cover and source-faithful text. Retain existing news below it.\n\n## Risks\n\nPrinted staff and service information may be historical; preserve original article with prominent archive note and link to current listing. No invented issue year.\n\n## Verify Steps\n\nCompare text with rendered PDF; run typecheck/lint/tests; inspect desktop and mobile feature and article.\n\n## Rollback Plan\n\nRevert scoped feature and article files; no business listing data changes.\n\n## Notes\n\nUser approved plan. Deployment requires separate explicit spending authorization."
+      "doc": "## Summary\n\nFeature Premier Clinic October-November cover story on the homepage with complete readable print article.\n\n## Scope\n\nHomepage cover feature and article route with archival label, original PDF, existing optimized cover and source-faithful text. Retain existing news below it.\n\n## Risks\n\nPrinted staff and service information may be historical; preserve original article with prominent archive note and link to current listing. No invented issue year.\n\n## Verify Steps\n\nCompare text with rendered PDF; run typecheck/lint/tests; inspect desktop and mobile feature and article.\n\n## Rollback Plan\n\nRevert scoped feature and article files; no business listing data changes.\n\n## Notes\n\nTranscribed all article sections from visually reviewed one-page PDF. Full original PDF retained unchanged (SHA25631cf72821476a7eb677b56b6e4eacede8c93c68cf1bd03b7254dfb1611fa1e92). Dedicated print archive story, EN/ES feature controls, uncropped cover, historical staff disclaimer, listing links and sitemap entry. 589 tests, web typecheck/lint and diff check passed. Local browser desktop/mobile cover and article navigation verified without overflow. Deployment approved within existing total USD1 cap."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "50e780b23788141af5d6a8e8a131829878e8e4b9b72d9bfaa6a86d35904415dc"
+    "checksum": "c4077f1dc05d0faeb8c02deb8b2495c4dd8cde6ef1adcab5313543f98148afa7"
   }
 }
