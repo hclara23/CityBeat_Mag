@@ -1,15 +1,17 @@
 ---
 id: "202610082359-WKDD0X"
-title: "Evaluate Edge0 and review legal templates"
-status: "TODO"
-priority: "med"
+title: "Audit published app legal documents"
+status: "DOING"
+priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+comments:
+  - { author: "ORCHESTRATOR", body: "Start: inventory published applications under C:\\dev and align legal documents with verified data practices; Edge0 evaluation cancelled before installation" }
 doc_version: 2
 doc_updated_at: "2026-10-09T00:00:07+00:00"
 doc_updated_by: "agentctl"
-description: "Install Edge0 in a removable Windows sandbox, test the smallest practical model within an 8 GB storage cap, document cleanup, and assess General-Legal/legal-templates without purchases or CityBeat application changes."
+description: "Inventory every publicly deployed application under C:\\dev, reconcile privacy, cookie, and terms documents with actual product behavior using General Legal CC0 templates, update affected repositories, and validate links and builds. Edge0 evaluation was cancelled before installation."
 ---
 ## Summary
 
