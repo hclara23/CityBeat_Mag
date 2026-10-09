@@ -1,13 +1,16 @@
 ---
 id: "202610090528-7WYGC7"
 title: "Create coordinated CityBeat Facebook cover and profile graphics"
-status: "DOING"
+status: "DONE"
 priority: "med"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "c317f3b2b55cdc8c0173844c705f3025bec9b5d1", message: "🚧 7WYGC7 start: save finished wide cover and square profile PNG assets with reproducible prompt documentation in the new assets directory." }
 comments:
   - { author: "ORCHESTRATOR", body: "start: deliver coordinated cyan and black Facebook cover and circle-safe profile logo, with exact generation prompts and verified PNG dimensions." }
+  - { author: "ORCHESTRATOR", body: "start: save finished wide cover and square profile PNG assets with reproducible prompt documentation in the new assets directory." }
+  - { author: "ORCHESTRATOR", body: "verified: both finished PNG assets visually inspected and saved | details: cover is 2032x774 and profile is 1254x1254. Exact prompts documented. Facebook account unchanged." }
 doc_version: 2
 doc_updated_at: "2026-10-09T05:31:54+00:00"
 doc_updated_by: "agentctl"
