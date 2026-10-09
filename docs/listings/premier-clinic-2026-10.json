@@ -1,0 +1,63 @@
+{
+  "listing_id": "premier-clinic",
+  "expected_update_time": "2026-09-29T21:58:43.939569Z",
+  "sources": [
+    "https://premier--iris-84999.us-central1.hosted.app/en/faq",
+    "https://premier--iris-84999.us-central1.hosted.app/en/book",
+    "https://premier--iris-84999.us-central1.hosted.app/en/episd-employees",
+    "https://premier--iris-84999.us-central1.hosted.app/en/our-team",
+    "https://premierclinic.us/"
+  ],
+  "asset_root": "C:/dev/Premier/apps-web/public",
+  "asset_destination": "gs://kerstenblueprint-media/directory/premier-clinic/2026-10/",
+  "assets": [
+    {"source": "premier/clinic/patient-visit-1600.webp", "filename": "patient-visit.webp", "provenance": "prepare-clinic-photos.mjs maps to supplied Slider Images/edited kar.jpg; clinic marketing photograph"},
+    {"source": "staff/providers/karina-mendoza.webp", "filename": "karina-mendoza.webp", "provenance": "Explicit active-provider mapping in our-team/page.tsx"},
+    {"source": "staff/providers/jose-ruiz.webp", "filename": "jose-ruiz.webp", "provenance": "Explicit active-provider mapping in our-team/page.tsx"},
+    {"source": "staff/providers/desiree.webp", "filename": "desiree.webp", "provenance": "Explicit active-provider mapping in our-team/page.tsx"},
+    {"source": "premier/editorial/episd-central-exterior-supplied-1600.webp", "filename": "episd-central.webp", "provenance": "Supplied EPISD exterior, documented in Premier client-photo refresh"}
+  ],
+  "editorial_notes": [
+    "Update the existing premium record; do not create another listing or alter billing, claim, owner, ratings or sponsorship fields.",
+    "Exclude cynthia nayeli.jpg, edited cyn.jpg, ambiguous team/group photos and all unverified staff photographs. Identity mapping is based on labeled source assets, not appearance.",
+    "East suite 103 follows the live FAQ and existing listing. Some older source sections still say D-13; copy advises confirming arrival details.",
+    "Central phone 915-503-2878 follows both live booking page Central office label and live FAQ; the local source and generic EPISD contact CTA still use 915-320-7707.",
+    "Shared weekly hours describe East/West. Central EPISD walk-in hours and lab hours are explicitly distinguished in both languages.",
+    "No AI-generated imagery, new subscription, Stripe action or application deployment is needed. User approved Google Cloud photo-hosting charges and requested WebP size optimization. Optimized total: 238184 bytes, 58 percent smaller than the selected source files."
+  ],
+  "patch": {
+    "website": "https://premierclinic.us/",
+    "description": "Care that fits your life, close to home. Premier Clinic brings primary care, wellness and medical aesthetics together across three El Paso locations, with support in English and Spanish.\n\nVisit East or West for preventive care, everyday health concerns and ongoing care, or explore provider-guided weight management, hormone therapy, IV therapy and aesthetic services. Treatment options depend on an individual consultation.\n\nTHREE LOCATIONS\nEast: 1387 George Dieter Dr, Bldg D, Ste 103, El Paso, TX 79936. Call (915) 320-7707.\nWest: 121 Paragon Ln, Bldg B-2, El Paso, TX 79912. Call (915) 503-2878.\nCentral — EPISD employees only: 1014 N Stanton St, El Paso, TX 79902. Central office: (915) 503-2878. This location is not a general-public clinic.\n\nPLAN YOUR VISIT\nEast/West: Monday–Friday, 8 AM–5 PM; Saturday, 8 AM–3 PM; closed Sunday. Appointments recommended; walk-ins depend on availability.\nCentral EPISD walk-ins: Monday–Thursday, 8 AM–4:30 PM; no appointment needed during those hours.\nIn-house lab: Monday–Friday, 8 AM–3 PM; Saturday, 8 AM–noon.\nCall your location to confirm hours, suite details and service availability before visiting. Use Make an appointment to choose your clinic and see booking options.",
+    "description_es": "Atención que se adapta a tu vida, cerca de casa. Premier Clinic reúne atención primaria, bienestar y estética médica en tres ubicaciones de El Paso, con atención en inglés y español.\n\nVisita las clínicas Este u Oeste para atención preventiva, problemas de salud cotidianos y seguimiento, o conoce sus servicios de control de peso médico, terapia hormonal, terapia intravenosa y estética. Las opciones de tratamiento dependen de una consulta individual.\n\nTRES UBICACIONES\nEste: 1387 George Dieter Dr, Bldg D, Ste 103, El Paso, TX 79936. Tel. (915) 320-7707.\nOeste: 121 Paragon Ln, Bldg B-2, El Paso, TX 79912. Tel. (915) 503-2878.\nCentral — solo empleados de EPISD: 1014 N Stanton St, El Paso, TX 79902. Oficina Central: (915) 503-2878. Esta ubicación no atiende al público en general.\n\nPLANEA TU VISITA\nEste/Oeste: lunes a viernes, 8 AM–5 PM; sábado, 8 AM–3 PM; cerrado el domingo. Se recomienda hacer cita; las visitas sin cita dependen de la disponibilidad.\nCentral EPISD: visitas sin cita de lunes a jueves, 8 AM–4:30 PM.\nLaboratorio interno: lunes a viernes, 8 AM–3 PM; sábado, 8 AM–mediodía.\nLlama a tu clínica para confirmar horarios, número de oficina y disponibilidad de servicios antes de acudir. Usa Agendar cita para elegir tu clínica y consultar las opciones de reserva.",
+    "image_url": "https://storage.googleapis.com/kerstenblueprint-media/directory/premier-clinic/2026-10/patient-visit.webp",
+    "gallery_urls": [
+      "https://storage.googleapis.com/kerstenblueprint-media/directory/premier-clinic/2026-10/karina-mendoza.webp",
+      "https://storage.googleapis.com/kerstenblueprint-media/directory/premier-clinic/2026-10/jose-ruiz.webp",
+      "https://storage.googleapis.com/kerstenblueprint-media/directory/premier-clinic/2026-10/desiree.webp",
+      "https://storage.googleapis.com/kerstenblueprint-media/directory/premier-clinic/2026-10/episd-central.webp"
+    ],
+    "locations": [
+      {"address": "East — 1387 George Dieter Dr, Bldg D, Ste 103, El Paso, TX 79936", "phone": "(915) 320-7707", "latitude": 31.731190105465, "longitude": -106.301858857439, "google_place_id": null},
+      {"address": "West — 121 Paragon Ln, Bldg B-2, El Paso, TX 79912", "phone": "(915) 503-2878", "latitude": 31.816563630953, "longitude": -106.513603862094, "google_place_id": null},
+      {"address": "Central (EPISD employees only) — 1014 N Stanton St, El Paso, TX 79902", "phone": "(915) 503-2878", "latitude": 31.76535191552, "longitude": -106.491488869578, "google_place_id": null}
+    ],
+    "location_count": 3,
+    "is_multi_location": true,
+    "hours": {"Monday": "8:00 AM - 5:00 PM", "Tuesday": "8:00 AM - 5:00 PM", "Wednesday": "8:00 AM - 5:00 PM", "Thursday": "8:00 AM - 5:00 PM", "Friday": "8:00 AM - 5:00 PM", "Saturday": "8:00 AM - 3:00 PM", "Sunday": "Closed"},
+    "action_links": {"appointment": "https://premier--iris-84999.us-central1.hosted.app/en/book"},
+    "attributes": ["spanish_spoken"],
+    "services": [
+      {"id": "primary-care", "name": "Primary care", "name_es": "Atención primaria", "price_label": "", "description": "Preventive visits, everyday health concerns and ongoing care.", "description_es": "Visitas preventivas, problemas de salud cotidianos y seguimiento."},
+      {"id": "weight-management", "name": "Medical weight management", "name_es": "Control de peso médico", "price_label": "", "description": "Provider-guided consultations and follow-up based on your individual needs.", "description_es": "Consultas y seguimiento con un profesional según tus necesidades individuales."},
+      {"id": "hormone-therapy", "name": "Hormone therapy", "name_es": "Terapia hormonal", "price_label": "", "description": "Individual evaluation and discussion of appropriate treatment options.", "description_es": "Evaluación individual y orientación sobre opciones de tratamiento adecuadas."},
+      {"id": "iv-therapy", "name": "IV therapy", "name_es": "Terapia intravenosa", "price_label": "", "description": "Ask the clinic about available IV services and whether they are appropriate for you.", "description_es": "Consulta los servicios intravenosos disponibles y si son adecuados para ti."},
+      {"id": "aesthetics", "name": "Medical aesthetics", "name_es": "Estética médica", "price_label": "", "description": "Consultations for provider-guided aesthetic and injectable services.", "description_es": "Consultas de estética e inyectables con orientación profesional."},
+      {"id": "laboratory", "name": "In-house laboratory", "name_es": "Laboratorio interno", "price_label": "", "description": "On-site specimen collection. Mon–Fri 8 AM–3 PM; Sat 8 AM–noon. Confirm availability with your clinic.", "description_es": "Toma de muestras en la clínica. Lun–vie 8 AM–3 PM; sáb 8 AM–mediodía. Confirma disponibilidad con tu clínica."}
+    ],
+    "posts": [
+      {"id": "premier-locations-202610", "type": "update", "title": "Find the Premier location for you", "title_es": "Encuentra tu clínica Premier", "body": "Three El Paso locations: East, West and Central. East and West welcome general patients; Central serves EPISD employees exclusively. Check location details before your visit.", "body_es": "Tres ubicaciones en El Paso: Este, Oeste y Central. Este y Oeste atienden al público general; Central es exclusivamente para empleados de EPISD. Consulta los detalles antes de tu visita.", "starts_at": null, "ends_at": null, "cta_url": "https://premier--iris-84999.us-central1.hosted.app/en/locations", "created_at": "2026-10-09T00:00:00Z"},
+      {"id": "premier-team-202610", "type": "update", "title": "Meet your care team", "title_es": "Conoce a tu equipo de atención", "body": "Get to know Karina Mendoza, Jose Ruiz and Desiree. Explore Premier's current provider profiles and care team before your visit.", "body_es": "Conoce a Karina Mendoza, Jose Ruiz y Desiree. Explora los perfiles actuales del equipo de atención de Premier antes de tu visita.", "starts_at": null, "ends_at": null, "cta_url": "https://premier--iris-84999.us-central1.hosted.app/en/our-team", "created_at": "2026-10-08T23:59:00Z"},
+      {"id": "premier-episd-202610", "type": "update", "title": "Dedicated care for EPISD employees", "title_es": "Atención dedicada a empleados de EPISD", "body": "Central clinic: 1014 N Stanton St. EPISD employee walk-ins Monday–Thursday, 8 AM–4:30 PM. Call the Central office at (915) 503-2878 to confirm details.", "body_es": "Clínica Central: 1014 N Stanton St. Visitas sin cita para empleados de EPISD de lunes a jueves, 8 AM–4:30 PM. Confirma los detalles con la oficina Central al (915) 503-2878.", "starts_at": null, "ends_at": null, "cta_url": "https://premier--iris-84999.us-central1.hosted.app/en/episd-employees", "created_at": "2026-10-08T23:58:00Z"}
+    ]
+  }
+}
