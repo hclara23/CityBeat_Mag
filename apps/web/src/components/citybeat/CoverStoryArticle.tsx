@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { coverStory, coverStoryCopy } from '@/lib/cover-story'
 import { ShareButtons } from './ShareButtons'
+import { ImageGlare } from './ImageGlare'
 
 export function CoverStoryArticle({ locale }: { locale: string }) {
   const copy = coverStoryCopy(locale)
@@ -24,7 +25,7 @@ export function CoverStoryArticle({ locale }: { locale: string }) {
           </aside>
           <p className="mt-8 text-xs font-bold uppercase tracking-widest text-white/50">{copy.original}</p>
           <figure className="mt-6 max-w-3xl">
-            <Image {...coverStory.photos.team} alt={locale === 'es' ? 'Retrato de grupo en Premier Primary Care Clinic' : 'Group portrait at Premier Primary Care Clinic'} sizes="(max-width: 1024px) 100vw, 768px" className="h-auto w-full rounded-md" />
+            <ImageGlare><Image {...coverStory.photos.team} alt={locale === 'es' ? 'Retrato de grupo en Premier Primary Care Clinic' : 'Group portrait at Premier Primary Care Clinic'} sizes="(max-width: 1024px) 100vw, 768px" className="h-auto w-full rounded-md" /></ImageGlare>
             <figcaption className="mt-2 text-xs leading-5 text-white/60">{locale === 'es' ? 'Foto proporcionada para este reportaje. El personal retratado puede haber cambiado desde que se tomó la imagen.' : 'Photo supplied for this feature. Staff pictured may have changed since the photograph was taken.'}</figcaption>
           </figure>
           <div lang="en" className="mt-6 max-w-3xl space-y-10">
@@ -35,7 +36,7 @@ export function CoverStoryArticle({ locale }: { locale: string }) {
                   {section.paragraphs.map((paragraph, j) => <p key={j}>{paragraph}</p>)}
                 </div>
                 {i === 4 && <figure lang={locale === 'es' ? 'es' : 'en'} className="mx-auto mt-8 max-w-lg">
-                  <Image {...coverStory.photos.community} alt={locale === 'es' ? 'Grupo detrás de una mesa de Premier Primary Care Clinic en un evento comunitario' : 'Group behind a Premier Primary Care Clinic table at a community event'} sizes="(max-width: 600px) 100vw, 512px" className="h-auto w-full rounded-md" />
+                  <ImageGlare><Image {...coverStory.photos.community} alt={locale === 'es' ? 'Grupo detrás de una mesa de Premier Primary Care Clinic en un evento comunitario' : 'Group behind a Premier Primary Care Clinic table at a community event'} sizes="(max-width: 600px) 100vw, 512px" className="h-auto w-full rounded-md" /></ImageGlare>
                   <figcaption className="mt-2 text-xs leading-5 text-white/60">{locale === 'es' ? 'Premier Primary Care en la comunidad. Foto proporcionada para este reportaje.' : 'Premier Primary Care in the community. Photo supplied for this feature.'}</figcaption>
                 </figure>}
               </section>
@@ -49,7 +50,7 @@ export function CoverStoryArticle({ locale }: { locale: string }) {
           <ShareButtons {...shareProps} className="mt-8" />
         </div>
         <figure className="order-first mx-auto w-full max-w-[280px] lg:order-none lg:max-w-none">
-          <Image src={coverStory.cover} alt={copy.coverAlt} width={1400} height={1771} sizes="300px" priority className="h-auto w-full border border-white/15 shadow-xl" />
+          <ImageGlare><Image src={coverStory.cover} alt={copy.coverAlt} width={1400} height={1771} sizes="300px" priority className="h-auto w-full border border-white/15 shadow-xl" /></ImageGlare>
           <figcaption className="mt-3 text-xs leading-5 text-white/60">CityBeat Magazine · {copy.issue}</figcaption>
           <a href={coverStory.pdf} className="mt-4 inline-block text-sm font-bold text-brand-neon underline">{copy.pdf}</a>
         </figure>

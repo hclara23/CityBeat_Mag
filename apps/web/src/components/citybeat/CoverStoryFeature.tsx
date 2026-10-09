@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { coverStory, coverStoryCopy } from '@/lib/cover-story'
+import { ImageGlare } from './ImageGlare'
 
 export function CoverStoryFeature({ locale }: { locale: string }) {
   const copy = coverStoryCopy(locale)
@@ -20,7 +21,7 @@ export function CoverStoryFeature({ locale }: { locale: string }) {
           </div>
         </div>
         <Link href={href} aria-label={copy.read} className="mx-auto block w-full max-w-[340px] transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-neon">
-          <Image src={coverStory.cover} alt={copy.coverAlt} width={1400} height={1771} priority sizes="(max-width: 400px) 90vw, 340px" className="h-auto w-full border border-white/15 shadow-2xl" />
+          <ImageGlare><Image src={coverStory.cover} alt={copy.coverAlt} width={1400} height={1771} priority sizes="(max-width: 400px) 90vw, 340px" className="h-auto w-full border border-white/15 shadow-2xl" /></ImageGlare>
         </Link>
       </div>
     </section>
