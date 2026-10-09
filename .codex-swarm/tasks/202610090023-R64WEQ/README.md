@@ -9,7 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: Approved Premier listing preparation, duplicate checks, safe asset selection, and live verification without billing changes." }
 doc_version: 2
-doc_updated_at: "2026-10-09T00:33:45+00:00"
+doc_updated_at: "2026-10-09T00:37:22+00:00"
 doc_updated_by: "agentctl"
 description: "Verify existing listing, update three locations and hours, use provided Premier assets excluding Nayeli, set main domain and hosted-app action links, publish premium presentation without charges."
 ---
@@ -31,13 +31,13 @@ Public source address disagreement must be resolved or disclosed. Central is EPI
 
 ## Verify Steps
 
-Search published and unpublished listings; check image URLs and source provenance; verify premium tier, three locations, bilingual copy, hours and action links using public API and browser.
+PASS: node --check scripts/premier-listing-refresh.mjs; optimization verified five WebP images, 568728 to 238184 bytes (58 percent smaller). Public API deep-equality check matches every manifest field, preserves existing premium/claim/owner/sponsorship. Five image optimizer endpoints and five website/action links HTTP 200. Browser confirms all five images loaded, three locations, booking link, English and Spanish content. Screenshot .tmp/premier-listing/live-gallery.jpg.
 
 ## Rollback Plan
 
-Preserve existing document before mutation and restore only changed fields using a concurrency precondition; if new, unpublish the new listing rather than delete unrelated data.
+Pre-publication document retained at .tmp/premier-listing/before-publication.json and changed prior fields atomically recorded in directory_audit_log/premier-refresh-20261009-R64WEQ. Restore changed fields with a current update-time precondition, removing previously absent fields listed in audit. Old hero.png remains untouched; new images are versioned under 2026-10/.
 
 ## Notes
 
-Prepared bilingual content manifest and guarded one-off refresh script. User specifically approved Google Cloud photo-hosting usage and requested optimized WebP. Five photos reduced from 568728 to 238184 bytes (58 percent); original files unchanged. Main website and four hosted action links return HTTP 200. Existing premium, sponsorship, ownership and billing fields preserved.
+Published successfully 2026-10-09T00:34:22.138500Z to existing premier-clinic. Live URL https://citybeatmag.co/en/directory/premier-clinic. User approved Google Cloud photo usage. No AI generation, deployment, subscription or Stripe change. Five optimized photos include one cover and four gallery images; Nayeli and ambiguous group photos excluded by source labels. Six bilingual services and three linked updates added. Main domain corrected; outdated Quest affiliation removed. Central phone follows live booking and FAQ. Implementation commit a1531ef.
 
