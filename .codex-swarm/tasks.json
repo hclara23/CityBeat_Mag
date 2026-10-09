@@ -8929,12 +8929,32 @@
       "doc_updated_by": "agentctl",
       "description": "Approved: import supplied DOCX faithfully and optimize two photos; add a regular October-November story card below Premier cover, shared social and tilt effects; test and deploy within remaining USD1 total build cap. Dependencies: none.",
       "doc": "## Summary\n\nPublish Machelle Wood profile as a regular October-November issue story while Premier retains cover prominence.\n\n## Scope\n\nImport supplied article and two photos; add homepage/index card, dedicated route, sharing, subtle image effects, metadata and sitemap. Preserve source text; resolve placeholder byline.\n\n## Risks\n\nSource byline is placeholder; do not invent author. Preserve image framing and original text. No new paid service; Cloud Build within remaining combined USD1 cap.\n\n## Verify Steps\n\nCompare article body against DOCX; type-check, lint and tests; production candidate and public EN/ES smoke checks; browser desktop/mobile and photo loads.\n\n## Rollback Plan\n\nRestore traffic to citybeat-web-cover-36205b0; revert scoped content commit if necessary.\n\n## Notes\n\nLIVE: citybeat-web-machelle-ba00b28 at100% traffic. Build355da1f0-b163-4748-bd54-684fa7e2dc36 SUCCESS; digestsha256:a5a53e1aa144ebf160952681ed0b5c494f26a9d77acc8d1d3a85b69e434afb68. Public EN/ES home hierarchy, All/Culture inclusion, News exclusion, article, photos, sharing and tilt checks pass. Public Premier regression/PDF identity passes. Browser desktop/mobile no overflow and both photos loaded. Full suite/type-check/lint passed; exact DOCX text comparison passed. Placeholder byline omitted pending optional author confirmation. Optimized photos147340bytes total. Existing combined USD1 build cap respected."
+    },
+    {
+      "id": "202610090407-BYADKB",
+      "title": "Fix main menu spacing and responsive collapse",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: separate header logo navigation and controls | details: collapse menu before crowding; move Leaderboard and Submit to footer; preserve keyboard and resize behavior."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T04:09:46+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved header fix: separate logo, navigation and actions; collapse before collisions; verify signed-in/out desktop tablet mobile; deploy within remaining combined USD1 build cap. Dependencies none.",
+      "doc": "## Summary\n\nFix header collisions; move Leaderboard and Submit to footer per user request.\n\n## Scope\n\nSeparate nonshrinking logo/nav/action groups; wider header; compact menu below1536px; preserve EN/ES toggle and account controls; footer EN/ES links; resize clears open overlay.\n\n## Risks\n\nVerify both auth states and EN/ES including320px; menu focus and body scroll must recover across breakpoint. No auth or billing changes. Deploy within approved remaining USD1 combined cap.\n\n## Verify Steps\n\nType-check/lint/tests; isolated browser24cases across EN/ES signed-in/out widths320,390,768,1280,1536,1920; menu open/Escape/resize; production screenshot and link checks.\n\n## Rollback Plan\n\nRestore traffic to citybeat-web-machelle-ba00b28 and revert scoped header/footer changes.\n\n## Notes\n\nInitial matrix caught signed-in320px overflow; reduced small-screen logo and menu padding. Corrected320px Spanish preview fits305px content width. Remaining combinations no overlap/overflow. Main menu now5links; Leaderboard and Submit in footer."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "b5e55ba6a03eb26509b33fc51fbed2d7167a6e2832c3931eaf6a206f4199a311"
+    "checksum": "e429d5a4d334215f9a86c08d59c8c1add4713a0a84874577ad087c11564901ae"
   }
 }

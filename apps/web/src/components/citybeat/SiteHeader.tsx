@@ -16,8 +16,6 @@ function getNavItems(locale: string) {
     { label: locale === 'es' ? 'Eventos' : 'Events', href: '/events' },
     { label: locale === 'es' ? 'Empleos' : 'Jobs', href: '/jobs' },
     { label: locale === 'es' ? 'Directorio' : 'Directory', href: '/directory' },
-    { label: locale === 'es' ? 'Tabla' : 'Leaderboard', href: '/leaderboard' },
-    { label: locale === 'es' ? 'Enviar' : 'Submit', href: '/contribute' },
   ]
 }
 
@@ -34,6 +32,15 @@ export function SiteHeader() {
   const locale = useLocale()
   const toggleRef = useRef<HTMLButtonElement>(null)
   const mobileNavRef = useRef<HTMLElement>(null)
+
+  // Keep the compact menu through laptop widths: both auth states and Spanish
+  // labels need more room than the old 768px desktop breakpoint allowed.
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 1536px)')
+    const closeOnDesktop = () => { if (desktop.matches) setOpen(false) }
+    desktop.addEventListener('change', closeOnDesktop)
+    return () => desktop.removeEventListener('change', closeOnDesktop)
+  }, [])
 
   // Detect the signed-in user so we can surface a role-appropriate Dashboard link.
   useEffect(() => {
@@ -110,15 +117,15 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-brand-dark/85 backdrop-blur-xl">
-      <div className="container-wide flex items-center justify-between py-4">
-        <Link href={`/${locale}`} className="group inline-flex items-baseline gap-1">
-          <span className="font-display text-2xl font-black tracking-tighter text-white">
+      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8 2xl:gap-8">
+        <Link href={`/${locale}`} className="group inline-flex shrink-0 items-baseline gap-1 whitespace-nowrap">
+          <span className="font-display text-xl font-black tracking-tighter text-white sm:text-2xl">
             city<span className="italic text-brand-neon">BEat</span>
           </span>
           <span className="hidden text-xs uppercase tracking-[0.3em] text-white/40 sm:inline">mag</span>
         </Link>
 
-        <nav className="hidden items-center gap-7 md:flex">
+        <nav aria-label={locale === 'es' ? 'Navegación principal' : 'Main navigation'} className="hidden shrink-0 items-center gap-5 whitespace-nowrap 2xl:flex">
           {navItems.map((item) => {
             const active = basePath === item.href || basePath.startsWith(`${item.href}/`)
             return (
@@ -126,7 +133,7 @@ export function SiteHeader() {
                 key={item.href}
                 href={withLocale(locale, item.href)}
                 aria-current={active ? 'page' : undefined}
-                className={`text-xs font-bold uppercase tracking-[0.22em] transition ${
+                className={`text-xs font-bold uppercase tracking-[0.16em] transition ${
                   active ? 'text-brand-neon' : 'text-white/70 hover:text-brand-neon'
                 }`}
               >
@@ -136,7 +143,7 @@ export function SiteHeader() {
           })}
         </nav>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2 whitespace-nowrap sm:gap-3">
           {/* Always-visible EN|ES toggle — El Paso's audience is ~90% Spanish-speaking,
               so language switching must never be buried in a menu. */}
           <div className="flex items-center overflow-hidden rounded-full border border-white/25 text-[11px] font-black uppercase tracking-wider">
@@ -152,7 +159,7 @@ export function SiteHeader() {
               provider; email/Novu are delivery channels on the same records. */}
           {profile?.id && <FirstPartyInbox />}
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-4 2xl:flex">
             {dashboardHref ? (
               <>
                 <Link
@@ -188,7 +195,7 @@ export function SiteHeader() {
             ref={toggleRef}
             type="button"
             onClick={() => setOpen((value) => !value)}
-            className="rounded-md border border-white/15 px-3 py-2 text-sm font-bold uppercase tracking-wider text-white md:hidden"
+            className="rounded-md border border-white/15 px-2 py-2 text-sm font-bold uppercase tracking-wider text-white sm:px-3 2xl:hidden"
             aria-expanded={open}
             aria-controls="mobile-navigation"
             aria-label={open ? (locale === 'es' ? 'Cerrar menú' : 'Close menu') : (locale === 'es' ? 'Abrir menú' : 'Open menu')}
@@ -199,7 +206,7 @@ export function SiteHeader() {
       </div>
 
       {open && (
-        <nav ref={mobileNavRef} id="mobile-navigation" aria-label={locale === 'es' ? 'Navegación móvil' : 'Mobile navigation'} className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-white/10 bg-brand-dark px-4 py-6 md:hidden">
+        <nav ref={mobileNavRef} id="mobile-navigation" aria-label={locale === 'es' ? 'Navegación móvil' : 'Mobile navigation'} className="max-h-[calc(100dvh-5rem)] overflow-y-auto border-t border-white/10 bg-brand-dark px-4 py-6 2xl:hidden">
           <div className="flex flex-col gap-5">
             {navItems.map((item) => (
               <Link
@@ -249,6 +256,9 @@ export function SiteHeader() {
                 </Link>
               </>
             )}
+            <Link href={withLocale(locale, '/ads')} onClick={() => setOpen(false)} className="font-display text-3xl font-black text-brand-neon hover:text-cyan-300">
+              {locale === 'es' ? 'Anunciar' : 'Advertise'}
+            </Link>
           </div>
         </nav>
       )}

@@ -36,6 +36,9 @@ export function SiteFooter({ locale = 'en' }: { locale?: string }) {
               <Link href={withLocale(locale, '/deals')} className="hover:text-brand-neon">
                 {locale === 'es' ? 'Ofertas' : 'Deals'}
               </Link>
+              <Link href={withLocale(locale, '/leaderboard')} className="hover:text-brand-neon">
+                {locale === 'es' ? 'Tabla de clasificación' : 'Leaderboard'}
+              </Link>
             </div>
           </div>
           <div>
@@ -48,6 +51,9 @@ export function SiteFooter({ locale = 'en' }: { locale?: string }) {
               </Link>
               <Link href={withLocale(locale, '/ads/campaigns')} className="hover:text-brand-neon">
                 {locale === 'es' ? 'Campañas' : 'Campaigns'}
+              </Link>
+              <Link href={withLocale(locale, '/contribute')} className="hover:text-brand-neon">
+                {locale === 'es' ? 'Enviar contenido' : 'Submit'}
               </Link>
               <a href="mailto:ads@citybeatmag.co" className="hover:text-brand-neon">
                 ads@citybeatmag.co
