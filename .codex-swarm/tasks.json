@@ -8866,19 +8866,23 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: add cover feature and article components | details: preserve full print transcription and asset tests"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: add optimized Premier photos and H. Caleb Lara byline | details: add tested social sharing and resilient copy-link feedback"
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T02:53:33+00:00",
+      "doc_updated_at": "2026-10-09T03:05:46+00:00",
       "doc_updated_by": "agentctl",
       "description": "Approved: extract supplied Premier PDF; feature approved October-November cover and full article on homepage; verify desktop and mobile. Preserve archive context; no unapproved paid deployment.",
-      "doc": "## Summary\n\nFeature Premier Clinic October-November cover story on the homepage with complete readable print article.\n\n## Scope\n\nHomepage cover feature and article route with archival label, original PDF, existing optimized cover and source-faithful text. Retain existing news below it.\n\n## Risks\n\nPrinted staff and service information may be historical; preserve original article with prominent archive note and link to current listing. No invented issue year.\n\n## Verify Steps\n\nCompare text with rendered PDF; run typecheck/lint/tests; inspect desktop and mobile feature and article.\n\n## Rollback Plan\n\nRevert scoped feature and article files; no business listing data changes.\n\n## Notes\n\nTranscribed all article sections from visually reviewed one-page PDF. Full original PDF retained unchanged (SHA25631cf72821476a7eb677b56b6e4eacede8c93c68cf1bd03b7254dfb1611fa1e92). Dedicated print archive story, EN/ES feature controls, uncropped cover, historical staff disclaimer, listing links and sitemap entry. 589 tests, web typecheck/lint and diff check passed. Local browser desktop/mobile cover and article navigation verified without overflow. Deployment approved within existing total USD1 cap."
+      "doc": "## Summary\n\nFeature Premier Clinic October-November cover story on the homepage with complete readable print article.\n\n## Scope\n\nHomepage cover feature and article route with archival label, original PDF, existing optimized cover and source-faithful text. Retain existing news below it.\n\n## Risks\n\nPrinted staff and service information may be historical; preserve original article with prominent archive note and link to current listing. No invented issue year.\n\n## Verify Steps\n\nCompare text with rendered PDF; run typecheck/lint/tests; inspect desktop and mobile feature and article.\n\n## Rollback Plan\n\nRevert scoped feature and article files; no business listing data changes.\n\n## Notes\n\nApproved additions: two supplied photos optimized to WebP totaling638882bytes with framing preserved; web byline and author metadata H. Caleb Lara; top/bottom Facebook, X, LinkedIn, WhatsApp, native share and copy controls. Actual browser Copy link feedback and clipboard URL verified; images loaded and mobile no overflow. First build56226f53 canceled to include additions; original PDF unchanged. 590 tests pass plus typecheck/lint. Final build pending within approved USD1 total cap."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "46ee21b7668dba285f9a417df9a40636f2d74159e70c67d0099f997e5e3db1a0"
+    "checksum": "e22aa038d707e1fdf297b2d5b43aa631fbd2c09ebca6ed9659506654ddb64bc1"
   }
 }

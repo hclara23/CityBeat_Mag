@@ -6,7 +6,12 @@ export const coverStory = {
   pdf: '/print/premier-clinic-feature.pdf',
   title: 'At Premier Primary Care, El Paso patients find a clinic that feels like home',
   excerpt: 'Founded in 2019 by an El Paso native, the bilingual practice runs on a simple promise: patients are people, not numbers.',
-  author: 'Staff Writer',
+  // Web byline supplied explicitly by the publisher; original PDF stays unchanged.
+  author: 'H. Caleb Lara',
+  photos: {
+    team: { src: '/print/premier-team.webp', width: 1400, height: 1129 },
+    community: { src: '/print/premier-community.webp', width: 1400, height: 1867 },
+  },
   sections: [
     {
       heading: '',

@@ -9,6 +9,7 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
   return {
     title: `${coverStory.title} · CityBeat Cover Story`,
     description: coverStory.excerpt,
+    authors: [{ name: coverStory.author }],
     alternates: localeAlternates(params.locale, coverStory.path),
     openGraph: { title: coverStory.title, description: coverStory.excerpt, type: 'article', images: [{ url: coverStory.cover, width: 1400, height: 1771 }] },
     twitter: { card: 'summary_large_image', title: coverStory.title, description: coverStory.excerpt, images: [coverStory.cover] },
@@ -21,7 +22,7 @@ export default function PremierCoverStoryPage({ params }: { params: { locale: st
       '@context': 'https://schema.org', '@type': 'Article',
       headline: coverStory.title, description: coverStory.excerpt,
       image: `https://citybeatmag.co${coverStory.cover}`,
-      inLanguage: 'en', author: { '@type': 'Organization', name: 'CityBeat Magazine' },
+      inLanguage: 'en', author: { '@type': 'Person', name: coverStory.author },
       publisher: { '@type': 'Organization', name: 'CityBeat Magazine' },
       mainEntityOfPage: `https://citybeatmag.co/${params.locale}${coverStory.path}`,
     }) }} />

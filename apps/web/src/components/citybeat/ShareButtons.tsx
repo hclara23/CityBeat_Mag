@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { socialShareLinks } from '@/lib/share-links'
 
 type Props = {
   /** Absolute URL to share. Falls back to the current page URL at click time. */
@@ -11,8 +12,8 @@ type Props = {
 }
 
 const copy = {
-  en: { share: 'Share', copy: 'Copy link', copied: 'Link copied!' },
-  es: { share: 'Compartir', copy: 'Copiar enlace', copied: '¡Enlace copiado!' },
+  en: { share: 'Share', copy: 'Copy link', copied: 'Link copied!', manual: 'Copy this link manually:', failed: 'Sharing did not open. Use a social button or copy the link.' },
+  es: { share: 'Compartir', copy: 'Copiar enlace', copied: '¡Enlace copiado!', manual: 'Copia este enlace manualmente:', failed: 'No se pudo abrir la opción de compartir. Usa un botón de red social o copia el enlace.' },
 }
 
 function Icon({ name }: { name: string }) {
@@ -57,55 +58,58 @@ function Icon({ name }: { name: string }) {
 export function ShareButtons({ url, title = '', locale = 'en', className = '' }: Props) {
   const t = copy[locale]
   const [copied, setCopied] = useState(false)
+  const [nativeSupported, setNativeSupported] = useState(false)
+  const [manualCopy, setManualCopy] = useState(false)
+  const [shareFailed, setShareFailed] = useState(false)
+  useEffect(() => { setNativeSupported(typeof navigator.share === 'function') }, [])
 
   const getUrl = () => url || (typeof window !== 'undefined' ? window.location.href : '')
 
   const onNativeShare = async () => {
+    setShareFailed(false)
     const shareUrl = getUrl()
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ title, url: shareUrl })
-      } catch {
-        /* user cancelled */
+      } catch (error) {
+        if (!(error instanceof Error && error.name === 'AbortError')) setShareFailed(true)
       }
     }
   }
 
   const onCopy = async () => {
+    // Keep a usable link visible even while a browser permission prompt is pending.
+    setManualCopy(true)
     try {
       await navigator.clipboard.writeText(getUrl())
+      setManualCopy(false)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      /* ignore */
+      setCopied(false)
+      setManualCopy(true)
     }
   }
 
-  const enc = (s: string) => encodeURIComponent(s)
   const shareUrl = getUrl()
-  const links = [
-    { name: 'x', label: 'X', href: `https://twitter.com/intent/tweet?url=${enc(shareUrl)}&text=${enc(title)}` },
-    { name: 'facebook', label: 'Facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${enc(shareUrl)}` },
-    { name: 'linkedin', label: 'LinkedIn', href: `https://www.linkedin.com/sharing/share-offsite/?url=${enc(shareUrl)}` },
-    { name: 'whatsapp', label: 'WhatsApp', href: `https://wa.me/?text=${enc(`${title} ${shareUrl}`)}` },
-  ]
+  const links = socialShareLinks(shareUrl, title)
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
       <span className="mr-1 text-xs font-black uppercase tracking-[0.2em] text-white/50">{t.share}</span>
 
-      {/* Native share — handy on mobile; hidden where unsupported is fine (still renders, no-ops). */}
-      <button
+      {/* Do not display a share-sheet button on browsers that cannot open it. */}
+      {nativeSupported && <button
         type="button"
         onClick={onNativeShare}
         aria-label={t.share}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white/70 transition hover:border-brand-neon hover:text-brand-neon sm:hidden sm:h-9 sm:w-9"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white/70 transition hover:border-brand-neon hover:text-brand-neon"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
           <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
         </svg>
-      </button>
+      </button>}
 
       {links.map((l) => (
         <a
@@ -129,6 +133,9 @@ export function ShareButtons({ url, title = '', locale = 'en', className = '' }:
         <Icon name="link" />
         {copied ? t.copied : t.copy}
       </button>
+      <span role="status" className="sr-only">{copied ? t.copied : ''}</span>
+      {shareFailed && <p role="status" className="w-full text-sm text-white/80">{t.failed}</p>}
+      {manualCopy && <label className="w-full text-sm text-white/80">{t.manual}<input aria-label={t.copy} readOnly value={shareUrl} onFocus={(event) => event.target.select()} className="mt-2 block w-full rounded-md border-white/30 bg-brand-charcoal text-sm text-white" /></label>}
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { coverStory, coverStoryCopy } from './cover-story'
 
 test('cover story preserves the full print feature and labels historical details', () => {
   assert.equal(coverStory.sections.length, 8)
+  assert.equal(coverStory.author, 'H. Caleb Lara')
   const text = coverStory.sections.flatMap(section => section.paragraphs).join(' ')
   assert.ok(text.startsWith('EL PASO, Texas — Beatriz Fitzmaurice'))
   assert.ok(text.includes('She is a patient who is treated like someone special.'))
@@ -18,7 +19,7 @@ test('cover story preserves the full print feature and labels historical details
 })
 
 test('cover and original PDF ship with the linked article route', () => {
-  for (const asset of [coverStory.cover, coverStory.pdf]) {
+  for (const asset of [coverStory.cover, coverStory.pdf, coverStory.photos.team.src, coverStory.photos.community.src]) {
     assert.ok(existsSync(fileURLToPath(new URL(`../../public${asset}`, import.meta.url))))
   }
   const pdf = readFileSync(new URL(`../../public${coverStory.pdf}`, import.meta.url))
