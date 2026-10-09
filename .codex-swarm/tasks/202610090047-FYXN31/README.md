@@ -1,15 +1,17 @@
 ---
 id: "202610090047-FYXN31"
 title: "Secure business-owned listings and add verified print recognition"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "6a481b99866826b29ab89cc5d589de4c4db5634e", message: "✨ FYXN31 add secure Google entry and verified print recognition; harden claims and owner notifications" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: Approved secure ownership, notification and Google profile assessment with three staff-managed print badges and authorized historical Premier cover." }
+  - { author: "ORCHESTRATOR", body: "verified: Google sign-in, ownership safeguards and staff-only print badges live on citybeat-web-founders-714aca9. | details: Premier archival cover published 2026-10-09T02:06:21.871298Z.; Live English cover and public auth rejection verified.; Google Business Profile sync remains disabled pending policy clearance.; Actual customer OAuth not exercised." }
 doc_version: 2
-doc_updated_at: "2026-10-09T01:04:33+00:00"
+doc_updated_at: "2026-10-09T02:09:21+00:00"
 doc_updated_by: "agentctl"
 description: "Approved: audit edit permissions; Google sign-in and verified claims; owner dashboard notifications; assess permitted Google Business Profile sync; staff-only print coverage, advertiser and cover badges with Premier cover recognition. No new spending approved."
 ---
@@ -39,5 +41,5 @@ Revert only scoped code commits; preserve existing owner/billing/content records
 
 ## Notes
 
-User approved up to USD1 Cloud Build for this release. No new service or paid Google Business Profile integration. Independent read-only review found an image hostname validation issue, fixed with storage allowlist. 574 tests, web typecheck and lint pass. MFA no-cookie and profile-preservation regression tests included. GBP public republication remains disabled pending policy clearance. Production build, Premier print record and live visual verification pending.
+Google sign-in, ownership safeguards and staff-only print badges live on citybeat-web-founders-714aca9. Premier archival cover published 2026-10-09T02:06:21.871298Z. Live English cover and public auth rejection verified. Google Business Profile sync remains disabled pending policy clearance. Actual customer OAuth not exercised.
 

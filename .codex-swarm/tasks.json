@@ -8700,22 +8700,30 @@
     {
       "id": "202610090047-FYXN31",
       "title": "Secure business-owned listings and add verified print recognition",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "6a481b99866826b29ab89cc5d589de4c4db5634e",
+        "message": "✨ FYXN31 add secure Google entry and verified print recognition; harden claims and owner notifications"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: Approved secure ownership, notification and Google profile assessment with three staff-managed print badges and authorized historical Premier cover."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: Google sign-in, ownership safeguards and staff-only print badges live on citybeat-web-founders-714aca9. | details: Premier archival cover published 2026-10-09T02:06:21.871298Z.; Live English cover and public auth rejection verified.; Google Business Profile sync remains disabled pending policy clearance.; Actual customer OAuth not exercised."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T01:04:33+00:00",
+      "doc_updated_at": "2026-10-09T02:09:21+00:00",
       "doc_updated_by": "agentctl",
       "description": "Approved: audit edit permissions; Google sign-in and verified claims; owner dashboard notifications; assess permitted Google Business Profile sync; staff-only print coverage, advertiser and cover badges with Premier cover recognition. No new spending approved.",
-      "doc": "## Summary\n\nApproved owner-managed directory with secure editing, Google account entry, business notifications, policy-safe Google profile integration assessment, and staff-assigned print recognition.\n\n## Context\n\nUser approved ownership controls, Google sign-in and staff-managed print badges. October-November historical Premier cover approved unchanged, issue year unspecified. Google sign-in provider already enabled; added citybeatmag.co to existing Firebase authorized domains. Current code graph predates listing ownership, so current source and permission tests were used.\n\n## Scope\n\nORCHESTRATOR coordinates; CODER implements scoped changes; TESTER and REVIEWER verify; INTEGRATOR closes. Audit anonymous, owner, manager and staff access. Reuse existing Google login and claims/dashboard. Add Print Coverage, Print Advertiser and Cover Feature badges with staff-only writes and public display. Premier cover from October-November issue explicitly approved as historical cover despite former staff. Assess GBP sync official policies before any activation.\n\n## Risks\n\nNo ownership grant from Google email alone. Owners must not self-award editorial badges. Distinguish ads from independent coverage. Cover is historical, not current team. GBP API reuse and project approval may block syncing. No new charges, paid deployment or external permission changes without explicit approval.\n\n## Verify Steps\n\nPermission boundary unit/integration tests; anonymous no-op PATCH denial; staff-only badge validation tests; Google login/claim/dashboard flow checks; typecheck, tests, build; production visual checks only after authorized deployment.\n\n## Rollback Plan\n\nRevert only scoped code commits; preserve existing owner/billing/content records and old assets; record any Premier badge patch previous state before writing; deployment rollback to previous healthy revision.\n\n## Notes\n\nUser approved up to USD1 Cloud Build for this release. No new service or paid Google Business Profile integration. Independent read-only review found an image hostname validation issue, fixed with storage allowlist. 574 tests, web typecheck and lint pass. MFA no-cookie and profile-preservation regression tests included. GBP public republication remains disabled pending policy clearance. Production build, Premier print record and live visual verification pending."
+      "doc": "## Summary\n\nApproved owner-managed directory with secure editing, Google account entry, business notifications, policy-safe Google profile integration assessment, and staff-assigned print recognition.\n\n## Context\n\nUser approved ownership controls, Google sign-in and staff-managed print badges. October-November historical Premier cover approved unchanged, issue year unspecified. Google sign-in provider already enabled; added citybeatmag.co to existing Firebase authorized domains. Current code graph predates listing ownership, so current source and permission tests were used.\n\n## Scope\n\nORCHESTRATOR coordinates; CODER implements scoped changes; TESTER and REVIEWER verify; INTEGRATOR closes. Audit anonymous, owner, manager and staff access. Reuse existing Google login and claims/dashboard. Add Print Coverage, Print Advertiser and Cover Feature badges with staff-only writes and public display. Premier cover from October-November issue explicitly approved as historical cover despite former staff. Assess GBP sync official policies before any activation.\n\n## Risks\n\nNo ownership grant from Google email alone. Owners must not self-award editorial badges. Distinguish ads from independent coverage. Cover is historical, not current team. GBP API reuse and project approval may block syncing. No new charges, paid deployment or external permission changes without explicit approval.\n\n## Verify Steps\n\nPermission boundary unit/integration tests; anonymous no-op PATCH denial; staff-only badge validation tests; Google login/claim/dashboard flow checks; typecheck, tests, build; production visual checks only after authorized deployment.\n\n## Rollback Plan\n\nRevert only scoped code commits; preserve existing owner/billing/content records and old assets; record any Premier badge patch previous state before writing; deployment rollback to previous healthy revision.\n\n## Notes\n\nGoogle sign-in, ownership safeguards and staff-only print badges live on citybeat-web-founders-714aca9. Premier archival cover published 2026-10-09T02:06:21.871298Z. Live English cover and public auth rejection verified. Google Business Profile sync remains disabled pending policy clearance. Actual customer OAuth not exercised."
     },
     {
       "id": "202610090112-8HREVB",
@@ -8785,16 +8793,16 @@
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T01:36:58+00:00",
+      "doc_updated_at": "2026-10-09T01:46:00+00:00",
       "doc_updated_by": "agentctl",
       "description": "Approved bilingual signup/checkout disclosure: Founders USD9.99/month limited to first100 businesses, regular Premium USD19.99/month. Verify cap enforcement; preserve Premier USD9.99 total for3locations. Include rebuild within same USD1 total release cap.",
-      "doc": "## Summary\n\nMake every Founders offer disclose first100 businesses and regular USD19.99/month Premium price, with bilingual copy and no automatic later price increase.\n\n## Scope\n\nShared plan descriptions, Spanish claim copy, Premier popup/banner and dedicated checkout. Check existing cap paths, fail closed on unavailable counts. Preserve annual USD99/year and Premier USD9.99 total all3locations. Same USD1 total build cap approved.\n\n## Risks\n\nDo not imply Founders rises to standard rate after signup. Generic directory checkout is per location; Premier remains explicitly bundled. Existing cap uses count checks, not atomic reservations; audit concurrency separately.\n\n## Verify Steps\n\nRun pricing and full unit tests, web typecheck and lint. Inspect all Founders checkout sources and rendered bilingual copy. Production smoke after combined release.\n\n## Rollback Plan\n\nRevert only scoped copy/availability changes and restore prior Cloud Run traffic; do not alter existing paid subscriptions or prices."
+      "doc": "## Summary\n\nMake every Founders offer disclose first100 businesses and regular USD19.99/month Premium price, with bilingual copy and no automatic later price increase.\n\n## Scope\n\nApproved extension: hard100-business capacity across all5 Founders checkout paths, shared Firestore transaction reservations, stable Stripe retries and confirmed unpaid-expiry release. Bilingual first100/regular19.99 copy, annual99/year preserved, Premier999cents total3locations. Build database-backed locale pages at runtime to avoid credential-free prerender timeouts. All work within same USD1 build cap.\n\n## Risks\n\nDo not imply Founders rises to standard rate after signup. Generic directory checkout is per location; Premier remains explicitly bundled. Existing cap uses count checks, not atomic reservations; audit concurrency separately.\n\n## Verify Steps\n\nRun pricing and full unit tests, web typecheck and lint. Inspect all Founders checkout sources and rendered bilingual copy. Production smoke after combined release.\n\n## Rollback Plan\n\nRevert only scoped copy/availability changes and restore prior Cloud Run traffic; do not alter existing paid subscriptions or prices.\n\n## Notes\n\nUser explicitly approved hard atomic limit. Implemented shared capacity transaction, imports legacy Stripe history, reconciles paid listings/orders, reserves distinct business not location, persists exact checkout parameters/idempotency, releases known checkouts only after confirmed expired unpaid. All5 routes use helper; cart excludes directory. Unknown legacy or provider outcomes conservatively held for staff reconciliation. 584 tests/typecheck/lint/diff-check pass. External reviewer unavailable; main review completed. No real payment/checkout created. Combined production build next."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "126091b5647f7928ce51eb33b3df0aa417c9405b59c8ec79aa8013c7e66d7a6c"
+    "checksum": "d010542e6323d6f195921f2881d98863950c49b4fbc7b6ca38ad3d0ff545c8b7"
   }
 }
