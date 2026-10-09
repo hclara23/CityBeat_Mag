@@ -8499,6 +8499,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "Start: inventory published applications under C:\\dev and align legal documents with verified data practices; Edge0 evaluation cancelled before installation"
+        },
+        {
+          "author": "PLANNER",
+          "body": "Downstream legal tasks: 202610090010-72N02C Arcoiris; 202610090010-QK38Z6 Arturo; 202610090010-J4ZN9F CYO; 202610090010-VC3S2H El Paso Tax Watch; 202610090010-DB36F9 eMOTION Talk; 202610090010-KWNM65 CityBeat; 202610090010-HTBBGN HearthOS; 202610090010-3983ZF Concordia."
         }
       ],
       "doc_version": 2,
@@ -8506,12 +8510,122 @@
       "doc_updated_by": "agentctl",
       "description": "Inventory every publicly deployed application under C:\\dev, reconcile privacy, cookie, and terms documents with actual product behavior using General Legal CC0 templates, update affected repositories, and validate links and builds. Edge0 evaluation was cancelled before installation.",
       "doc": "## Summary\n\nEvaluate Edge0 safely on this Windows workstation and review the General-Legal template repository.\n\n## Scope\n\nUse an ignored, removable sandbox; cap storage at 8 GB; install no paid service or system-wide dependency; test the smallest practical Edge0 model; provide cleanup instructions; perform read-only research on General-Legal/legal-templates.\n\n## Risks\n\nWindows/Vulkan hardware or build prerequisites may be incompatible; model downloads are large; legal templates are not legal advice and may not fit CityBeat jurisdictions.\n\n## Verify Steps\n\nConfirm sandbox is git-ignored, record installed files and sizes, run Edge0 smoke generation if compatible, verify CityBeat tracked files remain unchanged apart from workflow records, and validate repository claims against upstream documentation.\n\n## Rollback Plan\n\nStop Edge0 processes and remove the single sandbox directory; no system-wide packages, services, or CityBeat runtime changes are permitted."
+    },
+    {
+      "id": "202610090010-3983ZF",
+      "title": "Concordia legal documents",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T00:10:10+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit and update legal documents for the publicly reachable Concordia Heritage Association application in C:\\dev\\Concordia Heritage Association."
+    },
+    {
+      "id": "202610090010-72N02C",
+      "title": "Arcoiris legal documents",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit and update legal documents for the publicly reachable Arcoiris Fine Bakery application in C:\\dev\\arcoiris."
+    },
+    {
+      "id": "202610090010-DB36F9",
+      "title": "eMOTION Talk legal documents",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit and update legal documents for the publicly reachable eMOTION Talk application in C:\\dev\\emotion_talk."
+    },
+    {
+      "id": "202610090010-HTBBGN",
+      "title": "HearthOS legal documents",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T00:10:10+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit and update legal documents for the publicly reachable HearthOS application in C:\\dev\\Prime_Time_OS."
+    },
+    {
+      "id": "202610090010-J4ZN9F",
+      "title": "CYO Studio legal documents",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit and update legal documents for the publicly reachable CYO Studio application in C:\\dev\\CYO."
+    },
+    {
+      "id": "202610090010-KWNM65",
+      "title": "CityBeat legal documents",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: audit the live CityBeat legal disclosures against current data, AI, analytics, directory, contribution, and billing behavior; add any missing public notice and validate locally."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit and update legal documents for the publicly reachable CityBeat application in C:\\dev\\CityBeat_Mag."
+    },
+    {
+      "id": "202610090010-QK38Z6",
+      "title": "Arturo CampaignOS legal documents",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit and update legal documents for the publicly reachable Arturo CampaignOS application in C:\\dev\\Arturo_Campaig_OS."
+    },
+    {
+      "id": "202610090010-VC3S2H",
+      "title": "El Paso Tax Watch legal documents",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T00:10:09+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit and update legal documents for the publicly reachable El Paso Tax Watch application in C:\\dev\\ElPasoTaxWatch.com."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "21dec867421370438b5f48e0e1fbd74b27dd211f5628dc62bbc8898d5c4a8d64"
+    "checksum": "c14abe91327533ee49b347252fad60a7031d19846a5937a4315deb86755ac5c3"
   }
 }

@@ -56,15 +56,23 @@ const copy = {
         text: 'Claiming a business listing requires us to verify that you represent that business. We may decline a claim we cannot verify. If we decline a claim you paid for, we cancel the subscription so you are not billed again and will contact you about the payment already made. Listing content you provide must be accurate and yours to publish; we may edit or remove content that is not.',
       },
       {
-        heading: '11. Modifications',
-        text: 'CityBeat Magazine may revise these terms of service for its website at any time without notice. By using this website, you are agreeing to be bound by the then current version of these terms of service.',
+        heading: '11. Contributions, Reviews, and User Content',
+        text: 'You keep ownership of original content you submit. By submitting it for publication, you give CityBeat a non-exclusive, worldwide, royalty-free license to host, edit for style or length, translate, reproduce, distribute, display, promote, and archive it in connection with CityBeat. You represent that you have the rights and permissions needed, that the content is accurate to the best of your knowledge, and that it is not unlawful, defamatory, deceptive, infringing, or generated to impersonate another person. Sponsored content and advertising must be identified as such. We may reject, edit, label, unpublish, or remove content, but we are not obligated to monitor every submission.',
       },
       {
-        heading: '12. Governing Law',
+        heading: '12. AI-Assisted Features',
+        text: 'CityBeat uses AI to assist with chat replies, drafts, summaries, recommendations, and translation. AI output can be incomplete, biased, or wrong. It is not legal, financial, medical, or other professional advice, and users remain responsible for reviewing output before relying on or publishing it. Do not submit confidential, regulated, or highly sensitive information to an AI feature.',
+      },
+      {
+        heading: '13. Modifications and Termination',
+        text: 'CityBeat may change the service or these terms by posting a revised version and effective date. Material changes will be announced on the site when practical. We may suspend or terminate access for nonpayment, misuse, security risk, or violation of these terms. Continued use after an update means you accept the revised terms.',
+      },
+      {
+        heading: '14. Governing Law',
         text: 'These terms and conditions are governed by and construed in accordance with the laws of Texas, and you irrevocably submit to the exclusive jurisdiction of the courts in that location.',
       },
     ],
-    updated: 'Last updated: September 2026',
+    updated: 'Last updated: October 8, 2026',
   },
   es: {
     title: 'Términos de Servicio',
@@ -117,15 +125,23 @@ const copy = {
         text: 'Reclamar la ficha de un negocio requiere que verifiquemos que usted representa a ese negocio. Podemos rechazar una reclamación que no podamos verificar. Si rechazamos una reclamación que usted pagó, cancelamos la suscripción para que no se le vuelva a cobrar y le contactaremos sobre el pago ya realizado. El contenido que aporte debe ser exacto y suyo para publicarlo; podemos editar o retirar contenido que no lo sea.',
       },
       {
-        heading: '11. Modificaciones',
-        text: 'CityBeat Magazine puede revisar estos términos de servicio para su sitio web en cualquier momento sin previo aviso. Al usar este sitio web, usted acepta regirse por la versión vigente de estos términos de servicio.',
+        heading: '11. Contribuciones, Reseñas y Contenido de Usuarios',
+        text: 'Usted conserva la propiedad del contenido original que envía. Al enviarlo para publicación, concede a CityBeat una licencia no exclusiva, mundial y libre de regalías para alojarlo, editarlo por estilo o extensión, traducirlo, reproducirlo, distribuirlo, mostrarlo, promocionarlo y archivarlo en relación con CityBeat. Declara que tiene los derechos y permisos necesarios, que el contenido es exacto según su leal saber y entender, y que no es ilegal, difamatorio, engañoso, infractor ni creado para suplantar a otra persona. El contenido patrocinado y la publicidad deben identificarse como tales. Podemos rechazar, editar, etiquetar, retirar o eliminar contenido, pero no estamos obligados a vigilar cada envío.',
       },
       {
-        heading: '12. Ley Aplicable',
+        heading: '12. Funciones Asistidas por IA',
+        text: 'CityBeat usa IA para ayudar con respuestas de chat, borradores, resúmenes, recomendaciones y traducción. Los resultados pueden ser incompletos, sesgados o incorrectos. No constituyen asesoría legal, financiera, médica ni profesional, y el usuario debe revisarlos antes de utilizarlos o publicarlos. No envíe información confidencial, regulada o altamente sensible a una función de IA.',
+      },
+      {
+        heading: '13. Modificaciones y Terminación',
+        text: 'CityBeat puede cambiar el servicio o estos términos publicando una versión revisada y una nueva fecha. Cuando sea práctico, los cambios importantes se anunciarán en el sitio. Podemos suspender o terminar el acceso por falta de pago, uso indebido, riesgo de seguridad o incumplimiento. El uso continuado después de una actualización significa que acepta los términos revisados.',
+      },
+      {
+        heading: '14. Ley Aplicable',
         text: 'Estos términos y condiciones se rigen e interpretan de acuerdo con las leyes de Texas, y usted se somete irrevocablemente a la jurisdicción exclusiva de los tribunales en esa ubicación.',
       },
     ],
-    updated: 'Última actualización: septiembre de 2026',
+    updated: 'Última actualización: 8 de octubre de 2026',
   },
 }
 

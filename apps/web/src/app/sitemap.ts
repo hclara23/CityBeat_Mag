@@ -32,7 +32,7 @@ function toDate(v: any): Date | undefined {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
-    '', '/stories', '/directory', '/best', '/events', '/this-weekend', '/deals', '/jobs', '/ads', '/contribute', '/privacy', '/terms',
+    '', '/stories', '/directory', '/best', '/events', '/this-weekend', '/deals', '/jobs', '/ads', '/contribute', '/privacy', '/cookies', '/terms',
     '/leaderboard', '/guide',
     '/topics/news', '/topics/business', '/topics/events', '/topics/culture',
   ]

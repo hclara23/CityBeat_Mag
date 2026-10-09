@@ -130,7 +130,7 @@ const copy: Record<'en' | 'es', PolicyCopy> = {
         text: 'Questions about this policy, or a privacy request: contact@citybeatmag.co — CityBeat Media Group, El Paso, Texas, USA.',
       },
     ],
-    updated: 'Last updated: September 2026',
+    updated: 'Last updated: October 8, 2026',
   },
   es: {
     title: 'Política de Privacidad',
@@ -233,7 +233,7 @@ const copy: Record<'en' | 'es', PolicyCopy> = {
         text: 'Preguntas sobre esta política o una solicitud de privacidad: contact@citybeatmag.co — CityBeat Media Group, El Paso, Texas, EE. UU.',
       },
     ],
-    updated: 'Última actualización: septiembre de 2026',
+    updated: 'Última actualización: 8 de octubre de 2026',
   },
 }
 
