@@ -9,7 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: User approved thirty-day Premier offer, recipient and shared USD1 deployment cap; reuse current expiration infrastructure and prepare messages without sending." }
 doc_version: 2
-doc_updated_at: "2026-10-09T01:30:19+00:00"
+doc_updated_at: "2026-10-09T01:35:19+00:00"
 doc_updated_by: "agentctl"
 description: "Approved Premier-only 30-day complimentary Premium grant. $9.99 per month total for all three locations via customer opt-in checkout. Automatic Basic fallback without paid subscription; retain ownership and print recognition. Dr. Karina Mendoza recipient; draft messages require confirmation before sending. Reuse existing expiry scheduler and total $1 release build cap."
 ---
@@ -35,5 +35,5 @@ Restore only promotion fields from atomic audit snapshot; revert promotion code 
 
 ## Notes
 
-User approved same USD1 combined build cap and persistent countdown banner after popup dismissal. Implemented exact 30-day grant, verified-email private invitation, explicit free claim, flat USD9.99 all-three-location Stripe checkout, stable retry parameters and cutoff, paid-only conversion, persistent live banner and read-time expiry. Read-only review findings addressed. All 580 tests, web typecheck and lint pass. Activation dry run passes; no emails, ownership grants, checkout sessions or charges created. First ownership build failed sitemap prerender timeout; runtime hourly-cached sitemap avoids credential-free build scans. Deployment and live activation remain pending.
+Approved persistent countdown requirement: after dismissal banner remains and derives remaining days from actual deadline, updates each minute, reopens offer on CTA. Browser-isolated actual component test confirmed 29-day banner after dismissal, CTA reopens popup, paid state replaces reminder, Spanish expired state retains Basic/cover. Screenshots local .tmp/premier-ui/countdown-test.jpg (simulated, not live). 581 tests plus typecheck/lint pass. Implementations093ac96 and54bdde9. Final ownership revalidation is transactional. Build7da6e511 running; c301e00f canceled before revised source; first91e2187d failed sitemap timeout. Same total USD1 cap approved. No customer charge, checkout or email created; activation waits for live release.
 
