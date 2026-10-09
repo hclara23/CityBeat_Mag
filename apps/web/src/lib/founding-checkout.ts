@@ -75,6 +75,9 @@ export async function createFoundingCheckout(stripe: Stripe, key: string, params
   if (slot.state === 'paid') throw new Error('This business already has a Founders place. Manage its subscription from Billing.')
   if (!slot.params) throw new Error('An earlier Founders checkout is reserved for this business. Contact CityBeat to recover it.')
   const prior = slot.params.metadata || {}
+  if (JSON.stringify(slot.params.line_items) !== JSON.stringify(params.line_items)) {
+    throw new Error('An earlier checkout has different terms. Contact CityBeat to release that reservation before starting a new checkout. No new charge was made.')
+  }
   if (prior.plan !== params.metadata?.plan || prior.owner_id !== params.metadata?.owner_id || prior.sales_order_id !== params.metadata?.sales_order_id) {
     throw new Error('A different Founders checkout is already reserved for this business. Finish that checkout or wait for it to expire.')
   }

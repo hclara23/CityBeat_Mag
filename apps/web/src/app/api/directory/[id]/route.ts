@@ -81,6 +81,13 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     if (!doc.exists) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
     }
+    if (doc.data()?.is_published === false) {
+      const user = await getServerUser()
+      const profile = user ? await getServerUserProfile(user.id) : null
+      if (!user || (doc.data()?.owner_id !== user.id && !hasEditorAccess(profile))) {
+        return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+      }
+    }
     return NextResponse.json({ listing: serializeListing(doc.id, doc.data()) })
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 })

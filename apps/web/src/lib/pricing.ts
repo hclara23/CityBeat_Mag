@@ -51,7 +51,7 @@ export const DIRECTORY_PLANS: Record<PlanId, DirectoryPlan> = {
     badge: 'Best value · 100 only',
     savingsLabel: 'Lock in $99/yr for life — save $140 vs monthly',
     description:
-      'Limited to the first 100 businesses. Founders Annual: $99/year. Regular Premium: $19.99/month or $199/year. Your Founders rate stays locked while your subscription remains active. Includes all Premium features.',
+      'Limited to the first 100 businesses. Founders Annual: $99/year per business, all locations included. After 100, new signups pay regular Premium: $19.99/month or $199/year per location. Your Founders rate stays locked while your subscription remains active. Includes all Premium features.',
     founding: true,
   },
   founding: {
@@ -63,7 +63,7 @@ export const DIRECTORY_PLANS: Record<PlanId, DirectoryPlan> = {
     priceLabel: '$9.99 / mo',
     badge: 'Launch · 100 only',
     description:
-      'Founders: $9.99/month for the first 100 businesses. Regular Premium price: $19.99/month. Your Founders rate stays locked while your subscription remains active. Includes all Premium features: photos, cover image, social links, hours, and priority placement.',
+      'Founders: $9.99/month per business, all locations included, for the first 100 businesses. After 100, new signups pay regular Premium: $19.99/month per location. Your Founders rate stays locked while your subscription remains active. Includes Premium photos, cover image, social links, hours and lead insights.',
     founding: true,
   },
   premium_annual: {

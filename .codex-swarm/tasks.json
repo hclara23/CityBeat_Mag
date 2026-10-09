@@ -9053,12 +9053,32 @@
       "doc_updated_by": "agentctl",
       "description": "Inspect public products and draft offers under 150 characters for user review. Do not publish.",
       "doc": "## Summary\n\nPrepared four Facebook offer drafts; three prices verified on public catalog, Founders terms from prior approval.\n\n## Scope\n\nDraft copy only in docs/facebook-product-offer-drafts.md. No publishing or code changes.\n\n## Risks\n\nProduct pages return HTTP 500. Founders availability and print rates unverified. Hold promotion pending checks.\n\n## Verify Steps\n\nFetched public catalog and product routes. All four descriptions counted below 150 characters.\n\n## Rollback Plan\n\nDiscard draft document; no external state changed."
+    },
+    {
+      "id": "202610090543-9RXVMW",
+      "title": "Build Founders business signup funnel",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: build bilingual Founders search and claim or create funnel | details: preserve free Basic and ownership review; bill Founders once per business and standard plans per location; validate payment and duplicate safety with tests."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T05:58:28+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved dedicated Founders page: search or create business, verified ownership, Google sign-in, existing checkout and hard 100-business limit, Basic fallback. Build and test locally; no unapproved deployment spending.",
+      "doc": "## Summary\n\nBuilt bilingual Founders funnel with search, Google sign-in handoff, verified claim, guided moderated Basic creation and optional checkout. User clarified Founders is one flat business fee including all locations; later standard signups remain per-location.\n\n## Scope\n\nFounders page/API, duplicate and ownership guards, checkout return paths/payment validation, new listing approval publishing, shared Founders quantity correction, tests and footer discovery. No production writes or subscriptions modified.\n\n## Risks\n\nNot deployed. Staff must verify ownership and content; missing on-file email uses support. New listings use optional public photo URL, with uploads available in owner CMS after approval. Old open checkouts with different terms require staff reconciliation, never silently reused. Duplicate legacy corpus capped at 10000 and cached for five minutes.\n\n## Verify Steps\n\nTypeScript passes. Full test suite passes: 601 web plus 20 shared tests. Isolated browser fixture confirms search, three-step creation, pending-review gate, three locations at 9.99 total, Spanish copy and no 390px overflow. No real checkout or production writes used.\n\n## Rollback Plan\n\nRevert this task commit before deployment. After release return traffic to prior revision; preserve any submitted listings for staff review. Never automatically alter existing subscriptions.\n\n## Notes\n\nDeployment requires separate build cost approval. Graphify checkout graph was outdated and only referenced legacy ads app; current source inspected directly. UI proof .tmp/founders-preview.png uses isolated fixture with no external requests."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "f3a7970fe48c075dc4da40804be7bae058793627f248bb0b65dcb6c8d36deb0e"
+    "checksum": "997ff7bdffae26ae8773c8b6894a14ee4fa55fe033e2eefbc1edd91724f00a38"
   }
 }

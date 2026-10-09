@@ -23,7 +23,7 @@ type Params = { locale: string; id: string }
 const getListing = cache(async (id: string): Promise<any | null> => {
   try {
     const doc = await adminDb.collection('directory_listings').doc(id).get()
-    return doc.exists ? { id: doc.id, ...(doc.data() as any) } : null
+    return doc.exists && doc.data()?.is_published !== false ? { id: doc.id, ...(doc.data() as any) } : null
   } catch {
     return null
   }

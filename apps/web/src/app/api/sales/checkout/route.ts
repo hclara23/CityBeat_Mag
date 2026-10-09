@@ -296,7 +296,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Multi-location brands bill PER LOCATION, exactly like self-serve.
+    // Standard plans bill per location; Founders bills once per business.
     // The order stores the TOTAL: the webhook validates
     // session.amount_subtotal (= unit x quantity) against order.amount, and a
     // mismatch fails fulfillment for a customer who has already paid.
@@ -304,6 +304,7 @@ export async function POST(request: NextRequest) {
       productFamily: product.family,
       billing: product.billing,
       listing,
+      founding: product.founding,
     })
     const amountTotal = amount * billingQuantity
 
@@ -381,7 +382,8 @@ export async function POST(request: NextRequest) {
             billing_cycle: directoryPlan.interval,
             directory_category: directoryCategory,
             listing_preexisting: listingPreexisting ? 'true' : 'false',
-            location_count: String(billingQuantity),
+            location_count: String(Math.max(1, Number(listing?.location_count) || 1)),
+            billing_quantity: String(billingQuantity),
             ...(referralCode ? { referral_code: referralCode } : {}),
           }
         : {

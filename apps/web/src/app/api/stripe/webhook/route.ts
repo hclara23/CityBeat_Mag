@@ -32,6 +32,7 @@ import { notifyUser } from '@/lib/user-notifications'
 import { STRIPE_EVENT_RETENTION_DAYS, expiresInDays } from '@/lib/retention'
 import { selfServeRefundTargets } from '@/lib/refund-targets'
 import { isFullyRefunded, refundPatchForPurchaseRows } from '@/lib/refund-attribution'
+import { foundersCheckoutAllowed, foundersPaymentConfirmed } from '@/lib/founders-onboarding'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -299,6 +300,14 @@ async function handleCartCheckoutCompleted(session: any, metadata: Record<string
 
 async function handleCheckoutCompleted(session: any) {
   const metadata = session.metadata || {}
+  if (metadata.source === 'founders_funnel') {
+    if (!foundersPaymentConfirmed(session)) throw new Error('Founders funnel payment confirmation failed validation')
+    const sub = await stripe.subscriptions.retrieve(String(stripeObjectId(session.subscription)))
+    if (sub.metadata.listing_id !== metadata.listing_id || sub.metadata.owner_id !== metadata.owner_id ||
+        sub.metadata.plan !== metadata.plan || !['active', 'trialing'].includes(sub.status)) {
+      throw new Error('Founders subscription association failed validation')
+    }
+  }
   if (metadata.promo_id === 'premier_cover_30day') {
     const { premierPaymentConfirmed } = await import('@/lib/premier-promotion')
     if (!premierPaymentConfirmed(session)) throw new Error('Premier payment confirmation failed validation')
@@ -689,6 +698,12 @@ async function handleCheckoutCompleted(session: any) {
           // revocation or reassignment made after checkout was opened.
           throw new Error('Premier paid checkout requires staff reconciliation: ownership changed')
         }
+        tx.set(listingRef, listingPatch, { merge: true })
+      })
+    } else if (metadata.source === 'founders_funnel') {
+      await adminDb.runTransaction(async tx => {
+        const fresh = (await tx.get(listingRef)).data() || {}
+        if (!foundersCheckoutAllowed(fresh, metadata.owner_id)) throw new Error('Founders payment needs staff reconciliation: ownership changed')
         tx.set(listingRef, listingPatch, { merge: true })
       })
     } else {

@@ -108,7 +108,7 @@ export function oneTimeCheckoutDefaults() {
 
 /**
  * Locations a directory subscription bills for. Multi-location brands are
- * billed PER LOCATION (the ScrapeFlow consolidation writes location_count);
+ * billed PER LOCATION except Founders, which bills once per business;
  * every other product — and a net-new single listing — bills exactly one
  * unit. Mirrors the self-serve rule in api/directory/claim so the two
  * checkout paths can never quote different prices for the same listing:
@@ -119,8 +119,11 @@ export function directoryBillingQuantity(input: {
   productFamily: string
   billing: string
   listing: Record<string, unknown> | null
+  founding?: boolean
 }): number {
   if (input.productFamily !== 'directory' || input.billing !== 'subscription') return 1
+  // Founders is one subscription per business, covering all its locations.
+  if (input.founding) return 1
   const count = Number(input.listing?.location_count)
   return Number.isFinite(count) && count > 1 ? Math.floor(count) : 1
 }

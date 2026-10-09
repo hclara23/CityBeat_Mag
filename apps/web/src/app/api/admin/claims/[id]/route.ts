@@ -54,6 +54,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       action === 'approve'
         ? {
             claim_status: 'approved',
+            ...(data?.onboarding_source === 'founders' ? { is_published: true, ownership_verified: true, verified_at: now } : {}),
             // Honor the tier set at claim/checkout time (basic for free claims,
             // premium/featured for paid). Falls back to premium for legacy claims.
             // Never lower the tier a live subscription is already paying for

@@ -43,6 +43,14 @@ async function fixture(initial: FoundingSlot[], run: (state: any) => Promise<voi
 }
 const params: any = { mode: 'subscription', metadata: { founding: 'true', plan: 'founding', owner_id: 'test-owner' }, line_items: [{ quantity: 1 }], success_url: 'https://example.test/dashboard', cancel_url: 'https://example.test/dashboard' }
 
+test('an old per-location reservation cannot silently override the new per-business quote', async () => {
+  await fixture([], async state => {
+    await createFoundingCheckout(state.stripe, 'business', { ...params, line_items: [{ quantity: 3 }] })
+    await assert.rejects(createFoundingCheckout(state.stripe, 'business', params), /different terms/)
+    assert.equal(state.creates(), 1)
+  })
+})
+
 test('two concurrent businesses compete for last place: only one Stripe checkout is created', async () => {
   const full = Array.from({ length: 99 }, (_, i): FoundingSlot => ({ key: `existing${i}`, attempt: `${i}`, state: 'paid' }))
   await fixture(full, async state => {

@@ -11,6 +11,8 @@ import { salesDirectoryCheckoutIsManaged } from '@/lib/sales-directory'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { blocksReplacementSubscription } from '@/lib/sales-checkout'
 import Stripe from 'stripe'
+import { foundersCheckoutAllowed, foundersReturnPaths } from '@/lib/founders-onboarding'
+import { trustedSignInOrigin } from '@/lib/google-signin-policy'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,6 +67,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
     }
     const listing = { id: doc.id, ...(doc.data() as any) }
+
+    const foundersFunnel = body.source === 'founders'
+    if (foundersFunnel) {
+      if (!trustedSignInOrigin(request.headers.get('origin'), process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co')) {
+        return NextResponse.json({ error: 'Invalid origin' }, { status: 403 })
+      }
+      if (!['founding', 'premium_monthly'].includes(body.plan) || !foundersCheckoutAllowed(listing, user.id)) {
+        return NextResponse.json({ error: 'Ownership must be approved before starting Founders checkout.' }, { status: 403 })
+      }
+      if (listing.founders_offer_until) return NextResponse.json({ error: 'Use your private promotion in the dashboard to retain its special pricing.' }, { status: 409 })
+    }
 
     // Sales Desk listings already have one authoritative handoff for their
     // selected price. Claiming verifies ownership only; it must never open a
@@ -136,12 +149,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const origin = request.headers.get('origin') || new URL(request.url).origin
+    const origin = foundersFunnel ? (process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co') : request.headers.get('origin') || new URL(request.url).origin
+    const returnPaths = foundersReturnPaths(body.locale, listing.id)
 
-    // Multi-location brands are billed PER LOCATION: the plan fee is multiplied
-    // by the number of locations consolidated under this listing.
+    // Founders covers all locations for one business fee. Standard plans bill
+    // per location; keep physical count separate from billing quantity.
     const locationCount = Math.max(1, Number(listing.location_count) || 1)
-    const perLocationNote =
+    const billingQuantity = plan.founding ? 1 : locationCount
+    const perLocationNote = plan.founding ? ' — all business locations included' :
       locationCount > 1 ? ` — ${locationCount} locations × ${plan.priceLabel}` : ''
 
     // The public code can arrive from the server cookie or the 30-day browser
@@ -156,6 +171,7 @@ export async function POST(request: NextRequest) {
         })
       : null
     const checkoutMetadata: Record<string, string> = {
+      ...(foundersFunnel ? { source: 'founders_funnel' } : {}),
       listing_id: listing.id,
       owner_id: user.id,
       plan: plan.id,
@@ -163,6 +179,7 @@ export async function POST(request: NextRequest) {
       founding: plan.founding ? 'true' : 'false',
       sponsored: plan.sponsored ? 'true' : 'false',
       location_count: String(locationCount),
+      billing_quantity: String(billingQuantity),
       billing_cycle: plan.interval,
       ...(payoutUserId ? { payout_user_id: payoutUserId } : {}),
       ...(referral
@@ -190,11 +207,11 @@ export async function POST(request: NextRequest) {
               description: plan.description,
             },
           },
-          quantity: locationCount,
+          quantity: billingQuantity,
         },
       ],
-      success_url: `${origin}/directory/${listing.id}?status=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/directory/${listing.id}?status=cancel`,
+      success_url: foundersFunnel ? `${origin}${returnPaths.success}` : `${origin}/directory/${listing.id}?status=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: foundersFunnel ? `${origin}${returnPaths.cancel}` : `${origin}/directory/${listing.id}?status=cancel`,
       metadata: checkoutMetadata,
       // Stripe copies these identifiers onto the subscription and invoices so
       // finance attribution does not depend on webhook delivery order.

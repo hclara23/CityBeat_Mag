@@ -92,6 +92,9 @@ export function SiteFooter({ locale = 'en' }: { locale?: string }) {
               <Link href={withLocale(locale, '/billing')} className="hover:text-brand-neon">
                 {locale === 'es' ? 'Facturación y suscripciones' : 'Billing & subscriptions'}
               </Link>
+              <Link href={withLocale(locale, '/founders')} className="hover:text-brand-neon">
+                {locale === 'es' ? 'Fundadores — $9.99/mes' : 'Founders — $9.99/month'}
+              </Link>
               <Link href={withLocale(locale, '/privacy')} className="hover:text-brand-neon">
                 {locale === 'es' ? 'Privacidad' : 'Privacy'}
               </Link>

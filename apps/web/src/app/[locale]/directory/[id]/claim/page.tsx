@@ -34,14 +34,14 @@ const PLAN_ES: Record<PlanId, { label: string; priceLabel: string; badge?: strin
     badge: 'Mejor valor · solo 100',
     savingsLabel: 'Fija $99/año de por vida — ahorra $140 frente al plan mensual',
     description:
-      'Limitado a los primeros 100 negocios. Fundadores Anual: $99/año. Precio regular Premium: $19.99/mes o $199/año. Tu tarifa de Fundador se mantiene mientras tu suscripción siga activa. Incluye todas las funciones Premium.',
+      'Limitado a los primeros 100 negocios. Fundadores Anual: $99/año por negocio, todas las ubicaciones incluidas. Después de 100, las nuevas inscripciones pagan Premium regular: $19.99/mes o $199/año por ubicación. Tu tarifa se mantiene mientras tu suscripción siga activa.',
   },
   founding: {
     label: 'Fundador Mensual',
     priceLabel: '$9.99 / mes',
     badge: 'Lanzamiento · solo 100',
     description:
-      'Fundadores: $9.99/mes para los primeros 100 negocios. Precio regular Premium: $19.99/mes. Tu tarifa de Fundador se mantiene mientras tu suscripción siga activa. Incluye fotos, portada, redes sociales, horario y ubicación prioritaria.',
+      'Fundadores: $9.99/mes por negocio para los primeros 100, todas las ubicaciones incluidas. Después de 100, las nuevas inscripciones pagan Premium regular: $19.99/mes por ubicación. Tu tarifa se mantiene mientras tu suscripción siga activa. Incluye fotos, portada, redes sociales, horario y estadísticas.',
   },
   premium_annual: {
     label: 'Premium Anual',
@@ -83,6 +83,7 @@ function planCopy(planId: PlanId, locale: 'en' | 'es') {
 function planTotalLabel(planId: PlanId, count: number | null | undefined, locale: 'en' | 'es'): string {
   const plan = DIRECTORY_PLANS[planId]
   const n = Math.max(1, Number(count) || 1)
+  if (plan.founding) return planCopy(planId, locale).priceLabel
   if (n < 2) return planCopy(planId, locale).priceLabel
   const whole = (plan.unitAmount * n) / 100
   const per = locale === 'es'
@@ -593,7 +594,7 @@ function ClaimPageInner() {
                       <div>
                         <p className="text-xs font-bold text-white/50 uppercase tracking-wider">{planCopy(selectedPlan, locale).label}</p>
                         <p className="text-2xl font-black text-brand-gold mt-1">{planTotalLabel(selectedPlan, listing?.location_count, locale)}</p>
-                        {(listing?.location_count ?? 1) > 1 && (
+                        {(listing?.location_count ?? 1) > 1 && !DIRECTORY_PLANS[selectedPlan].founding && (
                           <p className="text-[11px] text-white/50 mt-1">
                             {listing?.location_count} {locale === 'es' ? 'ubicaciones' : 'locations'} × {planCopy(selectedPlan, locale).priceLabel}
                           </p>
