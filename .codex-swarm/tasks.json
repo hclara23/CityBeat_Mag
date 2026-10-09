@@ -8849,11 +8849,15 @@
     {
       "id": "202610090248-E0M9D9",
       "title": "Feature Premier print cover story on homepage",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "36205b0dcf084ff5aaadd94af5668db6acf511bc",
+        "message": "🚧 E0M9D9 start: add subtle desktop tilt to both article photos | details: preserve glare-only cover and static touch/reduced-motion behavior."
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
@@ -8878,19 +8882,23 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: add subtle desktop tilt to both article photos | details: preserve glare-only cover and static touch/reduced-motion behavior."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: published October-November cover feature, source-faithful article, H. | details: Caleb Lara byline, optimized photos, functional share links, and accessible glare/tilt.; Production smoke checks and local test suite pass."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-09T03:14:56+00:00",
+      "doc_updated_at": "2026-10-09T03:29:04+00:00",
       "doc_updated_by": "agentctl",
       "description": "Approved: extract supplied Premier PDF; feature approved October-November cover and full article on homepage; verify desktop and mobile. Preserve archive context; no unapproved paid deployment.",
-      "doc": "## Summary\n\nFeature Premier Clinic October-November cover story on the homepage with complete readable print article.\n\n## Scope\n\nHomepage cover feature and article route with archival label, original PDF, existing optimized cover and source-faithful text. Retain existing news below it.\n\n## Risks\n\nPrinted staff and service information may be historical; preserve original article with prominent archive note and link to current listing. No invented issue year.\n\n## Verify Steps\n\nCompare text with rendered PDF; run typecheck/lint/tests; inspect desktop and mobile feature and article.\n\n## Rollback Plan\n\nRevert scoped feature and article files; no business listing data changes.\n\n## Notes\n\nAdded subtle pointer-driven tilt to both top team and bottom community article photos, with stable outer hit bounds and reset on pointer leave/cancel. Cover remains glare-only. Touch and reduced-motion users receive static photos. Earlier full suite: 590 tests pass; verifying final change before committed-source production build within existing USD1 cap."
+      "doc": "## Summary\n\nFeature Premier Clinic October-November cover story on the homepage with complete readable print article.\n\n## Scope\n\nHomepage cover feature and article route with archival label, original PDF, existing optimized cover and source-faithful text. Retain existing news below it.\n\n## Risks\n\nPrinted staff and service information may be historical; preserve original article with prominent archive note and link to current listing. No invented issue year.\n\n## Verify Steps\n\nCompare text with rendered PDF; run typecheck/lint/tests; inspect desktop and mobile feature and article.\n\n## Rollback Plan\n\nRevert scoped feature and article files; no business listing data changes.\n\n## Notes\n\nLIVE: citybeat-web-cover-36205b0 receives 100% traffic. Build c1035d45-8131-4c12-a355-1a8a58205a49 SUCCESS; image digest sha256:d10e9c459d5f94a7bd2795e8e8a1cbff4d20ee2a1ba0eac3c6a9ff0e78110658. EN/ES public homepage and article smoke checks pass, original PDF SHA256 preserved, both WebP photos load. Browser verifies desktop images, both photo tilt flags, cover glare only, and mobile no overflow. Full tests, type-check and lint pass. Candidate regression confirms anonymous edit rejection, private-field stripping, three locations, sports/login health. Source commit 36205b0dcf08. Rollback revision citybeat-web-popup-58149df. Build remains within approved combined USD1 cap."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "7e570cc57bb6de5afd1896b69619c7f28f30968b4f253554154f58e75a896a97"
+    "checksum": "9c6328a9c53ad94b379d40fc0d885014035bc3be53d1f452e4d83387c4644213"
   }
 }
