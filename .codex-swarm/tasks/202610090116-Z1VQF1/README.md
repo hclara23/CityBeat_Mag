@@ -1,15 +1,17 @@
 ---
 id: "202610090116-Z1VQF1"
 title: "Activate Premier 30-day Premium promotion and flat Founders offer"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "714aca92085b383878e733be4012e5ced25d621c", message: "✨ Z1VQF1 show invitation on first Google sign-in account landing; skip unused browser binary in image build" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: User approved thirty-day Premier offer, recipient and shared USD1 deployment cap; reuse current expiration infrastructure and prepare messages without sending." }
+  - { author: "ORCHESTRATOR", body: "verified: Premier promotion activated 2026-10-09T02:06:23.243Z until 2026-11-08T02:06:23.243Z (Nov 7 at 7:06 PM El Paso). Private popup and persistent countdown verified using actual component fixture. Live API confirms premium and three locations without private recipient leakage. No ownership assigned, email sent or customer charge made | details: actual customer payment not exercised." }
 doc_version: 2
-doc_updated_at: "2026-10-09T01:35:19+00:00"
+doc_updated_at: "2026-10-09T02:09:25+00:00"
 doc_updated_by: "agentctl"
 description: "Approved Premier-only 30-day complimentary Premium grant. $9.99 per month total for all three locations via customer opt-in checkout. Automatic Basic fallback without paid subscription; retain ownership and print recognition. Dr. Karina Mendoza recipient; draft messages require confirmation before sending. Reuse existing expiry scheduler and total $1 release build cap."
 ---
@@ -35,5 +37,5 @@ Restore only promotion fields from atomic audit snapshot; revert promotion code 
 
 ## Notes
 
-Approved persistent countdown requirement: after dismissal banner remains and derives remaining days from actual deadline, updates each minute, reopens offer on CTA. Browser-isolated actual component test confirmed 29-day banner after dismissal, CTA reopens popup, paid state replaces reminder, Spanish expired state retains Basic/cover. Screenshots local .tmp/premier-ui/countdown-test.jpg (simulated, not live). 581 tests plus typecheck/lint pass. Implementations093ac96 and54bdde9. Final ownership revalidation is transactional. Build7da6e511 running; c301e00f canceled before revised source; first91e2187d failed sitemap timeout. Same total USD1 cap approved. No customer charge, checkout or email created; activation waits for live release.
+Premier promotion activated 2026-10-09T02:06:23.243Z until 2026-11-08T02:06:23.243Z (Nov 7 at 7:06 PM El Paso). Private popup and persistent countdown verified using actual component fixture. Live API confirms premium and three locations without private recipient leakage. No ownership assigned, email sent or customer charge made; actual customer payment not exercised.
 
