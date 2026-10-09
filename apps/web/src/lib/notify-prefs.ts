@@ -36,6 +36,7 @@ export function sanitizeNotifyPrefsPatch(input: unknown): Partial<NotifyPrefs> {
 }
 
 export const NOTIFICATION_TYPES = [
+  'listing_update',
   'review',
   'lead',
   'claim_approved',

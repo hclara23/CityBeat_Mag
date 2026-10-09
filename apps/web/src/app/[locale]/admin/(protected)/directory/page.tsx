@@ -8,10 +8,13 @@ import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
 import { DIRECTORY_CATEGORIES } from '@/lib/categories'
+import { PrintRecognitionEditor } from '@/components/citybeat/PrintRecognitionEditor'
+import { publicPrintRecognition, type PrintRecognition } from '@/lib/print-recognition'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Listing {
+  print_recognition?: PrintRecognition[]
   id: string
   name: string
   description: string | null
@@ -111,6 +114,7 @@ function EditModal({
     twitter: listing.social_links?.twitter || '',
   })
   const [saving, setSaving] = useState(false)
+  const [printRecognition, setPrintRecognition] = useState(() => publicPrintRecognition(listing.print_recognition))
   const [error, setError] = useState('')
 
   const handleSave = async () => {
@@ -118,6 +122,7 @@ function EditModal({
     setError('')
     try {
       await onSave(listing.id, {
+        print_recognition: printRecognition,
         name: form.name,
         category: form.category,
         address: form.address || null,
@@ -240,6 +245,8 @@ function EditModal({
             {selectField('Tier', 'tier', TIERS)}
             {selectField('Claim Status', 'claim_status', CLAIM_STATUSES)}
           </div>
+
+          <PrintRecognitionEditor value={printRecognition} onChange={setPrintRecognition} />
 
           <div className="space-y-2 pt-2 border-t border-white/10">
             {toggle('Published', 'Visible to the public in the directory', 'is_published')}

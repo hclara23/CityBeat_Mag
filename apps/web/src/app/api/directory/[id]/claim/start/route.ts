@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { resolveClaimVerification } from '@/lib/directory-security'
 import { checkRateLimit } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
+import { randomInt } from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const CODE_TTL_MS = 15 * 60 * 1000 // codes expire after 15 minutes
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
+    const verificationCode = randomInt(100000, 1000000).toString()
 
     const listingDoc = await adminDb.collection('directory_listings').doc(listingId).get()
     if (!listingDoc.exists) {

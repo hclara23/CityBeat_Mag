@@ -1,19 +1,25 @@
 ---
 id: "202610090047-FYXN31"
 title: "Secure business-owned listings and add verified print recognition"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+comments:
+  - { author: "ORCHESTRATOR", body: "Start: Approved secure ownership, notification and Google profile assessment with three staff-managed print badges and authorized historical Premier cover." }
 doc_version: 2
-doc_updated_at: "2026-10-09T00:48:41+00:00"
+doc_updated_at: "2026-10-09T01:04:33+00:00"
 doc_updated_by: "agentctl"
 description: "Approved: audit edit permissions; Google sign-in and verified claims; owner dashboard notifications; assess permitted Google Business Profile sync; staff-only print coverage, advertiser and cover badges with Premier cover recognition. No new spending approved."
 ---
 ## Summary
 
 Approved owner-managed directory with secure editing, Google account entry, business notifications, policy-safe Google profile integration assessment, and staff-assigned print recognition.
+
+## Context
+
+User approved ownership controls, Google sign-in and staff-managed print badges. October-November historical Premier cover approved unchanged, issue year unspecified. Google sign-in provider already enabled; added citybeatmag.co to existing Firebase authorized domains. Current code graph predates listing ownership, so current source and permission tests were used.
 
 ## Scope
 
@@ -30,4 +36,8 @@ Permission boundary unit/integration tests; anonymous no-op PATCH denial; staff-
 ## Rollback Plan
 
 Revert only scoped code commits; preserve existing owner/billing/content records and old assets; record any Premier badge patch previous state before writing; deployment rollback to previous healthy revision.
+
+## Notes
+
+User approved up to USD1 Cloud Build for this release. No new service or paid Google Business Profile integration. Independent read-only review found an image hostname validation issue, fixed with storage allowlist. 574 tests, web typecheck and lint pass. MFA no-cookie and profile-preservation regression tests included. GBP public republication remains disabled pending policy clearance. Production build, Premier print record and live visual verification pending.
 

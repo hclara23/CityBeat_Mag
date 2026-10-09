@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
 
   // First-party inbox record for the owner. The email below already delivers
   // the lead to the business, so the record skips the email channel.
-  if (listing?.owner_id) {
+  if (isClaimed) {
     await notifyUser({
       userId: String(listing.owner_id),
       type: 'lead',
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
       body: 'A customer requested a quote from your listing.',
       body_es: 'Un cliente pidió una cotización desde tu ficha.',
       link: `/dashboard/listings/${listingId}`,
-      emailChannel: false,
+      emailChannel: !Boolean(listing?.contact_email || listing?.email),
     }).catch(() => {})
   }
 

@@ -98,6 +98,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   let target: { uid: string; email?: string } | null = null
   try {
     const record = await adminAuth.getUserByEmail(email)
+    if (!record.emailVerified || record.disabled) {
+      return NextResponse.json({ error: 'The manager must have an active account with a verified email.' }, { status: 409 })
+    }
     target = { uid: record.uid, email: record.email }
   } catch {
     return NextResponse.json(
@@ -124,7 +127,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const now = new Date().toISOString()
-  await listingRef.set({ manager_ids: [...ids, target.uid], updated_at: now }, { merge: true })
+  const targetUid = target.uid
+  const mutation = await adminDb.runTransaction(async tx => {
+    const current = (await tx.get(listingRef)).data()
+    if (!current) return 404
+    const access = resolveListingPatchAccess(current, { userId: user.id, isStaff })
+    if (!access.isOwner && !isStaff) return 403
+    const currentIds = managerIds(current)
+    if (current.owner_id === targetUid || currentIds.includes(targetUid)) return 409
+    if (!isStaff && currentIds.length >= resolveEntitlements(current).additionalManagers) return 409
+    tx.set(listingRef, { manager_ids: [...currentIds, targetUid], updated_at: now }, { merge: true })
+    return 200
+  })
+  if (mutation !== 200) return NextResponse.json({ error: 'Team access changed. Refresh and try again.' }, { status: mutation })
   // Accountability: team changes are always audited.
   void adminDb
     .collection('directory_audit_log')
@@ -157,7 +172,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   if (!params.id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
   const auth = await authorizeTeamAccess(params.id)
   if (!auth.ok) return auth.res
-  const { user, listing, listingRef } = auth.ctx
+  const { user, listing, listingRef, isStaff } = auth.ctx
 
   const body = await request.json().catch(() => ({}))
   const targetId = typeof body.userId === 'string' ? body.userId : ''
@@ -167,10 +182,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   }
 
   const now = new Date().toISOString()
-  await listingRef.set(
-    { manager_ids: ids.filter((id) => id !== targetId), updated_at: now },
-    { merge: true }
-  )
+  const mutation = await adminDb.runTransaction(async tx => {
+    const current = (await tx.get(listingRef)).data()
+    if (!current) return 404
+    if (!isStaff && !resolveListingPatchAccess(current, { userId: user.id }).isOwner) return 403
+    tx.set(listingRef, { manager_ids: managerIds(current).filter(id => id !== targetId), updated_at: now }, { merge: true })
+    return 200
+  })
+  if (mutation !== 200) return NextResponse.json({ error: 'Team access changed. Refresh and try again.' }, { status: mutation })
   void adminDb
     .collection('directory_audit_log')
     .add({

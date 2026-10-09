@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { SiteHeader } from '@/components/citybeat/SiteHeader'
+import { PrintRecognitionPanel } from '@/components/citybeat/PrintRecognition'
 import { DIRECTORY_CATEGORIES, categoryLabel } from '@/lib/categories'
 import {
   ENTITLEMENT_COPY,
@@ -35,6 +36,7 @@ import {
 } from './CmsModules'
 
 type OwnerListing = {
+  print_recognition?: unknown
   id: string
   name: string
   category: string
@@ -404,6 +406,15 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
 
           {/* Content */}
           <div className="min-w-0">
+            {section === 'overview' && <div className="mb-6 space-y-4">
+              <PrintRecognitionPanel value={listing.print_recognition} locale={locale} />
+              <p className="text-sm text-white/60">{isEs ? 'CityBeat verifica las distinciones de la revista impresa. Solo nuestro equipo puede otorgarlas o modificarlas.' : 'CityBeat verifies print-magazine recognition. Only our staff can award or change these badges.'}</p>
+            </div>}
+            {section === 'settings' && <div className="citybeat-panel rounded-2xl p-6 mb-6 border border-white/10">
+              <h2 className="font-bold text-white">Google Business Profile</h2>
+              <p className="text-sm text-brand-neon mt-2">{isEs ? 'Sincronización no disponible' : 'Sync not available'}</p>
+              <p className="text-sm text-white/60 mt-2">{isEs ? 'Iniciar sesión con Google no conecta tu Perfil de Empresa. La republicación automática requiere autorización y confirmación de las políticas de Google. Por ahora, actualiza tus datos directamente en CityBeat; no cambiaremos tu perfil de Google.' : 'Google sign-in does not connect your Business Profile. Automatic republication requires authorization and confirmation of Google’s policies. For now, update your details directly in CityBeat; we will not change your Google profile.'}</p>
+            </div>}
             {section === 'overview' && (
               <OverviewSection
                 isEs={isEs}

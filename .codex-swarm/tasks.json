@@ -8696,12 +8696,32 @@
       "doc_updated_by": "agentctl",
       "description": "Verify existing listing, update three locations and hours, use provided Premier assets excluding Nayeli, set main domain and hosted-app action links, publish premium presentation without charges.",
       "doc": "## Summary\n\nPublish an attractive bilingual premium Premier Clinic listing, updating an existing record if present.\n\n## Context\n\nExisting live record premier-clinic is already premium and sponsored; preserve those settings and ownership/billing. Gallery empty and main domain points to hosted app. Live FAQ confirms East Ste 103, three locations and hours, and no Quest affiliation. Photo upload awaits explicit Google Cloud usage approval.\n\n## Scope\n\nVerify three clinic locations and schedules; select confirmed supplied photography excluding Nayeli; use premierclinic.us as website and supplied hosted app for action links; publish and check live directory. No subscription, paid service, Premier deployment, or billing changes.\n\n## Risks\n\nPublic source address disagreement must be resolved or disclosed. Central is EPISD employee-only. Exclude uncertain staff imagery, unverifiable medical claims, and private records. Preserve existing ownership and billing.\n\n## Verify Steps\n\nPASS: node --check scripts/premier-listing-refresh.mjs; optimization verified five WebP images, 568728 to 238184 bytes (58 percent smaller). Public API deep-equality check matches every manifest field, preserves existing premium/claim/owner/sponsorship. Five image optimizer endpoints and five website/action links HTTP 200. Browser confirms all five images loaded, three locations, booking link, English and Spanish content. Screenshot .tmp/premier-listing/live-gallery.jpg.\n\n## Rollback Plan\n\nPre-publication document retained at .tmp/premier-listing/before-publication.json and changed prior fields atomically recorded in directory_audit_log/premier-refresh-20261009-R64WEQ. Restore changed fields with a current update-time precondition, removing previously absent fields listed in audit. Old hero.png remains untouched; new images are versioned under 2026-10/.\n\n## Notes\n\nPublished successfully 2026-10-09T00:34:22.138500Z to existing premier-clinic. Live URL https://citybeatmag.co/en/directory/premier-clinic. User approved Google Cloud photo usage. No AI generation, deployment, subscription or Stripe change. Five optimized photos include one cover and four gallery images; Nayeli and ambiguous group photos excluded by source labels. Six bilingual services and three linked updates added. Main domain corrected; outdated Quest affiliation removed. Central phone follows live booking and FAQ. Implementation commit a1531ef."
+    },
+    {
+      "id": "202610090047-FYXN31",
+      "title": "Secure business-owned listings and add verified print recognition",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: Approved secure ownership, notification and Google profile assessment with three staff-managed print badges and authorized historical Premier cover."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T00:48:41+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved: audit edit permissions; Google sign-in and verified claims; owner dashboard notifications; assess permitted Google Business Profile sync; staff-only print coverage, advertiser and cover badges with Premier cover recognition. No new spending approved.",
+      "doc": "## Summary\n\nApproved owner-managed directory with secure editing, Google account entry, business notifications, policy-safe Google profile integration assessment, and staff-assigned print recognition.\n\n## Scope\n\nORCHESTRATOR coordinates; CODER implements scoped changes; TESTER and REVIEWER verify; INTEGRATOR closes. Audit anonymous, owner, manager and staff access. Reuse existing Google login and claims/dashboard. Add Print Coverage, Print Advertiser and Cover Feature badges with staff-only writes and public display. Premier cover from October-November issue explicitly approved as historical cover despite former staff. Assess GBP sync official policies before any activation.\n\n## Risks\n\nNo ownership grant from Google email alone. Owners must not self-award editorial badges. Distinguish ads from independent coverage. Cover is historical, not current team. GBP API reuse and project approval may block syncing. No new charges, paid deployment or external permission changes without explicit approval.\n\n## Verify Steps\n\nPermission boundary unit/integration tests; anonymous no-op PATCH denial; staff-only badge validation tests; Google login/claim/dashboard flow checks; typecheck, tests, build; production visual checks only after authorized deployment.\n\n## Rollback Plan\n\nRevert only scoped code commits; preserve existing owner/billing/content records and old assets; record any Premier badge patch previous state before writing; deployment rollback to previous healthy revision."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "fe4c735ea28194d2f4147a6fac00b8b7d8ea23de14364b0b159727484d4d36d6"
+    "checksum": "88de8890b019770f2ddfc2074fb68916ce284d15a5e3bf1b8ef9d69e7d8795be"
   }
 }

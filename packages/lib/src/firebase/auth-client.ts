@@ -61,6 +61,24 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   }
 }
 
+export async function signInWithGoogle(locale: string, rememberMe = true): Promise<AuthResult> {
+  const [{ auth }, sdk] = await Promise.all([import('./client'), import('firebase/auth')])
+  try {
+    await sdk.setPersistence(auth, sdk.inMemoryPersistence)
+    const provider = new sdk.GoogleAuthProvider()
+    provider.setCustomParameters({ prompt: 'select_account' })
+    const credential = await sdk.signInWithPopup(auth, provider)
+    const idToken = await credential.user.getIdToken()
+    const { ok, data } = await postJson('/api/auth/google', { idToken, rememberMe, locale })
+    return ok ? { data } : { error: data.error || 'Google sign-in failed' }
+  } catch {
+    return { error: locale === 'es' ? 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.' : 'Google sign-in did not complete. Please try again.' }
+  } finally {
+    // Clear the temporary Firebase client credential, NOT the server session.
+    await sdk.signOut(auth).catch(() => {})
+  }
+}
+
 export async function signOut(): Promise<AuthResult> {
   try {
     await postJson('/api/auth/logout')

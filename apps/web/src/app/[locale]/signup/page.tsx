@@ -114,6 +114,9 @@ function SignupContent() {
             {localeCopy.subtitle}
           </p>
 
+          <Link href={loginHref} className="block text-center mb-5 border border-gray-300 rounded-md py-3 font-semibold text-gray-900 hover:bg-gray-50">
+            {locale === 'es' ? 'Crear cuenta con Google' : 'Create an account with Google'}
+          </Link>
           {message && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-sm text-green-800">{message}</p>

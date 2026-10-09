@@ -13,6 +13,7 @@ interface Listing {
   claim_status: string
   plan: string | null
   has_subscription?: boolean
+  is_owner?: boolean
 }
 
 // Upgrade options offered in the dashboard — annual (best value) first.
@@ -128,7 +129,7 @@ export function MyListingsBoost() {
                 {isEs ? '✎ Administrar mi ficha' : '✎ Manage my listing'}
               </a>
 
-              <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4">
+              {listing.is_owner !== false && <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4">
                 {BOOST_PLANS.map((planId) => {
                   const plan = DIRECTORY_PLANS[planId]
                   const samePlan = listing.plan === planId
@@ -149,13 +150,13 @@ export function MyListingsBoost() {
                     </button>
                   )
                 })}
-              </div>
+              </div>}
 
               {/* Recurring-billing disclosure, in the customer's language, at
                   ordinary body size — the card networks require the terms and
                   the cancellation path to be shown BEFORE the purchase starts,
                   and every button above starts or changes a subscription. */}
-              <div className="mt-4 rounded-md border border-gray-200 bg-white p-3 text-xs leading-relaxed text-gray-600">
+              {listing.is_owner !== false && <div className="mt-4 rounded-md border border-gray-200 bg-white p-3 text-xs leading-relaxed text-gray-600">
                 <p className="font-semibold uppercase tracking-wide text-gray-500">
                   {isEs ? 'Antes de pagar' : 'Before you pay'}
                 </p>
@@ -175,7 +176,7 @@ export function MyListingsBoost() {
                     </li>
                   )}
                 </ul>
-              </div>
+              </div>}
             </div>
           )
         })}

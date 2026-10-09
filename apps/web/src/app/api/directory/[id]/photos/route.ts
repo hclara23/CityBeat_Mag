@@ -87,7 +87,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   })
 
   // Tell the owner a customer added a photo (bilingual inbox + pref-gated email).
-  if (listing.owner_id) {
+  if (listing.owner_id && listing.claim_status === 'approved') {
     await notifyUser({
       userId: String(listing.owner_id),
       notificationId: `listing_photo:${photoRef.id}`,

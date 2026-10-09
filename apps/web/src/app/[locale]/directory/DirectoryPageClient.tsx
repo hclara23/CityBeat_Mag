@@ -11,6 +11,7 @@ import { useLocale } from '@/components/TranslationProvider'
 import { AdBanner } from '@/components/citybeat/AdBanner'
 import { categoryLabel, DIRECTORY_CATEGORIES } from '@/lib/categories'
 import { selectSponsoredWindow } from '@/lib/sponsored-rotation'
+import { PrintBadges } from '@/components/citybeat/PrintRecognition'
 
 // `export const dynamic` (route segment config) only takes effect from a
 // Server Component — Next.js silently ignores it in a 'use client' module, so
@@ -19,6 +20,7 @@ import { selectSponsoredWindow } from '@/lib/sponsored-rotation'
 const DirectoryMap = nextDynamic(() => import('@/components/DirectoryMap'), { ssr: false })
 
 interface Listing {
+  print_recognition?: unknown
   id: string
   name: string
   description: string | null
@@ -332,6 +334,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                               {listing.name}
                               <LocationBadge count={listing.location_count} />
                             </h3>
+                            <div className="mt-2"><PrintBadges value={listing.print_recognition} locale={locale} /></div>
 
                             {listing.rating && (
                               <div className="flex items-center gap-2 mt-2">
@@ -429,6 +432,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                             {listing.name}
                             <LocationBadge count={listing.location_count} />
                           </h3>
+                          <div className="mt-2"><PrintBadges value={listing.print_recognition} locale={locale} /></div>
 
                           {listing.rating && (
                             <div className="flex items-center gap-2 mt-2">
@@ -503,6 +507,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                             {listing.name}
                             <LocationBadge count={listing.location_count} />
                           </h3>
+                          <div className="mt-2"><PrintBadges value={listing.print_recognition} locale={locale} /></div>
 
                           {listing.rating && (
                             <div className="flex items-center gap-1 mt-1">

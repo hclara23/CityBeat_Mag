@@ -39,6 +39,7 @@ function toOwnerListing(id: string, raw: any) {
   const plain = toPlain(raw)
   return {
     id,
+    print_recognition: plain.print_recognition ?? [],
     name: plain.name ?? '',
     category: plain.category ?? '',
     address: plain.address ?? '',

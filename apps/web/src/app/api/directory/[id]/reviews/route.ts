@@ -131,7 +131,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // that never actually happened.)
     const listingDoc = await listingRef.get()
     const listing = listingDoc.exists ? (listingDoc.data() as any) : null
-    if (listing?.owner_id) {
+    if (listing?.owner_id && listing.claim_status === 'approved') {
       const bizName = String(listing.name || 'your business')
       await notifyUser({
         userId: listing.owner_id,

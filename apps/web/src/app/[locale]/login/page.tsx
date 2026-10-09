@@ -6,6 +6,7 @@ import { LoginForm } from '@citybeat/ui/auth'
 import Link from 'next/link'
 import { useLocale } from '@/components/TranslationProvider'
 import { dashboardPathFor } from '@citybeat/lib/roles'
+import { signInWithGoogle } from '@citybeat/lib/firebase/auth-client'
 
 // The Spanish headings here sat on top of an entirely English form, 2FA step
 // and error set. Every string the customer can read is localized now — sign-in
@@ -90,6 +91,19 @@ function LoginContent() {
   // Unverified-email state
   const [unverifiedEmail, setUnverifiedEmail] = useState('')
   const [resendNote, setResendNote] = useState('')
+  const [googleError, setGoogleError] = useState('')
+
+  const googleSignIn = async () => {
+    setIsLoading(true)
+    setGoogleError('')
+    try {
+      const result = await signInWithGoogle(locale)
+      if (result.error) setGoogleError(result.error)
+      else if (result.data?.mfa_required) setMfaToken(result.data.mfa_token)
+      else go(result.data?.profile)
+    } catch { setGoogleError(localeCopy.unableToSignIn) }
+    finally { setIsLoading(false) }
+  }
 
   const go = (profile: any) => {
     router.replace(`/${locale}${destFor(profile, redirectTo)}`)
@@ -209,6 +223,11 @@ function LoginContent() {
             </div>
           ) : (
             <>
+              <button onClick={googleSignIn} disabled={isLoading} className="w-full mb-4 border border-gray-300 rounded-md py-3 font-semibold text-gray-900 hover:bg-gray-50 disabled:opacity-50">
+                {locale === 'es' ? 'Continuar con Google' : 'Continue with Google'}
+              </button>
+              {googleError && <p role="alert" className="text-sm text-red-600 mb-4">{googleError}</p>}
+              <p className="text-xs text-gray-500 mb-5 text-center">{locale === 'es' ? 'Los negocios deben verificar su propiedad por separado para administrar un perfil.' : 'Businesses must separately verify ownership to manage a listing.'}</p>
               <LoginForm onSubmit={handleSubmit} isLoading={isLoading} locale={locale} />
 
               {unverifiedEmail && (

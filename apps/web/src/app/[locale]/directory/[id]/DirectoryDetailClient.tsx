@@ -15,8 +15,11 @@ import {
   SpecialHoursNote,
 } from './ListingContentSections'
 import type { ActionLinks, ListingPost, ListingServiceItem, SpecialHour } from '@/lib/listing-content'
+import { PrintBadges, PrintRecognitionPanel } from '@/components/citybeat/PrintRecognition'
+import { hasEditorAccess } from '@citybeat/lib/roles'
 
 interface Listing {
+  print_recognition?: unknown
   id: string
   name: string
   description: string | null
@@ -258,7 +261,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
   const statusParam = searchParams.get('status')
   const editParam = searchParams.get('edit') === '1'
 
-  const isEditor = userProfile?.is_editor ?? false
+  const isEditor = Boolean(userProfile?.id && hasEditorAccess(userProfile))
 
   // Reviews state variables
   const [reviews, setReviews] = useState<any[]>([])
@@ -451,9 +454,9 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
   // Deep-link ?edit=1 (from the dashboard "Manage" link) opens edit mode once we
   // know the viewer is the approved owner or an editor.
   useEffect(() => {
-    if (!editParam || !listing || !userProfile) return
+    if (!editParam || !listing || !userProfile?.id) return
     const owner = listing.owner_id === userProfile.id && listing.claim_status === 'approved'
-    if (owner || userProfile.is_editor) setEditMode(true)
+    if (owner || hasEditorAccess(userProfile)) setEditMode(true)
   }, [editParam, listing, userProfile])
 
   // Note: all listings (claimed or not) render a public page with reviews + a
@@ -668,7 +671,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
     )
   }
 
-  const isOwner = listing.owner_id === userProfile?.id && listing.claim_status === 'approved'
+  const isOwner = Boolean(userProfile?.id && listing.owner_id === userProfile.id && listing.claim_status === 'approved')
   const showEditButton = isOwner || isEditor
   const isClaimable = listing.claim_status === 'unclaimed' && !isOwner
   const visitorPhotos = reviews.flatMap((rev) => rev.photo_urls || []).filter(Boolean)
@@ -716,15 +719,18 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
         {/* Action Bar */}
         <div className="container-wide mb-6 flex justify-between items-center">
           <BookmarkButton contentType="directory" contentId={id} />
-          {showEditButton && !editMode && (
+          {showEditButton && !editMode && isEditor && (
             <button
               onClick={() => setEditMode(true)}
               className="px-5 py-2.5 rounded-md bg-brand-neon text-black font-black uppercase tracking-wider text-xs hover:bg-cyan-300 transition shadow-[0_4px_12px_rgba(0,240,255,0.3)]"
             >
-              {t.editListing}
+              {locale === 'es' ? 'Editar ficha · Equipo CityBeat' : 'Edit listing · CityBeat staff'}
             </button>
           )}
+          {isOwner && !isEditor && <Link href={`/${locale}/dashboard/listings/${id}`} className="rounded-md bg-brand-neon px-5 py-2.5 text-xs font-black uppercase text-black">{locale === 'es' ? 'Administrar mi negocio' : 'Manage my business'}</Link>}
         </div>
+
+        {!editMode && <div className="container-wide mb-6"><PrintBadges value={listing.print_recognition} locale={locale} /></div>}
 
         {editMode ? (
           /* EDIT MODE VIEW */
@@ -1021,7 +1027,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                   <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                     <path fillRule="evenodd" d="M2.166 4.9L10 1.154l7.834 3.746v5.82c0 5.626-4.524 9.176-7.834 10.026C6.69 19.896 2.166 16.346 2.166 10.72V4.9zm8.966 4.7a1 1 0 10-2 0v3a1 1 0 102 0v-3zm-1-4a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                   </svg>
-                  {t.approvedClaim}
+                  {listing.claim_status === 'approved' ? t.approvedClaim : (locale === 'es' ? 'Perfil Premium' : 'Premium Listing')}
                 </div>
                 <h1 className="font-display text-4xl sm:text-6xl font-black text-white uppercase leading-none">
                   {listing.name}
@@ -1042,6 +1048,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
             <div className="container-wide mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left Column: Description & Gallery */}
               <div className="lg:col-span-2 space-y-8">
+                <PrintRecognitionPanel value={listing.print_recognition} locale={locale} />
                 <div className="citybeat-panel rounded-2xl p-8 border border-white/10">
                   <span className="text-xs font-black uppercase tracking-wider text-brand-neon bg-brand-neon/10 px-2.5 py-1 rounded">
                     {categoryLabel(listing.category, locale)}
@@ -1562,6 +1569,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
             <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left Column: Basic Details */}
               <div className="lg:col-span-2 space-y-6">
+                <PrintRecognitionPanel value={listing.print_recognition} locale={locale} />
                 <div className="citybeat-panel rounded-2xl p-8 border border-white/10">
                   <span className="text-xs font-black uppercase tracking-wider text-brand-neon bg-brand-neon/10 px-2.5 py-1 rounded">
                     {categoryLabel(listing.category, locale)}

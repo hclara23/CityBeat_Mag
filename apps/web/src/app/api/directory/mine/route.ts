@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getServerUser } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { resolveEntitlements, resolveListingPatchAccess } from '@/lib/directory-entitlements'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,11 +23,18 @@ export async function GET() {
       .where('owner_id', '==', user.id)
       .get()
 
-    const listings = snap.docs
+    const managed = await adminDb.collection('directory_listings').where('manager_ids', 'array-contains', user.id).get()
+    const documents = new Map(snap.docs.map(d => [d.id, d]))
+    for (const d of managed.docs) {
+      const raw = d.data()
+      if (resolveListingPatchAccess(raw, { userId: user.id, managerAllowance: resolveEntitlements(raw).additionalManagers }).isManager) documents.set(d.id, d)
+    }
+    const listings = [...documents.values()]
       .map((d) => {
         const x = d.data() as any
         return {
           id: d.id,
+          is_owner: x.owner_id === user.id,
           name: x.name || 'Untitled listing',
           tier: x.tier || 'basic',
           pending_tier: x.pending_tier || null,

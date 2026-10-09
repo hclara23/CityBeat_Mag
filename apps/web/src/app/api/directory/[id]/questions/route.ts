@@ -69,7 +69,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     created_at: FieldValue.serverTimestamp(),
   })
 
-  if (listing.owner_id) {
+  if (listing.owner_id && listing.claim_status === 'approved') {
     await notifyUser({
       userId: String(listing.owner_id),
       notificationId: `listing_comment:${qRef.id}`,
