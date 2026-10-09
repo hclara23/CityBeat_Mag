@@ -8893,12 +8893,32 @@
       "doc_updated_by": "agentctl",
       "description": "Approved: extract supplied Premier PDF; feature approved October-November cover and full article on homepage; verify desktop and mobile. Preserve archive context; no unapproved paid deployment.",
       "doc": "## Summary\n\nFeature Premier Clinic October-November cover story on the homepage with complete readable print article.\n\n## Scope\n\nHomepage cover feature and article route with archival label, original PDF, existing optimized cover and source-faithful text. Retain existing news below it.\n\n## Risks\n\nPrinted staff and service information may be historical; preserve original article with prominent archive note and link to current listing. No invented issue year.\n\n## Verify Steps\n\nCompare text with rendered PDF; run typecheck/lint/tests; inspect desktop and mobile feature and article.\n\n## Rollback Plan\n\nRevert scoped feature and article files; no business listing data changes.\n\n## Notes\n\nLIVE: citybeat-web-cover-36205b0 receives 100% traffic. Build c1035d45-8131-4c12-a355-1a8a58205a49 SUCCESS; image digest sha256:d10e9c459d5f94a7bd2795e8e8a1cbff4d20ee2a1ba0eac3c6a9ff0e78110658. EN/ES public homepage and article smoke checks pass, original PDF SHA256 preserved, both WebP photos load. Browser verifies desktop images, both photo tilt flags, cover glare only, and mobile no overflow. Full tests, type-check and lint pass. Candidate regression confirms anonymous edit rejection, private-field stripping, three locations, sports/login health. Source commit 36205b0dcf08. Rollback revision citybeat-web-popup-58149df. Build remains within approved combined USD1 cap."
+    },
+    {
+      "id": "202610090342-AZNMN5",
+      "title": "Publish Machelle Wood issue profile",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: plan source-faithful Machelle issue story below Premier cover with optimized photos and verified public deployment."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-09T03:43:30+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved: import supplied DOCX faithfully and optimize two photos; add a regular October-November story card below Premier cover, shared social and tilt effects; test and deploy within remaining USD1 total build cap. Dependencies: none.",
+      "doc": "## Summary\n\nPublish Machelle Wood profile as a regular October-November issue story while Premier retains cover prominence.\n\n## Scope\n\nImport supplied article and two photos; add homepage/index card, dedicated route, sharing, subtle image effects, metadata and sitemap. Preserve source text; resolve placeholder byline.\n\n## Risks\n\nSource byline is placeholder; do not invent author. Preserve image framing and original text. No new paid service; Cloud Build within remaining combined USD1 cap.\n\n## Verify Steps\n\nCompare article body against DOCX; type-check, lint and tests; production candidate and public EN/ES smoke checks; browser desktop/mobile and photo loads.\n\n## Rollback Plan\n\nRestore traffic to citybeat-web-cover-36205b0; revert scoped content commit if necessary."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "9c6328a9c53ad94b379d40fc0d885014035bc3be53d1f452e4d83387c4644213"
+    "checksum": "a6a30e5dd0199af2cc42550dc83fa07944fec2fc09a5a86a7838de22fef19631"
   }
 }
