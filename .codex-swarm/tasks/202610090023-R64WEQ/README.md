@@ -1,13 +1,15 @@
 ---
 id: "202610090023-R64WEQ"
 title: "Publish Premier Clinic premium directory listing"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "ca06122cacb5933c04c7609c66e5ce7936fa6ae6", message: "✅ R64WEQ verify live Premier photos bilingual details and rollback snapshot" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: Approved Premier listing preparation, duplicate checks, safe asset selection, and live verification without billing changes." }
+  - { author: "ORCHESTRATOR", body: "verified: existing premium Premier listing updated live with five optimized WebP photos, three locations, bilingual content, six services and valid links | details: public API and browser checks passed." }
 doc_version: 2
 doc_updated_at: "2026-10-09T00:37:22+00:00"
 doc_updated_by: "agentctl"
