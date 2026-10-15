@@ -11,6 +11,7 @@ export type StatementTransfer = {
   status?: string | null
   sale_at?: unknown
   accrued_at?: unknown
+  created_at?: unknown
   eligible_at?: unknown
   paid_at?: unknown
   clawback_at?: unknown
@@ -89,7 +90,19 @@ export function previousCalendarMonth(now: Date): { key: string; start: string; 
 }
 
 function eventAt(row: StatementTransfer): string | null {
-  return iso(row.sale_at) || iso(row.accrued_at)
+  // Subscription and split commissions carry sale/accrual timestamps. A
+  // deliberate one-off catch-up transfer is written by manualPayout() with a
+  // Firestore created_at timestamp instead, and must still appear on the
+  // payee's statement for the month in which CityBeat issued it.
+  return iso(row.sale_at) || iso(row.accrued_at) || iso(row.created_at)
+}
+
+function transferredAt(row: StatementTransfer): string | null {
+  const paidAt = iso(row.paid_at)
+  if (paidAt) return paidAt
+  // manualPayout() writes the successful Stripe transfer and ledger row in one
+  // operation but legacy/manual rows do not carry a separate paid_at field.
+  return row.status === 'paid' && row.stripe_transfer_id ? eventAt(row) : null
 }
 
 function adjustmentFor(row: StatementTransfer): number {
@@ -129,12 +142,12 @@ export function buildPayoutStatement(input: {
       ytdEarned += amount
       ytdAdjustments += adjustmentFor(row)
     }
-    if (inRange(iso(row.paid_at), yearStartMs, endMs)) ytdPaid += Math.max(0, Math.round(Number(row.amount) || 0))
+    if (inRange(transferredAt(row), yearStartMs, endMs)) ytdPaid += Math.max(0, Math.round(Number(row.amount) || 0))
   }
 
   const periodRows = rows.filter((row) =>
     inRange(eventAt(row), startMs, endMs) ||
-    inRange(iso(row.paid_at), startMs, endMs) ||
+    inRange(transferredAt(row), startMs, endMs) ||
     inRange(iso(row.clawback_at), startMs, endMs) ||
     inRange(iso(row.stripe_payout_at), startMs, endMs)
   )
@@ -155,7 +168,7 @@ export function buildPayoutStatement(input: {
       status: row.status || 'unknown',
       eligible_at: iso(row.eligible_at),
       stripe_transfer_id: row.stripe_transfer_id || null,
-      transferred_at: iso(row.paid_at),
+      transferred_at: transferredAt(row),
       stripe_payout_id: row.stripe_payout_id || null,
       stripe_payout_status: row.stripe_payout_status || null,
       stripe_payout_at: iso(row.stripe_payout_at),
@@ -168,7 +181,7 @@ export function buildPayoutStatement(input: {
     adjustments: lines.filter((l) => inRange(l.adjustment_at, startMs, endMs)).reduce((n, l) => n + l.adjustment, 0),
     held: 0,
     due: 0,
-    paid: periodRows.filter((r) => inRange(iso(r.paid_at), startMs, endMs)).reduce((n, r) => n + Math.max(0, Math.round(Number(r.amount) || 0)), 0),
+    paid: periodRows.filter((r) => inRange(transferredAt(r), startMs, endMs)).reduce((n, r) => n + Math.max(0, Math.round(Number(r.amount) || 0)), 0),
     reversed: periodRows.filter((r) => r.status === 'reversed' && inRange(iso(r.clawback_at) || eventAt(r), startMs, endMs)).reduce((n, r) => n + Math.max(0, Math.round(Number(r.original_amount ?? r.amount) || 0)), 0),
     outstanding: 0,
     ytd_earned: ytdEarned,

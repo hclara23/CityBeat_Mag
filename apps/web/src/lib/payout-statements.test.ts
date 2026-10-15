@@ -32,6 +32,31 @@ test('statement isolates payees, calculates refunds, statuses, outstanding and Y
   assert.equal(statement.totals.ytd_paid, 200)
 })
 
+test('manual catch-up transfers appear in the month they were issued', () => {
+  const statement = buildPayoutStatement({
+    payeeUserId: 'editor',
+    period: { key: '2026-10', start: '2026-10-01T00:00:00.000Z', end: '2026-11-01T00:00:00.000Z' },
+    transfers: [
+      {
+        id: 'manual:catch-up',
+        payee_user_id: 'editor',
+        amount: 450,
+        service: 'manual',
+        status: 'paid',
+        created_at: { _seconds: Date.parse('2026-10-15T20:00:00Z') / 1000 },
+        stripe_transfer_id: 'tr_catch_up',
+      },
+    ],
+  })
+
+  assert.equal(statement.lines.length, 1)
+  assert.equal(statement.lines[0]?.earned_at, '2026-10-15T20:00:00.000Z')
+  assert.equal(statement.lines[0]?.stripe_transfer_id, 'tr_catch_up')
+  assert.equal(statement.totals.earned, 450)
+  assert.equal(statement.totals.paid, 450)
+  assert.equal(statement.totals.ytd_paid, 450)
+})
+
 test('delivery keys are stable and only failed deliveries can retry', () => {
   assert.equal(statementDeliveryId('user@example.com', '2026-09'), '2026-09_user_example_com')
   assert.equal(canReserveStatementDelivery(null), true)
