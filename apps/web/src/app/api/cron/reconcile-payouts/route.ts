@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { reconcileFailedTransfers } from '@/lib/payouts'
+import { reconcileFailedTransfers, runPayoutCycle } from '@/lib/payouts'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
+import { isPayoutCycleDay } from '@/lib/commission-schedule'
+import { deliverPayoutStatements } from '@/lib/payout-statement-delivery'
+import { payoutCycleStatementPeriod } from '@/lib/payout-statements'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -40,18 +43,35 @@ export async function GET(request: NextRequest) {
   const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' as any })
   const { searchParams } = new URL(request.url)
   try {
+    const dryRun = searchParams.get('dryRun') === '1'
     const result = await reconcileFailedTransfers({
       stripe,
       limit: Number(searchParams.get('limit')) || 50,
-      dryRun: searchParams.get('dryRun') === '1',
+      dryRun,
     })
+    let payoutCycle = null
+    let statements = null
+    if (isPayoutCycleDay(new Date())) {
+      payoutCycle = await runPayoutCycle({
+        stripe,
+        limit: Number(searchParams.get('payoutLimit')) || 200,
+        dryRun,
+      })
+      // Broad selection is intentionally safe: delivery filters to payees with
+      // paid transfers in this cycle period, so it retries failed statements
+      // without emailing inactive connected accounts.
+      statements = await deliverPayoutStatements({
+        period: payoutCycleStatementPeriod(new Date()),
+        dryRun,
+      })
+    }
     // The only cron with no liveness stamp at all, so nothing could ever notice it
     // had stopped. What it completes are commission transfers that failed at
     // webhook time — money a rep has already earned. Its silence is expensive and
     // invisible, which is the worst combination.
     // Not stamped on a dry run: that is an operator probe, not a real cycle.
-    if (searchParams.get('dryRun') !== '1') await reportSuccess('cron:reconcile-payouts')
-    return NextResponse.json(result)
+    if (!dryRun) await reportSuccess('cron:reconcile-payouts')
+    return NextResponse.json({ reconciliation: result, payout_cycle: payoutCycle, statements })
   } catch (error) {
     await reportFailure('cron:reconcile-payouts', error)
     return NextResponse.json({ error: 'Payout reconciliation run failed' }, { status: 500 })

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
+import { reportCronAuthRejected, reportFailure } from '@/lib/alerts'
 import { isPayoutCycleDay } from '@/lib/commission-schedule'
 import { deliverPayoutStatements } from '@/lib/payout-statement-delivery'
 import { payoutCycleStatementPeriod, yearToDateStatementPeriod } from '@/lib/payout-statements'
@@ -13,9 +13,8 @@ function authorized(request: NextRequest) {
   return Boolean(secret) && request.headers.get('authorization') === `Bearer ${secret}`
 }
 
-// Retries the statement created by the payout-cycle route. It runs one hour
-// after transfers on the 15th and possible month-end dates; the local-day guard
-// skips the 28th-30th unless that date is actually the month's final day.
+// Operator endpoint for previewing, retrying, or sending a targeted statement.
+// Scheduled cycle statements are delivered by the payout cycle itself.
 export async function GET(request: NextRequest) {
   if (!authorized(request)) {
     await reportCronAuthRejected('cron:payout-statements', request.headers.get('authorization'))
@@ -40,7 +39,6 @@ export async function GET(request: NextRequest) {
       payeeUserIds: payeeUserIds.length ? payeeUserIds : undefined,
       dryRun,
     })
-    if (!dryRun) await reportSuccess('cron:payout-statements')
     return NextResponse.json({ ok: true, dry_run: dryRun, period: period.key, ...result })
   } catch (error) {
     await reportFailure('cron:payout-statements', error)

@@ -59,6 +59,7 @@ export async function deliverPayoutStatements(params: {
     failed: 0,
     previewed: 0,
     skipped_no_email: 0,
+    skipped_no_activity: 0,
     skipped_already_sent: 0,
   }
 
@@ -74,6 +75,13 @@ export async function deliverPayoutStatements(params: {
       transfers,
       payments,
     })
+    // A cycle statement accompanies money actually transferred in this period.
+    // This also makes a broad retry safe: connected payees with no payout are
+    // not emailed an empty financial statement.
+    if (statement.totals.paid <= 0) {
+      summary.skipped_no_activity++
+      continue
+    }
     if (params.dryRun) {
       summary.previewed++
       continue

@@ -17,7 +17,6 @@ on:
     paths:
       - 'apps/web/**'
       - 'packages/**'
-      - 'infra/scheduler/jobs.json'
       - 'Dockerfile'
       - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
@@ -236,40 +235,6 @@ jobs:
               echo "No previous revision recorded — CANNOT auto-roll-back, needs a human NOW"
             fi
             exit 1
-          fi
-
-      # The app re-checks El Paso's local date, so scheduling 28-31 is the safe
-      # way to express "last calendar day" in cron: non-final dates are no-ops.
-      # Updating an existing job preserves its authorization header. The
-      # statement retry job is created only when absent, using the same
-      # CRON_SECRET already configured on Cloud Run (never printed).
-      - name: Configure semi-monthly editor payout schedules
-        run: |
-          update_schedule() {
-            gcloud scheduler jobs update http "$1" \
-              --project "$GCP_PROJECT" --location "$GCP_REGION" \
-              --schedule "$2" --time-zone "America/Denver" --quiet
-          }
-
-          update_schedule citybeat-payout-cycle "0 9 15,28-31 * *"
-
-          if gcloud scheduler jobs describe citybeat-payout-statements \
-            --project "$GCP_PROJECT" --location "$GCP_REGION" >/dev/null 2>&1; then
-            update_schedule citybeat-payout-statements "0 10 15,28-31 * *"
-          else
-            CRON_VALUE=$(gcloud run services describe "$SERVICE" \
-              --project "$GCP_PROJECT" --region "$GCP_REGION" \
-              --format='value(spec.template.spec.containers[0].env.filter(name=CRON_SECRET).value)')
-            if [ -z "$CRON_VALUE" ]; then
-              echo "CRON_SECRET is not available as a Cloud Run environment value; refusing to create an unauthenticated job."
-              exit 1
-            fi
-            gcloud scheduler jobs create http citybeat-payout-statements \
-              --project "$GCP_PROJECT" --location "$GCP_REGION" \
-              --schedule "0 10 15,28-31 * *" --time-zone "America/Denver" \
-              --uri "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/payout-statements" \
-              --http-method GET --headers "Authorization=Bearer $CRON_VALUE" \
-              --attempt-deadline 300s --quiet
           fi
 
       # Slack notifications are optional: skipped cleanly when no webhook secret
