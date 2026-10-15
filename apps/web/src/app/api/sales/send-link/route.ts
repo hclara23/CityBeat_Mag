@@ -71,6 +71,13 @@ export async function POST(request: NextRequest) {
   const results: { email?: any; sms?: any } = {}
 
   if (email) {
+    const listingId = typeof order.listing_id === 'string' ? order.listing_id.trim() : ''
+    const listingUrl = listingId
+      ? `https://citybeatmag.co/en/directory/${encodeURIComponent(listingId)}`
+      : 'https://citybeatmag.co/en/directory'
+    const dashboardUrl = listingId
+      ? `https://citybeatmag.co/en/dashboard/listings/${encodeURIComponent(listingId)}`
+      : 'https://citybeatmag.co/en/dashboard'
     const html = `
       <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;padding:8px">
         <h1 style="font-size:20px;margin:0 0 4px">CityBeat — secure payment link</h1>
@@ -79,6 +86,14 @@ export async function POST(request: NextRequest) {
           <a href="${escapeHtml(url)}" style="background:#00e0d1;color:#04121a;font-weight:800;text-decoration:none;padding:14px 24px;border-radius:8px;display:inline-block;font-size:16px">Pay securely →</a>
         </p>
         <p style="color:#888;font-size:12px;word-break:break-all">Or paste this link: ${escapeHtml(url)}</p>
+        <h2 style="font-size:17px;margin:28px 0 8px">Manage your listing</h2>
+        <ol style="color:#444;font-size:14px;line-height:1.6;padding-left:22px">
+          <li>Sign in at <a href="https://citybeatmag.co/en/login">citybeatmag.co/en/login</a> using <strong>${escapeHtml(email)}</strong>.</li>
+          <li>Open <a href="${escapeHtml(dashboardUrl)}">your listing dashboard</a> and select <strong>${escapeHtml(businessName)}</strong>.</li>
+          <li>Choose <strong>Edit Listing</strong> to update your description, hours, photos, services, website, and social links.</li>
+        </ol>
+        <p style="color:#444;font-size:14px;line-height:1.5">Public listing: <a href="${escapeHtml(listingUrl)}">${escapeHtml(listingUrl)}</a></p>
+        <p style="color:#666;font-size:13px;line-height:1.5">If you cannot remember your password, use the password-reset option on the login page.</p>
         <p style="color:#aaa;font-size:12px;margin-top:24px">CityBeat · El Paso · citybeatmag.co</p>
       </div>`
     results.email = await sendEmail(email, `Your CityBeat payment link for ${businessName}`, html)

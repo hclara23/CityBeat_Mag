@@ -9,6 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: Verified the production listing and live Stripe Checkout; generated the customer QR; owner approval is reflected on the public listing. Preparing the exact customer email for action-time send confirmation." }
   - { author: "ORCHESTRATOR", body: "Blocked: Gmail accepted the send request but ignored from_address=hello@citybeatmag.co and emitted the message from Morning Star <morningstarelp@gmail.com> (message 1a140d880cb6dde8). The official CityBeat transactional mailer is configured for hello@citybeatmag.co, but its current Sales Desk template only sends the payment link and cannot include the requested custom login/edit instructions without a code change/deployment or direct mailbox access. Do not mark complete until the sender issue is corrected." }
+  - { author: "ORCHESTRATOR", body: "Implementation: Added listing login, dashboard, editing, public listing, and password-reset instructions to the official Sales Desk payment email template. Web type-check passes. Deployment and official resend remain." }
 doc_version: 2
 doc_updated_at: "2026-10-15T18:31:54+00:00"
 doc_updated_by: "agentctl"
