@@ -9161,7 +9161,7 @@
     {
       "id": "202610151908-1V8V7X",
       "title": "Implement Premium SEO and pass-through traffic improvements",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9177,6 +9177,12 @@
       "verify": [
         "npm --prefix apps/web run typecheck",
         "npm --prefix apps/web test"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: implementing approved Premium SEO, referral attribution, conversion tracking, and structured-data hardening."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T19:09:01+00:00",
@@ -9275,7 +9281,7 @@
     {
       "id": "202610151908-CSBGR8",
       "title": "Harden Premium sales flow against interrupted sales",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9290,6 +9296,12 @@
       "verify": [
         "npm --prefix apps/web run typecheck",
         "npm --prefix apps/web test"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: implement approved sales-flow resilience fixes with local-only verification and no external sends, checkouts, charges, deployment, or financial mutations."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T19:09:01+00:00",
@@ -9361,6 +9373,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "b37a2cf412ad52b44ab6199eb57cccbbcb6deeaf9324dde22f2c57a45719dd73"
+    "checksum": "a98035e4f415036497cee1afef683dd4ebc2a0a91bca78a560eef2044dcd8a8c"
   }
 }

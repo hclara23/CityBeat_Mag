@@ -6,7 +6,7 @@ priority: "high"
 owner: "TESTER"
 depends_on: ["202610151908-1V8V7X", "202610151908-CSBGR8", "202610151908-W3RZA8"]
 tags: ["testing", "seo", "sales", "stripe"]
-verify: ["npm --prefix apps/web run typecheck", "npm --prefix apps/web test"]
+verify: ["npm --prefix apps/web run type-check", "npm test"]
 doc_version: 2
 doc_updated_at: "2026-10-15T19:09:02+00:00"
 doc_updated_by: "agentctl"

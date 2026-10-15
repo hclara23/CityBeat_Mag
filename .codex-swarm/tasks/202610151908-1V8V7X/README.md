@@ -6,7 +6,7 @@ priority: "high"
 owner: "CODER"
 depends_on: ["202610151908-65QK5Z"]
 tags: ["seo", "directory", "analytics", "frontend", "backend"]
-verify: ["npm --prefix apps/web run typecheck", "npm --prefix apps/web test"]
+verify: ["npm --prefix apps/web run type-check", "npm test"]
 comments:
   - { author: "CODER", body: "Start: implementing approved Premium SEO, referral attribution, conversion tracking, and structured-data hardening." }
 doc_version: 2
