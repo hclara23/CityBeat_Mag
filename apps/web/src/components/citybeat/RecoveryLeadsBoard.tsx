@@ -20,6 +20,7 @@ interface Lead {
   billing_type: string | null
   billing_interval: string | null
   link_state: 'expired' | 'ready'
+  checkout_url: string | null
   created_at: string | null
   recovery_emailed_at: string | null
   promo_offered: string | null
@@ -67,6 +68,7 @@ export function RecoveryLeadsBoard() {
   // order_id currently in the two-step "click Remove → Confirm" flow.
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [sendingId, setSendingId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -123,6 +125,28 @@ export function RecoveryLeadsBoard() {
     } finally {
       setBusyId(null)
       setConfirmingId(null)
+    }
+  }
+
+  const resend = async (lead: Lead) => {
+    if (!lead.checkout_url || lead.link_state !== 'ready') return
+    setSendingId(lead.order_id)
+    setError('')
+    try {
+      const res = await fetch('/api/sales/send-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: lead.checkout_url, orderId: lead.order_id, email: lead.email, phone: '' }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.ok) throw new Error(data.error || (isEs ? 'No se pudo enviar.' : 'Could not send.'))
+      setLeads((prev) => (prev || []).map((l) => l.order_id === lead.order_id
+        ? { ...l, recovery_emailed_at: new Date().toISOString() }
+        : l))
+    } catch (e: any) {
+      setError(e.message || (isEs ? 'No se pudo enviar.' : 'Could not send.'))
+    } finally {
+      setSendingId(null)
     }
   }
 
@@ -224,6 +248,15 @@ export function RecoveryLeadsBoard() {
                 </td>
                 <td className="px-4 py-2.5 text-xs text-white/40">{fmtDate(l.created_at)}</td>
                 <td className="px-4 py-2.5 text-right">
+                  {l.link_state === 'ready' && l.checkout_url && (
+                    <button
+                      onClick={() => resend(l)}
+                      disabled={sendingId === l.order_id}
+                      className="mr-2 rounded border border-brand-neon/40 px-2 py-1 text-[11px] font-bold text-brand-neon hover:bg-brand-neon/10 disabled:opacity-50"
+                    >
+                      {sendingId === l.order_id ? (isEs ? 'Enviando…' : 'Sending…') : isEs ? 'Enviar email' : 'Email'}
+                    </button>
+                  )}
                   {confirmingId === l.order_id ? (
                     <span className="inline-flex items-center gap-2">
                       <button
