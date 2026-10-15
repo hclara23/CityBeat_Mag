@@ -1,13 +1,15 @@
 ---
 id: "202610151955-H80208"
 title: "Forensic audit of recurring Stripe editor commissions"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "REVIEWER"
 depends_on: []
 tags: ["stripe", "connect", "commissions", "audit"]
+commit: { hash: "144640c8a770c5a52764f14a202c2fbbf0351a7b", message: "🔍 H80208 document missing recurring editor commission and exact catch-up liability" }
 comments:
   - { author: "REVIEWER", body: "Start: trace the active 9.99 USD subscription across Stripe invoices, metadata, commission ledger, Connect transfers, and editor payouts; calculate any catch-up amount without changing settings or moving funds." }
+  - { author: "REVIEWER", body: "verified: reconciled the .99 subscription across Stripe invoices, production finance, Connect transfer and bank payout evidence | details: identified a missing September renewal commission of .50 and documented the nested subscription reference root cause without moving funds." }
 doc_version: 2
 doc_updated_at: "2026-10-15T20:02:03+00:00"
 doc_updated_by: "agentctl"

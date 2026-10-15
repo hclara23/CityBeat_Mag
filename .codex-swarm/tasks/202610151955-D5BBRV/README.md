@@ -1,13 +1,15 @@
 ---
 id: "202610151955-D5BBRV"
 title: "Research compliant connected-payee payout frequency"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "REVIEWER"
 depends_on: []
 tags: ["stripe", "legal-research", "payouts", "compliance"]
+commit: { hash: "ce0190bfc38df4fc97d810d9932ba898bc56aaad", message: "📝 D5BBRV document Stripe payout cadence and New Mexico commission compliance guidance" }
 comments:
   - { author: "REVIEWER", body: "Start: research current Stripe Connect payout schedules and authoritative New Mexico and federal commission-payment rules; compare operational options without changing settings or moving funds" }
+  - { author: "REVIEWER", body: "verified: documented authoritative Stripe, New Mexico, federal and tax guidance | details: recommended after-clearance transfers, editor automatic standard payouts, platform manual payouts and monthly statements, subject to classification and contract review." }
 doc_version: 2
 doc_updated_at: "2026-10-15T20:00:09+00:00"
 doc_updated_by: "agentctl"
