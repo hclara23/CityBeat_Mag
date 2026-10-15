@@ -9460,7 +9460,7 @@
     {
       "id": "202610151955-098Z3A",
       "title": "Configure platform manual payouts and editor payout behavior",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9471,6 +9471,12 @@
         "stripe",
         "connect",
         "configuration"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: implement Stripe invoice subscription compatibility and focused renewal commission regression coverage; no dashboard changes or fund movement."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T19:56:55+00:00",
@@ -9595,7 +9601,7 @@
     {
       "id": "202610151955-PSTR9K",
       "title": "Implement monthly connected-payee payout statements",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9613,6 +9619,12 @@
         "npm --prefix apps/web test",
         "npm --prefix apps/web run type-check"
       ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: implement privacy-safe, idempotent monthly connected-payee statements with dry-run, audit visibility, scheduler integration, and deterministic tests."
+        }
+      ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T19:56:55+00:00",
       "doc_updated_by": "agentctl",
@@ -9624,6 +9636,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "cef3edd2a6faf8caf3f9e082228af80b7ecbc3fe49f762e8757a51683c4ea836"
+    "checksum": "1cde5ebfb6a1f0528d297d06df89d34809a80414098a4960040046e599703d0d"
   }
 }

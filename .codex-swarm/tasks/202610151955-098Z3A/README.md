@@ -9,7 +9,7 @@ tags: ["stripe", "connect", "configuration"]
 comments:
   - { author: "CODER", body: "Start: implement Stripe invoice subscription compatibility and focused renewal commission regression coverage; no dashboard changes or fund movement." }
 doc_version: 2
-doc_updated_at: "2026-10-15T20:05:02+00:00"
+doc_updated_at: "2026-10-15T20:18:30+00:00"
 doc_updated_by: "agentctl"
 description: "After the forensic and policy audits, configure only the CityBeat platform Stripe balance to retain CityBeat funds under manual payouts and configure the editor-connected account to pay earned commissions on the approved after-clearance schedule. Do not move funds, create catch-up transfers, or change editor bank details; capture before-and-after evidence and preserve Connect transfers."
 ---
@@ -31,7 +31,7 @@ Changing the wrong account schedule could delay editor funds or cash out CityBea
 
 ## Verify Steps
 
-Verify the selected Stripe account context before each setting; confirm platform payouts are manual; confirm editor payouts follow the approved schedule; verify Connect transfers remain enabled; confirm no payout, transfer, bank change, or customer charge was created.
+1. Focused invoice compatibility and payout split tests passed 19/19. 2. Web TypeScript check passed. 3. Stripe dashboard confirmed CityBeat manual payouts saved. 4. Editor account remained Daily — 2 day rolling basis with Transfers and Payouts active. 5. USD 4.50 catch-up transfer tr_1UQv6CDBCgtcnBrqW0iYc8wp succeeded and appears as USD 4.50 future payout. 6. CityBeat retained USD 7.40 inside Stripe. 7. No production deployment has occurred yet; release and post-deploy renewal verification are separate downstream tasks.
 
 ## Rollback Plan
 
@@ -39,5 +39,5 @@ Use captured prior settings to restore only the affected payout schedule if veri
 
 ## Notes
 
-Implemented a version-compatible Stripe invoice subscription resolver for legacy invoice.subscription and current invoice.parent.subscription_details.subscription shapes. Applied it to renewal residual accrual, payment ledger recording, success/failure status changes, renewal refund order lookup, and referral invoice consumption. The existing seven-day refund hold and twice-monthly commission cycle were deliberately unchanged: shortening them would alter the documented commission/refund policy. No Stripe setting, transfer, payout, refund, charge, or deployment was performed. Verification: npx tsx --test apps/web/src/lib/stripe-invoice.test.ts apps/web/src/lib/payout-split.test.ts (19/19 passed); npm run type-check --workspace=@citybeat/web (passed). Stripe UI still needs the platform payout schedule changed to manual and the connected editor payout schedule verified separately.
+Live configuration completed 2026-10-15 with explicit user approval. CityBeat platform account acct_1TMaM8DBCgtcnBrq changed from automatic daily payouts to manual payouts and Stripe confirmed the change was saved. Editor connected account acct_1TtwpdDgTTWo75qn remained on Daily — 2 day rolling basis. CityBeat had USD 11.90 in its Stripe Business account and USD 0.00 in Payments balance; USD 4.50 was transferred internally to Payments balance, then the approved catch-up commission was transferred to the editor through CityBeat's audited manual payout endpoint. Stripe transfer tr_1UQv6CDBCgtcnBrqW0iYc8wp succeeded; editor total/future payout balance became USD 4.50 and lifetime volume USD 9.00. CityBeat retained USD 7.40 inside Stripe. No owner bank payout, charge, refund, subscription change, or editor bank-setting change occurred. Editor payouts may be paused at USD 3,000 lifetime volume unless DOB and last-four SSN requirements are completed.
 
