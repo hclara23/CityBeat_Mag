@@ -33,6 +33,7 @@ import { STRIPE_EVENT_RETENTION_DAYS, expiresInDays } from '@/lib/retention'
 import { selfServeRefundTargets } from '@/lib/refund-targets'
 import { isFullyRefunded, refundPatchForPurchaseRows } from '@/lib/refund-attribution'
 import { foundersCheckoutAllowed, foundersPaymentConfirmed } from '@/lib/founders-onboarding'
+import { stripeInvoiceSubscriptionId } from '@/lib/stripe-invoice'
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
@@ -943,7 +944,7 @@ async function recordSubscriptionAttribution(subscriptionId: any, payeeUserId: a
 // left unpaid — unlike a coarse per-invoice guard, which would skip an unpaid
 // share once any other share for the invoice had a row.
 async function payResidualCommissionIfDue(invoice: any) {
-  const subscriptionId = stripeObjectId(invoice.subscription)
+  const subscriptionId = stripeInvoiceSubscriptionId(invoice)
   if (invoice.billing_reason !== 'subscription_cycle' || !subscriptionId) return
 
   const settings = await getPayoutSettings()
@@ -986,7 +987,7 @@ async function handleChargeRefunded(charge: any) {
   if (!orders.length && charge.invoice) {
     const invoice = await stripe.invoices.retrieve(stripeObjectId(charge.invoice) || String(charge.invoice))
     invoiceBillingReason = (invoice as any).billing_reason || null
-    const subscriptionId = stripeObjectId((invoice as any).subscription)
+    const subscriptionId = stripeInvoiceSubscriptionId(invoice)
     if (subscriptionId) {
       const snapshot = await adminDb
         .collection('sales_orders')
@@ -1273,7 +1274,7 @@ async function handleChargeDisputeCreated(dispute: any) {
 }
 
 async function recordPayment(invoice: any) {
-  const subscriptionId = stripeObjectId(invoice.subscription)
+  const subscriptionId = stripeInvoiceSubscriptionId(invoice)
   const subscriptionDoc = subscriptionId
     ? await adminDb.collection('subscriptions').doc(subscriptionId).get()
     : null
@@ -1330,7 +1331,7 @@ async function reactivatePastDuePlacements(subscriptionId: string) {
 async function handleInvoicePaymentSucceeded(invoice: any) {
   await recordPayment({ ...invoice, status: 'paid' })
   await setPaymentStatusByField('stripe_customer_id', invoice.customer || '', 'completed')
-  const subscriptionId = stripeObjectId(invoice.subscription)
+  const subscriptionId = stripeInvoiceSubscriptionId(invoice)
   if (subscriptionId) {
     await setSalesOrderBillingStatus(subscriptionId, 'active', {
       last_invoice_id: invoice.id,
@@ -1393,7 +1394,7 @@ async function sendDunningEmail(invoice: any) {
 async function handleInvoicePaymentFailed(invoice: any) {
   await recordPayment({ ...invoice, status: 'payment_failed' })
   await setPaymentStatusByField('stripe_customer_id', invoice.customer || '', 'past_due')
-  const subscriptionId = stripeObjectId(invoice.subscription)
+  const subscriptionId = stripeInvoiceSubscriptionId(invoice)
   if (subscriptionId) {
     await setSalesOrderBillingStatus(subscriptionId, 'past_due', {
       last_failed_invoice_id: invoice.id,

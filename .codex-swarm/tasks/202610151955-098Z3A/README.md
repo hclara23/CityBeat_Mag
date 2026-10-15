@@ -1,13 +1,15 @@
 ---
 id: "202610151955-098Z3A"
 title: "Configure platform manual payouts and editor payout behavior"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "CODER"
 depends_on: ["202610151955-H80208", "202610151955-D5BBRV"]
 tags: ["stripe", "connect", "configuration"]
+comments:
+  - { author: "CODER", body: "Start: implement Stripe invoice subscription compatibility and focused renewal commission regression coverage; no dashboard changes or fund movement." }
 doc_version: 2
-doc_updated_at: "2026-10-15T19:56:55+00:00"
+doc_updated_at: "2026-10-15T20:05:02+00:00"
 doc_updated_by: "agentctl"
 description: "After the forensic and policy audits, configure only the CityBeat platform Stripe balance to retain CityBeat funds under manual payouts and configure the editor-connected account to pay earned commissions on the approved after-clearance schedule. Do not move funds, create catch-up transfers, or change editor bank details; capture before-and-after evidence and preserve Connect transfers."
 ---
@@ -37,5 +39,5 @@ Use captured prior settings to restore only the affected payout schedule if veri
 
 ## Notes
 
-Depends on 202610151955-H80208 and 202610151955-D5BBRV. Any catch-up commission remains outside scope and requires separate approval.
+Implemented a version-compatible Stripe invoice subscription resolver for legacy invoice.subscription and current invoice.parent.subscription_details.subscription shapes. Applied it to renewal residual accrual, payment ledger recording, success/failure status changes, renewal refund order lookup, and referral invoice consumption. The existing seven-day refund hold and twice-monthly commission cycle were deliberately unchanged: shortening them would alter the documented commission/refund policy. No Stripe setting, transfer, payout, refund, charge, or deployment was performed. Verification: npx tsx --test apps/web/src/lib/stripe-invoice.test.ts apps/web/src/lib/payout-split.test.ts (19/19 passed); npm run type-check --workspace=@citybeat/web (passed). Stripe UI still needs the platform payout schedule changed to manual and the connected editor payout schedule verified separately.
 

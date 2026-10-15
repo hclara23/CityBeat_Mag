@@ -18,6 +18,7 @@ import {
   referralCouponFromInvoice,
   referralDiscountAmount,
 } from '@/lib/referrals'
+import { stripeInvoiceSubscriptionId } from '@/lib/stripe-invoice'
 
 type ReferralCodeRecord = {
   code: string
@@ -672,7 +673,7 @@ export async function consumeReferralRewardForInvoice(
 ): Promise<{ consumed: number; remaining: number } | null> {
   const coupon = referralCouponFromInvoice(invoice)
   const discountAmount = referralDiscountAmount(invoice)
-  const subscriptionId = stripeId(invoice.subscription)
+  const subscriptionId = stripeInvoiceSubscriptionId(invoice)
   if (!coupon || discountAmount <= 0 || !subscriptionId) return null
 
   const subscriptionDoc = await adminDb.collection('subscriptions').doc(subscriptionId).get()
