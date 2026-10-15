@@ -1,13 +1,15 @@
 ---
 id: "202610152120-4H2YQR"
 title: "Publish validated backlog and scale Southwest directory"
-status: "TODO"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["directory", "ingestion", "seo", "release"]
+commit: { hash: "2fb4005781f1b6e2181850e9b2704c873ed7f403", message: "✅ 4H2YQR document completed directory scale rollout" }
 comments:
   - { author: "PLANNER", body: "Approved decomposition: protect merged records 202610152121-B8B5RR; expand free official sources 202610152121-YCE50A; scale SEO and discovery 202610152121-FR763D; verify 202610152121-SHHTPH; deploy and publish the first validated batch 202610152121-4F8224. Audit evidence: 1,728 hidden rows, all merged; 1,728 resolve to published canonical roots with no missing targets or cycles." }
+  - { author: "ORCHESTRATOR", body: "verified: all five approved child tasks are complete | details: production serves the guarded scale architecture and the first official-source batch raised published listings to 8,033 without exposing merged duplicates." }
 doc_version: 2
 doc_updated_at: "2026-10-15T22:09:25+00:00"
 doc_updated_by: "agentctl"
