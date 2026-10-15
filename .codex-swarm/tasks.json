@@ -9918,7 +9918,7 @@
     {
       "id": "202610152121-4F8224",
       "title": "Deploy safeguards and publish first compliant expansion batch",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "INTEGRATOR",
       "depends_on": [
@@ -9928,6 +9928,12 @@
         "release",
         "directory",
         "production"
+      ],
+      "comments": [
+        {
+          "author": "INTEGRATOR",
+          "body": "Start: deploy the verified directory safeguards within the approved two-dollar Google Cloud cap, verify production, then stage and audit the first official-source batch before bounded publication."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T21:21:31+00:00",
@@ -10104,6 +10110,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "863990f333ac98769b403c6061e6853a9b16508db5f67c991a53d29e1f009d7c"
+    "checksum": "e5ed651da742dcdeeaa88010c244ad13c103ee292cba1470db0324102719e301"
   }
 }
