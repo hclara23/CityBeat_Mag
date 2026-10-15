@@ -39,7 +39,7 @@ import {
   type AttestationMethod,
 } from '@/lib/verification-audit'
 import Stripe from 'stripe'
-import { checkoutAttemptDocumentId, checkoutAttemptHash } from '@/lib/sales-resilience'
+import { checkoutAttemptDocumentId, checkoutAttemptHash, isStripeResourceMissing, replacementCompensationOutcome } from '@/lib/sales-resilience'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -517,11 +517,52 @@ export async function POST(request: NextRequest) {
       const previousRef = adminDb.collection('sales_orders').doc(replacementOrderId)
       const previous = (await previousRef.get()).data() as Record<string, any>
       if (previous?.stripe_checkout_session_id) {
-        await stripe!.checkout.sessions.expire(previous.stripe_checkout_session_id).catch((error: any) => {
-          if (error?.code !== 'resource_missing' && error?.raw?.code !== 'resource_missing') throw error
-        })
+        try {
+          await stripe!.checkout.sessions.expire(previous.stripe_checkout_session_id)
+        } catch (oldExpiryError: any) {
+          if (!isStripeResourceMissing(oldExpiryError)) {
+            const failedAt = new Date().toISOString()
+            let compensationError: any = null
+            try {
+              // The replacement must never remain payable when the original
+              // could not be retired. Expire it before returning the failure.
+              await stripe!.checkout.sessions.expire(session.id)
+            } catch (error: any) {
+              if (!isStripeResourceMissing(error)) compensationError = error
+            }
+            const outcome = replacementCompensationOutcome(compensationError)
+            await adminDb.collection('sales_checkout_replacements').add({
+              old_order_id: replacementOrderId,
+              new_order_id: orderRef.id,
+              old_session_id: previous.stripe_checkout_session_id,
+              new_session_id: session.id,
+              status: outcome.auditStatus,
+              old_expiry_error: String(oldExpiryError?.message || oldExpiryError).slice(0, 300),
+              compensation_error: compensationError ? String(compensationError?.message || compensationError).slice(0, 300) : null,
+              attempted_by: user.id,
+              at: failedAt,
+            })
+            await orderRef.set({
+              checkout_status: outcome.orderStatus,
+              stripe_checkout_session_id: session.id,
+              checkout_url: null,
+              replacement_of_order_id: replacementOrderId,
+              replacement_compensated_at: compensationError ? null : failedAt,
+              updated_at: failedAt,
+            }, { merge: true })
+            const replacementError = Object.assign(
+              new Error(!compensationError
+                ? 'The original checkout could not be retired. The replacement was canceled; keep using the original link.'
+                : 'Checkout replacement needs immediate payment-operations review.'),
+              { code: outcome.errorCode }
+            )
+            throw replacementError
+          }
+        }
       }
-      await previousRef.set({ checkout_status: 'replaced', replaced_by_order_id: orderRef.id, replaced_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { merge: true })
+      const replacedAt = new Date().toISOString()
+      await previousRef.set({ checkout_status: 'replaced', replaced_by_order_id: orderRef.id, replaced_at: replacedAt, updated_at: replacedAt }, { merge: true })
+      await adminDb.collection('sales_checkout_replacements').add({ old_order_id: replacementOrderId, new_order_id: orderRef.id, old_session_id: previous?.stripe_checkout_session_id || null, new_session_id: session.id, status: 'replaced', attempted_by: user.id, at: replacedAt })
     }
 
     await orderRef.set(
@@ -553,10 +594,11 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     if (orderRef) {
+      const needsAttention = error?.code === 'replacement_compensation_failed'
       await orderRef
         .set(
           {
-            checkout_status: 'failed',
+            checkout_status: needsAttention ? 'needs_attention' : 'failed',
             checkout_error: String(error?.message || 'Could not create checkout').slice(0, 300),
             updated_at: new Date().toISOString(),
           },

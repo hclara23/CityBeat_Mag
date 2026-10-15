@@ -18,3 +18,17 @@ export function checkoutRenewalError(order: Record<string, any>, sellerUserId: s
   if (checkoutLinkState(order, now) !== 'expired') return 'checkout_still_live'
   return null
 }
+
+export function isStripeResourceMissing(error: any): boolean {
+  return error?.code === 'resource_missing' || error?.raw?.code === 'resource_missing'
+}
+
+export function replacementCompensationOutcome(compensationError: any): {
+  auditStatus: 'new_session_expired_after_old_expiry_failure' | 'compensation_failed'
+  orderStatus: 'failed' | 'needs_attention'
+  errorCode: 'replacement_old_expiry_failed' | 'replacement_compensation_failed'
+} {
+  return compensationError
+    ? { auditStatus: 'compensation_failed', orderStatus: 'needs_attention', errorCode: 'replacement_compensation_failed' }
+    : { auditStatus: 'new_session_expired_after_old_expiry_failure', orderStatus: 'failed', errorCode: 'replacement_old_expiry_failed' }
+}

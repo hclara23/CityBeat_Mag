@@ -1,7 +1,7 @@
 ---
 id: "202610151908-CSBGR8"
 title: "Harden Premium sales flow against interrupted sales"
-status: "DONE"
+status: "DOING"
 priority: "high"
 owner: "CODER"
 depends_on: ["202610151908-7SR37V"]
@@ -11,8 +11,9 @@ commit: { hash: "0934cda8ccd0d5aae272b2069979d026a117dc59", message: "✨ CSBGR8
 comments:
   - { author: "CODER", body: "Start: implement approved sales-flow resilience fixes with local-only verification and no external sends, checkouts, charges, deployment, or financial mutations." }
   - { author: "CODER", body: "verified: sales-flow resilience implementation passed web type-check plus 608 web and 20 shared-library tests, including focused persistence, correction, idempotency, renewal, claim-first email, mobile, and error-state coverage." }
+  - { author: "CODER", body: "Start: close the replacement compensation gap so an old-session expiry failure retires the newly created session and records the failed attempt without creating two live links." }
 doc_version: 2
-doc_updated_at: "2026-10-15T19:21:18+00:00"
+doc_updated_at: "2026-10-15T19:25:44+00:00"
 doc_updated_by: "agentctl"
 description: "Implement the approved sales-UI audit fixes for resilient creation, checkout sharing, resend/recovery, claim, payment-return, login, and listing editing across desktop and mobile. Preserve checkout idempotency and prevent duplicate orders, sessions, or sends. Include focused automated coverage."
 ---
@@ -42,5 +43,5 @@ Revert the implementation commit. Existing sales orders and Stripe sessions rema
 
 ## Notes
 
-The task metadata originally named npm scripts typecheck and test, but this package exposes type-check and no test script. Equivalent direct checks were run and passed. No representational or financial side effects were performed.
+Residual replacement compensation fix: if Stripe cannot expire the original checkout after creating its replacement, the route immediately expires the new session, records a failed replacement audit, keeps the old order unchanged, and returns a recoverable error. If compensation itself fails, the new order is marked needs_attention with no shareable URL and the audit preserves both session IDs. Type-check and full tests passed (610 web, 20 shared). No real sessions or production state were touched.
 
