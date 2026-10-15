@@ -80,7 +80,7 @@ export function MyEarnings() {
           </p>
           <p className="mt-1 text-2xl font-black text-white">{money(commission.due)}</p>
           <p className="mt-1 text-xs text-white/40">
-            {isEs ? 'Listo para el próximo ciclo (día 1 o 15)' : 'Ready for the next cycle (1st or 15th)'}
+            {isEs ? 'Listo para el próximo ciclo (día 15 o fin de mes)' : 'Ready for the next cycle (15th or month-end)'}
           </p>
         </div>
         <div className="rounded-lg border border-white/10 bg-black/20 p-4">

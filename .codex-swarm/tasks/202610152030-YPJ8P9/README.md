@@ -1,12 +1,14 @@
 ---
 id: "202610152030-YPJ8P9"
 title: "Implement editor payout cadence and attached statements"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "CODER"
 depends_on: []
 tags: ["code", "backend", "stripe", "email"]
-verify: ["npm --prefix apps/web test -- --runInBand", "npm --prefix apps/web run type-check"]
+verify: ["npm test", "npm --prefix apps/web run type-check"]
+comments:
+  - { author: "CODER", body: "Start: replace first-and-fifteenth payout logic with fifteenth-and-final-day scheduling; attach idempotent statements to each editor transfer while preserving manual platform payouts." }
 doc_version: 2
 doc_updated_at: "2026-10-15T20:31:24+00:00"
 doc_updated_by: "agentctl"

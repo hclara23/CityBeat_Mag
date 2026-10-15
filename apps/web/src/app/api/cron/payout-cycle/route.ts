@@ -3,6 +3,8 @@ import Stripe from 'stripe'
 import { runPayoutCycle } from '@/lib/payouts'
 import { isPayoutCycleDay } from '@/lib/commission-schedule'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
+import { deliverPayoutStatements } from '@/lib/payout-statement-delivery'
+import { payoutCycleStatementPeriod } from '@/lib/payout-statements'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -14,7 +16,7 @@ function authorized(request: NextRequest) {
 }
 
 // Pays out every commission whose 7-day refund window has closed.
-// Scheduled twice a month — the 1st and the 15th (citybeat-payout-cycle).
+// Scheduled on the 15th and the final calendar day (citybeat-payout-cycle).
 //
 // The scheduler is already set to those two days, but the day is re-checked here
 // so a manual or accidental invocation can't pay off-cycle; `?force=1` overrides
@@ -41,7 +43,7 @@ export async function GET(request: NextRequest) {
   if (!dryRun && !force && !isPayoutCycleDay(new Date())) {
     return NextResponse.json({
       skipped: 'not_a_payout_cycle_day',
-      note: 'Commission pays on the 1st and the 15th. Use ?force=1 for a deliberate catch-up run.',
+      note: 'Commission pays on the 15th and the final calendar day. Use ?force=1 for a deliberate catch-up run.',
     })
   }
 
@@ -52,8 +54,15 @@ export async function GET(request: NextRequest) {
       limit: Number(searchParams.get('limit')) || 200,
       dryRun,
     })
+    let statements = null
+    if (!dryRun && result.paid_payee_user_ids.length) {
+      statements = await deliverPayoutStatements({
+        period: payoutCycleStatementPeriod(new Date()),
+        payeeUserIds: result.paid_payee_user_ids,
+      })
+    }
     if (!dryRun) await reportSuccess('cron:payout-cycle')
-    return NextResponse.json({ dry_run: dryRun, ...result })
+    return NextResponse.json({ dry_run: dryRun, ...result, statements })
   } catch (error) {
     await reportFailure('cron:payout-cycle', error)
     return NextResponse.json({ error: 'Payout cycle run failed' }, { status: 500 })

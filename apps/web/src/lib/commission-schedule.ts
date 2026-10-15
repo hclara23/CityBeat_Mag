@@ -8,7 +8,7 @@
 //                 eligible. The hold is the refund/change-of-mind window: if the
 //                 customer reverses inside it, the commission is cancelled
 //                 outright and no money was ever sent.
-//   3. PAY      — the payout cycle runs on the 1st and the 15th and transfers
+//   3. PAY      — the payout cycle runs on the 15th and the final calendar day
 //                 every share that is both `held` and matured.
 //
 // Reps are told this explicitly (see PAYOUT_POLICY_* below, rendered on the
@@ -17,11 +17,11 @@
 //
 // El Paso local time (America/Denver) is the business calendar everywhere in
 // this codebase — see listing-content.ts elPasoDayKey and referrals.ts — so
-// cycle dates are local dates, not UTC ones. A payout "on the 1st" must mean
-// the 1st in El Paso, not 5pm on the 31st.
+// cycle dates are local dates, not UTC ones. A payout "at month end" must mean
+// the final calendar day in El Paso, not a UTC boundary.
 
 export const COMMISSION_HOLD_DAYS = 7
-export const PAYOUT_CYCLE_DAYS = [1, 15] as const
+export const PAYOUT_CYCLE_DAY = 15
 export const BUSINESS_TIME_ZONE = 'America/Denver'
 
 export type CommissionStatus =
@@ -59,6 +59,10 @@ export function localDateParts(
 const isoDay = (year: number, month: number, day: number) =>
   `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
+export function finalCalendarDay(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate()
+}
+
 /**
  * When a share stops being refund-risk and becomes payable.
  * Returned as an ISO timestamp so it can be compared directly against `now`.
@@ -73,7 +77,7 @@ export function commissionEligibleAt(
 }
 
 /**
- * The next payout cycle date (1st or 15th) falling ON or AFTER the given moment,
+ * The next payout cycle date (15th or final calendar day) falling ON or AFTER the given moment,
  * as a local YYYY-MM-DD date. Used to tell a rep exactly when a matured
  * commission will actually land.
  */
@@ -82,20 +86,17 @@ export function nextPayoutRunOn(
   timeZone = BUSINESS_TIME_ZONE
 ): string {
   const { year, month, day } = localDateParts(from, timeZone)
-  if (day <= 1) return isoDay(year, month, 1)
-  if (day <= 15) return isoDay(year, month, 15)
-  const nextMonth = month === 12 ? 1 : month + 1
-  const nextYear = month === 12 ? year + 1 : year
-  return isoDay(nextYear, nextMonth, 1)
+  if (day <= PAYOUT_CYCLE_DAY) return isoDay(year, month, PAYOUT_CYCLE_DAY)
+  return isoDay(year, month, finalCalendarDay(year, month))
 }
 
-/** True on the 1st and the 15th, in business-local time. */
+/** True on the 15th and the final calendar day, in business-local time. */
 export function isPayoutCycleDay(
   value: Date | string,
   timeZone = BUSINESS_TIME_ZONE
 ): boolean {
-  const { day } = localDateParts(value, timeZone)
-  return (PAYOUT_CYCLE_DAYS as readonly number[]).includes(day)
+  const { year, month, day } = localDateParts(value, timeZone)
+  return day === PAYOUT_CYCLE_DAY || day === finalCalendarDay(year, month)
 }
 
 /**
@@ -289,7 +290,7 @@ export function totalByState(
 export const PAYOUT_POLICY_EN = {
   headline: 'How and when you get paid',
   hold: `Commission is held for ${COMMISSION_HOLD_DAYS} days after the customer pays. This is the refund window.`,
-  cycle: 'After that, it is paid on the next payout cycle — the 1st and the 15th of each month.',
+  cycle: 'After that, it is paid on the next payout cycle — the 15th and the final calendar day of each month.',
   clawback:
     'If the customer refunds or disputes the charge, the commission is reversed. A partial refund reduces it by the same proportion. If it had not been paid out yet, it simply never is. If it had, we will contact you to settle it.',
 }
@@ -297,7 +298,7 @@ export const PAYOUT_POLICY_EN = {
 export const PAYOUT_POLICY_ES = {
   headline: 'Cómo y cuándo te pagamos',
   hold: `La comisión se retiene ${COMMISSION_HOLD_DAYS} días después de que el cliente paga. Es el periodo de reembolso.`,
-  cycle: 'Después se paga en el siguiente ciclo de pago: el día 1 y el día 15 de cada mes.',
+  cycle: 'Después se paga en el siguiente ciclo de pago: el día 15 y el último día calendario de cada mes.',
   clawback:
     'Si el cliente pide reembolso o disputa el cargo, la comisión se revierte. Un reembolso parcial la reduce en la misma proporción. Si aún no se había pagado, simplemente no se paga. Si ya se te había pagado, te contactamos para resolverlo.',
 }

@@ -72,6 +72,13 @@ export type PayoutStatement = {
   }
 }
 
+export type PayoutStatementPeriod = {
+  key: string
+  label: string
+  start: string
+  end: string
+}
+
 const OWED = new Set(['held', 'failed', 'skipped_no_connected_account'])
 
 export function iso(value: unknown): string | null {
@@ -87,6 +94,64 @@ export function previousCalendarMonth(now: Date): { key: string; start: string; 
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
   const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
   return { key: start.toISOString().slice(0, 7), start: start.toISOString(), end: end.toISOString() }
+}
+
+function localMidnightIso(year: number, month: number, day: number, timeZone = 'America/Denver'): string {
+  const target = Date.UTC(year, month - 1, day)
+  let instant = target
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  })
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const parts = Object.fromEntries(
+      formatter.formatToParts(new Date(instant)).filter((part) => part.type !== 'literal').map((part) => [part.type, Number(part.value)])
+    ) as Record<string, number>
+    const rendered = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second)
+    const correction = target - rendered
+    instant += correction
+    if (correction === 0) break
+  }
+  return new Date(instant).toISOString()
+}
+
+export function payoutCycleStatementPeriod(now: Date, timeZone = 'America/Denver'): PayoutStatementPeriod {
+  const dateParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+  const [year, month, day] = dateParts.split('-').map(Number)
+  const startDay = day <= 15 ? 1 : 16
+  return {
+    key: `cycle-${dateParts}`,
+    label: `${dateParts} payout`,
+    start: localMidnightIso(year, month, startDay, timeZone),
+    end: new Date(now.getTime() + 1).toISOString(),
+  }
+}
+
+export function yearToDateStatementPeriod(now: Date, timeZone = 'America/Denver'): PayoutStatementPeriod {
+  const dateParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+  const [year] = dateParts.split('-').map(Number)
+  return {
+    key: `ytd-${dateParts}`,
+    label: `${year} year-to-date`,
+    start: localMidnightIso(year, 1, 1, timeZone),
+    end: new Date(now.getTime() + 1).toISOString(),
+  }
 }
 
 function eventAt(row: StatementTransfer): string | null {
@@ -116,7 +181,7 @@ function adjustmentFor(row: StatementTransfer): number {
 
 export function buildPayoutStatement(input: {
   payeeUserId: string
-  period: { key: string; start: string; end: string }
+  period: Pick<PayoutStatementPeriod, 'key' | 'start' | 'end'>
   transfers: StatementTransfer[]
   payments?: StatementPayment[]
   now?: Date
@@ -228,5 +293,5 @@ export function payoutStatementHtml(statement: PayoutStatement): string {
   const rows = statement.lines.length
     ? statement.lines.map((line) => `<tr><td>${esc(line.service)}</td><td>${esc(line.role)} · ${line.commission_rate}%</td><td>${esc(money(line.gross_source_amount || 0, statement.currency))}</td><td>${esc(money(line.earned + line.adjustment, statement.currency))}</td><td>${esc(line.status)}</td><td>${esc(line.stripe_transfer_id || 'Not transferred')}${line.transferred_at ? `<br>${esc(line.transferred_at.slice(0, 10))}` : ''}</td><td>${esc(line.stripe_payout_status || 'Not recorded by CityBeat')}${line.stripe_payout_at ? `<br>${esc(line.stripe_payout_at.slice(0, 10))}` : ''}</td></tr>`).join('')
     : '<tr><td colspan="7">No commission activity was recorded during this period.</td></tr>'
-  return `<div style="font-family:system-ui,Arial,sans-serif;max-width:760px;margin:auto;color:#111"><h1>CityBeat payout statement</h1><p>${esc(statement.period_start.slice(0, 10))} through ${esc(new Date(Date.parse(statement.period_end) - 1).toISOString().slice(0, 10))}</p><table style="width:100%;border-collapse:collapse"><thead><tr><th>Service</th><th>Role/rate</th><th>Customer payment</th><th>Commission</th><th>Ledger status</th><th>Stripe transfer</th><th>Bank payout</th></tr></thead><tbody>${rows}</tbody></table><h2>Period totals</h2><p>Earned: <strong>${esc(money(statement.totals.earned, statement.currency))}</strong> · Adjustments: ${esc(money(statement.totals.adjustments, statement.currency))} · Transferred: ${esc(money(statement.totals.paid, statement.currency))}</p><p>Held: ${esc(money(statement.totals.held, statement.currency))} · Due/failed: ${esc(money(statement.totals.due, statement.currency))} · Outstanding: <strong>${esc(money(statement.totals.outstanding, statement.currency))}</strong></p><h2>Year to date</h2><p>Earned: ${esc(money(statement.totals.ytd_earned, statement.currency))} · Adjustments: ${esc(money(statement.totals.ytd_adjustments, statement.currency))} · Transferred: ${esc(money(statement.totals.ytd_paid, statement.currency))}</p><p style="font-size:12px;color:#64748b">A Stripe transfer sends commission from CityBeat to your connected Stripe balance. A bank payout is shown only when CityBeat has a recorded Stripe payout identifier and status. No bank or card numbers appear in this statement.</p><p style="font-size:11px;color:#94a3b8">You can turn monthly reports off in your CityBeat notification settings.</p></div>`
+  return `<div style="font-family:system-ui,Arial,sans-serif;max-width:760px;margin:auto;color:#111"><h1>CityBeat commission statement</h1><p>${esc(statement.period_start.slice(0, 10))} through ${esc(new Date(Date.parse(statement.period_end) - 1).toISOString().slice(0, 10))}</p><table style="width:100%;border-collapse:collapse"><thead><tr><th>Service</th><th>Role/rate</th><th>Customer payment</th><th>Commission</th><th>Ledger status</th><th>Stripe transfer</th><th>Bank payout</th></tr></thead><tbody>${rows}</tbody></table><h2>Period totals</h2><p>Earned: <strong>${esc(money(statement.totals.earned, statement.currency))}</strong> · Adjustments: ${esc(money(statement.totals.adjustments, statement.currency))} · Transferred: ${esc(money(statement.totals.paid, statement.currency))}</p><p>Held: ${esc(money(statement.totals.held, statement.currency))} · Due/failed: ${esc(money(statement.totals.due, statement.currency))} · Outstanding: <strong>${esc(money(statement.totals.outstanding, statement.currency))}</strong></p><h2>Year to date</h2><p>Earned: ${esc(money(statement.totals.ytd_earned, statement.currency))} · Adjustments: ${esc(money(statement.totals.ytd_adjustments, statement.currency))} · Transferred: ${esc(money(statement.totals.ytd_paid, statement.currency))}</p><p style="font-size:12px;color:#64748b">A Stripe transfer sends commission from CityBeat to your connected Stripe balance. A bank payout is shown only when CityBeat has a recorded Stripe payout identifier and status. No bank or card numbers appear in this statement.</p><p style="font-size:11px;color:#94a3b8">Commission transfers run on the 15th and final calendar day. CityBeat emails a statement with each payout cycle.</p></div>`
 }

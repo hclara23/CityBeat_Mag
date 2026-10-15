@@ -1,10 +1,40 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { buildPayoutStatement, canReserveStatementDelivery, payoutStatementHtml, previousCalendarMonth, statementDeliveryId } from './payout-statements'
+import {
+  buildPayoutStatement,
+  canReserveStatementDelivery,
+  payoutCycleStatementPeriod,
+  payoutStatementHtml,
+  previousCalendarMonth,
+  statementDeliveryId,
+  yearToDateStatementPeriod,
+} from './payout-statements'
 
 test('previous calendar month handles year boundaries in UTC', () => {
   assert.deepEqual(previousCalendarMonth(new Date('2027-01-15T12:00:00Z')), {
     key: '2026-12', start: '2026-12-01T00:00:00.000Z', end: '2027-01-01T00:00:00.000Z',
+  })
+})
+
+test('cycle statement periods use El Paso half-month boundaries and stable delivery keys', () => {
+  const firstHalf = payoutCycleStatementPeriod(new Date('2026-10-15T15:00:00Z'))
+  assert.equal(firstHalf.key, 'cycle-2026-10-15')
+  assert.equal(firstHalf.start, '2026-10-01T06:00:00.000Z')
+  assert.equal(firstHalf.end, '2026-10-15T15:00:00.001Z')
+
+  const monthEnd = payoutCycleStatementPeriod(new Date('2026-11-30T16:00:00Z'))
+  assert.equal(monthEnd.key, 'cycle-2026-11-30')
+  assert.equal(monthEnd.start, '2026-11-16T07:00:00.000Z')
+  assert.equal(monthEnd.end, '2026-11-30T16:00:00.001Z')
+})
+
+test('year-to-date statement starts at local New Year and includes the current run', () => {
+  const period = yearToDateStatementPeriod(new Date('2026-10-15T20:00:00Z'))
+  assert.deepEqual(period, {
+    key: 'ytd-2026-10-15',
+    label: '2026 year-to-date',
+    start: '2026-01-01T07:00:00.000Z',
+    end: '2026-10-15T20:00:00.001Z',
   })
 })
 

@@ -9499,7 +9499,8 @@
       "priority": "high",
       "owner": "INTEGRATOR",
       "depends_on": [
-        "202610151955-KPZ1PN"
+        "202610151955-KPZ1PN",
+        "202610152030-WS5E44"
       ],
       "tags": [
         "release",
@@ -9664,12 +9665,159 @@
       "doc_updated_by": "agentctl",
       "description": "Implement automated monthly statements and email notifications for every connected payee, including attributed customer payments, gross amount, rate, commission earned, transfers, payout dates and statuses, refunds, disputes, adjustments, outstanding balance, reporting period, and year-to-date totals. Ensure idempotent generation, privacy-safe delivery, audit records, and no creation or movement of funds.",
       "doc": "## Summary\n\nImplemented automated previous-calendar-month commission and payout statements for every Stripe connected payee, with privacy-safe email delivery, dry-run previews, retry-safe idempotency, admin audit visibility, and scheduler liveness coverage.\n\n## Context\n\nConnected editors and future payees need a clear monthly record of attributed sales, earned commission, transfers, payouts, adjustments, outstanding amounts, and year-to-date totals.\n\n## Scope\n\nAdded a pure statement engine that isolates each payee and reports attributed gross source payments when available; role, service and commission rate; earned, refund/dispute adjustments, held, due, transferred, reversed and outstanding amounts; stored Stripe transfer and bank-payout identifiers/status/dates; reporting-period and YTD totals. Added a CRON_SECRET-protected monthly route scheduled for the 2nd, monthly-report preference checks, no-send dry-run behavior, atomic one-send-per-payee-period reservations with failed/stale retry, durable audit records, and a 2FA-protected admin read endpoint. The route never calls Stripe or creates/moves funds and fails closed if a financial ledger scan is truncated.\n\n## Risks\n\nStatements depend on CityBeat's stored ledger. Bank payout details are explicitly shown as not recorded unless a payout identifier/status/date exists; a Connect transfer is never represented as a bank deposit. The checked-in scheduler job still requires infrastructure deployment, and live Cloud Scheduler inventory could not be listed because the active gcloud principal lacks cloudscheduler.jobs.list. Email failures remain retryable and sent/sending deliveries are deduplicated.\n\n## Verify Steps\n\nPassed: npx tsx --test apps/web/src/lib/payout-statements.test.ts apps/web/src/lib/cron-cadence.test.ts apps/web/src/lib/ops-health.test.ts (36/36); npm test (639/639 across web and lib); npm --prefix apps/web run type-check. The task's npm --prefix apps/web test command is not available because apps/web declares no test script; the repository test runner is npm test. Live scheduler listing was attempted but denied by cloudscheduler.jobs.list IAM.\n\n## Rollback Plan\n\nRemove or disable the citybeat-payout-statements scheduler entry, revert the cron/admin routes and statement module, and remove its ops-health expectation. Preserve payout_statement_deliveries as audit evidence; no rollback moves money or changes Stripe.\n\n## Notes\n\nNo real email was sent, no Stripe setting was changed, no transfer or payout was created, and nothing was deployed. The scheduler contract runs at 10:00 America/Chihuahua on day 2 of each month and reports the prior complete UTC calendar month."
+    },
+    {
+      "id": "202610152030-FBKEDB",
+      "title": "Add authenticated editor payouts dashboard",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [
+        "code",
+        "frontend",
+        "backend",
+        "auth"
+      ],
+      "verify": [
+        "npm --prefix apps/web test -- --runInBand",
+        "npm --prefix apps/web run type-check"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T20:31:25+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Add an account payouts page scoped to the signed-in payee with held and upcoming commission, payout history and count, transaction references, current-period earnings, and year-to-date totals without exposing bank details.",
+      "doc": "## Summary\n\nGive authenticated editors a payee-scoped payouts dashboard with held, upcoming, historical, current-period, and year-to-date commission data.\n\n## Scope\n\nAdd the account route, secured data endpoint or server loader, transaction references, payout counts, totals, cadence copy, responsive UI, and bilingual text where required.\n\n## Risks\n\nCross-account data exposure, confusing transfer versus bank-payout terminology, stale totals, and mobile accessibility regressions.\n\n## Verify Steps\n\nTest payee authorization and aggregation, verify empty and populated states, type-check, and review desktop and mobile layouts.\n\n## Rollback Plan\n\nRemove the navigation entry and route/API changes without altering underlying ledger or Stripe records."
+    },
+    {
+      "id": "202610152030-RDM0NQ",
+      "title": "Reconcile and send editor year-to-date commission statement",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "REVIEWER",
+      "depends_on": [],
+      "tags": [
+        "stripe",
+        "reconciliation",
+        "email",
+        "reporting"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T20:31:26+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Reconcile both 2026 .50 editor commissions and their Stripe transaction references, prepare the .00 year-to-date statement, and send it from the configured CityBeat email address to citybeatmag@yahoo.com. Do not initiate another transfer.",
+      "doc": "## Summary\n\nReconcile and deliver the editor's 2026 year-to-date statement for two .50 commissions totaling .00.\n\n## Scope\n\nRecover both Stripe transaction references, distinguish Connect transfers from bank payouts, render the statement, and email it from the configured CityBeat address to citybeatmag@yahoo.com without sending another transfer.\n\n## Risks\n\nIncorrect transaction mapping, duplicate email delivery, mislabeling transfer status as bank settlement, or accidental financial action.\n\n## Verify Steps\n\nMatch both .50 ledger entries to Stripe references, confirm .00 YTD, preview recipient and sender, send once, and record delivery evidence.\n\n## Rollback Plan\n\nIf reconciliation fails, do not send; correct and regenerate the statement. Sent email cannot be recalled, so preserve the verified copy and issue a correction if needed."
+    },
+    {
+      "id": "202610152030-TTPCR8",
+      "title": "Verify semi-monthly commission payout workflow",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "TESTER",
+      "depends_on": [
+        "202610152030-YPJ8P9",
+        "202610152030-FBKEDB"
+      ],
+      "tags": [
+        "testing",
+        "stripe",
+        "payouts"
+      ],
+      "verify": [
+        "npm --prefix apps/web test -- --runInBand",
+        "npm --prefix apps/web run type-check"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T20:31:26+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Test 15th and variable month-end scheduling, leap years, clearance holds, refunds, duplicate jobs, statement consistency, payee authorization, account totals, and assurance that platform funds remain under manual payout control.",
+      "doc": "## Summary\n\nVerify the complete semi-monthly commission workflow and protect CityBeat's retained platform balance.\n\n## Scope\n\nExercise cadence, clearance, refund, retry, duplicate-job, statement, authorization, aggregation, timezone, and payout-setting behavior.\n\n## Risks\n\nInsufficient edge coverage could allow duplicate transfers, early payments, incorrect reports, or private data exposure.\n\n## Verify Steps\n\nRun focused tests, the full relevant suite, type-check, and production-safe smoke checks that do not create transfers or charges.\n\n## Rollback Plan\n\nBlock deployment and revert failing implementation commits while preserving audit evidence."
+    },
+    {
+      "id": "202610152030-WS5E44",
+      "title": "Deploy semi-monthly editor payout release",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "INTEGRATOR",
+      "depends_on": [
+        "202610152030-TTPCR8",
+        "202610152030-RDM0NQ"
+      ],
+      "tags": [
+        "release",
+        "stripe",
+        "production"
+      ],
+      "verify": [
+        "npm --prefix apps/web run type-check"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T20:31:27+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Deploy the verified payout cadence, payout-triggered statements, and editor dashboard within the approved up-to- one-time Google Cloud deployment cost and approximately .10 monthly scheduler charge; verify production without initiating a new payout or charge.",
+      "doc": "## Summary\n\nDeploy the verified semi-monthly payout, statement, and editor dashboard release within the approved budget.\n\n## Scope\n\nDeploy application and scheduler changes, verify the public account route and health, and confirm no payout or customer charge is initiated during release.\n\n## Risks\n\nDeployment or scheduler cost overrun, scheduler duplication, production regressions, and unintended financial actions.\n\n## Verify Steps\n\nConfirm build cost remains within the  cap, recurring scheduler cost remains approximately .10 monthly, deploy, inspect scheduler configuration, and run production-safe smoke checks.\n\n## Rollback Plan\n\nRoll traffic back to the prior healthy revision and disable the new scheduler job if production checks fail."
+    },
+    {
+      "id": "202610152030-YPJ8P9",
+      "title": "Implement editor payout cadence and attached statements",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [
+        "code",
+        "backend",
+        "stripe",
+        "email"
+      ],
+      "verify": [
+        "npm --prefix apps/web test -- --runInBand",
+        "npm --prefix apps/web run type-check"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: replace first-and-fifteenth payout logic with fifteenth-and-final-day scheduling; attach idempotent statements to each editor transfer while preserving manual platform payouts."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T20:31:24+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Change eligible editor commission transfers to the 15th and final calendar day in America/Denver, keep CityBeat platform payouts manual, and produce an idempotent commission statement with every editor transfer.",
+      "doc": "## Summary\n\nRun eligible editor commission transfers on the 15th and final calendar day in America/Denver and attach an idempotent statement to each cycle.\n\n## Scope\n\nUpdate cadence guards, scheduler behavior, payout policy copy, cycle idempotency, statement generation, delivery, and audit records while leaving platform payouts manual.\n\n## Risks\n\nMonth-length and timezone errors, duplicate transfers or emails, cleared-fund misclassification, and accidental changes to platform payout settings.\n\n## Verify Steps\n\nRun focused payout and statement tests plus type-check; cover the 15th, every possible month-end, leap years, retries, refunds, and empty cycles.\n\n## Rollback Plan\n\nRevert cadence and scheduler configuration to the prior disabled release state; leave recorded transfers and delivered statements intact."
+    },
+    {
+      "id": "202610152030-ZT12RZ",
+      "title": "Implement semi-monthly editor commission payouts and portal",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "stripe",
+        "connect",
+        "commissions",
+        "reporting",
+        "portal",
+        "release"
+      ],
+      "comments": [
+        {
+          "author": "PLANNER",
+          "body": "Approved decomposition: cadence and payout-attached statements 202610152030-YPJ8P9; editor dashboard 202610152030-FBKEDB; YTD reconciliation and email 202610152030-RDM0NQ; verification 202610152030-TTPCR8; deployment 202610152030-WS5E44. The older release task now depends on this replacement release to prevent premature deployment."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T20:31:24+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Coordinate the approved editor commission policy through downstream tasks: cadence and attached statements 202610152030-YPJ8P9; authenticated payouts dashboard 202610152030-FBKEDB; 2026 YTD reconciliation and email 202610152030-RDM0NQ; end-to-end verification 202610152030-TTPCR8; and deployment 202610152030-WS5E44. CityBeat platform funds must remain accumulated under manual payout control. Only cleared editor commissions transfer on the 15th and final calendar day, with a statement each time. Deployment is capped at the explicitly approved up-to- one-time cost and approximately .10 monthly scheduler charge.",
+      "doc": "## Summary\n\nDeliver the approved semi-monthly editor commission program while preserving manual control of the CityBeat platform balance.\n\n## Scope\n\nCoordinate cadence, statements, YTD reconciliation and email, authenticated payout visibility, verification, and production deployment.\n\n## Risks\n\nDuplicate transfers, premature release of platform funds, mismatched statements, authorization leaks, and scheduler edge cases.\n\n## Verify Steps\n\nConfirm every downstream task is completed, production is healthy, the editor sees only their own payout data, and CityBeat platform payouts remain manual.\n\n## Rollback Plan\n\nDisable the scheduler and revert the release while retaining immutable payout and statement records; do not reverse completed Stripe transfers automatically."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "50138768afdabf915cf0183ce1e7cdca094f7919c0035e5ab77309138bacd81e"
+    "checksum": "f49f2178cfe3d0d294f5bb5a5bd3df2a9a61d8a3556eab3ba9e76a97723e1605"
   }
 }

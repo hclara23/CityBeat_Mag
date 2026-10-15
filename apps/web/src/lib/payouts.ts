@@ -412,7 +412,7 @@ async function executeTransfer(input: {
 
 // DEPRECATED — DO NOT USE FOR COMMISSION.
 //
-// Pays a share IMMEDIATELY, bypassing the 7-day refund hold and the 1st/15th
+// Pays a share IMMEDIATELY, bypassing the 7-day refund hold and the 15th/month-end
 // payout cycle. Commission must go through payoutSplit (accrue as `held`) and
 // runPayoutCycle instead; paying instantly is exactly the behaviour the accrual
 // model replaced, because a next-day refund then means chasing money that has
@@ -537,7 +537,7 @@ export async function payoutToUser(params: {
 //
 // Shares are written to the `transfers` ledger as `held` with an `eligible_at`
 // COMMISSION_HOLD_DAYS after the sale. runPayoutCycle() pays them out on the
-// 1st and the 15th, once that refund window has closed. This exists so a
+// 15th and the final calendar day, once that refund window has closed. This exists so a
 // customer who refunds or changes their mind inside the window costs the
 // business nothing: the commission is simply reversed before it was ever sent
 // (see clawbackCommission). Before this, every share transferred instantly at
@@ -661,8 +661,8 @@ export async function payoutSplit(params: {
   return { shares: allocated.length, results }
 }
 
-// Pays every commission whose refund window has closed. Scheduled on the 1st and
-// the 15th (citybeat-payout-cycle). Only touches `held` rows that are past
+// Pays every commission whose refund window has closed. Scheduled on the 15th
+// and final calendar day (citybeat-payout-cycle). Only touches `held` rows that are past
 // `eligible_at`, so it can never race reconcileFailedTransfers (which only
 // touches `failed` / `skipped_no_connected_account`). Each payment still goes
 // through executeTransfer, keeping the ledger + idempotency + transfer_group
@@ -685,6 +685,7 @@ export async function runPayoutCycle(params: {
   // value here means a `payout-ledger-write` alert is waiting on a human.
   unrecorded: number
   amount_paid: number
+  paid_payee_user_ids: string[]
   truncated: boolean
   indexed: boolean
 }> {
@@ -742,6 +743,7 @@ export async function runPayoutCycle(params: {
     invalid: 0,
     unrecorded: 0,
     amount_paid: 0,
+    paid_payee_user_ids: [] as string[],
     truncated: processedDocs.length >= limit,
     indexed: indexedQueryWorked,
   }
@@ -807,6 +809,7 @@ export async function runPayoutCycle(params: {
     if (result.status === 'paid') {
       summary.paid++
       summary.amount_paid += result.amount || amount
+      if (!summary.paid_payee_user_ids.includes(payeeUserId)) summary.paid_payee_user_ids.push(payeeUserId)
     } else if (result.status === 'paid_unrecorded') {
       // The money left but the row still says `held`, so reporting this as `paid`
       // would make the run look clean while finance and MyEarnings quietly
@@ -912,7 +915,7 @@ export async function clawbackCommission(params: {
     // A plain cancellation reverses ONLY shares genuinely still inside the
     // 7-day refund window. Gating on `alreadyPaid` instead was wrong: it also
     // reversed every share that was earned but not yet transferred — a matured
-    // `held` row waiting for the next 1st/15th cycle, a `failed` row awaiting
+    // `held` row waiting for the next 15th/month-end cycle, a `failed` row awaiting
     // the daily reconcile, and (with no time limit at all) a
     // `skipped_no_connected_account` row belonging to a rep who simply hadn't
     // finished connecting a bank. Nothing reads `reversed`, so those were

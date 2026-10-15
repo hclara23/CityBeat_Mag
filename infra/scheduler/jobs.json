@@ -209,7 +209,7 @@
     },
     {
       "name": "citybeat-payout-cycle",
-      "schedule": "0 9 1,15 * *",
+      "schedule": "0 9 15,28-31 * *",
       "timeZone": "America/Chihuahua",
       "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/payout-cycle",
       "httpMethod": "GET",
@@ -226,7 +226,7 @@
     },
     {
       "name": "citybeat-payout-statements",
-      "schedule": "0 10 2 * *",
+      "schedule": "0 10 15,28-31 * *",
       "timeZone": "America/Chihuahua",
       "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/payout-statements",
       "httpMethod": "GET",

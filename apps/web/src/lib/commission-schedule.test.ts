@@ -8,6 +8,7 @@ import {
   commissionDisplayState,
   commissionEligibleAt,
   commissionPayoutDate,
+  finalCalendarDay,
   isCommissionDue,
   isPayoutCycleDay,
   localDateParts,
@@ -24,42 +25,49 @@ test('commission matures exactly seven days after the customer pays', () => {
   assert.throws(() => commissionEligibleAt('not-a-date'), /Invalid sale date/)
 })
 
-test('payout cycle lands on the next 1st or 15th, in El Paso local time', () => {
+test('payout cycle lands on the next 15th or final calendar day, in El Paso local time', () => {
   // Early month -> the 15th of the same month.
   assert.equal(nextPayoutRunOn('2026-08-02T12:00:00.000Z'), '2026-08-15')
   assert.equal(nextPayoutRunOn('2026-08-14T12:00:00.000Z'), '2026-08-15')
   // On a cycle day, that same day still counts (the run happens that day).
   assert.equal(nextPayoutRunOn('2026-08-15T12:00:00.000Z'), '2026-08-15')
-  assert.equal(nextPayoutRunOn('2026-08-01T12:00:00.000Z'), '2026-08-01')
-  // After the 15th -> the 1st of next month.
-  assert.equal(nextPayoutRunOn('2026-08-16T12:00:00.000Z'), '2026-09-01')
-  assert.equal(nextPayoutRunOn('2026-08-31T12:00:00.000Z'), '2026-09-01')
+  assert.equal(nextPayoutRunOn('2026-08-01T12:00:00.000Z'), '2026-08-15')
+  // After the 15th -> the final day of the same month.
+  assert.equal(nextPayoutRunOn('2026-08-16T12:00:00.000Z'), '2026-08-31')
+  assert.equal(nextPayoutRunOn('2026-08-31T12:00:00.000Z'), '2026-08-31')
 })
 
-test('payout cycle rolls the year over at December', () => {
-  assert.equal(nextPayoutRunOn('2026-12-20T12:00:00.000Z'), '2027-01-01')
+test('payout cycle handles variable month ends and leap years', () => {
+  assert.equal(nextPayoutRunOn('2026-12-20T12:00:00.000Z'), '2026-12-31')
   assert.equal(nextPayoutRunOn('2026-12-10T12:00:00.000Z'), '2026-12-15')
+  assert.equal(nextPayoutRunOn('2026-02-20T12:00:00.000Z'), '2026-02-28')
+  assert.equal(nextPayoutRunOn('2028-02-20T12:00:00.000Z'), '2028-02-29')
+  assert.equal(finalCalendarDay(2026, 4), 30)
+  assert.equal(finalCalendarDay(2026, 2), 28)
+  assert.equal(finalCalendarDay(2028, 2), 29)
 })
 
 test('cycle dates are the LOCAL day, not the UTC day', () => {
   // 2026-09-01T04:00Z is still Aug 31, 6pm in El Paso (UTC-6 in summer).
-  // A UTC-based implementation would wrongly call this the 1st.
+  // A UTC-based implementation would wrongly call this a September date.
   assert.deepEqual(localDateParts('2026-09-01T04:00:00.000Z'), { year: 2026, month: 8, day: 31 })
-  assert.equal(isPayoutCycleDay('2026-09-01T04:00:00.000Z'), false)
-  assert.equal(nextPayoutRunOn('2026-09-01T04:00:00.000Z'), '2026-09-01')
+  assert.equal(isPayoutCycleDay('2026-09-01T04:00:00.000Z'), true)
+  assert.equal(nextPayoutRunOn('2026-09-01T04:00:00.000Z'), '2026-08-31')
   // 12:00Z on the 1st is the 1st locally.
-  assert.equal(isPayoutCycleDay('2026-09-01T12:00:00.000Z'), true)
+  assert.equal(isPayoutCycleDay('2026-09-01T12:00:00.000Z'), false)
   assert.equal(isPayoutCycleDay('2026-09-15T12:00:00.000Z'), true)
   assert.equal(isPayoutCycleDay('2026-09-16T12:00:00.000Z'), false)
+  assert.equal(isPayoutCycleDay('2026-09-30T12:00:00.000Z'), true)
+  assert.equal(isPayoutCycleDay('2026-10-31T12:00:00.000Z'), true)
 })
 
 test('end-to-end: a sale pays out on the cycle after its refund window closes', () => {
-  // Bought Aug 22 -> matures Aug 29 -> next cycle is Sep 1.
-  assert.equal(commissionPayoutDate('2026-08-22T00:26:00.000Z'), '2026-09-01')
+  // Bought Aug 22 -> matures Aug 29 -> next cycle is Aug 31.
+  assert.equal(commissionPayoutDate('2026-08-22T00:26:00.000Z'), '2026-08-31')
   // Bought Aug 2 -> matures Aug 9 -> paid Aug 15.
   assert.equal(commissionPayoutDate('2026-08-02T00:00:00.000Z'), '2026-08-15')
-  // Bought Aug 9 -> matures Aug 16 -> just misses the 15th, so Sep 1.
-  assert.equal(commissionPayoutDate('2026-08-09T12:00:00.000Z'), '2026-09-01')
+  // Bought Aug 9 -> matures Aug 16 -> just misses the 15th, so Aug 31.
+  assert.equal(commissionPayoutDate('2026-08-09T12:00:00.000Z'), '2026-08-31')
 })
 
 test('only held shares past their refund window are due', () => {
@@ -99,7 +107,7 @@ test('a cancellation must only reverse shares still inside the refund window', (
 
   // Backed out inside the window — reverse it, nothing was ever sent.
   assert.equal(reversibleOnCancel(immature), true)
-  // Matured but waiting for the 1st/15th — EARNED, must survive.
+  // Matured but waiting for the 15th/month-end — EARNED, must survive.
   assert.equal(reversibleOnCancel(matured), false)
   // Transfer errored, awaiting the daily reconcile — EARNED, must survive.
   assert.equal(reversibleOnCancel({ status: 'failed', eligible_at: '2026-08-01T00:00:00.000Z' }), false)
@@ -122,7 +130,7 @@ test('rep-facing payout terms describe what the code actually does', () => {
     assert.ok(policy.clawback.length > 40, 'the clawback term must still be stated plainly')
   }
   assert.match(PAYOUT_POLICY_EN.hold, /7 days/)
-  assert.match(PAYOUT_POLICY_EN.cycle, /1st and the 15th/)
+  assert.match(PAYOUT_POLICY_EN.cycle, /15th and the final calendar day/)
   // Partial refunds now shrink commission proportionally. A rep must not be
   // surprised by that, so both languages have to say it.
   assert.match(PAYOUT_POLICY_EN.clawback, /partial refund reduces it/i)
@@ -133,11 +141,11 @@ test('display state tells the rep exactly when money arrives', () => {
   const held = { status: 'held', eligible_at: '2026-08-29T00:00:00.000Z' }
   assert.deepEqual(commissionDisplayState(held, '2026-08-25T00:00:00.000Z'), {
     state: 'held',
-    payoutDate: '2026-09-01',
+    payoutDate: '2026-08-31',
   })
   assert.deepEqual(commissionDisplayState(held, '2026-08-30T00:00:00.000Z'), {
     state: 'due',
-    payoutDate: '2026-09-01',
+    payoutDate: '2026-08-31',
   })
   assert.deepEqual(commissionDisplayState({ status: 'paid' }, '2026-08-30T00:00:00.000Z'), {
     state: 'paid',
@@ -154,7 +162,7 @@ test('display state tells the rep exactly when money arrives', () => {
   // A failed attempt still shows the cycle it will retry into.
   assert.deepEqual(
     commissionDisplayState({ status: 'failed', eligible_at: '2026-08-29T00:00:00.000Z' }, '2026-08-30T00:00:00.000Z'),
-    { state: 'failed', payoutDate: '2026-09-01' }
+    { state: 'failed', payoutDate: '2026-08-31' }
   )
 })
 
