@@ -9289,7 +9289,7 @@
     {
       "id": "202610151908-CSBGR8",
       "title": "Harden Premium sales flow against interrupted sales",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9306,8 +9306,8 @@
         "npm test"
       ],
       "commit": {
-        "hash": "0934cda8ccd0d5aae272b2069979d026a117dc59",
-        "message": "✨ CSBGR8 harden checkout recovery and duplicate prevention"
+        "hash": "b71e41a973862dd7c14499d922eaa3336696dd01",
+        "message": "🛡️ CSBGR8 reconcile replacement retries"
       },
       "comments": [
         {
@@ -9321,13 +9321,21 @@
         {
           "author": "CODER",
           "body": "Start: close the replacement compensation gap so an old-session expiry failure retires the newly created session and records the failed attempt without creating two live links."
+        },
+        {
+          "author": "CODER",
+          "body": "Start: harden replacement retry reconciliation so an already retired old session is accepted while a completed or paid old session blocks replacement and preserves payment handling."
+        },
+        {
+          "author": "CODER",
+          "body": "verified: hardened replacement retries now reconcile expired, completed, paid, and ambiguous prior Stripe sessions safely | details: type-check plus 611 web and 20 shared-library tests passed with no production or financial mutation."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-15T19:21:18+00:00",
+      "doc_updated_at": "2026-10-15T19:28:00+00:00",
       "doc_updated_by": "agentctl",
       "description": "Implement the approved sales-UI audit fixes for resilient creation, checkout sharing, resend/recovery, claim, payment-return, login, and listing editing across desktop and mobile. Preserve checkout idempotency and prevent duplicate orders, sessions, or sends. Include focused automated coverage.",
-      "doc": "## Summary\n\nHardened the Premium sales journey so interrupted and repeated checkout creation converges on one order/listing, the active handoff survives refresh and correction, expired orders can be renewed in place, and claim-first instructions lead owners into the editable dashboard only after ownership is established.\n\n## Context\n\nImplemented the approved findings from audit 202610151908-7SR37V. Work was local-only: no real checkout was created, no email or SMS was sent, no charge or payout occurred, and no deployment or financial configuration was changed.\n\n## Scope\n\nAdded seller-scoped deterministic checkout attempt reservation, stable Stripe idempotency keys, retry recovery, safe claim-token rotation for authorized recovery, correction replacement that retains the previous handoff until the replacement succeeds and then expires/audits the old session, session-scoped handoff recovery across refresh, claim-before-dashboard payment email instructions, an authenticated expired-checkout renewal endpoint that reuses the original order/listing/attribution and writes an audit row, mobile recovery cards with visible Open/Email/Renew actions, and explicit loading/API failure UI with retry. Added focused resilience tests.\n\n## Risks\n\nCheckout creation and renewal remain financially sensitive server paths. Production release must verify Firestore transaction behavior and Stripe test-mode replacement/renewal before promotion. Claim secrets are never stored in browser persistent storage: the active signed URL is limited to sessionStorage, and retry recovery rotates its server-side hash for the authenticated creating seller.\n\n## Verify Steps\n\nPassed npm --prefix apps/web run type-check. Passed 68 focused node tests via .\\\\node_modules\\\\.bin\\\\tsx.cmd --test apps/web/src/lib/sales-resilience.test.ts apps/web/src/lib/sales-orders.test.ts apps/web/src/lib/sales-checkout.test.ts apps/web/src/lib/checkout-recovery.test.ts apps/web/src/lib/verification-audit.test.ts apps/web/src/app/[locale]/fulfill/intake-i18n.test.ts. Production tester should exercise refresh recovery, concurrent retry, corrected replacement, expired renewal, claim/login return, and 390px actions using Stripe test mode only.\n\n## Rollback Plan\n\nRevert the implementation commit. Existing sales orders and Stripe sessions remain authoritative; do not delete order, renewal, link-send, or claim audit history. A rollback may leave newly created deterministic order IDs and renewal audit rows intact without charging or granting ownership.\n\n## Notes\n\nThe task metadata originally named npm scripts typecheck and test, but this package exposes type-check and no test script. Equivalent direct checks were run and passed. No representational or financial side effects were performed."
+      "doc": "## Summary\n\nHardened the Premium sales journey so interrupted and repeated checkout creation converges on one order/listing, the active handoff survives refresh and correction, expired orders can be renewed in place, and claim-first instructions lead owners into the editable dashboard only after ownership is established.\n\n## Context\n\nImplemented the approved findings from audit 202610151908-7SR37V. Work was local-only: no real checkout was created, no email or SMS was sent, no charge or payout occurred, and no deployment or financial configuration was changed.\n\n## Scope\n\nAdded seller-scoped deterministic checkout attempt reservation, stable Stripe idempotency keys, retry recovery, safe claim-token rotation for authorized recovery, correction replacement that retains the previous handoff until the replacement succeeds and then expires/audits the old session, session-scoped handoff recovery across refresh, claim-before-dashboard payment email instructions, an authenticated expired-checkout renewal endpoint that reuses the original order/listing/attribution and writes an audit row, mobile recovery cards with visible Open/Email/Renew actions, and explicit loading/API failure UI with retry. Added focused resilience tests.\n\n## Risks\n\nCheckout creation and renewal remain financially sensitive server paths. Production release must verify Firestore transaction behavior and Stripe test-mode replacement/renewal before promotion. Claim secrets are never stored in browser persistent storage: the active signed URL is limited to sessionStorage, and retry recovery rotates its server-side hash for the authenticated creating seller.\n\n## Verify Steps\n\nPassed npm --prefix apps/web run type-check. Passed 68 focused node tests via .\\\\node_modules\\\\.bin\\\\tsx.cmd --test apps/web/src/lib/sales-resilience.test.ts apps/web/src/lib/sales-orders.test.ts apps/web/src/lib/sales-checkout.test.ts apps/web/src/lib/checkout-recovery.test.ts apps/web/src/lib/verification-audit.test.ts apps/web/src/app/[locale]/fulfill/intake-i18n.test.ts. Production tester should exercise refresh recovery, concurrent retry, corrected replacement, expired renewal, claim/login return, and 390px actions using Stripe test mode only.\n\n## Rollback Plan\n\nRevert the implementation commit. Existing sales orders and Stripe sessions remain authoritative; do not delete order, renewal, link-send, or claim audit history. A rollback may leave newly created deterministic order IDs and renewal audit rows intact without charging or granting ownership.\n\n## Notes\n\nRetry reconciliation hardening: replacement now retrieves the original Stripe Checkout Session before creating/replaying a replacement. Expired means already retired and proceeds safely; complete or paid blocks replacement, marks the original order for reconciliation, and writes an audit. If status changes during expiry, the route re-retrieves: expired is accepted, completed compensates the replacement and escalates reconciliation, and unknown failures retain the existing compensation path. Type-check and full tests passed (611 web, 20 shared). No real sessions or production state were touched."
     },
     {
       "id": "202610151908-FQ4M4R",
@@ -9399,6 +9407,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "f4c8b17165560bfc14d2c020e86da4de791fdf1b2c791695cebe050cb8df6e12"
+    "checksum": "e9f1690d31e44363533acbfdfd90296ef832fca9e4265a4b01fa20d605a0ae93"
   }
 }

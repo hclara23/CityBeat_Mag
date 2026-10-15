@@ -1,18 +1,19 @@
 ---
 id: "202610151908-CSBGR8"
 title: "Harden Premium sales flow against interrupted sales"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: ["202610151908-7SR37V"]
 tags: ["sales", "checkout", "frontend", "backend"]
 verify: ["npm --prefix apps/web run type-check", "npm test"]
-commit: { hash: "0934cda8ccd0d5aae272b2069979d026a117dc59", message: "✨ CSBGR8 harden checkout recovery and duplicate prevention" }
+commit: { hash: "b71e41a973862dd7c14499d922eaa3336696dd01", message: "🛡️ CSBGR8 reconcile replacement retries" }
 comments:
   - { author: "CODER", body: "Start: implement approved sales-flow resilience fixes with local-only verification and no external sends, checkouts, charges, deployment, or financial mutations." }
   - { author: "CODER", body: "verified: sales-flow resilience implementation passed web type-check plus 608 web and 20 shared-library tests, including focused persistence, correction, idempotency, renewal, claim-first email, mobile, and error-state coverage." }
   - { author: "CODER", body: "Start: close the replacement compensation gap so an old-session expiry failure retires the newly created session and records the failed attempt without creating two live links." }
   - { author: "CODER", body: "Start: harden replacement retry reconciliation so an already retired old session is accepted while a completed or paid old session blocks replacement and preserves payment handling." }
+  - { author: "CODER", body: "verified: hardened replacement retries now reconcile expired, completed, paid, and ambiguous prior Stripe sessions safely | details: type-check plus 611 web and 20 shared-library tests passed with no production or financial mutation." }
 doc_version: 2
 doc_updated_at: "2026-10-15T19:28:00+00:00"
 doc_updated_by: "agentctl"
