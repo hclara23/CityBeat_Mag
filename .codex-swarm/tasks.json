@@ -9161,7 +9161,7 @@
     {
       "id": "202610151908-1V8V7X",
       "title": "Implement Premium SEO and pass-through traffic improvements",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9175,20 +9175,28 @@
         "backend"
       ],
       "verify": [
-        "npm --prefix apps/web run typecheck",
-        "npm --prefix apps/web test"
+        "npm --prefix apps/web run type-check",
+        "npm test"
       ],
+      "commit": {
+        "hash": "c32f1f0d6cfc002bccee821e5897b80494c965b7",
+        "message": "✨ 1V8V7X add measurable Premium referrals and structured SEO"
+      },
       "comments": [
         {
           "author": "CODER",
           "body": "Start: implementing approved Premium SEO, referral attribution, conversion tracking, and structured-data hardening."
+        },
+        {
+          "author": "CODER",
+          "body": "verified: Premium SEO and pass-through implementation passed web type-check plus the full 606 web and 20 shared-library tests, with focused attribution, analytics, metadata, address, hours, and schema coverage."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-15T19:09:01+00:00",
+      "doc_updated_at": "2026-10-15T19:20:23+00:00",
       "doc_updated_by": "agentctl",
       "description": "Implement the approved findings from the Premium SEO audit so Premium listings receive valid crawl/indexing, metadata, structured-data, internal-linking, social-preview, and measurable outbound referral benefits while preserving Basic behavior and privacy. Include focused automated coverage.",
-      "doc": "## Summary\n\nImplement verified SEO and pass-through measurement improvements for Premium listings.\n\n## Scope\n\nApply approved audit findings to crawl/index controls, metadata, schema, sitemap/internal links, social previews, outbound tracking, and focused tests while preserving Basic behavior.\n\n## Risks\n\nSEO regressions, duplicate canonicals, invalid schema, analytics overcounting, or privacy leakage could harm listings.\n\n## Verify Steps\n\nRun web typecheck and tests; validate representative Premium and Basic output plus deduplicated outbound events.\n\n## Rollback Plan\n\nRevert the task commit and redeploy the prior revision if metadata, indexing, rendering, or tracking regresses."
+      "doc": "## Summary\n\nImplemented privacy-safe CityBeat referral attribution, complete Premium outbound conversion coverage, granular owner analytics fields/CSV columns, and stronger bilingual listing metadata and LocalBusiness structured data.\n\n## Scope\n\nAdded a URL attribution helper that preserves destination query strings and fragments; retained do-follow Premium website links while removing noreferrer from measured external exits; made phone, social, Google/Apple/location directions, booking/order/quote, and post CTA interactions distinct allow-listed events while preserving legacy aggregate counters; exposed granular totals and CSV fields; added x-default hreflang, localized Spanish category metadata, explicit noindex for unavailable listings, parsed postal addresses, normalized opening hours, and supported category-specific schema types.\n\n## Risks\n\nExternal destinations may override or strip UTM parameters, and search engines do not guarantee rankings or rich results. Existing aggregate direction/action counters remain backward-compatible; bounded detail fields add no visitor identity. Invalid or non-HTTP destination values are left unchanged by the attribution helper and remain subject to existing content sanitization.\n\n## Verify Steps\n\nPassed npm --prefix apps/web run type-check. Passed npm test: 606 web tests and 20 shared-library tests. Passed 12 focused listing analytics, outbound attribution, and structured-data tests. The task's declared script name 'typecheck' is not present (the repository script is 'type-check'), so agentctl verify recorded that configuration mismatch; equivalent intended checks passed directly.\n\n## Rollback Plan\n\nRevert the implementation commit to restore prior outbound rel attributes, event taxonomy, metadata, and schema behavior. Existing legacy aggregate counters remain readable either way; newly added Firestore counter fields are additive and safe to leave in historical documents."
     },
     {
       "id": "202610151908-63D713",
@@ -9294,8 +9302,8 @@
         "backend"
       ],
       "verify": [
-        "npm --prefix apps/web run typecheck",
-        "npm --prefix apps/web test"
+        "npm --prefix apps/web run type-check",
+        "npm test"
       ],
       "comments": [
         {
@@ -9304,10 +9312,10 @@
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-15T19:09:01+00:00",
+      "doc_updated_at": "2026-10-15T19:21:18+00:00",
       "doc_updated_by": "agentctl",
       "description": "Implement the approved sales-UI audit fixes for resilient creation, checkout sharing, resend/recovery, claim, payment-return, login, and listing editing across desktop and mobile. Preserve checkout idempotency and prevent duplicate orders, sessions, or sends. Include focused automated coverage.",
-      "doc": "## Summary\n\nMake the Premium sales flow resilient to interruption and explicit about recovery actions.\n\n## Scope\n\nImplement approved desktop/mobile fixes across create, share, resend, claim, checkout return, login, edit, loading, and error states with idempotency safeguards.\n\n## Risks\n\nChanges must not create duplicate orders, checkout sessions, emails, ownership claims, or misleading payment state.\n\n## Verify Steps\n\nRun web typecheck/tests and focused journey coverage for retry, stale/expired links, interruption, duplicate prevention, and responsive UI.\n\n## Rollback Plan\n\nRevert the task commit and redeploy the prior revision if checkout, claim, login, or editing regresses."
+      "doc": "## Summary\n\nHardened the Premium sales journey so interrupted and repeated checkout creation converges on one order/listing, the active handoff survives refresh and correction, expired orders can be renewed in place, and claim-first instructions lead owners into the editable dashboard only after ownership is established.\n\n## Context\n\nImplemented the approved findings from audit 202610151908-7SR37V. Work was local-only: no real checkout was created, no email or SMS was sent, no charge or payout occurred, and no deployment or financial configuration was changed.\n\n## Scope\n\nAdded seller-scoped deterministic checkout attempt reservation, stable Stripe idempotency keys, retry recovery, safe claim-token rotation for authorized recovery, correction replacement that retains the previous handoff until the replacement succeeds and then expires/audits the old session, session-scoped handoff recovery across refresh, claim-before-dashboard payment email instructions, an authenticated expired-checkout renewal endpoint that reuses the original order/listing/attribution and writes an audit row, mobile recovery cards with visible Open/Email/Renew actions, and explicit loading/API failure UI with retry. Added focused resilience tests.\n\n## Risks\n\nCheckout creation and renewal remain financially sensitive server paths. Production release must verify Firestore transaction behavior and Stripe test-mode replacement/renewal before promotion. Claim secrets are never stored in browser persistent storage: the active signed URL is limited to sessionStorage, and retry recovery rotates its server-side hash for the authenticated creating seller.\n\n## Verify Steps\n\nPassed npm --prefix apps/web run type-check. Passed 68 focused node tests via .\\\\node_modules\\\\.bin\\\\tsx.cmd --test apps/web/src/lib/sales-resilience.test.ts apps/web/src/lib/sales-orders.test.ts apps/web/src/lib/sales-checkout.test.ts apps/web/src/lib/checkout-recovery.test.ts apps/web/src/lib/verification-audit.test.ts apps/web/src/app/[locale]/fulfill/intake-i18n.test.ts. Production tester should exercise refresh recovery, concurrent retry, corrected replacement, expired renewal, claim/login return, and 390px actions using Stripe test mode only.\n\n## Rollback Plan\n\nRevert the implementation commit. Existing sales orders and Stripe sessions remain authoritative; do not delete order, renewal, link-send, or claim audit history. A rollback may leave newly created deterministic order IDs and renewal audit rows intact without charging or granting ownership.\n\n## Notes\n\nThe task metadata originally named npm scripts typecheck and test, but this package exposes type-check and no test script. Equivalent direct checks were run and passed. No representational or financial side effects were performed."
     },
     {
       "id": "202610151908-FQ4M4R",
@@ -9327,8 +9335,8 @@
         "stripe"
       ],
       "verify": [
-        "npm --prefix apps/web run typecheck",
-        "npm --prefix apps/web test"
+        "npm --prefix apps/web run type-check",
+        "npm test"
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T19:09:02+00:00",
@@ -9373,6 +9381,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "a98035e4f415036497cee1afef683dd4ebc2a0a91bca78a560eef2044dcd8a8c"
+    "checksum": "0f35961ebc6c4c0b009c09514a8e60bfcc22b0dac8b2de997104271b3d0c3935"
   }
 }
