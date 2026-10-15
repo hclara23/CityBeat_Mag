@@ -69,6 +69,7 @@ export function RecoveryLeadsBoard() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [sendingId, setSendingId] = useState<string | null>(null)
+  const [renewingId, setRenewingId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -150,6 +151,24 @@ export function RecoveryLeadsBoard() {
     }
   }
 
+  const renew = async (lead: Lead) => {
+    setRenewingId(lead.order_id)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/recovery-leads', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: lead.order_id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.url) throw new Error(data.error || (isEs ? 'No se pudo renovar.' : 'Could not renew.'))
+      setLeads((prev) => (prev || []).map((item) => item.order_id === lead.order_id
+        ? { ...item, checkout_url: data.url, link_state: 'ready' }
+        : item))
+    } catch (e: any) {
+      setError(e.message || (isEs ? 'No se pudo renovar.' : 'Could not renew.'))
+    } finally { setRenewingId(null) }
+  }
+
   if (denied || !leads || !summary) return null
   if (!leads.length) return null
 
@@ -188,7 +207,18 @@ export function RecoveryLeadsBoard() {
         <p className="mb-3 rounded-md border border-red-400/30 bg-red-400/10 px-3 py-2 text-sm text-red-200">{error}</p>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-white/10">
+      <div className="grid gap-3 md:hidden">
+        {leads.map((l) => (
+          <article key={l.order_id} className="rounded-lg border border-white/10 bg-black/20 p-4">
+            <div className="flex items-start justify-between gap-3"><div><p className="font-bold text-white">{l.business}</p><p className="mt-1 break-all text-xs text-white/55">{l.email}</p></div><p className="font-black text-white">{money(l.amount)}<span className="text-white/40">{cadence(l, isEs)}</span></p></div>
+            {l.phone && <a href={telHref(l.phone)} className="mt-2 block text-sm text-brand-neon">{l.phone}</a>}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {l.link_state === 'ready' && l.checkout_url ? <><a href={l.checkout_url} target="_blank" rel="noreferrer" className="rounded bg-brand-neon px-3 py-2 text-center text-xs font-black text-black">{isEs ? 'Abrir' : 'Open'}</a><button onClick={() => resend(l)} disabled={sendingId === l.order_id} className="rounded border border-brand-neon/40 px-3 py-2 text-xs font-black text-brand-neon">{isEs ? 'Email' : 'Email'}</button></> : <button onClick={() => renew(l)} disabled={renewingId === l.order_id} className="col-span-2 rounded bg-amber-400 px-3 py-2 text-xs font-black text-black">{renewingId === l.order_id ? (isEs ? 'Renovando…' : 'Renewing…') : (isEs ? 'Renovar enlace' : 'Renew checkout')}</button>}
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto rounded-lg border border-white/10 md:block">
         <table className="w-full min-w-[880px] text-left text-sm">
           <thead>
             <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] font-black uppercase tracking-wider text-white/40">
@@ -255,6 +285,11 @@ export function RecoveryLeadsBoard() {
                       className="mr-2 rounded border border-brand-neon/40 px-2 py-1 text-[11px] font-bold text-brand-neon hover:bg-brand-neon/10 disabled:opacity-50"
                     >
                       {sendingId === l.order_id ? (isEs ? 'Enviando…' : 'Sending…') : isEs ? 'Enviar email' : 'Email'}
+                    </button>
+                  )}
+                  {l.link_state === 'expired' && (
+                    <button onClick={() => renew(l)} disabled={renewingId === l.order_id} className="mr-2 rounded border border-amber-400/50 px-2 py-1 text-[11px] font-bold text-amber-300 disabled:opacity-50">
+                      {renewingId === l.order_id ? (isEs ? 'Renovando…' : 'Renewing…') : (isEs ? 'Renovar' : 'Renew')}
                     </button>
                   )}
                   {confirmingId === l.order_id ? (

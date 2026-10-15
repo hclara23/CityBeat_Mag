@@ -32,12 +32,17 @@ const NEW_DIRECTORY_PRODUCT_IDS: SalesProductId[] = [
   'directory_premium_monthly',
 ]
 
+const HANDOFF_STORAGE_KEY = 'citybeat.sales.current-handoff.v1'
+const ATTEMPT_STORAGE_KEY = 'citybeat.sales.checkout-attempt.v1'
+
 export default function SalesDesk() {
   const router = useRouter()
   const locale = useLocale() as 'en' | 'es'
   const isEs = locale === 'es'
   const saleRef = useRef<HTMLDivElement>(null)
   const [ready, setReady] = useState(false)
+  const [bootError, setBootError] = useState('')
+  const [correcting, setCorrecting] = useState(false)
   const [me, setMe] = useState<any>(null)
   const [leads, setLeads] = useState<any[]>([])
 
@@ -81,7 +86,8 @@ export default function SalesDesk() {
 
   const product = SALES_PRODUCTS[productId]
   const useBypass = product.family === 'directory' && !listingId && bypassVerification
-  const handoffReady = Boolean(checkoutUrl || listingUrl)
+  const hasHandoff = Boolean(checkoutUrl || listingUrl)
+  const handoffReady = hasHandoff && !correcting
   const displayPrice =
     product.id === 'custom_one_time' && Number(amount) > 0 ? `${money(Math.round(Number(amount) * 100))} once` : product.priceLabel
 
@@ -104,19 +110,43 @@ export default function SalesDesk() {
         // Deep-link prefill is optional.
       }
 
+      let recovered: any = null
+      try {
+        recovered = JSON.parse(sessionStorage.getItem(HANDOFF_STORAGE_KEY) || 'null')
+      } catch {}
+      if (recovered?.checkoutUrl || recovered?.listingUrl) {
+        setCheckoutUrl(recovered.checkoutUrl || '')
+        setListingUrl(recovered.listingUrl || '')
+        setCheckoutPrice(recovered.checkoutPrice || '')
+        setHandoffOrder(recovered.handoffOrder || null)
+        setIsBypassClaim(Boolean(recovered.isBypassClaim))
+      }
+
       Promise.all([
-        fetch('/api/sales/me', { cache: 'no-store' }).then((response) => (response.ok ? response.json() : null)),
-        fetch('/api/sales/leads', { cache: 'no-store' }).then((response) =>
-          response.ok ? response.json() : { leads: [] }
-        ),
+        fetch('/api/sales/me', { cache: 'no-store' }).then(async (response) => {
+          if (!response.ok) throw new Error('Could not load sales totals.')
+          return response.json()
+        }),
+        fetch('/api/sales/leads', { cache: 'no-store' }).then(async (response) => {
+          if (!response.ok) throw new Error('Could not load sales leads.')
+          return response.json()
+        }),
       ])
         .then(([dashboard, leadData]) => {
           setMe(dashboard)
           setLeads(leadData?.leads || [])
         })
+        .catch((loadError) => setBootError(loadError?.message || 'Could not load the Sales Desk.'))
         .finally(() => setReady(true))
     })
   }, [router, locale])
+
+  useEffect(() => {
+    if (!hasHandoff || !handoffOrder) return
+    sessionStorage.setItem(HANDOFF_STORAGE_KEY, JSON.stringify({
+      checkoutUrl, listingUrl, checkoutPrice, handoffOrder, isBypassClaim,
+    }))
+  }, [hasHandoff, checkoutUrl, listingUrl, checkoutPrice, handoffOrder, isBypassClaim])
 
   useEffect(() => {
     let active = true
@@ -226,6 +256,11 @@ export default function SalesDesk() {
 
     setBusy(true)
     try {
+      let attemptKey = sessionStorage.getItem(ATTEMPT_STORAGE_KEY)
+      if (!attemptKey) {
+        attemptKey = crypto.randomUUID()
+        sessionStorage.setItem(ATTEMPT_STORAGE_KEY, attemptKey)
+      }
       const response = await fetch('/api/sales/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -245,6 +280,8 @@ export default function SalesDesk() {
           attestationMethod: useBypass ? attestationMethod : undefined,
           attestationAccepted: useBypass ? attestationConfirmed : undefined,
           attestationNote: useBypass ? attestationNote.trim() || undefined : undefined,
+          idempotencyKey: attemptKey,
+          replacementOrderId: correcting ? handoffOrder?.orderId : undefined,
         }),
       })
       const data = await response.json().catch(() => ({}))
@@ -268,6 +305,8 @@ export default function SalesDesk() {
       })
       setSentMsg('')
       setListingSentMsg('')
+      setCorrecting(false)
+      sessionStorage.removeItem(ATTEMPT_STORAGE_KEY)
     } catch (checkoutError: any) {
       setError(checkoutError?.message || 'Could not create checkout')
     } finally {
@@ -405,6 +444,8 @@ export default function SalesDesk() {
   }
 
   function nextSale() {
+    sessionStorage.removeItem(HANDOFF_STORAGE_KEY)
+    sessionStorage.removeItem(ATTEMPT_STORAGE_KEY)
     setBusinessName('')
     setContactEmail('')
     setPhone('')
@@ -420,6 +461,7 @@ export default function SalesDesk() {
     setSentMsg('')
     setListingSentMsg('')
     setError('')
+    setCorrecting(false)
     resetBypass()
   }
 
@@ -436,23 +478,31 @@ export default function SalesDesk() {
   }
 
   function correctSale() {
-    setCheckoutUrl('')
-    setListingUrl('')
-    setCheckoutPrice('')
-    setHandoffOrder(null)
-    setQrDataUrl('')
-    setListingQrDataUrl('')
     setSentMsg('')
     setListingSentMsg('')
-    setIsBypassClaim(false)
-    setError('Correct the details, then create a fresh checkout. The previous link should not be sent.')
+    setError('Your current link is still saved. Start the corrected sale as a new attempt; only share the replacement after it succeeds.')
+    setCorrecting(true)
+    sessionStorage.removeItem(ATTEMPT_STORAGE_KEY)
   }
 
-  if (!ready) return null
+  if (!ready) return (
+    <CityBeatShell locale={locale}>
+      <section className="container-wide max-w-6xl py-16" aria-live="polite">
+        <div className="h-8 w-64 animate-pulse bg-white/10" />
+        <div className="mt-5 h-40 animate-pulse border border-white/10 bg-white/[0.03]" />
+        <p className="mt-4 text-sm text-white/55">Loading the Sales Desk…</p>
+      </section>
+    </CityBeatShell>
+  )
 
   return (
     <CityBeatShell locale={locale}>
       <section className="container-wide max-w-6xl py-10 sm:py-14">
+        {bootError && (
+          <div role="alert" className="mb-5 border border-red-400/40 bg-red-400/10 p-4 text-sm text-red-100">
+            {bootError} Your saved handoff is still available below. <button type="button" onClick={() => window.location.reload()} className="font-black underline">Retry loading</button>
+          </div>
+        )}
         <header className="relative overflow-hidden border-y border-white/10 bg-white/[0.025] px-5 py-7 sm:px-8">
           <div className="pointer-events-none absolute inset-0 opacity-25" style={{ backgroundImage: 'linear-gradient(115deg, transparent 0 62%, rgba(0,224,209,.13) 62% 63%, transparent 63%)' }} />
           <div className="relative flex flex-wrap items-end justify-between gap-5">
@@ -759,7 +809,7 @@ export default function SalesDesk() {
             </form>
 
             <aside className="border border-white/10 bg-black/35 p-5">
-              {!handoffReady ? (
+              {!hasHandoff ? (
                 <div className="flex h-full min-h-64 flex-col justify-between">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.24em] text-white/35">Handoff appears here</p>

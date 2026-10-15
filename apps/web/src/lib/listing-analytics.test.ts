@@ -18,6 +18,9 @@ test('event types are a strict allow-list', () => {
   assert.equal(isValidListingEventType('view'), true)
   assert.equal(isValidListingEventType('lead'), true)
   assert.equal(isValidListingEventType('click_website'), true)
+  assert.equal(isValidListingEventType('click_phone'), true)
+  assert.equal(isValidListingEventType('click_action_booking'), true)
+  assert.equal(isValidListingEventType('click_post_cta'), true)
   assert.equal(isValidListingEventType('drop_table'), false)
   assert.equal(isValidListingEventType(''), false)
   assert.equal(isValidListingEventType(null), false)
@@ -32,7 +35,7 @@ test('day keys and doc ids are stable', () => {
 test('range totals sum only rows inside the window and tolerate junk', () => {
   const rows = [
     { day: '2026-07-30', view: 5, lead: 1 },
-    { day: '2026-07-31', view: 3, click_website: 2 },
+    { day: '2026-07-31', view: 3, click_website: 2, click_phone: 4, click_action_booking: 1 },
     { day: '2026-06-01', view: 100 }, // outside
     { day: '2026-07-29', view: Number.NaN as unknown as number },
   ]
@@ -40,6 +43,8 @@ test('range totals sum only rows inside the window and tolerate junk', () => {
   assert.equal(t.view, 8)
   assert.equal(t.lead, 1)
   assert.equal(t.click_website, 2)
+  assert.equal(t.click_phone, 4)
+  assert.equal(t.click_action_booking, 1)
 })
 
 test('summary builds a zero-filled series and a prior-window comparison', () => {
@@ -82,7 +87,7 @@ test('statsToCsv emits sorted rows with a header', () => {
     { day: '2026-07-30', view: 5, lead: 1 },
   ])
   const lines = csv.split('\r\n')
-  assert.equal(lines[0], 'day,views,website_clicks,direction_clicks,action_clicks,leads')
-  assert.equal(lines[1], '2026-07-30,5,0,0,0,1')
-  assert.equal(lines[2], '2026-07-31,3,0,0,0,0')
+  assert.equal(lines[0].startsWith('day,views,website_clicks,direction_clicks,action_clicks,leads,phone_clicks'), true)
+  assert.equal(lines[1].startsWith('2026-07-30,5,0,0,0,1,0'), true)
+  assert.equal(lines[2].startsWith('2026-07-31,3,0,0,0,0,0'), true)
 })

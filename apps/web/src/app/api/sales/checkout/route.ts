@@ -29,6 +29,7 @@ import {
   salesDirectoryListingUrl,
 } from '@/lib/sales-directory'
 import { foundingOfferAvailable } from '@/lib/sales-founding'
+import { createFoundingCheckout } from '@/lib/founding-checkout'
 import { getClientIp } from '@/lib/auth-security'
 import {
   validateBypass,
@@ -38,6 +39,7 @@ import {
   type AttestationMethod,
 } from '@/lib/verification-audit'
 import Stripe from 'stripe'
+import { checkoutAttemptDocumentId, checkoutAttemptHash, isStripeResourceMissing, oldCheckoutRetirementState, replacementCompensationOutcome } from '@/lib/sales-resilience'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -45,6 +47,8 @@ export const runtime = 'nodejs'
 async function existingDirectoryListing(input: {
   listingId: string
   stripe: Stripe
+  replacementOrderId?: string
+  sellerUserId: string
 }) {
   if (!input.listingId) return null
 
@@ -52,7 +56,14 @@ async function existingDirectoryListing(input: {
   if (!listingDoc.exists) throw Object.assign(new Error('Directory listing not found'), { status: 404 })
   const listing = listingDoc.data() as Record<string, unknown>
   const existingOrders = await adminDb.collection('sales_orders').where('listing_id', '==', input.listingId).get()
+  const replacement = input.replacementOrderId
+    ? existingOrders.docs.find((document) => document.id === input.replacementOrderId)
+    : null
+  if (input.replacementOrderId && (!replacement || replacement.data().sold_by !== input.sellerUserId || replacement.data().payment_status === 'paid')) {
+    throw Object.assign(new Error('The checkout selected for correction is not eligible.'), { status: 403, code: 'replacement_forbidden' })
+  }
   const hasBlockingOrder = existingOrders.docs.some((document) => {
+    if (document.id === input.replacementOrderId) return false
     const order = document.data()
     if (order.billing_type !== 'subscription') return false
     if (order.payment_status === 'refunded' || ['canceled', 'refunded'].includes(order.billing_status)) return false
@@ -129,8 +140,14 @@ export async function POST(request: NextRequest) {
   const amount = salesProductAmount(product, body.amount)
   const customDescription =
     typeof body.description === 'string' ? body.description.trim().slice(0, 300) : ''
+  const idempotencyKey = typeof body.idempotencyKey === 'string' ? body.idempotencyKey.trim() : ''
+  const replacementOrderId = typeof body.replacementOrderId === 'string' ? body.replacementOrderId.trim() : ''
 
   if (!businessName) return NextResponse.json({ error: 'Business name is required' }, { status: 400 })
+  const attemptDocumentId = checkoutAttemptDocumentId(user.id, idempotencyKey)
+  if (!attemptDocumentId) {
+    return NextResponse.json({ error: 'A valid checkout attempt key is required.', code: 'idempotency_key_required' }, { status: 400 })
+  }
   if (!contactEmail) return NextResponse.json({ error: 'Client email is required' }, { status: 400 })
   if (!isValidSalesEmail(contactEmail)) {
     return NextResponse.json({ error: 'Enter a valid client email' }, { status: 400 })
@@ -155,6 +172,61 @@ export async function POST(request: NextRequest) {
       { error: 'The Founding 100 launch offer is sold out. Please choose another plan.', founding_sold_out: true },
       { status: 409 }
     )
+  }
+
+  // Reserve a deterministic order before creating a listing or calling Stripe.
+  // Parallel/retried requests for one browser attempt therefore converge on one
+  // order id and one listing id. Stripe receives the same key as a second guard.
+  const attemptDigest = checkoutAttemptHash(user.id, idempotencyKey)
+  const reservedOrderRef = adminDb.collection('sales_orders').doc(attemptDocumentId)
+  let priorOrder: Record<string, any> | null = null
+  try { await adminDb.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(reservedOrderRef)
+    if (snapshot.exists) {
+      const existing = snapshot.data() as Record<string, any>
+      if (existing.sold_by !== user.id || existing.idempotency_key_hash !== attemptDigest) {
+        throw Object.assign(new Error('Checkout attempt conflict.'), { status: 409, code: 'idempotency_conflict' })
+      }
+      if (existing.checkout_status === 'ready' || existing.checkout_status === 'completed') {
+        priorOrder = existing
+        return
+      }
+      if (existing.checkout_status === 'creating') {
+        throw Object.assign(new Error('This checkout is already being created. Retry in a moment.'), { status: 409, code: 'checkout_in_progress' })
+      }
+    }
+    transaction.set(reservedOrderRef, {
+      sold_by: user.id, idempotency_key_hash: attemptDigest,
+      checkout_status: 'creating', updated_at: new Date().toISOString(),
+    }, { merge: true })
+  }) } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Could not reserve checkout', code: error?.code }, { status: Number(error?.status) || 409 })
+  }
+  if (priorOrder) {
+    const prior = priorOrder as Record<string, any>
+    const priorListingId = typeof prior.listing_id === 'string' ? prior.listing_id : ''
+    const priorListingUrl = priorListingId && prior.product_family === 'directory'
+      ? salesDirectoryListingUrl({ origin: appOrigin, locale, listingId: priorListingId }) : null
+    let recoveredClaimUrl: string | null = null
+    if (priorListingId && priorListingUrl) {
+      const listingRef = adminDb.collection('directory_listings').doc(priorListingId)
+      const listingSnapshot = await listingRef.get()
+      const priorListing = listingSnapshot.data() as Record<string, any> | undefined
+      if (priorListing?.sales_created_by === user.id && priorListing?.claim_status === 'unclaimed' && priorListing?.verification_path === 'salesperson_attestation') {
+        // Rotate, rather than store or replay, the single-use secret. Only the
+        // authenticated creating seller can recover it and the old token stops working.
+        const rotated = mintClaimToken()
+        await listingRef.set({ claim_token_hash: rotated.hash, claim_token_expires_at: claimTokenExpiresAt(Date.now()), claim_token_consumed_at: null, updated_at: new Date().toISOString() }, { merge: true })
+        recoveredClaimUrl = `${priorListingUrl}/claim?accept=${encodeURIComponent(rotated.token)}`
+      }
+    }
+    return NextResponse.json({
+      url: prior.checkout_url || null, checkoutRequired: prior.billing_type !== 'free',
+      orderId: reservedOrderRef.id, listingId: priorListingId || null,
+      listingUrl: priorListingUrl, listingCreated: !prior.listing_preexisting,
+      productId: prior.product_id, priceLabel: prior.price_label || null,
+      billing: prior.billing_type, recovered: true, bypassClaimUrl: recoveredClaimUrl,
+    })
   }
 
   // Salesperson verification bypass (opt-in, default off). Only an authenticated
@@ -212,7 +284,7 @@ export async function POST(request: NextRequest) {
     await adminDb.collection('directory_verification_audits').add(record)
   }
 
-  let orderRef: FirebaseFirestore.DocumentReference | null = null
+  let orderRef: FirebaseFirestore.DocumentReference | null = reservedOrderRef
 
   try {
     let listingId = typeof body.listingId === 'string' ? body.listingId.trim() : ''
@@ -221,6 +293,8 @@ export async function POST(request: NextRequest) {
       listing = await existingDirectoryListing({
         listingId,
         stripe: stripe!,
+        replacementOrderId,
+        sellerUserId: user.id,
       })
     }
     const directoryCategory =
@@ -238,7 +312,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (product.id === 'directory_basic_free') {
-      const listingRef = adminDb.collection('directory_listings').doc()
+      const listingRef = adminDb.collection('directory_listings').doc(reservedOrderRef.id)
       const listingUrl = salesDirectoryListingUrl({
         origin: appOrigin,
         locale,
@@ -257,6 +331,12 @@ export async function POST(request: NextRequest) {
         }),
         ...(bypassFields || {}),
       })
+      await reservedOrderRef.set({
+        product_id: product.id, product_family: product.family, billing_type: 'free',
+        business_name: businessName, contact_email: contactEmail, contact_phone: contactPhone || null,
+        listing_id: listingRef.id, listing_preexisting: false, locale,
+        checkout_status: 'completed', payment_status: 'paid', updated_at: new Date().toISOString(),
+      }, { merge: true })
       const bypassClaimUrl = bypassToken
         ? `${listingUrl}/claim?accept=${encodeURIComponent(bypassToken)}`
         : null
@@ -295,7 +375,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Multi-location brands bill PER LOCATION, exactly like self-serve.
+    // Standard plans bill per location; Founders bills once per business.
     // The order stores the TOTAL: the webhook validates
     // session.amount_subtotal (= unit x quantity) against order.amount, and a
     // mismatch fails fulfillment for a customer who has already paid.
@@ -303,11 +383,12 @@ export async function POST(request: NextRequest) {
       productFamily: product.family,
       billing: product.billing,
       listing,
+      founding: product.founding,
     })
     const amountTotal = amount * billingQuantity
 
     const access = createSalesOrderAccess()
-    orderRef = adminDb.collection('sales_orders').doc()
+    orderRef = reservedOrderRef
     const listingPreexisting = Boolean(listingId)
     if (product.family === 'directory' && !listingId) listingId = orderRef.id
     await orderRef.set(
@@ -380,7 +461,8 @@ export async function POST(request: NextRequest) {
             billing_cycle: directoryPlan.interval,
             directory_category: directoryCategory,
             listing_preexisting: listingPreexisting ? 'true' : 'false',
-            location_count: String(billingQuantity),
+            location_count: String(Math.max(1, Number(listing?.location_count) || 1)),
+            billing_quantity: String(billingQuantity),
             ...(referralCode ? { referral_code: referralCode } : {}),
           }
         : {
@@ -400,7 +482,40 @@ export async function POST(request: NextRequest) {
           : { customer_email: contactEmail }
         : { customer_email: contactEmail }
 
-    const session = await stripe!.checkout.sessions.create({
+    let replacementPrevious: Record<string, any> | null = null
+    let replacementSessionState: 'open' | 'retired' | 'completed' | 'unknown' = 'unknown'
+    if (replacementOrderId) {
+      const previousRef = adminDb.collection('sales_orders').doc(replacementOrderId)
+      replacementPrevious = (await previousRef.get()).data() as Record<string, any>
+      if (replacementPrevious?.stripe_checkout_session_id) {
+        const oldSession = await stripe!.checkout.sessions.retrieve(replacementPrevious.stripe_checkout_session_id)
+        replacementSessionState = oldCheckoutRetirementState(oldSession)
+        if (replacementSessionState === 'completed') {
+          const detectedAt = new Date().toISOString()
+          await previousRef.set({
+            checkout_status: 'completed',
+            stripe_reconciliation_required: true,
+            stripe_reconciliation_reason: 'replacement_detected_completed_session',
+            updated_at: detectedAt,
+          }, { merge: true })
+          await adminDb.collection('sales_checkout_replacements').add({
+            old_order_id: replacementOrderId, new_order_id: orderRef.id,
+            old_session_id: replacementPrevious.stripe_checkout_session_id,
+            new_session_id: null, status: 'blocked_old_session_completed',
+            attempted_by: user.id, at: detectedAt,
+          })
+          throw Object.assign(new Error('The original checkout completed and must be reconciled before creating a replacement.'), { status: 409, code: 'replacement_requires_reconciliation' })
+        }
+        if (replacementSessionState === 'unknown') {
+          throw Object.assign(new Error('The original checkout status could not be verified. Retry after Stripe is available.'), { status: 503, code: 'replacement_status_unknown' })
+        }
+      }
+    }
+
+    const createCheckout = (params: Stripe.Checkout.SessionCreateParams) => product.founding
+      ? createFoundingCheckout(stripe!, listingId || `order:${orderRef!.id}`, params)
+      : stripe!.checkout.sessions.create(params, { idempotencyKey: `sales:${attemptDigest}` })
+    const session = await createCheckout({
       ...(product.billing === 'subscription'
         ? recurringCheckoutDefaults(priceLabel, product.interval || 'month')
         : oneTimeCheckoutDefaults()),
@@ -428,6 +543,83 @@ export async function POST(request: NextRequest) {
       ...(product.billing === 'subscription' ? { subscription_data: { metadata } } : {}),
     })
 
+    if (replacementOrderId) {
+      const previousRef = adminDb.collection('sales_orders').doc(replacementOrderId)
+      const previous = replacementPrevious || (await previousRef.get()).data() as Record<string, any>
+      if (previous?.stripe_checkout_session_id) {
+        try {
+          if (replacementSessionState !== 'retired') {
+          await stripe!.checkout.sessions.expire(previous.stripe_checkout_session_id)
+          }
+        } catch (oldExpiryError: any) {
+          if (!isStripeResourceMissing(oldExpiryError)) {
+            // Stripe may have retired or completed the session between our
+            // preflight retrieve and expire request. Re-read before deciding
+            // whether to compensate the replacement.
+            let refreshedState: ReturnType<typeof oldCheckoutRetirementState> = 'unknown'
+            try {
+              refreshedState = oldCheckoutRetirementState(await stripe!.checkout.sessions.retrieve(previous.stripe_checkout_session_id))
+            } catch {}
+            if (refreshedState === 'retired') {
+              // Retry-safe: the previous attempt retired Stripe successfully
+              // and only the following Firestore write was interrupted.
+            } else {
+            const failedAt = new Date().toISOString()
+            let compensationError: any = null
+            try {
+              // The replacement must never remain payable when the original
+              // could not be retired. Expire it before returning the failure.
+              await stripe!.checkout.sessions.expire(session.id)
+            } catch (error: any) {
+              if (!isStripeResourceMissing(error)) compensationError = error
+            }
+            const outcome = replacementCompensationOutcome(compensationError)
+            const oldCompleted = refreshedState === 'completed'
+            if (oldCompleted) {
+              await previousRef.set({
+                checkout_status: 'completed',
+                stripe_reconciliation_required: true,
+                stripe_reconciliation_reason: 'replacement_race_detected_completed_session',
+                updated_at: failedAt,
+              }, { merge: true })
+            }
+            await adminDb.collection('sales_checkout_replacements').add({
+              old_order_id: replacementOrderId,
+              new_order_id: orderRef.id,
+              old_session_id: previous.stripe_checkout_session_id,
+              new_session_id: session.id,
+              status: oldCompleted && !compensationError ? 'new_session_expired_old_session_completed' : outcome.auditStatus,
+              old_expiry_error: String(oldExpiryError?.message || oldExpiryError).slice(0, 300),
+              compensation_error: compensationError ? String(compensationError?.message || compensationError).slice(0, 300) : null,
+              attempted_by: user.id,
+              at: failedAt,
+            })
+            await orderRef.set({
+              checkout_status: oldCompleted ? 'needs_attention' : outcome.orderStatus,
+              stripe_checkout_session_id: session.id,
+              checkout_url: null,
+              replacement_of_order_id: replacementOrderId,
+              replacement_compensated_at: compensationError ? null : failedAt,
+              updated_at: failedAt,
+            }, { merge: true })
+            const replacementError = Object.assign(
+              new Error(oldCompleted
+                ? 'The original checkout completed during replacement and requires payment reconciliation.'
+                : !compensationError
+                ? 'The original checkout could not be retired. The replacement was canceled; keep using the original link.'
+                : 'Checkout replacement needs immediate payment-operations review.'),
+              { code: oldCompleted ? 'replacement_requires_reconciliation' : outcome.errorCode, status: oldCompleted ? 409 : 400 }
+            )
+            throw replacementError
+            }
+          }
+        }
+      }
+      const replacedAt = new Date().toISOString()
+      await previousRef.set({ checkout_status: 'replaced', replaced_by_order_id: orderRef.id, replaced_at: replacedAt, updated_at: replacedAt }, { merge: true })
+      await adminDb.collection('sales_checkout_replacements').add({ old_order_id: replacementOrderId, new_order_id: orderRef.id, old_session_id: previous?.stripe_checkout_session_id || null, new_session_id: session.id, status: 'replaced', attempted_by: user.id, at: replacedAt })
+    }
+
     await orderRef.set(
       {
         checkout_status: 'ready',
@@ -436,6 +628,7 @@ export async function POST(request: NextRequest) {
         checkout_expires_at: session.expires_at
           ? new Date(session.expires_at * 1000).toISOString()
           : null,
+        price_label: priceLabel,
         updated_at: new Date().toISOString(),
       },
       { merge: true }
@@ -456,10 +649,11 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     if (orderRef) {
+      const needsAttention = error?.code === 'replacement_compensation_failed' || error?.code === 'replacement_requires_reconciliation'
       await orderRef
         .set(
           {
-            checkout_status: 'failed',
+            checkout_status: needsAttention ? 'needs_attention' : 'failed',
             checkout_error: String(error?.message || 'Could not create checkout').slice(0, 300),
             updated_at: new Date().toISOString(),
           },

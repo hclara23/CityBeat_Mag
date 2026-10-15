@@ -9,6 +9,17 @@ import { dayKey, isValidListingEventType, statsDocId } from '@/lib/listing-analy
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
+const AGGREGATE_EVENT: Partial<Record<string, 'click_directions' | 'click_action'>> = {
+  click_directions_google: 'click_directions',
+  click_directions_apple: 'click_directions',
+  click_directions_location: 'click_directions',
+  click_action_booking: 'click_action',
+  click_action_order: 'click_action',
+  click_action_quote: 'click_action',
+  click_action_menu: 'click_action',
+  click_post_cta: 'click_action',
+}
+
 // Privacy-safe listing analytics: increments a per-listing per-day counter.
 // NO visitor identity is stored — no IP, no user id, no user agent. Owner and
 // staff self-traffic is excluded so the numbers reflect real customers.
@@ -46,6 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     const day = dayKey(new Date())
+    const aggregate = AGGREGATE_EVENT[type]
     await adminDb
       .collection('listing_stats')
       .doc(statsDocId(listingId, day))
@@ -54,6 +66,7 @@ export async function POST(request: NextRequest) {
           listing_id: listingId,
           day,
           [type]: FieldValue.increment(1),
+          ...(aggregate ? { [aggregate]: FieldValue.increment(1) } : {}),
           updated_at: new Date().toISOString(),
         },
         { merge: true }
