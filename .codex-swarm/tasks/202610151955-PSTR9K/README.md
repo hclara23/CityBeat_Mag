@@ -9,6 +9,7 @@ tags: ["code", "backend", "email", "reporting", "stripe"]
 verify: ["npm --prefix apps/web test", "npm --prefix apps/web run type-check"]
 comments:
   - { author: "CODER", body: "Start: implement privacy-safe, idempotent monthly connected-payee statements with dry-run, audit visibility, scheduler integration, and deterministic tests." }
+  - { author: "CODER", body: "Verified: statement engine, month/YTD calculations, payee isolation, privacy-safe HTML, retry-safe delivery keys, scheduler cadence and liveness checks passed 36 focused tests; full repository suite passed 639 tests and web TypeScript passed. Live Scheduler inventory remains unverified because the active gcloud principal lacks cloudscheduler.jobs.list." }
 doc_version: 2
 doc_updated_at: "2026-10-15T20:07:14+00:00"
 doc_updated_by: "agentctl"
