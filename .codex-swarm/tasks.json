@@ -10018,7 +10018,7 @@
     {
       "id": "202610152121-SHHTPH",
       "title": "Verify large-scale directory ingestion and publication",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "TESTER",
       "depends_on": [
@@ -10033,6 +10033,12 @@
       "verify": [
         "npm test",
         "npm run type-check"
+      ],
+      "comments": [
+        {
+          "author": "TESTER",
+          "body": "Start: verify official source templates, six-figure sitemap behavior, production build compatibility, and non-mutation guarantees before release."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T21:21:31+00:00",
@@ -10085,6 +10091,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "413773f8407a49f6f4f1efffedbb56ea71df224fb767f0e88ff93948008b4e9e"
+    "checksum": "7bb8e75b9f493f0b3e8c7eff7057bd0f91070db05a49c5725cff6c9415a3a24b"
   }
 }

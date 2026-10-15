@@ -43,3 +43,19 @@ export function matchesRowFilter(row: any, filter: Record<string, unknown> | nul
   }
   return true
 }
+
+/** Accept MM/DD/YYYY or ISO-like source dates and reject missing/invalid/expired rows. */
+export function isDateOnOrAfter(raw: unknown, minimum: string, now: Date = new Date()): boolean {
+  const value = String(raw ?? '').trim()
+  if (!value) return false
+  const us = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  const parsed = us
+    ? new Date(Date.UTC(Number(us[3]), Number(us[1]) - 1, Number(us[2])))
+    : new Date(value)
+  if (Number.isNaN(parsed.getTime())) return false
+
+  const floorUtc = (date: Date) => Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+  const minimumDate = minimum.trim().toLowerCase() === 'today' ? now : new Date(minimum)
+  if (Number.isNaN(minimumDate.getTime())) return false
+  return floorUtc(parsed) >= floorUtc(minimumDate)
+}

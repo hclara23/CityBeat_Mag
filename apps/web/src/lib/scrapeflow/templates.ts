@@ -172,7 +172,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     definition: {
       nodes: [
         { id: 'fetch', type: TaskType.FETCH_JSON, inputs: { URL: tdlrUrl('Electrical Contractor'), 'Max items': '5000' } },
-        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': TDLR_FIELD_MAP, Category: 'Electrical Contractors', 'Title case names': 'true' } },
+        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': TDLR_FIELD_MAP, 'Minimum date field': 'license_expiration_date_mmddccyy', 'Minimum date': 'today', Category: 'Electrical Contractors', 'Title case names': 'true' } },
         { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{map.Listings}}', 'Default category': 'Electrical Contractors', 'Region filter': 'true', Publish: 'true', Consolidate: 'true' } },
       ],
     },
@@ -229,7 +229,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     definition: {
       nodes: [
         { id: 'fetch', type: TaskType.FETCH_JSON, inputs: { URL: tdlrWhere("business_county='EL PASO' AND license_type LIKE '%Establishment%'"), 'Max items': '5000' } },
-        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': TDLR_FIELD_MAP, Category: 'Beauty', 'Title case names': 'true' } },
+        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': TDLR_FIELD_MAP, 'Minimum date field': 'license_expiration_date_mmddccyy', 'Minimum date': 'today', Category: 'Beauty', 'Title case names': 'true' } },
         { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{map.Listings}}', 'Default category': 'Beauty', 'Region filter': 'true', Publish: 'true', Consolidate: 'true' } },
       ],
     },
@@ -281,7 +281,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     definition: {
       nodes: [
         { id: 'fetch', type: TaskType.FETCH_JSON, inputs: { URL: tdlrWhere(`license_type='Electrical Contractor' AND (${countyWhere('business_county')})`), 'Max items': '5000' } },
-        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': TDLR_FIELD_MAP, Category: 'Electrical Contractors', 'Title case names': 'true' } },
+        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': TDLR_FIELD_MAP, 'Minimum date field': 'license_expiration_date_mmddccyy', 'Minimum date': 'today', Category: 'Electrical Contractors', 'Title case names': 'true' } },
         { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{map.Listings}}', 'Default category': 'Electrical Contractors', 'Region filter': 'true', Publish: 'false', Consolidate: 'true' } },
       ],
     },
@@ -296,7 +296,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     definition: {
       nodes: [
         { id: 'fetch', type: TaskType.FETCH_JSON, inputs: { URL: tdlrWhere(`license_type LIKE '%Establishment%' AND (${countyWhere('business_county')})`), 'Max items': '5000' } },
-        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': TDLR_FIELD_MAP, Category: 'Beauty', 'Title case names': 'true' } },
+        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': TDLR_FIELD_MAP, 'Minimum date field': 'license_expiration_date_mmddccyy', 'Minimum date': 'today', Category: 'Beauty', 'Title case names': 'true' } },
         { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{map.Listings}}', 'Default category': 'Beauty', 'Region filter': 'true', Publish: 'false', Consolidate: 'true' } },
       ],
     },

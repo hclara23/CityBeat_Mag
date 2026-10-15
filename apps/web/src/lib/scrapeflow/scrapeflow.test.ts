@@ -3,7 +3,7 @@ import test from 'node:test'
 import { parseJsonLoose, resolveInputs, validateDefinition } from './definition'
 import { absolutizeLinks, htmlToText } from './browser'
 import { parseCsv } from './csv'
-import { getMappedValue, getPath, matchesRowFilter } from './mapping'
+import { getMappedValue, getPath, isDateOnOrAfter, matchesRowFilter } from './mapping'
 import {
   formatAddress,
   inRegion,
@@ -204,6 +204,11 @@ test('Southwest expansion templates are official, free-source, disabled, and rev
     const deliver = tpl.definition.nodes.find((node) => node.type === TaskType.DELIVER_TO_DIRECTORY)
     assert.equal(deliver?.inputs.Publish, 'false', `${key} cannot auto-publish new records`)
     assert.equal(deliver?.inputs['Region filter'], 'true')
+    if (key.startsWith('tdlr-')) {
+      const map = tpl.definition.nodes.find((node) => node.type === TaskType.MAP_JSON_TO_LISTINGS)
+      assert.equal(map?.inputs['Minimum date field'], 'license_expiration_date_mmddccyy')
+      assert.equal(map?.inputs['Minimum date'], 'today')
+    }
   }
 })
 
@@ -250,6 +255,16 @@ test('mapping: getPath, getMappedValue composite/literal, matchesRowFilter', () 
   assert.equal(matchesRowFilter(row, { COUNTY: 'BELL' }), false)
   assert.equal(matchesRowFilter(row, { COUNTY: ['BELL', 'EL PASO'] }), true, 'array membership')
   assert.equal(matchesRowFilter(row, null), true)
+})
+
+test('mapping date gate excludes expired or malformed licenses at run time', () => {
+  const now = new Date('2026-10-15T18:00:00Z')
+  assert.equal(isDateOnOrAfter('10/15/2026', 'today', now), true)
+  assert.equal(isDateOnOrAfter('12/31/2027', 'today', now), true)
+  assert.equal(isDateOnOrAfter('10/14/2026', 'today', now), false)
+  assert.equal(isDateOnOrAfter('2026-10-15', 'today', now), true)
+  assert.equal(isDateOnOrAfter('', 'today', now), false)
+  assert.equal(isDateOnOrAfter('not-a-date', 'today', now), false)
 })
 
 test('looksLikeSameBusiness compares phone, then street number', () => {

@@ -17,7 +17,7 @@ import {
 } from './browser'
 import { parseCsv } from './csv'
 import { deliverToDirectory } from './directory-sink'
-import { getMappedValue, matchesRowFilter } from './mapping'
+import { getMappedValue, isDateOnOrAfter, matchesRowFilter } from './mapping'
 import { titleCaseName } from './normalize'
 import { searchPlacesAsListings } from './places'
 import { TaskType, type ExtractedListing, type LogLevel, type RunSummary } from './types'
@@ -424,11 +424,17 @@ const mapJsonToListings: ExecutorFn = async (env) => {
     }
   }
   const category = env.getInput('Category') || null
+  const minimumDateField = env.getInput('Minimum date field').trim()
+  const minimumDate = env.getInput('Minimum date').trim()
   const titleCase = bool(env.getInput('Title case names'), true)
   const listings: ExtractedListing[] = []
   let filteredOut = 0
   for (const row of rows) {
     if (!matchesRowFilter(row, rowFilter)) {
+      filteredOut++
+      continue
+    }
+    if (minimumDateField && minimumDate && !isDateOnOrAfter(getMappedValue(row, minimumDateField), minimumDate)) {
       filteredOut++
       continue
     }

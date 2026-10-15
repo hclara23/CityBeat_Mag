@@ -175,6 +175,8 @@ export const TaskRegistry: Record<TaskType, WorkflowTask> = {
         type: 'JSON',
         helperText: 'Optional {field: value | [values]} — case-insensitive equality AND across keys, applied before mapping. e.g. {"COUNTY":"EL PASO","STATE":"TX","LIC_STA_DESC":"Active"}',
       },
+      { name: 'Minimum date field', type: 'STRING', helperText: 'Optional source path containing MM/DD/YYYY or ISO date values, such as license_expiration_date_mmddccyy' },
+      { name: 'Minimum date', type: 'STRING', helperText: 'Use "today" to discard expired rows at run time, or provide an ISO date' },
       { name: 'Category', type: 'STRING', helperText: 'Category for every row (overrides map)' },
       { name: 'Title case names', type: 'BOOLEAN', defaultValue: 'true', helperText: 'Fix ALL-CAPS government data; "LAST, FIRST" → "First Last"' },
     ],
