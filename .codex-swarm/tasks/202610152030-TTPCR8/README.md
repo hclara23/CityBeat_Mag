@@ -1,14 +1,16 @@
 ---
 id: "202610152030-TTPCR8"
 title: "Verify semi-monthly commission payout workflow"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "TESTER"
 depends_on: ["202610152030-YPJ8P9", "202610152030-FBKEDB"]
 tags: ["testing", "stripe", "payouts"]
 verify: ["npm test", "npm --prefix apps/web run type-check"]
+commit: { hash: "2df7f546f58b7be05d2ffa9dc079e85f5ce0112c", message: "🧪 TTPCR8 RDM0NQ record full regression verification and both reconciled editor transfer references" }
 comments:
   - { author: "TESTER", body: "Start: verify month-end date handling, duplicate delivery protection, refund holds, transfer/report consistency, payee-only authorization, dashboard totals, and retained platform funds." }
+  - { author: "TESTER", body: "verified: all 644 tests and four workspace type-checks pass | details: cadence covers February, leap years, 30-day and 31-day month ends, statements are idempotent, and payee data remains scoped to the authenticated user." }
 doc_version: 2
 doc_updated_at: "2026-10-15T20:39:17+00:00"
 doc_updated_by: "agentctl"
