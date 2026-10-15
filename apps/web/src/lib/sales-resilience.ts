@@ -1,0 +1,20 @@
+import { createHash } from 'node:crypto'
+import { checkoutLinkState } from './checkout-recovery'
+
+export function checkoutAttemptDocumentId(sellerUserId: string, key: unknown): string | null {
+  const normalized = typeof key === 'string' ? key.trim() : ''
+  if (!/^[A-Za-z0-9_-]{16,128}$/.test(normalized)) return null
+  const digest = createHash('sha256').update(`${sellerUserId}:${normalized}`).digest('hex')
+  return `attempt_${digest.slice(0, 40)}`
+}
+
+export function checkoutAttemptHash(sellerUserId: string, key: string): string {
+  return createHash('sha256').update(`${sellerUserId}:${key.trim()}`).digest('hex')
+}
+
+export function checkoutRenewalError(order: Record<string, any>, sellerUserId: string, now = new Date()): string | null {
+  if (order.sold_by !== sellerUserId) return 'renewal_forbidden'
+  if (order.payment_status === 'paid' || order.checkout_status === 'completed') return 'order_paid'
+  if (checkoutLinkState(order, now) !== 'expired') return 'checkout_still_live'
+  return null
+}

@@ -3,6 +3,11 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { checkoutLinkState } from '@/lib/checkout-recovery'
+import { createSalesOrderAccess, salesOrderCheckoutUrls, salesOrderStripeMetadata } from '@/lib/sales-orders'
+import { getSalesProduct, salesProductPriceLabel } from '@/lib/sales-products'
+import { oneTimeCheckoutDefaults, recurringCheckoutDefaults } from '@/lib/sales-checkout'
+import Stripe from 'stripe'
+import { checkoutRenewalError } from '@/lib/sales-resilience'
 
 export const dynamic = 'force-dynamic'
 
@@ -115,6 +120,80 @@ export async function GET() {
     })
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Could not load leads' }, { status: 500 })
+  }
+}
+
+// Reissue an expired checkout without allocating another order or listing.
+// The original attribution and audit history remain on the same order.
+export async function POST(request: NextRequest) {
+  const auth = await requireSalesMfa()
+  if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
+  const body = await request.json().catch(() => ({}))
+  const orderId = typeof body.orderId === 'string' ? body.orderId.trim() : ''
+  if (!/^[A-Za-z0-9_-]{1,256}$/.test(orderId)) {
+    return NextResponse.json({ error: 'Invalid order', code: 'invalid_order_id' }, { status: 400 })
+  }
+  const secret = process.env.STRIPE_SECRET_KEY
+  if (!secret) return NextResponse.json({ error: 'Stripe configuration missing' }, { status: 500 })
+  try {
+    const ref = adminDb.collection('sales_orders').doc(orderId)
+    const snap = await ref.get()
+    if (!snap.exists) return NextResponse.json({ error: 'Order not found', code: 'order_not_found' }, { status: 404 })
+    const order = snap.data() as Record<string, any>
+    const renewalError = checkoutRenewalError(order, auth.user.id)
+    if (renewalError === 'renewal_forbidden') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (renewalError === 'order_paid') return NextResponse.json({ error: 'That order is already paid.', code: renewalError }, { status: 409 })
+    if (renewalError === 'checkout_still_live') return NextResponse.json({ error: 'The existing checkout is still active.', code: renewalError }, { status: 409 })
+    const product = getSalesProduct(order.product_id)
+    if (!product || product.billing === 'free') {
+      return NextResponse.json({ error: 'This order cannot be renewed.', code: 'not_renewable' }, { status: 400 })
+    }
+    const stripe = new Stripe(secret, { apiVersion: '2023-08-16' })
+    const access = createSalesOrderAccess()
+    const locale = order.locale === 'es' ? 'es' : 'en'
+    const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
+    const urls = salesOrderCheckoutUrls({ origin, locale, orderId, token: access.token, billing: product.billing === 'subscription' ? 'subscription' : 'one_time' })
+    const metadata = salesOrderStripeMetadata({
+      orderId,
+      product,
+      sellerUserId: auth.user.id,
+      contactEmail: String(order.contact_email || ''),
+      businessName: String(order.business_name || ''),
+      listingId: typeof order.listing_id === 'string' ? order.listing_id : undefined,
+    })
+    const amount = Number(order.amount)
+    const quantity = Math.max(1, Number(order.billing_quantity) || 1)
+    const unitAmount = Math.round(amount / quantity)
+    const priceLabel = salesProductPriceLabel(product, unitAmount)
+    const session = await stripe.checkout.sessions.create({
+      ...(product.billing === 'subscription'
+        ? recurringCheckoutDefaults(priceLabel, product.interval || 'month')
+        : oneTimeCheckoutDefaults()),
+      customer_email: String(order.contact_email || ''),
+      client_reference_id: orderId,
+      line_items: [{ quantity, price_data: {
+        currency: 'usd', unit_amount: unitAmount,
+        ...(product.billing === 'subscription' ? { recurring: { interval: product.interval || 'month' } } : {}),
+        product_data: { name: `CityBeat ${product.shortName}: ${String(order.business_name || '')}`, description: product.description },
+      } }],
+      success_url: urls.successUrl,
+      cancel_url: urls.cancelUrl,
+      metadata,
+      ...(product.billing === 'subscription' ? { subscription_data: { metadata } } : {}),
+    }, { idempotencyKey: `renew:${orderId}:${String(order.stripe_checkout_session_id || 'initial')}` })
+    const now = new Date().toISOString()
+    await ref.set({
+      checkout_status: 'ready', checkout_url: session.url,
+      stripe_checkout_session_id: session.id,
+      checkout_expires_at: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : null,
+      intake_token_hash: access.tokenHash,
+      renewal_count: Number(order.renewal_count || 0) + 1,
+      last_renewed_at: now, last_renewed_by: auth.user.id, updated_at: now,
+    }, { merge: true })
+    await adminDb.collection('sales_checkout_renewals').add({ order_id: orderId, old_session_id: order.stripe_checkout_session_id || null, new_session_id: session.id, renewed_by: auth.user.id, at: now })
+    return NextResponse.json({ ok: true, orderId, url: session.url, expiresAt: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : null })
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Could not renew checkout' }, { status: 500 })
   }
 }
 
