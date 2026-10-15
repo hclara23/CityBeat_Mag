@@ -1,13 +1,15 @@
 ---
 id: "202610152121-4F8224"
 title: "Deploy safeguards and publish first compliant expansion batch"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "INTEGRATOR"
 depends_on: ["202610152121-SHHTPH"]
 tags: ["release", "directory", "production"]
+commit: { hash: "65e7e0cce74f35221ad85870fe6a4f2005acbc40", message: "✅ 4F8224 record production deployment and first validated batch" }
 comments:
   - { author: "INTEGRATOR", body: "Start: deploy the verified directory safeguards within the approved two-dollar Google Cloud cap, verify production, then stage and audit the first official-source batch before bounded publication." }
+  - { author: "INTEGRATOR", body: "verified: production revision citybeat-web-00322-hiq passed release checks | details: 274 active official-source candidates were imported hidden, 250 audited records were published, 23 remain queued, and all 1,729 merged duplicates remain unlisted." }
 doc_version: 2
 doc_updated_at: "2026-10-15T22:08:51+00:00"
 doc_updated_by: "agentctl"
