@@ -9085,22 +9085,28 @@
     {
       "id": "202610151818-RAFHZT",
       "title": "Create Super H Automotive Premium listing handoff",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
       "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: Verified the production listing and live Stripe Checkout; generated the customer QR; owner approval is reflected on the public listing. Preparing the exact customer email for action-time send confirmation."
+        }
+      ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-15T18:18:58+00:00",
+      "doc_updated_at": "2026-10-15T18:31:54+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Create the public Super H Automotive directory listing at 4550 Hercules Ave with phone (915) 202-6730, generate a recurring USD 19.99/month Stripe checkout link and QR code, verify claim/edit access, and prepare customer login instructions. No customer payment or outbound message is authorized.",
-      "doc": "## Summary\n\nCreate a claimable Super H Automotive directory listing and a private recurring Premium checkout handoff for the owner.\n\n## Scope\n\nCreate one unclaimed listing for Super H Automotive at 4550 Hercules Ave, El Paso, TX 79904 with phone (915) 202-6730; generate a Stripe-hosted Premium checkout for USD 19.99 per month for one location; generate a QR code for that private checkout; verify public listing and claim routes; prepare login, claim, payment, and editing instructions. Do not enter customer card details, submit payment, assign ownership without verified acceptance, or contact the customer.\n\n## Risks\n\nDuplicate directory records, disclosure mistakes, accidental ownership assignment, or exposing a private checkout could confuse or mischarge the customer. Search first, preserve Stripe-hosted card entry, disclose automatic monthly renewal until cancellation, and keep ownership unclaimed until the customer verifies it.\n\n## Verify Steps\n\nConfirm the canonical production listing data and public EN/ES listing pages; confirm the checkout is Stripe-hosted, live, scoped to this listing, and displays USD 19.99 monthly recurring for one location without completing payment; verify the QR resolves to the same checkout URL; verify the claim page requires sign-in and ownership verification; verify no payment, customer email, or ownership assignment occurred.\n\n## Rollback Plan\n\nExpire the unpaid Stripe Checkout Session and remove or archive the newly created unclaimed directory listing and sales order using the supported administrative workflow if the handoff was created incorrectly. Delete only generated local QR artifacts after confirming their exact paths."
+      "description": "Finalize the existing live Super H Automotive listing at 4550 Hercules Ave with phone (915) 202-6730; preserve the recurring USD 19.99/month Stripe Checkout handoff; generate and verify its QR code; confirm approved owner/edit access; and email the payment link plus login/edit instructions after action-time send confirmation. No customer payment is authorized or initiated.",
+      "doc": "## Summary\n\nFinalize the existing live Super H Automotive directory listing, private recurring Premium checkout handoff, QR code, approved owner access, and customer email instructions.\n\n## Scope\n\nUse the existing live listing and sales order for Super H Automotive at 4550 Hercules Ave, El Paso, TX 79904 with phone (915) 202-6730. Preserve the Stripe-hosted Premium checkout for USD 19.99 per month for one location; generate a QR code for that private checkout; verify public listing data and approved owner access; and send the payment link plus login/editing instructions to vhautomotive.vh@gmail.com only after the required action-time confirmation. Do not enter customer card details or complete payment.\n\n## Risks\n\nDuplicate records, accidental payment, incorrect ownership, or disclosure of a private checkout could confuse or mischarge the customer. Reuse the existing listing and unpaid Checkout Session, disclose automatic monthly renewal until cancellation, send only to the verified on-record owner email, and never enter payment details for the customer.\n\n## Verify Steps\n\nConfirm the canonical production listing and public page show the correct address, phone, category, and Monday-Friday 9:00 AM-6:00 PM hours with weekends closed; confirm the pending-approval banner is absent after owner approval; confirm Stripe Checkout displays USD 19.99 monthly recurring for one location and remains unpaid; verify the QR PNG renders and encodes the same URL; after explicit send confirmation, verify Gmail reports the message sent to vhautomotive.vh@gmail.com.\n\n## Rollback Plan\n\nIf the handoff is wrong, expire the unpaid Stripe Checkout Session using the supported Stripe workflow and correct the existing listing rather than creating a duplicate. If an email is sent with an error, send a clear correction because sent email cannot be recalled reliably. Delete only the generated QR artifact after confirming its exact path."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "6c4cee3e03678f5ccef8f088ee52976abddfa5b96059115c549161d95aa728cf"
+    "checksum": "7873a96150495cd8e3f1e8eba5e7866b701358d644fd09d6b9da990385a65251"
   }
 }
