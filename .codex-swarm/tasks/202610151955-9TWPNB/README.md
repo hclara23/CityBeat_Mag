@@ -4,7 +4,7 @@ title: "Release verified Stripe payout and reporting changes"
 status: "TODO"
 priority: "high"
 owner: "INTEGRATOR"
-depends_on: ["202610151955-KPZ1PN"]
+depends_on: ["202610151955-KPZ1PN", "202610152030-WS5E44"]
 tags: ["release", "stripe", "production"]
 verify: ["npm --prefix apps/web run type-check"]
 doc_version: 2
