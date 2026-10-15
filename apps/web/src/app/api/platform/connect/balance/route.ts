@@ -3,6 +3,7 @@ import { getServerUser } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { getStripe } from '@/lib/platform/stripe-connect'
 import { commissionDisplayState, totalByState } from '@/lib/commission-schedule'
+import { buildPayeePayoutSummary } from '@/lib/payout-dashboard'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,12 +44,22 @@ export async function GET() {
     .sort((a, b) => rowTime(b) - rowTime(a))
 
   const commission = totalByState(ledger, now)
-  const transfers = ledger.filter((t) => t.status === 'paid').slice(0, 20)
+  const transfers = ledger.filter((t) => t.status === 'paid').slice(0, 100)
   const upcoming = ledger
     .filter((t) =>
       ['held', 'due', 'failed', 'no_bank'].includes(String(t.commission_state))
     )
     .slice(0, 20)
+  const summary = buildPayeePayoutSummary(ledger, now)
+  const statementSnap = await adminDb
+    .collection('payout_statement_deliveries')
+    .where('payee_user_id', '==', user.id)
+    .get()
+    .catch(() => ({ docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] }))
+  const statements = statementSnap.docs
+    .map((doc) => ({ id: doc.id, ...(doc.data() as any) }))
+    .sort((a, b) => Date.parse(String(b.delivered_at || b.period_end || '')) - Date.parse(String(a.delivered_at || a.period_end || '')))
+    .slice(0, 24)
 
   const acctDoc = await adminDb.collection('stripe_connected_accounts').doc(user.id).get()
   const acct = acctDoc.exists ? (acctDoc.data() as any) : null
@@ -60,6 +71,8 @@ export async function GET() {
       transfers,
       upcoming,
       commission,
+      summary,
+      statements,
     })
   }
 
@@ -89,6 +102,8 @@ export async function GET() {
       transfers,
       upcoming,
       commission,
+      summary,
+      statements,
     })
   } catch (error: any) {
     // A stored account that can't be retrieved (e.g. created in a different
@@ -102,6 +117,8 @@ export async function GET() {
       transfers,
       upcoming,
       commission,
+      summary,
+      statements,
       stale: true,
     })
   }

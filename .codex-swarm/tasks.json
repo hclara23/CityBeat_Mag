@@ -9669,7 +9669,7 @@
     {
       "id": "202610152030-FBKEDB",
       "title": "Add authenticated editor payouts dashboard",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
@@ -9680,8 +9680,14 @@
         "auth"
       ],
       "verify": [
-        "npm --prefix apps/web test -- --runInBand",
+        "npm test",
         "npm --prefix apps/web run type-check"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: expand the authenticated account payouts page with payee-scoped history, transaction references, accumulated and year-to-date totals, statements, and clear bank-deposit terminology."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T20:31:25+00:00",
@@ -9724,7 +9730,7 @@
         "payouts"
       ],
       "verify": [
-        "npm --prefix apps/web test -- --runInBand",
+        "npm test",
         "npm --prefix apps/web run type-check"
       ],
       "doc_version": 2,
@@ -9771,7 +9777,7 @@
         "email"
       ],
       "verify": [
-        "npm --prefix apps/web test -- --runInBand",
+        "npm test",
         "npm --prefix apps/web run type-check"
       ],
       "comments": [
@@ -9818,6 +9824,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "f49f2178cfe3d0d294f5bb5a5bd3df2a9a61d8a3556eab3ba9e76a97723e1605"
+    "checksum": "49dcfffb960aeaecaa92eafddff62ea0c89e1c9fc5108d76c7537e555836618c"
   }
 }

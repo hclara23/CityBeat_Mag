@@ -9,6 +9,7 @@ import { getUser, getUserProfile, updateProfile, signOut } from '@citybeat/lib/f
 import { AuthError } from '@citybeat/ui/auth'
 import { levelForPoints, levelProgress } from '@/lib/points'
 import { PremierPromotion } from '@/components/citybeat/PremierPromotion'
+import { withLocale } from '@/components/citybeat/content'
 
 interface UserProfile {
   id: string
@@ -312,18 +313,25 @@ export default function AccountPage() {
                 </p>
               )}
             </div>
-            <Button
-              type="button"
-              onClick={handleConnectStripe}
-              disabled={isConnectingStripe}
-              className="shrink-0"
-            >
-              {isConnectingStripe
-                ? 'Opening Stripe...'
-                : connectedAccount
-                  ? 'Continue Stripe Setup'
-                  : 'Add Bank Account'}
-            </Button>
+            <div className="flex shrink-0 flex-col gap-2">
+              <a
+                href={withLocale(locale, '/account/payments')}
+                className="rounded-md bg-slate-900 px-5 py-2.5 text-center text-sm font-bold text-white hover:bg-slate-800"
+              >
+                View payouts & statements
+              </a>
+              <Button
+                type="button"
+                onClick={handleConnectStripe}
+                disabled={isConnectingStripe}
+              >
+                {isConnectingStripe
+                  ? 'Opening Stripe...'
+                  : connectedAccount
+                    ? 'Continue Stripe Setup'
+                    : 'Add Bank Account'}
+              </Button>
+            </div>
           </div>
         </div>
 
