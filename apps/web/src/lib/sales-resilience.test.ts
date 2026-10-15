@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { checkoutAttemptDocumentId, checkoutRenewalError, isStripeResourceMissing, replacementCompensationOutcome } from './sales-resilience'
+import { checkoutAttemptDocumentId, checkoutRenewalError, isStripeResourceMissing, oldCheckoutRetirementState, replacementCompensationOutcome } from './sales-resilience'
 
 test('checkout attempts are stable per seller and key but isolated between sellers', () => {
   const key = '9bf1cd96-21df-4654-b293-f257c5c12afd'
@@ -36,4 +36,12 @@ test('replacement compensation leaves no shareable replacement and escalates cle
     orderStatus: 'needs_attention',
     errorCode: 'replacement_compensation_failed',
   })
+})
+
+test('replacement retries distinguish retired sessions from completed payments', () => {
+  assert.equal(oldCheckoutRetirementState({ status: 'expired', payment_status: 'unpaid' }), 'retired')
+  assert.equal(oldCheckoutRetirementState({ status: 'complete', payment_status: 'unpaid' }), 'completed')
+  assert.equal(oldCheckoutRetirementState({ status: 'open', payment_status: 'paid' }), 'completed')
+  assert.equal(oldCheckoutRetirementState({ status: 'open', payment_status: 'unpaid' }), 'open')
+  assert.equal(oldCheckoutRetirementState({ status: 'weird' }), 'unknown')
 })

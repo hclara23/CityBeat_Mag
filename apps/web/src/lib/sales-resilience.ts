@@ -32,3 +32,11 @@ export function replacementCompensationOutcome(compensationError: any): {
     ? { auditStatus: 'compensation_failed', orderStatus: 'needs_attention', errorCode: 'replacement_compensation_failed' }
     : { auditStatus: 'new_session_expired_after_old_expiry_failure', orderStatus: 'failed', errorCode: 'replacement_old_expiry_failed' }
 }
+
+export function oldCheckoutRetirementState(session: { status?: unknown; payment_status?: unknown } | null): 'open' | 'retired' | 'completed' | 'unknown' {
+  if (!session) return 'unknown'
+  if (session.status === 'expired') return 'retired'
+  if (session.status === 'complete' || session.payment_status === 'paid') return 'completed'
+  if (session.status === 'open') return 'open'
+  return 'unknown'
+}

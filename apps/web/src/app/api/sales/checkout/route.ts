@@ -39,7 +39,7 @@ import {
   type AttestationMethod,
 } from '@/lib/verification-audit'
 import Stripe from 'stripe'
-import { checkoutAttemptDocumentId, checkoutAttemptHash, isStripeResourceMissing, replacementCompensationOutcome } from '@/lib/sales-resilience'
+import { checkoutAttemptDocumentId, checkoutAttemptHash, isStripeResourceMissing, oldCheckoutRetirementState, replacementCompensationOutcome } from '@/lib/sales-resilience'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -482,6 +482,36 @@ export async function POST(request: NextRequest) {
           : { customer_email: contactEmail }
         : { customer_email: contactEmail }
 
+    let replacementPrevious: Record<string, any> | null = null
+    let replacementSessionState: 'open' | 'retired' | 'completed' | 'unknown' = 'unknown'
+    if (replacementOrderId) {
+      const previousRef = adminDb.collection('sales_orders').doc(replacementOrderId)
+      replacementPrevious = (await previousRef.get()).data() as Record<string, any>
+      if (replacementPrevious?.stripe_checkout_session_id) {
+        const oldSession = await stripe!.checkout.sessions.retrieve(replacementPrevious.stripe_checkout_session_id)
+        replacementSessionState = oldCheckoutRetirementState(oldSession)
+        if (replacementSessionState === 'completed') {
+          const detectedAt = new Date().toISOString()
+          await previousRef.set({
+            checkout_status: 'completed',
+            stripe_reconciliation_required: true,
+            stripe_reconciliation_reason: 'replacement_detected_completed_session',
+            updated_at: detectedAt,
+          }, { merge: true })
+          await adminDb.collection('sales_checkout_replacements').add({
+            old_order_id: replacementOrderId, new_order_id: orderRef.id,
+            old_session_id: replacementPrevious.stripe_checkout_session_id,
+            new_session_id: null, status: 'blocked_old_session_completed',
+            attempted_by: user.id, at: detectedAt,
+          })
+          throw Object.assign(new Error('The original checkout completed and must be reconciled before creating a replacement.'), { status: 409, code: 'replacement_requires_reconciliation' })
+        }
+        if (replacementSessionState === 'unknown') {
+          throw Object.assign(new Error('The original checkout status could not be verified. Retry after Stripe is available.'), { status: 503, code: 'replacement_status_unknown' })
+        }
+      }
+    }
+
     const createCheckout = (params: Stripe.Checkout.SessionCreateParams) => product.founding
       ? createFoundingCheckout(stripe!, listingId || `order:${orderRef!.id}`, params)
       : stripe!.checkout.sessions.create(params, { idempotencyKey: `sales:${attemptDigest}` })
@@ -515,12 +545,25 @@ export async function POST(request: NextRequest) {
 
     if (replacementOrderId) {
       const previousRef = adminDb.collection('sales_orders').doc(replacementOrderId)
-      const previous = (await previousRef.get()).data() as Record<string, any>
+      const previous = replacementPrevious || (await previousRef.get()).data() as Record<string, any>
       if (previous?.stripe_checkout_session_id) {
         try {
+          if (replacementSessionState !== 'retired') {
           await stripe!.checkout.sessions.expire(previous.stripe_checkout_session_id)
+          }
         } catch (oldExpiryError: any) {
           if (!isStripeResourceMissing(oldExpiryError)) {
+            // Stripe may have retired or completed the session between our
+            // preflight retrieve and expire request. Re-read before deciding
+            // whether to compensate the replacement.
+            let refreshedState: ReturnType<typeof oldCheckoutRetirementState> = 'unknown'
+            try {
+              refreshedState = oldCheckoutRetirementState(await stripe!.checkout.sessions.retrieve(previous.stripe_checkout_session_id))
+            } catch {}
+            if (refreshedState === 'retired') {
+              // Retry-safe: the previous attempt retired Stripe successfully
+              // and only the following Firestore write was interrupted.
+            } else {
             const failedAt = new Date().toISOString()
             let compensationError: any = null
             try {
@@ -531,19 +574,28 @@ export async function POST(request: NextRequest) {
               if (!isStripeResourceMissing(error)) compensationError = error
             }
             const outcome = replacementCompensationOutcome(compensationError)
+            const oldCompleted = refreshedState === 'completed'
+            if (oldCompleted) {
+              await previousRef.set({
+                checkout_status: 'completed',
+                stripe_reconciliation_required: true,
+                stripe_reconciliation_reason: 'replacement_race_detected_completed_session',
+                updated_at: failedAt,
+              }, { merge: true })
+            }
             await adminDb.collection('sales_checkout_replacements').add({
               old_order_id: replacementOrderId,
               new_order_id: orderRef.id,
               old_session_id: previous.stripe_checkout_session_id,
               new_session_id: session.id,
-              status: outcome.auditStatus,
+              status: oldCompleted && !compensationError ? 'new_session_expired_old_session_completed' : outcome.auditStatus,
               old_expiry_error: String(oldExpiryError?.message || oldExpiryError).slice(0, 300),
               compensation_error: compensationError ? String(compensationError?.message || compensationError).slice(0, 300) : null,
               attempted_by: user.id,
               at: failedAt,
             })
             await orderRef.set({
-              checkout_status: outcome.orderStatus,
+              checkout_status: oldCompleted ? 'needs_attention' : outcome.orderStatus,
               stripe_checkout_session_id: session.id,
               checkout_url: null,
               replacement_of_order_id: replacementOrderId,
@@ -551,12 +603,15 @@ export async function POST(request: NextRequest) {
               updated_at: failedAt,
             }, { merge: true })
             const replacementError = Object.assign(
-              new Error(!compensationError
+              new Error(oldCompleted
+                ? 'The original checkout completed during replacement and requires payment reconciliation.'
+                : !compensationError
                 ? 'The original checkout could not be retired. The replacement was canceled; keep using the original link.'
                 : 'Checkout replacement needs immediate payment-operations review.'),
-              { code: outcome.errorCode }
+              { code: oldCompleted ? 'replacement_requires_reconciliation' : outcome.errorCode, status: oldCompleted ? 409 : 400 }
             )
             throw replacementError
+            }
           }
         }
       }
@@ -594,7 +649,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     if (orderRef) {
-      const needsAttention = error?.code === 'replacement_compensation_failed'
+      const needsAttention = error?.code === 'replacement_compensation_failed' || error?.code === 'replacement_requires_reconciliation'
       await orderRef
         .set(
           {

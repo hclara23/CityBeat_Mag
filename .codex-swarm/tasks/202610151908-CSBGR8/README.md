@@ -12,8 +12,9 @@ comments:
   - { author: "CODER", body: "Start: implement approved sales-flow resilience fixes with local-only verification and no external sends, checkouts, charges, deployment, or financial mutations." }
   - { author: "CODER", body: "verified: sales-flow resilience implementation passed web type-check plus 608 web and 20 shared-library tests, including focused persistence, correction, idempotency, renewal, claim-first email, mobile, and error-state coverage." }
   - { author: "CODER", body: "Start: close the replacement compensation gap so an old-session expiry failure retires the newly created session and records the failed attempt without creating two live links." }
+  - { author: "CODER", body: "Start: harden replacement retry reconciliation so an already retired old session is accepted while a completed or paid old session blocks replacement and preserves payment handling." }
 doc_version: 2
-doc_updated_at: "2026-10-15T19:25:44+00:00"
+doc_updated_at: "2026-10-15T19:28:00+00:00"
 doc_updated_by: "agentctl"
 description: "Implement the approved sales-UI audit fixes for resilient creation, checkout sharing, resend/recovery, claim, payment-return, login, and listing editing across desktop and mobile. Preserve checkout idempotency and prevent duplicate orders, sessions, or sends. Include focused automated coverage."
 ---
@@ -43,5 +44,5 @@ Revert the implementation commit. Existing sales orders and Stripe sessions rema
 
 ## Notes
 
-Residual replacement compensation fix: if Stripe cannot expire the original checkout after creating its replacement, the route immediately expires the new session, records a failed replacement audit, keeps the old order unchanged, and returns a recoverable error. If compensation itself fails, the new order is marked needs_attention with no shareable URL and the audit preserves both session IDs. Type-check and full tests passed (610 web, 20 shared). No real sessions or production state were touched.
+Retry reconciliation hardening: replacement now retrieves the original Stripe Checkout Session before creating/replaying a replacement. Expired means already retired and proceeds safely; complete or paid blocks replacement, marks the original order for reconciliation, and writes an audit. If status changes during expiry, the route re-retrieves: expired is accepted, completed compensates the replacement and escalates reconciliation, and unknown failures retain the existing compensation path. Type-check and full tests passed (611 web, 20 shared). No real sessions or production state were touched.
 
