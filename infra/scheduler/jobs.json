@@ -210,7 +210,7 @@
     {
       "name": "citybeat-payout-cycle",
       "schedule": "0 9 15,28-31 * *",
-      "timeZone": "America/Chihuahua",
+      "timeZone": "America/Denver",
       "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/payout-cycle",
       "httpMethod": "GET",
       "requiresCronSecret": true,
@@ -227,7 +227,7 @@
     {
       "name": "citybeat-payout-statements",
       "schedule": "0 10 15,28-31 * *",
-      "timeZone": "America/Chihuahua",
+      "timeZone": "America/Denver",
       "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/payout-statements",
       "httpMethod": "GET",
       "requiresCronSecret": true,
