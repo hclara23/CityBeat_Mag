@@ -9289,7 +9289,7 @@
     {
       "id": "202610151908-CSBGR8",
       "title": "Harden Premium sales flow against interrupted sales",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9305,10 +9305,18 @@
         "npm --prefix apps/web run type-check",
         "npm test"
       ],
+      "commit": {
+        "hash": "0934cda8ccd0d5aae272b2069979d026a117dc59",
+        "message": "✨ CSBGR8 harden checkout recovery and duplicate prevention"
+      },
       "comments": [
         {
           "author": "CODER",
           "body": "Start: implement approved sales-flow resilience fixes with local-only verification and no external sends, checkouts, charges, deployment, or financial mutations."
+        },
+        {
+          "author": "CODER",
+          "body": "verified: sales-flow resilience implementation passed web type-check plus 608 web and 20 shared-library tests, including focused persistence, correction, idempotency, renewal, claim-first email, mobile, and error-state coverage."
         }
       ],
       "doc_version": 2,
@@ -9381,6 +9389,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "0f35961ebc6c4c0b009c09514a8e60bfcc22b0dac8b2de997104271b3d0c3935"
+    "checksum": "a7a912960230741a58a7fd2a042172e59820c1d68b2bccf46ff584cd19b173a9"
   }
 }
