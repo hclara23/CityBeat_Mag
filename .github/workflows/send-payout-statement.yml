@@ -1,0 +1,64 @@
+name: Send Payout Statement
+
+on:
+  workflow_dispatch:
+    inputs:
+      payee_user_id:
+        description: Connected payee user ID
+        required: true
+        type: string
+      scope:
+        description: Statement period
+        required: true
+        default: cycle
+        type: choice
+        options:
+          - cycle
+          - ytd
+
+env:
+  GCP_PROJECT: kerstenblueprint
+  GCP_REGION: us-central1
+  SERVICE: citybeat-web
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Send one idempotent statement
+        env:
+          PAYEE_USER_ID: ${{ inputs.payee_user_id }}
+          STATEMENT_SCOPE: ${{ inputs.scope }}
+        run: |
+          case "$PAYEE_USER_ID" in
+            ''|*[!A-Za-z0-9_-]*) echo "Invalid payee user ID"; exit 1 ;;
+          esac
+
+          CRON_VALUE=$(gcloud run services describe "$SERVICE" \
+            --project "$GCP_PROJECT" --region "$GCP_REGION" \
+            --format='value(spec.template.spec.containers[0].env.filter(name=CRON_SECRET).value)')
+          if [ -z "$CRON_VALUE" ]; then
+            echo "CRON_SECRET is unavailable; refusing an unauthenticated request."
+            exit 1
+          fi
+
+          response=$(mktemp)
+          code=$(curl --silent --show-error --output "$response" --write-out '%{http_code}' \
+            --max-time 300 --get 'https://citybeatmag.co/api/cron/payout-statements' \
+            --header "Authorization: Bearer $CRON_VALUE" \
+            --data-urlencode "scope=$STATEMENT_SCOPE" \
+            --data-urlencode 'force=1' \
+            --data-urlencode "payee=$PAYEE_USER_ID")
+          cat "$response"
+          echo
+          [ "$code" = "200" ] || { echo "Statement endpoint returned HTTP $code"; exit 1; }
