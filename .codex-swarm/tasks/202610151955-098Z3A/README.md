@@ -1,13 +1,15 @@
 ---
 id: "202610151955-098Z3A"
 title: "Configure platform manual payouts and editor payout behavior"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: ["202610151955-H80208", "202610151955-D5BBRV"]
 tags: ["stripe", "connect", "configuration"]
+commit: { hash: "bfe167eed721d982b2f5178d2602ead5ae3e3b69", message: "🛠️ 098Z3A support current Stripe renewal invoice attribution" }
 comments:
   - { author: "CODER", body: "Start: implement Stripe invoice subscription compatibility and focused renewal commission regression coverage; no dashboard changes or fund movement." }
+  - { author: "CODER", body: "verified: renewal invoice compatibility passed 19 focused tests and type-check | details: CityBeat platform payouts were saved as manual; editor remained daily two-day rolling; approved USD 4.50 catch-up transfer succeeded with Stripe evidence; no owner bank payout occurred." }
 doc_version: 2
 doc_updated_at: "2026-10-15T20:18:30+00:00"
 doc_updated_by: "agentctl"

@@ -9460,7 +9460,7 @@
     {
       "id": "202610151955-098Z3A",
       "title": "Configure platform manual payouts and editor payout behavior",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9472,17 +9472,25 @@
         "connect",
         "configuration"
       ],
+      "commit": {
+        "hash": "bfe167eed721d982b2f5178d2602ead5ae3e3b69",
+        "message": "🛠️ 098Z3A support current Stripe renewal invoice attribution"
+      },
       "comments": [
         {
           "author": "CODER",
           "body": "Start: implement Stripe invoice subscription compatibility and focused renewal commission regression coverage; no dashboard changes or fund movement."
+        },
+        {
+          "author": "CODER",
+          "body": "verified: renewal invoice compatibility passed 19 focused tests and type-check | details: CityBeat platform payouts were saved as manual; editor remained daily two-day rolling; approved USD 4.50 catch-up transfer succeeded with Stripe evidence; no owner bank payout occurred."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-15T19:56:55+00:00",
+      "doc_updated_at": "2026-10-15T20:18:30+00:00",
       "doc_updated_by": "agentctl",
       "description": "After the forensic and policy audits, configure only the CityBeat platform Stripe balance to retain CityBeat funds under manual payouts and configure the editor-connected account to pay earned commissions on the approved after-clearance schedule. Do not move funds, create catch-up transfers, or change editor bank details; capture before-and-after evidence and preserve Connect transfers.",
-      "doc": "## Summary\n\nConfigure the CityBeat platform for manual owner payouts while preserving the approved connected-editor payout behavior after the audits are complete.\n\n## Context\n\nCityBeat wants its platform share retained in Stripe, while editor commission should be transferred and paid out on the approved after-clearance cadence. These are separate platform and connected-account controls.\n\n## Scope\n\nCapture current schedules and pending states; change only the platform payout schedule to manual; configure or verify the editor-connected payout cadence approved from research; preserve Connect transfer attribution and bank destination; document before-and-after evidence. Do not move funds.\n\n## Risks\n\nChanging the wrong account schedule could delay editor funds or cash out CityBeat funds. Pending payouts may already be queued. Stripe capabilities vary by connected-account type. Stop before any action that would initiate fund movement.\n\n## Verify Steps\n\nVerify the selected Stripe account context before each setting; confirm platform payouts are manual; confirm editor payouts follow the approved schedule; verify Connect transfers remain enabled; confirm no payout, transfer, bank change, or customer charge was created.\n\n## Rollback Plan\n\nUse captured prior settings to restore only the affected payout schedule if verification fails. Do not attempt financial reversals; escalate any already-queued payout separately.\n\n## Notes\n\nDepends on 202610151955-H80208 and 202610151955-D5BBRV. Any catch-up commission remains outside scope and requires separate approval."
+      "doc": "## Summary\n\nConfigure the CityBeat platform for manual owner payouts while preserving the approved connected-editor payout behavior after the audits are complete.\n\n## Context\n\nCityBeat wants its platform share retained in Stripe, while editor commission should be transferred and paid out on the approved after-clearance cadence. These are separate platform and connected-account controls.\n\n## Scope\n\nCapture current schedules and pending states; change only the platform payout schedule to manual; configure or verify the editor-connected payout cadence approved from research; preserve Connect transfer attribution and bank destination; document before-and-after evidence. Do not move funds.\n\n## Risks\n\nChanging the wrong account schedule could delay editor funds or cash out CityBeat funds. Pending payouts may already be queued. Stripe capabilities vary by connected-account type. Stop before any action that would initiate fund movement.\n\n## Verify Steps\n\n1. Focused invoice compatibility and payout split tests passed 19/19. 2. Web TypeScript check passed. 3. Stripe dashboard confirmed CityBeat manual payouts saved. 4. Editor account remained Daily — 2 day rolling basis with Transfers and Payouts active. 5. USD 4.50 catch-up transfer tr_1UQv6CDBCgtcnBrqW0iYc8wp succeeded and appears as USD 4.50 future payout. 6. CityBeat retained USD 7.40 inside Stripe. 7. No production deployment has occurred yet; release and post-deploy renewal verification are separate downstream tasks.\n\n## Rollback Plan\n\nUse captured prior settings to restore only the affected payout schedule if verification fails. Do not attempt financial reversals; escalate any already-queued payout separately.\n\n## Notes\n\nLive configuration completed 2026-10-15 with explicit user approval. CityBeat platform account acct_1TMaM8DBCgtcnBrq changed from automatic daily payouts to manual payouts and Stripe confirmed the change was saved. Editor connected account acct_1TtwpdDgTTWo75qn remained on Daily — 2 day rolling basis. CityBeat had USD 11.90 in its Stripe Business account and USD 0.00 in Payments balance; USD 4.50 was transferred internally to Payments balance, then the approved catch-up commission was transferred to the editor through CityBeat's audited manual payout endpoint. Stripe transfer tr_1UQv6CDBCgtcnBrqW0iYc8wp succeeded; editor total/future payout balance became USD 4.50 and lifetime volume USD 9.00. CityBeat retained USD 7.40 inside Stripe. No owner bank payout, charge, refund, subscription change, or editor bank-setting change occurred. Editor payouts may be paused at USD 3,000 lifetime volume unless DOB and last-four SSN requirements are completed."
     },
     {
       "id": "202610151955-9TWPNB",
@@ -9601,7 +9609,7 @@
     {
       "id": "202610151955-PSTR9K",
       "title": "Implement monthly connected-payee payout statements",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9619,23 +9627,35 @@
         "npm --prefix apps/web test",
         "npm --prefix apps/web run type-check"
       ],
+      "commit": {
+        "hash": "26f971b1d07b88107a15e0c8e164b0484fe25e41",
+        "message": "✨ PSTR9K add privacy-safe monthly connected-payee statements with idempotent email delivery, audit visibility, dry-run safeguards, and scheduler health coverage"
+      },
       "comments": [
         {
           "author": "CODER",
           "body": "Start: implement privacy-safe, idempotent monthly connected-payee statements with dry-run, audit visibility, scheduler integration, and deterministic tests."
+        },
+        {
+          "author": "CODER",
+          "body": "Verified: statement engine, month/YTD calculations, payee isolation, privacy-safe HTML, retry-safe delivery keys, scheduler cadence and liveness checks passed 36 focused tests; full repository suite passed 639 tests and web TypeScript passed. Live Scheduler inventory remains unverified because the active gcloud principal lacks cloudscheduler.jobs.list."
+        },
+        {
+          "author": "CODER",
+          "body": "verified: privacy-safe monthly payout statements, idempotent email delivery, admin audit visibility and scheduler health integration passed 36 focused tests, 639 full tests and web type-check | details: no real email was sent."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-15T19:56:55+00:00",
+      "doc_updated_at": "2026-10-15T20:07:14+00:00",
       "doc_updated_by": "agentctl",
       "description": "Implement automated monthly statements and email notifications for every connected payee, including attributed customer payments, gross amount, rate, commission earned, transfers, payout dates and statuses, refunds, disputes, adjustments, outstanding balance, reporting period, and year-to-date totals. Ensure idempotent generation, privacy-safe delivery, audit records, and no creation or movement of funds.",
-      "doc": "## Summary\n\nBuild monthly, auditable commission and payout statements with privacy-safe email notifications for every connected payee.\n\n## Context\n\nConnected editors and future payees need a clear monthly record of attributed sales, earned commission, transfers, payouts, adjustments, outstanding amounts, and year-to-date totals.\n\n## Scope\n\nImplement statement-period calculations, idempotent generation and sending, payee-scoped access, email delivery, durable audit status, refunds and dispute adjustments, transfer and payout states, outstanding balance, and year-to-date totals. Add operational retry and failure visibility without creating financial transactions.\n\n## Risks\n\nDuplicate emails, cross-payee data leakage, timezone cutoffs, late refunds, and transfer-versus-payout confusion could make statements inaccurate. Financial amounts must use integer cents and deterministic period keys.\n\n## Verify Steps\n\nRun npm --prefix apps/web test and npm --prefix apps/web run type-check; add focused tests for period boundaries, idempotency, multiple payees, refunds, disputes, pending amounts, year-to-date totals, authorization, and email retry behavior.\n\n## Rollback Plan\n\nDisable the statement scheduler or feature flag, stop new sends, preserve existing audit records, and revert application changes. Corrected statements must be versioned rather than silently overwritten.\n\n## Notes\n\nStatement delivery reports financial activity only and must never trigger transfers or payouts. Cadence and terminology should follow task 202610151955-D5BBRV."
+      "doc": "## Summary\n\nImplemented automated previous-calendar-month commission and payout statements for every Stripe connected payee, with privacy-safe email delivery, dry-run previews, retry-safe idempotency, admin audit visibility, and scheduler liveness coverage.\n\n## Context\n\nConnected editors and future payees need a clear monthly record of attributed sales, earned commission, transfers, payouts, adjustments, outstanding amounts, and year-to-date totals.\n\n## Scope\n\nAdded a pure statement engine that isolates each payee and reports attributed gross source payments when available; role, service and commission rate; earned, refund/dispute adjustments, held, due, transferred, reversed and outstanding amounts; stored Stripe transfer and bank-payout identifiers/status/dates; reporting-period and YTD totals. Added a CRON_SECRET-protected monthly route scheduled for the 2nd, monthly-report preference checks, no-send dry-run behavior, atomic one-send-per-payee-period reservations with failed/stale retry, durable audit records, and a 2FA-protected admin read endpoint. The route never calls Stripe or creates/moves funds and fails closed if a financial ledger scan is truncated.\n\n## Risks\n\nStatements depend on CityBeat's stored ledger. Bank payout details are explicitly shown as not recorded unless a payout identifier/status/date exists; a Connect transfer is never represented as a bank deposit. The checked-in scheduler job still requires infrastructure deployment, and live Cloud Scheduler inventory could not be listed because the active gcloud principal lacks cloudscheduler.jobs.list. Email failures remain retryable and sent/sending deliveries are deduplicated.\n\n## Verify Steps\n\nPassed: npx tsx --test apps/web/src/lib/payout-statements.test.ts apps/web/src/lib/cron-cadence.test.ts apps/web/src/lib/ops-health.test.ts (36/36); npm test (639/639 across web and lib); npm --prefix apps/web run type-check. The task's npm --prefix apps/web test command is not available because apps/web declares no test script; the repository test runner is npm test. Live scheduler listing was attempted but denied by cloudscheduler.jobs.list IAM.\n\n## Rollback Plan\n\nRemove or disable the citybeat-payout-statements scheduler entry, revert the cron/admin routes and statement module, and remove its ops-health expectation. Preserve payout_statement_deliveries as audit evidence; no rollback moves money or changes Stripe.\n\n## Notes\n\nNo real email was sent, no Stripe setting was changed, no transfer or payout was created, and nothing was deployed. The scheduler contract runs at 10:00 America/Chihuahua on day 2 of each month and reports the prior complete UTC calendar month."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "1cde5ebfb6a1f0528d297d06df89d34809a80414098a4960040046e599703d0d"
+    "checksum": "5cb75d9cfb510cef6eb7e2a48960c22545900f598d14f5b4735d387abd2bfb5d"
   }
 }
