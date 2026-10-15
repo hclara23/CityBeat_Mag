@@ -1,15 +1,17 @@
 ---
 id: "202610152121-SHHTPH"
 title: "Verify large-scale directory ingestion and publication"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "TESTER"
 depends_on: ["202610152121-YCE50A", "202610152121-FR763D"]
 tags: ["testing", "directory", "ingestion"]
 verify: ["npm test", "npm run type-check"]
+commit: { hash: "d2b7923735959615567c0332c58f26ba610e5fcb", message: "🧪 SHHTPH reject expired licenses and verify directory scale release" }
 comments:
   - { author: "TESTER", body: "Start: verify official source templates, six-figure sitemap behavior, production build compatibility, and non-mutation guarantees before release." }
   - { author: "TESTER", body: "Verified: 652 tests, TypeScript, and the production build pass; official source checks were read-only, expired TDLR rows are now rejected, and no candidate was imported or published." }
+  - { author: "TESTER", body: "verified: 652 tests, TypeScript, and production build pass | details: expired licenses are rejected and no production ingest or publication occurred." }
 doc_version: 2
 doc_updated_at: "2026-10-15T21:35:45+00:00"
 doc_updated_by: "agentctl"
