@@ -9889,12 +9889,145 @@
       "doc_updated_by": "agentctl",
       "description": "Coordinate the approved editor commission policy through downstream tasks: cadence and attached statements 202610152030-YPJ8P9; authenticated payouts dashboard 202610152030-FBKEDB; 2026 YTD reconciliation and email 202610152030-RDM0NQ; end-to-end verification 202610152030-TTPCR8; and deployment 202610152030-WS5E44. CityBeat platform funds must remain accumulated under manual payout control. Only cleared editor commissions transfer on the 15th and final calendar day, with a statement each time. Deployment is capped at the explicitly approved up-to- one-time cost and approximately .10 monthly scheduler charge.",
       "doc": "## Summary\n\nCompleted and deployed the approved semi-monthly editor commission program while preserving manual payout control of CityBeat's platform Stripe balance.\n\n## Context\n\nAll five downstream tasks are complete: cadence and statements, private editor dashboard, YTD reconciliation and email, end-to-end verification, and production release.\n\n## Scope\n\nEditor commission holding and twice-monthly transfer cadence; attached commission statements; editor-only payout history and totals; Stripe reconciliation; live deployment.\n\n## Risks\n\nNo duplicate transfer was created. Platform funds remain under manual payout control. Idempotent transfer and statement records prevent replay, and the dashboard is scoped to the signed-in payee.\n\n## Verify Steps\n\nAll downstream tasks are DONE; 644 tests and four workspace type-checks passed; production deployment 38805192285 succeeded; public routes returned HTTP 200; YTD statement run 38806438435 sent one email with zero failures.\n\n## Rollback Plan\n\nRevert the implementation commits and redeploy if needed. Preserve immutable Stripe transfer and statement records, and never automatically reverse completed transfers.\n\n## Notes\n\nThe existing daily reconciliation scheduler now handles the 15th and final calendar day, so no new recurring scheduler charge was incurred. The editor's connected bank payout behavior remains separate from CityBeat platform payout settings."
+    },
+    {
+      "id": "202610152120-4H2YQR",
+      "title": "Publish validated backlog and scale Southwest directory",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "ingestion",
+        "seo",
+        "release"
+      ],
+      "comments": [
+        {
+          "author": "PLANNER",
+          "body": "Approved decomposition: protect merged records 202610152121-B8B5RR; expand free official sources 202610152121-YCE50A; scale SEO and discovery 202610152121-FR763D; verify 202610152121-SHHTPH; deploy and publish the first validated batch 202610152121-4F8224. Audit evidence: 1,728 hidden rows, all merged; 1,728 resolve to published canonical roots with no missing targets or cycles."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T21:21:48+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Coordinate the approved rollout through safeguards 202610152121-B8B5RR, compliant source expansion 202610152121-YCE50A, 100k-scale SEO and discovery 202610152121-FR763D, verification 202610152121-SHHTPH, and production release/first bounded import 202610152121-4F8224. The live audit found all 1,728 hidden rows are merged duplicates that resolve to 884 published canonical listings, so they must remain unpublished. Do not purchase data, paid APIs, or new cloud resources without specific price approval.",
+      "doc": "## Summary\n\nSafely expand CityBeat's published business directory from 7,782 toward 100,000 claim-ready Southwest listings without publishing merged duplicates or restricted-source content.\n\n## Context\n\nThe live directory contains 9,510 records: 7,782 published and 1,728 hidden. Every hidden record is a merged sibling, and every merge chain resolves to one of 884 published canonical roots. The expansion must therefore add genuinely new businesses rather than publish the hidden duplicate rows.\n\n## Scope\n\nPublication safeguards, free official/open-data source templates, geographic expansion across the Southwest, deterministic deduplication, provenance and freshness, SEO/discovery scaling, staged verification, and a bounded first production import.\n\n## Risks\n\nDuplicate or closed businesses, restricted third-party content, malformed or thin pages, excessive database reads, crawl-budget waste, and unapproved paid API or deployment costs.\n\n## Verify Steps\n\nRequire passing tests and type-checks, dry-run source counts, zero restricted-provenance writes, no broken merge chains, bounded publication batches, live canonical-page checks, sitemap validation, and measurable claim-readiness fields.\n\n## Rollback Plan\n\nStop ingestion, unpublish only the new batch by recorded batch ID, retain source and audit records, and revert the release. Never republish merged siblings or delete canonical listings automatically.\n\n## Notes\n\nNo paid source, API, cloud resource, or deployment is authorized by task creation. Obtain a price-specific approval before any such cost."
+    },
+    {
+      "id": "202610152121-4F8224",
+      "title": "Deploy safeguards and publish first compliant expansion batch",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "INTEGRATOR",
+      "depends_on": [
+        "202610152121-SHHTPH"
+      ],
+      "tags": [
+        "release",
+        "directory",
+        "production"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T21:21:31+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "After explicit deployment-cost approval, deploy the verified safeguards and source expansion, run a free-source dry run, publish only validated new records in a bounded batch, and verify canonical pages, sitemap inclusion, performance, and claim readiness."
+    },
+    {
+      "id": "202610152121-B8B5RR",
+      "title": "Protect merged directory records from bulk publication",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [
+        "code",
+        "backend",
+        "directory"
+      ],
+      "verify": [
+        "npm test"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T21:21:30+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Replace unsafe publish-all behavior with validation that refuses merged duplicates, malformed records, disallowed provenance, and unresolved canonical chains; add an audit preview and tests."
+    },
+    {
+      "id": "202610152121-FR763D",
+      "title": "Scale directory SEO and discovery toward 100k listings",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202610152121-B8B5RR"
+      ],
+      "tags": [
+        "code",
+        "frontend",
+        "seo"
+      ],
+      "verify": [
+        "npm test",
+        "npm run type-check"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T21:21:31+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Make directory browsing, sitemaps, canonical metadata, and operational metrics safe and indexable at 10k, 25k, 50k, and 100k published listings without full-collection public reads."
+    },
+    {
+      "id": "202610152121-SHHTPH",
+      "title": "Verify large-scale directory ingestion and publication",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "TESTER",
+      "depends_on": [
+        "202610152121-YCE50A",
+        "202610152121-FR763D"
+      ],
+      "tags": [
+        "testing",
+        "directory",
+        "ingestion"
+      ],
+      "verify": [
+        "npm test",
+        "npm run type-check"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T21:21:31+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Test provenance rejection, merge-chain safety, deduplication, sitemap scale, directory performance, and staged publication behavior before production release."
+    },
+    {
+      "id": "202610152121-YCE50A",
+      "title": "Expand compliant Southwest business source templates",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202610152121-B8B5RR"
+      ],
+      "tags": [
+        "code",
+        "ingestion",
+        "open-data"
+      ],
+      "verify": [
+        "npm test"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T21:21:30+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Add and document free official/open-data sources for high-claim categories across El Paso County, Southern New Mexico, and West Texas, with provenance, freshness, geographic filtering, and deterministic deduplication. Do not use paid APIs or restricted Google/Bing content."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "7152459d0e5ac16ebfa0128e601058127a5bde72f7223b9ae752089a875b1448"
+    "checksum": "14169517e102a5bdc3d49a7a0f909e122b57de13d244f558a595b4c82bc47b5b"
   }
 }
