@@ -66,6 +66,10 @@ export async function GET() {
         created_at: o.created_at || null,
         sold_by: o.sold_by || null,
         listing_id: o.listing_id || null,
+        // Sales/admin-only recovery board: expose the existing Stripe-hosted
+        // URL so the rep can resend the SAME live checkout instead of creating
+        // a duplicate order/session.
+        checkout_url: typeof o.checkout_url === 'string' ? o.checkout_url : null,
         recovery_emailed_at: o.recovery_emailed_at || null,
         promo_offered: o.promo_offered || null,
         promo_offer_sent_at: o.promo_offer_sent_at || null,
