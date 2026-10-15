@@ -4,7 +4,7 @@ title: "Audit end-to-end Premium sales UI resilience"
 status: "TODO"
 priority: "high"
 owner: "REVIEWER"
-depends_on: ["202610151907-QDRGY5"]
+depends_on: []
 tags: ["sales", "ui", "checkout"]
 comments:
   - { author: "REVIEWER", body: "Verified: read-only source audit completed; 55 focused unit tests passed. Two P0 sale-continuity defects and three P1 recovery/ownership/idempotency gaps are documented in the task README. Keep TODO until dependency 202610151907-QDRGY5 is DONE." }

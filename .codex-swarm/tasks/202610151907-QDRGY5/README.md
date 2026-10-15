@@ -1,13 +1,15 @@
 ---
 id: "202610151907-QDRGY5"
 title: "Audit Premium SEO, sales UX, and payout readiness"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
 comments:
   - { author: "PLANNER", body: "Approved decomposition: SEO/referral audit 202610151908-65QK5Z -> implementation 202610151908-1V8V7X; sales UI audit 202610151908-7SR37V -> hardening 202610151908-CSBGR8; read-only Stripe/editor payout readiness 202610151908-W3RZA8; combined verification 202610151908-FQ4M4R depends on both implementations and payout audit; production release 202610151908-63D713 depends on combined verification." }
+  - { author: "ORCHESTRATOR", body: "Start: Execute the approved Premium SEO and pass-through, sales-flow resilience, and read-only Stripe/editor payout audits; implement and verify evidence-backed fixes without initiating financial transactions." }
+  - { author: "PLANNER", body: "Dependency correction: removed the umbrella task 202610151907-QDRGY5 as an execution prerequisite from the three independent audit tasks 202610151908-65QK5Z, 202610151908-7SR37V, and 202610151908-W3RZA8. The real ordering remains unchanged: each implementation waits on its audit, combined verification waits on both implementations plus payout readiness, and release waits on combined verification." }
 doc_version: 2
 doc_updated_at: "2026-10-15T19:08:07+00:00"
 doc_updated_by: "agentctl"

@@ -9118,19 +9118,229 @@
         {
           "author": "ORCHESTRATOR",
           "body": "verified: Completed the Super H Automotive Premium handoff, preserved the live checkout, verified the QR and listing, deployed login/edit instructions and the safe official-email resend, then resent the same URL through CityBeat SMTP."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Verified: Correction to the prior verification note: the live Stripe Checkout displays $19.99 per month; PowerShell removed the dollar sign from the earlier comment text only."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-15T19:00:40+00:00",
+      "doc_updated_at": "2026-10-15T19:01:04+00:00",
       "doc_updated_by": "agentctl",
       "description": "Finalize the existing live Super H Automotive listing at 4550 Hercules Ave with phone (915) 202-6730; preserve the recurring USD 19.99/month Stripe Checkout handoff; generate and verify its QR code; confirm approved owner/edit access; and email the payment link plus login/edit instructions after action-time send confirmation. No customer payment is authorized or initiated.",
-      "doc": "## Summary\n\nCompleted the Super H Automotive Premium listing handoff at USD 19.99/month. Preserved and verified the existing live Stripe Checkout URL, generated a QR code, confirmed the approved public listing, deployed owner login/edit instructions in the official payment email, and resent the same checkout URL to vhautomotive.vh@gmail.com through CityBeat's configured hello@citybeatmag.co SMTP mailer.\n\n## Scope\n\nSuper H Automotive, 4550 Hercules Ave, El Paso, TX 79904, (915) 202-6730. Listing ID and order ID TJmwyo55waiFiGYp2fmu. Deliverables include the live Premium listing, unchanged recurring checkout, QR asset, owner login/edit guidance, safe resend UI, production deployment, and official-domain resend.\n\n## Risks\n\nNo customer payment was initiated. The checkout remains unpaid and live. An earlier Gmail connector send incorrectly used Morning Star <morningstarelp@gmail.com>; the corrected resend used the application's official CityBeat SMTP path. Both messages contain the same Stripe Checkout URL, so the earlier link remains valid and no duplicate checkout was created.\n\n## Verify Steps\n\nPassed web type-check and tests in GitHub Actions run 38789056668. Candidate deployment, smoke test, 100% traffic promotion, and live verification passed. Opened the original Stripe URL and confirmed Super H Automotive Premium Monthly at .99 per month. Reloaded the production Sales Desk, confirmed the Super H row exposed the Email action, invoked it once, and observed no send error.\n\n## Rollback Plan\n\nRevert production commits 7df688a7c60559226ac389d38cdaf51228d22e64 and 130aaf4a036eb924fab6378155312fa43bf272fd if the recovery-board resend UI must be removed, and revert 677901e0070788ae717cec07b0fb291dc08f7ab6 if owner instructions must be removed from the payment email. The existing Stripe Checkout and listing remain independently usable.\n\n## Notes\n\nQR: assets/customer-handoffs/super-h-automotive-premium-checkout-qr.png. Production deploy run: 38789056668. Official resend reused the stored checkout_url and existing order; it did not call checkout creation. The owner can sign in at /en/login and edit through /en/developer."
+      "doc": "## Summary\n\nCompleted the Super H Automotive Premium listing handoff at USD 19.99/month. Preserved and verified the existing live Stripe Checkout URL, generated a QR code, confirmed the approved public listing, deployed owner login/edit instructions in the official payment email, and resent the same checkout URL to vhautomotive.vh@gmail.com through CityBeat's configured hello@citybeatmag.co SMTP mailer.\n\n## Scope\n\nSuper H Automotive, 4550 Hercules Ave, El Paso, TX 79904, (915) 202-6730. Listing ID and order ID TJmwyo55waiFiGYp2fmu. Deliverables include the live Premium listing, unchanged recurring checkout, QR asset, owner login/edit guidance, safe resend UI, production deployment, and official-domain resend.\n\n## Risks\n\nNo customer payment was initiated. The checkout remains unpaid and live. An earlier Gmail connector send incorrectly used Morning Star <morningstarelp@gmail.com>; the corrected resend used the application's official CityBeat SMTP path. Both messages contain the same Stripe Checkout URL, so the earlier link remains valid and no duplicate checkout was created.\n\n## Verify Steps\n\nPassed web type-check and tests in GitHub Actions run 38789056668. Candidate deployment, smoke test, 100% traffic promotion, and live verification passed. Opened the original Stripe URL and confirmed Super H Automotive Premium Monthly at $19.99 per month. Reloaded the production Sales Desk, confirmed the Super H row exposed the Email action, invoked it once, and observed no send error.\n\n## Rollback Plan\n\nRevert production commits 7df688a7c60559226ac389d38cdaf51228d22e64 and 130aaf4a036eb924fab6378155312fa43bf272fd if the recovery-board resend UI must be removed, and revert 677901e0070788ae717cec07b0fb291dc08f7ab6 if owner instructions must be removed from the payment email. The existing Stripe Checkout and listing remain independently usable.\n\n## Notes\n\nQR: assets/customer-handoffs/super-h-automotive-premium-checkout-qr.png. Production deploy run: 38789056668. Official resend reused the stored checkout_url and existing order; it did not call checkout creation. The owner can sign in at /en/login and edit through /en/developer."
+    },
+    {
+      "id": "202610151907-QDRGY5",
+      "title": "Audit Premium SEO, sales UX, and payout readiness",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "PLANNER",
+          "body": "Approved decomposition: SEO/referral audit 202610151908-65QK5Z -> implementation 202610151908-1V8V7X; sales UI audit 202610151908-7SR37V -> hardening 202610151908-CSBGR8; read-only Stripe/editor payout readiness 202610151908-W3RZA8; combined verification 202610151908-FQ4M4R depends on both implementations and payout audit; production release 202610151908-63D713 depends on combined verification."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: Execute the approved Premium SEO and pass-through, sales-flow resilience, and read-only Stripe/editor payout audits; implement and verify evidence-backed fixes without initiating financial transactions."
+        },
+        {
+          "author": "PLANNER",
+          "body": "Dependency correction: removed the umbrella task 202610151907-QDRGY5 as an execution prerequisite from the three independent audit tasks 202610151908-65QK5Z, 202610151908-7SR37V, and 202610151908-W3RZA8. The real ordering remains unchanged: each implementation waits on its audit, combined verification waits on both implementations plus payout readiness, and release waits on combined verification."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:08:07+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Verify and improve Premium-listing SEO value and measurable pass-through traffic; review and harden the end-to-end sales UI so sales cannot stall mid-flow; and read-only validate CityBeat Stripe plus editor payout-account readiness without initiating charges, payouts, or banking changes.",
+      "doc": "## Summary\n\nAudit and improve Premium listing SEO value, measurable customer pass-through traffic, interruption-safe sales UX, and Stripe/editor payout readiness.\n\n## Scope\n\nPremium directory metadata, structured data, indexing, internal discovery, outbound click tracking and reporting; end-to-end new-sale, checkout, resend, claim, payment-return, and edit states; read-only Stripe platform, product, webhook, payout, and editor connected-account checks; regression testing and production release of approved fixes.\n\n## Risks\n\nDo not initiate a charge, payout, subscription, bank-account change, or new paid resource. Protect financial and personal data. Production fixes require verification and deployment within the user's existing one-time infrastructure spending approval only if that approval remains applicable; otherwise request a new explicit cap before incurring cost.\n\n## Verify Steps\n\nValidate SEO output and schema for representative Basic and Premium listings; confirm tracked outbound actions and analytics attribution; exercise interrupted and resumed sales states on desktop and mobile; run type-check and targeted tests; inspect Stripe and editor payout readiness read-only; deploy candidate, smoke test, promote, and verify production when implementation is ready.\n\n## Rollback Plan\n\nRevert scoped implementation commits and redeploy the prior Cloud Run revision if production checks fail. Tracking-only and read-only payment verification make no external financial changes.\n\n## Notes\n\nApproved by the user on October 15, 2026. Super H Automotive is the production reference Premium listing. No live financial transaction is authorized."
+    },
+    {
+      "id": "202610151908-1V8V7X",
+      "title": "Implement Premium SEO and pass-through traffic improvements",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202610151908-65QK5Z"
+      ],
+      "tags": [
+        "seo",
+        "directory",
+        "analytics",
+        "frontend",
+        "backend"
+      ],
+      "verify": [
+        "npm --prefix apps/web run typecheck",
+        "npm --prefix apps/web test"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:09:01+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Implement the approved findings from the Premium SEO audit so Premium listings receive valid crawl/indexing, metadata, structured-data, internal-linking, social-preview, and measurable outbound referral benefits while preserving Basic behavior and privacy. Include focused automated coverage.",
+      "doc": "## Summary\n\nImplement verified SEO and pass-through measurement improvements for Premium listings.\n\n## Scope\n\nApply approved audit findings to crawl/index controls, metadata, schema, sitemap/internal links, social previews, outbound tracking, and focused tests while preserving Basic behavior.\n\n## Risks\n\nSEO regressions, duplicate canonicals, invalid schema, analytics overcounting, or privacy leakage could harm listings.\n\n## Verify Steps\n\nRun web typecheck and tests; validate representative Premium and Basic output plus deduplicated outbound events.\n\n## Rollback Plan\n\nRevert the task commit and redeploy the prior revision if metadata, indexing, rendering, or tracking regresses."
+    },
+    {
+      "id": "202610151908-63D713",
+      "title": "Release and verify Premium growth safeguards",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "INTEGRATOR",
+      "depends_on": [
+        "202610151908-FQ4M4R"
+      ],
+      "tags": [
+        "deployment",
+        "production",
+        "verification"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:09:02+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "After all audits, implementations, and regression checks pass, deploy the approved Premium SEO and sales-flow changes through the existing release workflow and verify production routes, referral instrumentation, checkout reuse, login/edit continuation, and operational health. Do not make purchases, initiate payments or payouts, or exceed any separately approved deployment spending cap.",
+      "doc": "## Summary\n\nRelease only the verified Premium SEO and sales-flow safeguards and confirm production health.\n\n## Scope\n\nUse the established deployment workflow after dependencies pass; verify public listing SEO/referral behavior and operator sales recovery without financial mutations.\n\n## Risks\n\nDeployment cost requires an applicable user-approved cap; rollout can affect directory discovery and sales operations.\n\n## Verify Steps\n\nConfirm successful workflow, healthy production routes, correct Premium output, referral events, checkout reuse, login/edit continuation, and no charge or payout.\n\n## Rollback Plan\n\nRoll back traffic to the last healthy revision and revert release commits if production verification fails."
+    },
+    {
+      "id": "202610151908-65QK5Z",
+      "title": "Audit Premium directory SEO and referral measurement",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "REVIEWER",
+      "depends_on": [],
+      "tags": [
+        "seo",
+        "directory",
+        "analytics"
+      ],
+      "commit": {
+        "hash": "c8739fa2cc32c2a20fa0bfb494845fe0a16de208",
+        "message": "🔎 65QK5Z document Premium SEO and referral audit findings"
+      },
+      "comments": [
+        {
+          "author": "REVIEWER",
+          "body": "Start: audit Premium directory SEO and pass-through measurement using source inspection and the live Super H listing as evidence."
+        },
+        {
+          "author": "REVIEWER",
+          "body": "verified: source and live production evidence confirms real Premium ranking, content, and backlink benefits, while identifying incomplete referral provenance and conversion coverage with explicit implementation criteria."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:12:48+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Inspect Premium and Basic directory rendering, metadata, canonicals, robots/indexing, structured data, sitemap inclusion, internal linking, social previews, and outbound phone/website/directions/social/booking click attribution. Document verified gaps and acceptance criteria using Super H Automotive as the production reference; do not change code or production data.",
+      "doc": "## Summary\n\nAudit completed against source and live production. Premium listings receive real discoverability advantages (directory and /best rank ahead of Basic, richer owner-managed content, and a do-follow outbound website link), while all published listings receive baseline technical SEO. Pass-through measurement is incomplete and referral provenance is actively suppressed by noreferrer. Super H is still Basic until payment and currently lacks the content/website assets needed to realize most Premium benefits.\n\nPriority findings:\n1. P0 — outbound referral provenance is suppressed: Premium website, social, maps, booking/action, and post links use rel=\"noopener noreferrer\". noreferrer removes the Referer header, so destination analytics cannot identify CityBeat traffic; no UTM parameters are appended.\n2. P0 — incomplete conversion coverage: phone is plain text; social, multi-location directions, and post CTA clicks are not tracked. Booking/order/quote share one click_action bucket, so the owner cannot tell which action converted.\n3. P1 — purchase alone does not guarantee SEO enrichment. Super H production data is tier=basic (correct while checkout is unpaid) and has blank website, English/Spanish descriptions, cover image, gallery, social links, action links, services, and posts. If payment activates Premium without completing onboarding, its only immediate gains are priority ordering and the Premium layout; the do-follow link and enriched schema/content remain absent.\n4. P1 — Premium differentiation is real but not fully articulated: search and /best rank sponsored, Featured, Premium, then Basic, and Premium website backlinks are do-follow while Basic links are nofollow+ugc. All tiers otherwise receive the same index/follow, canonical/hreflang, sitemap, OG/Twitter, LocalBusiness, and breadcrumb baseline.\n5. P1 — structured LocalBusiness output needs hardening: streetAddress contains the full formatted address while postalCode is absent; openingHours carries human strings such as \"Mo 9:00 AM - 6:00 PM\" instead of a normalized schema time shape; the generic LocalBusiness type is used for every category. These may reduce rich-result confidence even though markup is present.\n6. P2 — directory detail hreflang omits x-default, unlike /best pages. Spanish Super H title remains partly English (\"Auto Repair in El Paso\") because category labels are not localized in metadata. A transient Firestore read failure returns only a not-found title rather than explicit noindex, and ISR could cache a thin shell.\n\n## Context\n\nProduction evidence on 2026-10-15:\n- Super H EN and ES pages return HTTP 200 with index,follow; locale-specific canonical; en/es hreflang; OG/Twitter metadata; SSR content; LocalBusiness and BreadcrumbList JSON-LD.\n- sitemap.xml contains TJmwyo55waiFiGYp2fmu and robots.txt allows public directory pages.\n- Super H appears on /en/best/auto-repair/el-paso at position 161 while it is Basic; the ranking function will move an activated Premium listing ahead of Basic listings.\n- The public API reports Super H tier=basic, claim_status=approved, is_published=true, with blank website/description/image/gallery/social/actions/services/posts. This is a pre-payment baseline, not a fulfillment failure.\n- A representative Premium page renders its business website link without nofollow; a representative Basic page renders rel=\"noopener noreferrer nofollow ugc\".\n- Source evidence: metadata/schema at page.tsx:120-289; Premium website tracking at DirectoryDetailClient.tsx:1520-1534; Basic nofollow at 1607-1624; social links at 1066-1089; plain-text phones at 1510-1514 and 1598-1602; generic action tracking at 1095/1630; untracked post CTA at ListingContentSections.tsx:149-153; paid ordering at local-seo.ts:84-104 and api/directory/route.ts:20-27.\n\n## Scope\n\nRead-only inspection covered:\n- apps/web/src/app/[locale]/directory/[id]/page.tsx metadata, canonical/hreflang, robots, Open Graph/Twitter, LocalBusiness/review/FAQ/breadcrumb JSON-LD, and server rendering.\n- apps/web/src/app/sitemap.ts and apps/web/src/app/robots.ts.\n- apps/web/src/app/api/directory/route.ts, apps/web/src/lib/local-seo.ts, and apps/web/src/app/[locale]/best/[category]/[city]/page.tsx for discovery and paid-tier ordering.\n- DirectoryDetailClient.tsx and ListingContentSections.tsx for website, phone, maps, social, booking/action, multi-location, and post CTA exits.\n- listing-analytics.ts, /api/track/listing, and /api/directory/[id]/analytics for collection and owner reporting.\n- Live EN/ES Super H pages, sitemap.xml, robots.txt, /best/auto-repair/el-paso, and representative Premium and Basic listings. No code or production data was changed.\n\n## Risks\n\n- Search engines do not guarantee ranking or rich results; acceptance must verify technical eligibility and measurable referral behavior, not promise placement.\n- Removing noreferrer exposes the CityBeat origin as the referrer. Prefer explicit, privacy-safe UTM tagging so attribution survives browser/referrer-policy differences without adding visitor identity.\n- Adding event dimensions must keep bounded cardinality and preserve the existing privacy model (no IP, user ID, or user agent stored).\n- Premium priority is commercially meaningful but Sponsored and Featured must remain clearly labeled; do not imply organic editorial endorsement.\n- Super H cannot demonstrate post-payment Premium activation until Stripe payment occurs; no charge should be initiated as part of verification.\n\n## Verify Steps\n\nImplementation acceptance criteria:\n1. Every external conversion path is clickable and measured: phone, website, Google/Apple directions including each location, each social network, each booking/order/quote/menu action, and each post CTA.\n2. Analytics preserves channel/action detail (not only click_action) in bounded daily counters and exposes 30-day totals plus Premium series/export without leaking visitor identity.\n3. Premium outbound URLs preserve existing query/hash and add stable attribution (utm_source=citybeatmag.co, utm_medium=referral, listing/action campaign values), or use an equivalent audited redirect. Destination requests must not suppress referral provenance accidentally.\n4. Automated tests cover URL augmentation, event allow-listing, channel aggregation/export, self-traffic exclusion, Basic-versus-Premium link rel behavior, and each rendered CTA handler.\n5. A paid Premium fixture ranks ahead of Basic in directory search and /best category/city pages; sponsored/Featured labels remain explicit.\n6. Directory detail metadata includes canonical plus en/es/x-default; Spanish metadata uses localized category wording; absent/unavailable listings are explicit noindex and are not cached as indexable thin pages.\n7. LocalBusiness schema parses the formatted address into streetAddress/addressLocality/addressRegion/postalCode/addressCountry, normalizes opening hours to machine-readable intervals, and uses a supported category subtype where mapped. Structured data tests must parse emitted JSON-LD.\n8. Premium activation surfaces an onboarding checklist and does not claim the full SEO/referral benefit until website, bilingual description, image, and primary CTA are populated.\n9. Production verification checks Super H only after a real payment activates it: tier Premium, top-of-Basic ranking, enriched SSR metadata/schema after onboarding, sitemap presence, clickable phone/website/directions/actions, and owner-visible counters. Do not initiate the payment during testing.\n10. Regression checks retain HTTP 200, index/follow, canonical/hreflang, OG/Twitter, LocalBusiness/Breadcrumb JSON-LD, sitemap inclusion, and Basic nofollow+ugc behavior.\n\n## Rollback Plan\n\nAudit-only task: no runtime behavior or production data changed. Revert only this task documentation commit if the conclusions must be withdrawn. Implementation should be delivered in downstream task 202610151908-1V8V7X with its own rollback plan.\n\n## Notes\n\nRecommended implementation order: (1) attribution-safe outbound URL helper and complete CTA event taxonomy; (2) owner analytics API/UI/CSV dimensions; (3) schema/address/hours and hreflang/noindex hardening; (4) Premium onboarding readiness gate/checklist; (5) production validation after payment and owner content completion. The current code already provides a sound SEO baseline and genuine paid ordering; this work should strengthen measurement rather than replace the existing architecture."
+    },
+    {
+      "id": "202610151908-7SR37V",
+      "title": "Audit end-to-end Premium sales UI resilience",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "REVIEWER",
+      "depends_on": [],
+      "tags": [
+        "sales",
+        "ui",
+        "checkout"
+      ],
+      "comments": [
+        {
+          "author": "REVIEWER",
+          "body": "Verified: read-only source audit completed; 55 focused unit tests passed. Two P0 sale-continuity defects and three P1 recovery/ownership/idempotency gaps are documented in the task README. Keep TODO until dependency 202610151907-QDRGY5 is DONE."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:11:37+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Walk the Premium sale journey on desktop and mobile from listing selection through checkout sharing, resend/recovery, claim, payment return, login, and listing editing. Document loading, error, expired-link, duplicate-prevention, interruption-recovery, and accessibility gaps without changing code or production records.",
+      "doc": "## Summary\n\nRead-only audit of the Premium sales journey found two sale-blocking recovery defects, three high-priority continuity gaps, and two mobile/loading usability gaps. No checkout, email, charge, production record, deployment, or application code was changed.\n\n## Context\n\nReviewed the Sales Desk create/share UI, checkout API and duplicate guard, checkout return URLs, abandoned-checkout board, payment email, claim/accept flow, paid fulfillment wizard, and owner dashboard/CMS. Verification was source-based and used existing pure unit tests only; production was not mutated.\n\n## Scope\n\nFindings, ordered by severity:\n\nP0 — Correct details dead-ends every paid directory sale. Reproduction: create a paid directory checkout, select Correct details, change a field, submit. The client clears its handoff and explicitly promises a fresh checkout (sales/me/page.tsx:438-448,838), but retains listingId; the server sees the original live subscription order and returns subscription_already_exists (api/sales/checkout/route.ts:55-71). Acceptance: correction must update the still-pending order/session safely or explicitly expire the original before replacement; the UI must keep the old link available until replacement succeeds and must present a recoverable conflict action.\n\nP0 — Refresh/reopen destroys the signed ownership handoff. Reproduction: create a new paid listing using verification bypass, then refresh before sharing. All form, checkout, claim, QR, and handoff state is memory-only (sales/me/page.tsx:35-82,125-158); recovery exposes only checkout_url and Email (RecoveryLeadsBoard.tsx:131-150,251-259), not the signed single-use claim URL. Acceptance: persist/reconstruct the complete authorized handoff by order ID, including payment and claim links, expiry/status, copy/open/email/text/QR actions; never expose token material to unauthorized roles.\n\nP1 — The official payment email sends an unowned customer to a dashboard they cannot access. It tells the buyer to sign in and open /dashboard/listings/{id} (api/sales/send-link/route.ts:74-96), while the CMS authorizes only owner/staff/manager (dashboard/listings/[listingId]/page.tsx:62-80). Standard new paid sales still require claiming. Acceptance: email and paid-success journey must lead through ownership claim/acceptance first, preserve returnTo through login, then deep-link to the editable listing after ownership is confirmed; test both standard verification and bypass flows.\n\nP1 — Expired checkout rows have no recovery action. RecoveryLeadsBoard marks Expired but renders Email only for ready links and offers only Remove otherwise (lines 223-287). Acceptance: provide a server-authorized Renew checkout action that reuses the same order/listing/customer attribution, prevents duplicate subscriptions, shows the new expiry, and leaves an audit trail.\n\nP1 — Checkout creation lacks a request idempotency key. busy disables repeat clicks only in one mounted client (sales/me/page.tsx:742-749); the API allocates a new order before Stripe creation (api/sales/checkout/route.ts:311-330), and the existing-listing query is not an atomic reservation (lines 55-71). Acceptance: client-generated idempotency key survives retries; server transaction/reservation returns the existing live handoff for the same attempt; parallel requests yield one listing, order, and Stripe session.\n\nP2 — Mobile recovery hides the primary action offscreen. The table is min-width 880px with Action last (RecoveryLeadsBoard.tsx:191-203), requiring horizontal scrolling on a phone. Acceptance: mobile renders stacked lead cards or pins actions/contact so Email/Renew/Copy are visible without lateral discovery.\n\nP2 — Sales Desk has a blank boot/failure state. It returns null until ready (sales/me/page.tsx:100-119,455), and failed dashboard/lead requests are silently converted to null/empty. Acceptance: visible loading skeleton, differentiated auth/API errors, retry, and preservation of draft/handoff during retry.\n\nVerified strengths: server-priced catalog; Stripe-host validation; seller-bound live-link resend; checkout access tokens hashed and expiring; login redirectTo preserves signed claim URL; payment success enters autosaving fulfillment; fulfillment removes only session_id and retains access token; claim acceptance is signed, expiring, email-bound, and single-use; loading/error/submission states exist in the fulfillment wizard.\n\n## Risks\n\nDo not solve recovery by exposing checkout or claim tokens in broad listing APIs. Replacement checkout logic must expire the old session before advertising a new link, remain race-safe, and preserve seller commission attribution. Claim and payment may occur in either order; both sequences must converge to one owned Premium listing without granting ownership merely because someone paid.\n\n## Verify Steps\n\n1. Existing tests executed: .\\\\node_modules\\\\.bin\\\\tsx.cmd --test apps/web/src/lib/sales-orders.test.ts apps/web/src/lib/sales-checkout.test.ts apps/web/src/lib/verification-audit.test.ts apps/web/src/app/[locale]/fulfill/intake-i18n.test.ts — 55 passed, 0 failed.\n2. Add E2E coverage for refresh after checkout creation, correction/replacement, concurrent double submit, expired renewal, email-to-claim-to-dashboard, payment-before-claim, claim-before-payment, login returnTo, and mobile 390px recovery actions.\n3. Use Stripe test mode only for implementation verification; assert one session/subscription/order/listing and no representational sends.\n\n## Rollback Plan\n\nAudit-only change: revert the task documentation commit if necessary. Future implementation should be independently revertible; retain existing orders and Stripe sessions, and never delete payment or claim audit history during rollback.\n\n## Notes\n\nTask dependency 202610151907-QDRGY5 was not complete when the audit ran, so this task was not started or finished in the canonical backend. Recommendation: keep TODO until dependency readiness, then implement P0 items before another live sale and P1 items before scaling sales outreach."
+    },
+    {
+      "id": "202610151908-CSBGR8",
+      "title": "Harden Premium sales flow against interrupted sales",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202610151908-7SR37V"
+      ],
+      "tags": [
+        "sales",
+        "checkout",
+        "frontend",
+        "backend"
+      ],
+      "verify": [
+        "npm --prefix apps/web run typecheck",
+        "npm --prefix apps/web test"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:09:01+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Implement the approved sales-UI audit fixes for resilient creation, checkout sharing, resend/recovery, claim, payment-return, login, and listing editing across desktop and mobile. Preserve checkout idempotency and prevent duplicate orders, sessions, or sends. Include focused automated coverage.",
+      "doc": "## Summary\n\nMake the Premium sales flow resilient to interruption and explicit about recovery actions.\n\n## Scope\n\nImplement approved desktop/mobile fixes across create, share, resend, claim, checkout return, login, edit, loading, and error states with idempotency safeguards.\n\n## Risks\n\nChanges must not create duplicate orders, checkout sessions, emails, ownership claims, or misleading payment state.\n\n## Verify Steps\n\nRun web typecheck/tests and focused journey coverage for retry, stale/expired links, interruption, duplicate prevention, and responsive UI.\n\n## Rollback Plan\n\nRevert the task commit and redeploy the prior revision if checkout, claim, login, or editing regresses."
+    },
+    {
+      "id": "202610151908-FQ4M4R",
+      "title": "Verify Premium SEO, sales flow, and payment safeguards",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "TESTER",
+      "depends_on": [
+        "202610151908-1V8V7X",
+        "202610151908-CSBGR8",
+        "202610151908-W3RZA8"
+      ],
+      "tags": [
+        "testing",
+        "seo",
+        "sales",
+        "stripe"
+      ],
+      "verify": [
+        "npm --prefix apps/web run typecheck",
+        "npm --prefix apps/web test"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:09:02+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Run automated and manual regression checks against the completed SEO/referral and sales-flow changes. Confirm Premium differentiation, event attribution, desktop/mobile recovery states, checkout-link reuse, and that payment verification remained read-only with no real charge or payout. Record reproducible evidence and any blockers.",
+      "doc": "## Summary\n\nProvide independent regression evidence for SEO, sales-flow, and financial safeguards.\n\n## Scope\n\nTest completed SEO/referral and sales changes, checkout-link reuse, mobile/desktop recovery, and validate that payout review stayed read-only.\n\n## Risks\n\nTesting must avoid real charges, payouts, customer email duplication, destructive production changes, or false analytics events.\n\n## Verify Steps\n\nExecute configured typecheck/tests plus focused manual cases; record results, evidence, and blockers for release gating.\n\n## Rollback Plan\n\nNo production release; revert only test artifacts introduced by this task."
+    },
+    {
+      "id": "202610151908-W3RZA8",
+      "title": "Verify Stripe and editor payout readiness read-only",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "REVIEWER",
+      "depends_on": [],
+      "tags": [
+        "stripe",
+        "payouts",
+        "security"
+      ],
+      "comments": [
+        {
+          "author": "REVIEWER",
+          "body": "Start: audit live Stripe account, editor payout readiness, webhook health, recurring product configuration, and commission calculations using read-only evidence only."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:13:03+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Using read-only checks only, verify CityBeat live Stripe account configuration, product and recurring price, webhook health, payout readiness, editor connected-account status, bank-destination presence, commission attribution, and payout calculation records. Redact sensitive banking data and do not initiate charges, payouts, account changes, or paid services.",
+      "doc": "## Summary\n\nRead-only audit completed against the authenticated live Stripe account and production CityBeat APIs. Platform payments and payouts are active, the Premium Monthly product is active at USD 19.99 per month, and the primary CityBeat webhook is active with a 0% displayed error rate. The configured editor account and default bank destination exist and have previously received USD 4.50, but Stripe flags payouts as pausing soon at USD 3,000 lifetime volume unless the representative supplies date of birth and the last four SSN digits. A second legacy thin webhook is active with a 100% displayed error rate and needs ownership review.\n\n## Context\n\nLive evidence captured October 15, 2026: Stripe account CityBeat (acct_1TMaM8DBCgtcnBrq); production health /api/health/payments returned status ok and can_take_payments true on revision citybeat-web-00314-qig. The configured editor UID 01a0ce57-68dd-4356-a459-274d7ee4e6db maps to citybeatmag@yahoo.com. No secret, full bank number, identity value, charge, payout, account edit, or deployment was used.\n\n## Scope\n\nVerified platform account status and capabilities; current balance/payout evidence; active Premium Monthly product and cadence; webhook destinations and displayed error rates; configured editor identity mapping; connected-account capabilities, payout schedule, redacted bank destination, and prior payment evidence; live commission settings; source-level allocation, refund, idempotency, and payout scheduling rules; targeted automated tests. Cloud Scheduler inventory could not be read because the active gcloud principal lacks cloudscheduler.jobs.list.\n\n## Risks\n\nHIGH: editor payouts are enabled now but Stripe shows Payouts paused soon; DOB and last-four SSN requirements become due at USD 3,000 lifetime connected-account volume. HIGH: legacy destination https://api.citybeatmag.co/webhooks/stripe is active and displays 100% errors; determine whether it is still required, then repair or retire it through an approved change. MEDIUM: scheduled payout-cycle/reconciliation job existence and recent execution remain unverified because local gcloud IAM denied scheduler listing. LOW: payout_settings still contains legacy service_payout_percent.directory=50, but current code explicitly ignores that field and uses SPLIT_RATES plus split_overrides; this stale value is operator-confusing. The primary https://citybeatmag.co/api/stripe/webhook destination is active, listens to 8 events, and displays 0% errors.\n\n## Verify Steps\n\n1. Stripe Account status showed no active tasks and active Payments and Payouts capabilities. 2. Product catalog showed Premium Directory - Monthly active at USD 19.99 per month. 3. Workbench showed the primary CityBeat webhook active with 8 events and 0% error, plus a legacy thin destination with 20 events and 100% error. 4. Editor connected account is Enabled with active Payouts and Transfers, daily two-day rolling payouts, a default credit-union bank ending 9980, USD 4.50 lifetime volume, and one succeeded USD 4.50 payment; Stripe also showed two future payout-impacting identity requirements. 5. Live payout settings showed residual mode, no split overrides, and the configured editor UID mapping to citybeatmag@yahoo.com. 6. The CityBeat sales dashboard showed the editor leaderboard at USD 4.50, matching 45% of a USD 9.99 editor-sold directory sale after cent rounding. 7. node --import tsx --test over payout-split, commission-schedule, finance-rollup, payout-reconcile-cursor, and payouts passed 48 of 48 tests. 8. npm run scheduler:check failed only at the read-only IAM inventory step with cloudscheduler.jobs.list denied.\n\n## Rollback Plan\n\nNo financial or Stripe configuration was changed. Revert only this audit documentation commit if necessary. Any future identity completion, webhook retirement, payout test, bank change, or scheduler IAM change requires its own approved operational action.\n\n## Notes\n\nAt USD 19.99, current default directory splits calculate as follows before any fee-headroom clamp: editor-sold: editor USD 9.00 and platform USD 10.99; rep-sold: editor USD 5.00, rep USD 8.00, platform USD 6.99; autonomous: editor USD 8.00 and platform USD 11.99. Commission is held seven days and paid on the next El Paso-local 1st or 15th. Residual mode applies the configured shares to renewals. Refunds reduce or reverse unpaid shares; already-paid refunds create a manual debt alert rather than silently withdrawing bank funds."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "8ca38e13003168d948201f14fe1e9bdf26b51f19dfb3cbcf28dce2bef67b0cd9"
+    "checksum": "5c3707555aed5f0a82207ca85d7ed11e8f4df9ffcf9f68c5f71c3ddfaa4bb42b"
   }
 }
