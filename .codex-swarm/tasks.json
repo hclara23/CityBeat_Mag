@@ -9669,7 +9669,7 @@
     {
       "id": "202610152030-FBKEDB",
       "title": "Add authenticated editor payouts dashboard",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
@@ -9683,10 +9683,18 @@
         "npm test",
         "npm --prefix apps/web run type-check"
       ],
+      "commit": {
+        "hash": "0d6698f67eb9b6242fb274a8fc8013bb87d43f5a",
+        "message": "🎨 FBKEDB add a private editor payout dashboard with history, statements, transaction references, and YTD totals"
+      },
       "comments": [
         {
           "author": "CODER",
           "body": "Start: expand the authenticated account payouts page with payee-scoped history, transaction references, accumulated and year-to-date totals, statements, and clear bank-deposit terminology."
+        },
+        {
+          "author": "CODER",
+          "body": "verified: authenticated payee dashboard passes aggregation tests and full regression coverage | details: API queries only the signed-in user and exposes no bank numbers or cross-payee records."
         }
       ],
       "doc_version": 2,
@@ -9698,7 +9706,7 @@
     {
       "id": "202610152030-RDM0NQ",
       "title": "Reconcile and send editor year-to-date commission statement",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "REVIEWER",
       "depends_on": [],
@@ -9707,6 +9715,16 @@
         "reconciliation",
         "email",
         "reporting"
+      ],
+      "comments": [
+        {
+          "author": "REVIEWER",
+          "body": "Start: reconcile both verified .50 editor transfers, prepare the .00 year-to-date statement, and stage one CityBeat email without initiating another financial transfer."
+        },
+        {
+          "author": "REVIEWER",
+          "body": "Stripe reconciliation: Aug 28 transfer tr_3U72lqDBCgtcnBrq1lKCaKH9 and Oct 15 catch-up transfer tr_1UQv6CDBCgtcnBrqW0iYc8wp are each .50; connected-account lifetime volume is .00. Email remains pending deployment and delivery verification."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T20:31:26+00:00",
@@ -9766,7 +9784,7 @@
     {
       "id": "202610152030-YPJ8P9",
       "title": "Implement editor payout cadence and attached statements",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
@@ -9780,10 +9798,18 @@
         "npm test",
         "npm --prefix apps/web run type-check"
       ],
+      "commit": {
+        "hash": "73e02188f4b1bc28a8e0bcb2f71bae615973a8ca",
+        "message": "✨ YPJ8P9 pay editor commissions on the 15th and month-end with idempotent statements and retries"
+      },
       "comments": [
         {
           "author": "CODER",
           "body": "Start: replace first-and-fifteenth payout logic with fifteenth-and-final-day scheduling; attach idempotent statements to each editor transfer while preserving manual platform payouts."
+        },
+        {
+          "author": "CODER",
+          "body": "verified: semi-monthly cadence and payout-attached statements pass focused coverage, all 624 web tests, 20 library tests, and four-workspace type-check | details: platform payout settings are not changed by code."
         }
       ],
       "doc_version": 2,
@@ -9824,6 +9850,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "49dcfffb960aeaecaa92eafddff62ea0c89e1c9fc5108d76c7537e555836618c"
+    "checksum": "6e13d601635eca1bd968c4f8c37536accde5813ee71370a1e185a8d11b992b82"
   }
 }

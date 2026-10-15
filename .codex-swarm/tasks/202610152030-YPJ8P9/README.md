@@ -1,14 +1,16 @@
 ---
 id: "202610152030-YPJ8P9"
 title: "Implement editor payout cadence and attached statements"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: []
 tags: ["code", "backend", "stripe", "email"]
 verify: ["npm test", "npm --prefix apps/web run type-check"]
+commit: { hash: "73e02188f4b1bc28a8e0bcb2f71bae615973a8ca", message: "✨ YPJ8P9 pay editor commissions on the 15th and month-end with idempotent statements and retries" }
 comments:
   - { author: "CODER", body: "Start: replace first-and-fifteenth payout logic with fifteenth-and-final-day scheduling; attach idempotent statements to each editor transfer while preserving manual platform payouts." }
+  - { author: "CODER", body: "verified: semi-monthly cadence and payout-attached statements pass focused coverage, all 624 web tests, 20 library tests, and four-workspace type-check | details: platform payout settings are not changed by code." }
 doc_version: 2
 doc_updated_at: "2026-10-15T20:31:24+00:00"
 doc_updated_by: "agentctl"
