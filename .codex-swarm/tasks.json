@@ -9289,7 +9289,7 @@
     {
       "id": "202610151908-CSBGR8",
       "title": "Harden Premium sales flow against interrupted sales",
-      "status": "DONE",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9317,6 +9317,10 @@
         {
           "author": "CODER",
           "body": "verified: sales-flow resilience implementation passed web type-check plus 608 web and 20 shared-library tests, including focused persistence, correction, idempotency, renewal, claim-first email, mobile, and error-state coverage."
+        },
+        {
+          "author": "CODER",
+          "body": "Start: close the replacement compensation gap so an old-session expiry failure retires the newly created session and records the failed attempt without creating two live links."
         }
       ],
       "doc_version": 2,
@@ -9328,7 +9332,7 @@
     {
       "id": "202610151908-FQ4M4R",
       "title": "Verify Premium SEO, sales flow, and payment safeguards",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "TESTER",
       "depends_on": [
@@ -9345,6 +9349,12 @@
       "verify": [
         "npm --prefix apps/web run type-check",
         "npm test"
+      ],
+      "comments": [
+        {
+          "author": "TESTER",
+          "body": "Start: combined regression verification for Premium SEO attribution, resilient sales recovery, checkout reuse, responsive states, and read-only payment safeguards."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T19:09:02+00:00",
@@ -9389,6 +9399,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "a7a912960230741a58a7fd2a042172e59820c1d68b2bccf46ff584cd19b173a9"
+    "checksum": "f4c8b17165560bfc14d2c020e86da4de791fdf1b2c791695cebe050cb8df6e12"
   }
 }

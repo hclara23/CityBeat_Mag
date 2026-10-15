@@ -1,12 +1,14 @@
 ---
 id: "202610151908-FQ4M4R"
 title: "Verify Premium SEO, sales flow, and payment safeguards"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "TESTER"
 depends_on: ["202610151908-1V8V7X", "202610151908-CSBGR8", "202610151908-W3RZA8"]
 tags: ["testing", "seo", "sales", "stripe"]
 verify: ["npm --prefix apps/web run type-check", "npm test"]
+comments:
+  - { author: "TESTER", body: "Start: combined regression verification for Premium SEO attribution, resilient sales recovery, checkout reuse, responsive states, and read-only payment safeguards." }
 doc_version: 2
 doc_updated_at: "2026-10-15T19:09:02+00:00"
 doc_updated_by: "agentctl"
