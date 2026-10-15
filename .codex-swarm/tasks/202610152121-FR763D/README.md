@@ -1,16 +1,18 @@
 ---
 id: "202610152121-FR763D"
 title: "Scale directory SEO and discovery toward 100k listings"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: ["202610152121-B8B5RR"]
 tags: ["code", "frontend", "seo"]
 verify: ["npm test", "npm run type-check"]
+commit: { hash: "85c16136fd103dfa9b620b41ea82952cc13b4939", message: "🔎 FR763D shard directory sitemaps and expand Southwest discovery" }
 comments:
   - { author: "CODER", body: "Start: audit directory sitemaps, canonical routes, and discovery pagination, then implement scalable indexation for a six-figure listing catalog." }
   - { author: "CODER", body: "Start: audit directory sitemaps, canonical routes, and discovery pagination, then implement scalable indexation for a six-figure listing catalog." }
   - { author: "CODER", body: "Verified: scalable sitemap sharding and expanded local discovery passed 651 tests, TypeScript validation, and diff integrity checks." }
+  - { author: "CODER", body: "verified: scalable directory sitemaps, regional guide coverage, 651 automated tests, and web type-check all pass without production writes." }
 doc_version: 2
 doc_updated_at: "2026-10-15T21:30:46+00:00"
 doc_updated_by: "agentctl"

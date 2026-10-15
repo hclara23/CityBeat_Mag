@@ -9972,7 +9972,7 @@
     {
       "id": "202610152121-FR763D",
       "title": "Scale directory SEO and discovery toward 100k listings",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9987,6 +9987,10 @@
         "npm test",
         "npm run type-check"
       ],
+      "commit": {
+        "hash": "85c16136fd103dfa9b620b41ea82952cc13b4939",
+        "message": "🔎 FR763D shard directory sitemaps and expand Southwest discovery"
+      },
       "comments": [
         {
           "author": "CODER",
@@ -9995,12 +9999,21 @@
         {
           "author": "CODER",
           "body": "Start: audit directory sitemaps, canonical routes, and discovery pagination, then implement scalable indexation for a six-figure listing catalog."
+        },
+        {
+          "author": "CODER",
+          "body": "Verified: scalable sitemap sharding and expanded local discovery passed 651 tests, TypeScript validation, and diff integrity checks."
+        },
+        {
+          "author": "CODER",
+          "body": "verified: scalable directory sitemaps, regional guide coverage, 651 automated tests, and web type-check all pass without production writes."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-15T21:21:31+00:00",
+      "doc_updated_at": "2026-10-15T21:30:46+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Make directory browsing, sitemaps, canonical metadata, and operational metrics safe and indexable at 10k, 25k, 50k, and 100k published listings without full-collection public reads."
+      "description": "Make directory browsing, sitemaps, canonical metadata, and operational metrics safe and indexable at 10k, 25k, 50k, and 100k published listings without full-collection public reads.",
+      "doc": "## Summary\n\nSplit directory listing discovery into scalable 45,000-URL sitemap shards while preserving the existing root sitemap, and expanded local guide coverage to West Texas and southern New Mexico cities.\n\n## Scope\n\nAdded a cached published-listing count, generated directory sitemap shards under /directory/sitemap/{id}.xml, advertised the root and all directory shards in robots.txt, excluded unpublished and merged records, retained bilingual alternates, and added 13 regional cities to programmatic category/city guides.\n\n## Risks\n\nFirestore offset pagination reads skipped documents on later shards, so read cost grows with catalog size. Shards are hourly cached and limited to 45,000 URLs. Production release must verify generated sitemap routing and Firestore query compatibility before traffic promotion.\n\n## Verify Steps\n\nRun npm test and confirm 631 web tests plus 20 package tests pass. Run npm --prefix apps/web run type-check. Verify the 100,000-listing calculation produces three shards, each below 50,000 URLs, and robots.txt advertises the root plus every directory shard.\n\n## Rollback Plan\n\nRevert the implementation commit to restore a single root sitemap and the original eight-city guide coverage. No production content or billing state is changed by this task.\n\n## Notes\n\nImplemented against the Next.js 14 generateSitemaps contract. The root /sitemap.xml remains intact for existing Search Console submissions; directory shards are added separately. Full tests and TypeScript validation pass."
     },
     {
       "id": "202610152121-SHHTPH",
@@ -10072,6 +10085,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "aa7d6023015da59c22e6208604821b371afe53c695a32001e6dee73c6b8c4f7c"
+    "checksum": "413773f8407a49f6f4f1efffedbb56ea71df224fb767f0e88ff93948008b4e9e"
   }
 }
