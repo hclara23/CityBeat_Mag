@@ -504,19 +504,30 @@ export default function AdminDirectoryPage() {
 
   const handlePublishAll = async () => {
     if (unpublished === 0) return
-    if (!window.confirm(`Publish all ${unpublished} unlisted directory listing${unpublished === 1 ? '' : 's'}?`)) return
-
     setActionLoading('publish-all')
     setNotice('')
     try {
-      const res = await fetch('/api/admin/directory/publish-all', { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Publish all failed')
+      const previewRes = await fetch('/api/admin/directory/publish-all')
+      const preview = await previewRes.json()
+      if (!previewRes.ok) throw new Error(preview.error || 'Publication audit failed')
+      if (!preview.eligible) {
+        setNotice(`Audit complete: 0 eligible. ${preview.blocked?.merged_duplicate || 0} merged duplicate records remain safely unlisted.`)
+        return
+      }
+      if (!window.confirm(`Publish up to 250 of ${preview.eligible} validated listings? Merged duplicates and restricted-source records will remain unlisted.`)) return
 
-      setListings(prev => prev.map(listing => ({ ...listing, is_published: true })))
-      setNotice(`Published ${data.published || 0} listing${data.published === 1 ? '' : 's'}.`)
+      const res = await fetch('/api/admin/directory/publish-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Validated publication failed')
+
+      await loadListings()
+      setNotice(`Published ${data.published || 0} validated listing${data.published === 1 ? '' : 's'}. ${data.remaining_eligible || 0} eligible listings remain.`)
     } catch (e: any) {
-      setNotice(e.message || 'Publish all failed')
+      setNotice(e.message || 'Publication audit failed')
     } finally {
       setActionLoading(null)
     }
@@ -592,7 +603,7 @@ export default function AdminDirectoryPage() {
               disabled={unpublished === 0 || actionLoading === 'publish-all'}
               className="flex-shrink-0 inline-flex items-center justify-center gap-2 rounded-lg border border-brand-neon/60 px-5 py-3 text-sm font-black uppercase tracking-wider text-brand-neon hover:bg-brand-neon/10 transition disabled:cursor-not-allowed disabled:border-white/10 disabled:text-white/30 disabled:hover:bg-transparent"
             >
-              {actionLoading === 'publish-all' ? 'Publishing...' : 'Publish All'}
+              {actionLoading === 'publish-all' ? 'Auditing...' : 'Audit Unlisted'}
             </button>
             <button
               onClick={() => setShowAddModal(true)}

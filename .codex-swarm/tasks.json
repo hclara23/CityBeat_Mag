@@ -9937,7 +9937,7 @@
     {
       "id": "202610152121-B8B5RR",
       "title": "Protect merged directory records from bulk publication",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
@@ -9948,6 +9948,12 @@
       ],
       "verify": [
         "npm test"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: replace unsafe publish-all with audited eligibility rules; protect merge chains and restricted provenance; add deterministic tests and an admin preview."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T21:21:30+00:00",
@@ -10028,6 +10034,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "14169517e102a5bdc3d49a7a0f909e122b57de13d244f558a595b4c82bc47b5b"
+    "checksum": "fa751deea54ba321d5787175ccdfb7eda8f45fcbaacc4db7702f3f9e9ffd6ce3"
   }
 }

@@ -3,30 +3,62 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasAdminAccess } from '@citybeat/lib/roles'
 import { privilegedDenial } from '@/lib/privileged-access'
+import { auditDirectoryPublication } from '@/lib/directory-publication'
 
 export const dynamic = 'force-dynamic'
 
-// POST /api/admin/directory/publish-all - publish every hidden directory listing
-export async function POST() {
+async function requireAdmin() {
   const user = await getServerUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return { error: 'Unauthorized', status: 401 as const }
   const profile = await getServerUserProfile(user.id)
-  // Role AND second factor, together. This checked the role alone, so a staff
-  // password with no TOTP enrollment behind it reached this API even though the
-  // page in front of it only redirects. See lib/privileged-access.
   const denial = privilegedDenial(profile, hasAdminAccess(profile))
-  if (denial) return NextResponse.json({ error: denial.error }, { status: denial.status })
+  if (denial) return denial
+  return { user }
+}
+
+async function loadAudit() {
+  const snap = await adminDb.collection('directory_listings').get()
+  return auditDirectoryPublication(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })))
+}
+
+// GET is a non-mutating preview. Operators can see why records are held before
+// deciding whether to publish the eligible subset.
+export async function GET() {
+  const auth = await requireAdmin()
+  if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
+  try {
+    return NextResponse.json(await loadAudit())
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Internal Server Error' }, { status: 500 })
+  }
+}
+
+// POST publishes only audited eligible records, never every hidden document.
+// A bounded batch keeps review and rollback practical as the directory grows.
+export async function POST(request: Request) {
+  const auth = await requireAdmin()
+  if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
   try {
-    const snap = await adminDb.collection('directory_listings').where('is_published', '==', false).get()
-    if (snap.empty) return NextResponse.json({ published: 0 })
+    const body = await request.json().catch(() => ({}))
+    if (body.confirm !== true) {
+      return NextResponse.json({ error: 'Explicit confirmation is required' }, { status: 400 })
+    }
+    const audit = await loadAudit()
+    const eligibleIds = audit.eligibleIds.slice(0, 250)
+    if (!eligibleIds.length) return NextResponse.json({ published: 0, remaining_eligible: 0, audit })
 
     const now = new Date().toISOString()
     let batch = adminDb.batch()
     let count = 0
     let inBatch = 0
-    for (const doc of snap.docs) {
-      batch.set(doc.ref, { is_published: true, updated_at: now }, { merge: true })
+    for (const id of eligibleIds) {
+      batch.set(adminDb.collection('directory_listings').doc(id), {
+        is_published: true,
+        published_at: now,
+        publication_method: 'validated_bulk',
+        updated_at: now,
+      }, { merge: true })
       count++
       inBatch++
       if (inBatch === 450) {
@@ -37,7 +69,11 @@ export async function POST() {
     }
     if (inBatch > 0) await batch.commit()
 
-    return NextResponse.json({ published: count })
+    return NextResponse.json({
+      published: count,
+      remaining_eligible: Math.max(0, audit.eligible - count),
+      audit,
+    })
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'Internal Server Error' }, { status: 500 })
   }
