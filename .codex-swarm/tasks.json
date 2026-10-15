@@ -9706,7 +9706,7 @@
     {
       "id": "202610152030-RDM0NQ",
       "title": "Reconcile and send editor year-to-date commission statement",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "REVIEWER",
       "depends_on": [
@@ -9718,6 +9718,10 @@
         "email",
         "reporting"
       ],
+      "commit": {
+        "hash": "fd14f0a9a6eb6665abf17c0b036936f5136a0eba",
+        "message": "🐛 RDM0NQ read the production cron credential safely for statement dispatch"
+      },
       "comments": [
         {
           "author": "REVIEWER",
@@ -9726,13 +9730,17 @@
         {
           "author": "REVIEWER",
           "body": "Stripe reconciliation: Aug 28 transfer tr_3U72lqDBCgtcnBrq1lKCaKH9 and Oct 15 catch-up transfer tr_1UQv6CDBCgtcnBrqW0iYc8wp are each .50; connected-account lifetime volume is .00. Email remains pending deployment and delivery verification."
+        },
+        {
+          "author": "REVIEWER",
+          "body": "verified: YTD statement delivery run 38806438435 sent one email to the configured editor address with both 450-cent transfers, zero failures, and no new payout."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-15T20:31:26+00:00",
+      "doc_updated_at": "2026-10-15T21:01:19+00:00",
       "doc_updated_by": "agentctl",
       "description": "Reconcile both 2026 .50 editor commissions and their Stripe transaction references, prepare the .00 year-to-date statement, and send it from the configured CityBeat email address to citybeatmag@yahoo.com. Do not initiate another transfer.",
-      "doc": "## Summary\n\nReconcile and deliver the editor's 2026 year-to-date statement for two .50 commissions totaling .00.\n\n## Scope\n\nRecover both Stripe transaction references, distinguish Connect transfers from bank payouts, render the statement, and email it from the configured CityBeat address to citybeatmag@yahoo.com without sending another transfer.\n\n## Risks\n\nIncorrect transaction mapping, duplicate email delivery, mislabeling transfer status as bank settlement, or accidental financial action.\n\n## Verify Steps\n\nMatch both .50 ledger entries to Stripe references, confirm .00 YTD, preview recipient and sender, send once, and record delivery evidence.\n\n## Rollback Plan\n\nIf reconciliation fails, do not send; correct and regenerate the statement. Sent email cannot be recalled, so preserve the verified copy and issue a correction if needed."
+      "doc": "## Summary\n\nReconciled the editor's two 2026 commissions and sent one year-to-date CityBeat commission statement to citybeatmag@yahoo.com.\n\n## Context\n\nStripe shows two completed editor transfers of 450 cents each, for 900 cents year to date. The statement was requested after the catch-up transfer and no additional transfer was authorized.\n\n## Scope\n\nStripe transfer reconciliation, year-to-date statement generation, CityBeat email delivery, delivery idempotency, and an audited one-payee operator workflow.\n\n## Risks\n\nThe statement endpoint cannot create transfers. The send is keyed by payee and period so retries do not duplicate delivery. No bank details or credentials are logged.\n\n## Verify Steps\n\nConfirmed transfers tr_3U72lqDBCgtcnBrq1lKCaKH9 and tr_1UQv6CDBCgtcnBrqW0iYc8wp at 450 cents each. GitHub Actions run 38806438435 returned ok=true, payees=1, sent=1, failed=0, skipped_already_sent=0 for period ytd-2026-10-15.\n\n## Rollback Plan\n\nThe sent email is immutable. Revert the operator workflow commits if dispatch access should be removed; retain the delivery ledger to preserve idempotency and audit history.\n\n## Notes\n\nStatement delivery run: https://github.com/hclara23/CityBeat_Mag/actions/runs/38806438435. Total reported year to date: 900 cents across two transfers. No new transfer was initiated."
     },
     {
       "id": "202610152030-TTPCR8",
@@ -9879,6 +9887,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "9d69fb6d872b45d1465ecf6f4e023d76770f8e855856ce88a2c077a0d165c0fd"
+    "checksum": "ff2b8f403bcf35ff4d7c54ee6cbff4bf2ae473f22ec586a1211a36cfae540ab7"
   }
 }
