@@ -4,7 +4,7 @@ title: "Reconcile and send editor year-to-date commission statement"
 status: "DOING"
 priority: "high"
 owner: "REVIEWER"
-depends_on: []
+depends_on: ["202610152030-WS5E44"]
 tags: ["stripe", "reconciliation", "email", "reporting"]
 comments:
   - { author: "REVIEWER", body: "Start: reconcile both verified .50 editor transfers, prepare the .00 year-to-date statement, and stage one CityBeat email without initiating another financial transfer." }

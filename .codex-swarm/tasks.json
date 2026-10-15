@@ -9709,7 +9709,9 @@
       "status": "DOING",
       "priority": "high",
       "owner": "REVIEWER",
-      "depends_on": [],
+      "depends_on": [
+        "202610152030-WS5E44"
+      ],
       "tags": [
         "stripe",
         "reconciliation",
@@ -9774,12 +9776,11 @@
     {
       "id": "202610152030-WS5E44",
       "title": "Deploy semi-monthly editor payout release",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "INTEGRATOR",
       "depends_on": [
-        "202610152030-TTPCR8",
-        "202610152030-RDM0NQ"
+        "202610152030-TTPCR8"
       ],
       "tags": [
         "release",
@@ -9788,6 +9789,12 @@
       ],
       "verify": [
         "npm --prefix apps/web run type-check"
+      ],
+      "comments": [
+        {
+          "author": "INTEGRATOR",
+          "body": "Start: deploy the verified app and scheduler changes within the approved  one-time and approximately .10 monthly limits; run production-safe checks without initiating a payout or charge."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T20:31:27+00:00",
@@ -9864,6 +9871,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "b71183a56edbaf7e857da7040c2aa8976df549683178a31f861fbcba3812f62c"
+    "checksum": "84164f4ee9544265d8194775bb8a43d7590935c87eaaeca5f73d8dbf8f231818"
   }
 }

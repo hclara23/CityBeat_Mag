@@ -1,12 +1,14 @@
 ---
 id: "202610152030-WS5E44"
 title: "Deploy semi-monthly editor payout release"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "INTEGRATOR"
-depends_on: ["202610152030-TTPCR8", "202610152030-RDM0NQ"]
+depends_on: ["202610152030-TTPCR8"]
 tags: ["release", "stripe", "production"]
 verify: ["npm --prefix apps/web run type-check"]
+comments:
+  - { author: "INTEGRATOR", body: "Start: deploy the verified app and scheduler changes within the approved  one-time and approximately .10 monthly limits; run production-safe checks without initiating a payout or charge." }
 doc_version: 2
 doc_updated_at: "2026-10-15T20:31:27+00:00"
 doc_updated_by: "agentctl"
