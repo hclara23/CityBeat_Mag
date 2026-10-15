@@ -9431,12 +9431,183 @@
       "doc_updated_by": "agentctl",
       "description": "Using read-only checks only, verify CityBeat live Stripe account configuration, product and recurring price, webhook health, payout readiness, editor connected-account status, bank-destination presence, commission attribution, and payout calculation records. Redact sensitive banking data and do not initiate charges, payouts, account changes, or paid services.",
       "doc": "## Summary\n\nRead-only audit completed against the authenticated live Stripe account and production CityBeat APIs. Platform payments and payouts are active, the Premium Monthly product is active at USD 19.99 per month, and the primary CityBeat webhook is active with a 0% displayed error rate. The configured editor account and default bank destination exist and have previously received USD 4.50, but Stripe flags payouts as pausing soon at USD 3,000 lifetime volume unless the representative supplies date of birth and the last four SSN digits. A second legacy thin webhook is active with a 100% displayed error rate and needs ownership review.\n\n## Context\n\nLive evidence captured October 15, 2026: Stripe account CityBeat (acct_1TMaM8DBCgtcnBrq); production health /api/health/payments returned status ok and can_take_payments true on revision citybeat-web-00314-qig. The configured editor UID 01a0ce57-68dd-4356-a459-274d7ee4e6db maps to citybeatmag@yahoo.com. No secret, full bank number, identity value, charge, payout, account edit, or deployment was used.\n\n## Scope\n\nVerified platform account status and capabilities; current balance/payout evidence; active Premium Monthly product and cadence; webhook destinations and displayed error rates; configured editor identity mapping; connected-account capabilities, payout schedule, redacted bank destination, and prior payment evidence; live commission settings; source-level allocation, refund, idempotency, and payout scheduling rules; targeted automated tests. Cloud Scheduler inventory could not be read because the active gcloud principal lacks cloudscheduler.jobs.list.\n\n## Risks\n\nHIGH: editor payouts are enabled now but Stripe shows Payouts paused soon; DOB and last-four SSN requirements become due at USD 3,000 lifetime connected-account volume. HIGH: legacy destination https://api.citybeatmag.co/webhooks/stripe is active and displays 100% errors; determine whether it is still required, then repair or retire it through an approved change. MEDIUM: scheduled payout-cycle/reconciliation job existence and recent execution remain unverified because local gcloud IAM denied scheduler listing. LOW: payout_settings still contains legacy service_payout_percent.directory=50, but current code explicitly ignores that field and uses SPLIT_RATES plus split_overrides; this stale value is operator-confusing. The primary https://citybeatmag.co/api/stripe/webhook destination is active, listens to 8 events, and displays 0% errors.\n\n## Verify Steps\n\n1. Stripe Account status showed no active tasks and active Payments and Payouts capabilities. 2. Product catalog showed Premium Directory - Monthly active at USD 19.99 per month. 3. Workbench showed the primary CityBeat webhook active with 8 events and 0% error, plus a legacy thin destination with 20 events and 100% error. 4. Editor connected account is Enabled with active Payouts and Transfers, daily two-day rolling payouts, a default credit-union bank ending 9980, USD 4.50 lifetime volume, and one succeeded USD 4.50 payment; Stripe also showed two future payout-impacting identity requirements. 5. Live payout settings showed residual mode, no split overrides, and the configured editor UID mapping to citybeatmag@yahoo.com. 6. The CityBeat sales dashboard showed the editor leaderboard at USD 4.50, matching 45% of a USD 9.99 editor-sold directory sale after cent rounding. 7. node --import tsx --test over payout-split, commission-schedule, finance-rollup, payout-reconcile-cursor, and payouts passed 48 of 48 tests. 8. npm run scheduler:check failed only at the read-only IAM inventory step with cloudscheduler.jobs.list denied.\n\n## Rollback Plan\n\nNo financial or Stripe configuration was changed. Revert only this audit documentation commit if necessary. Any future identity completion, webhook retirement, payout test, bank change, or scheduler IAM change requires its own approved operational action.\n\n## Notes\n\nAt USD 19.99, current default directory splits calculate as follows before any fee-headroom clamp: editor-sold: editor USD 9.00 and platform USD 10.99; rep-sold: editor USD 5.00, rep USD 8.00, platform USD 6.99; autonomous: editor USD 8.00 and platform USD 11.99. Commission is held seven days and paid on the next El Paso-local 1st or 15th. Residual mode applies the configured shares to renewals. Refunds reduce or reverse unpaid shares; already-paid refunds create a manual debt alert rather than silently withdrawing bank funds."
+    },
+    {
+      "id": "202610151954-5E6SNV",
+      "title": "Audit and repair Stripe recurring commissions and payout reporting",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "stripe",
+        "connect",
+        "commissions",
+        "reporting"
+      ],
+      "comments": [
+        {
+          "author": "PLANNER",
+          "body": "Approved decomposition: audit 202610151955-H80208 and policy research 202610151955-D5BBRV run first; configuration 202610151955-098Z3A and reporting 202610151955-PSTR9K follow; verification 202610151955-KPZ1PN gates conditional release 202610151955-9TWPNB. Catch-up funds require separate approval before any transfer."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:56:52+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Coordinate the approved Stripe commission and payout program through downstream tasks: forensic audit 202610151955-H80208; payout-frequency and compliance research 202610151955-D5BBRV; platform manual-payout and editor payout configuration 202610151955-098Z3A; monthly connected-payee statements 202610151955-PSTR9K; end-to-end verification 202610151955-KPZ1PN; and conditional production release 202610151955-9TWPNB. Trace the $9.99 subscription, keep CityBeat funds in Stripe, pay editor commissions after clearance, and calculate but never transfer catch-up funds without separate approval.",
+      "doc": "## Summary\n\nCoordinate the approved audit, policy research, safe Stripe configuration, monthly payee reporting, verification, and conditional release. The program preserves CityBeat funds in Stripe while ensuring connected editor commissions follow the approved schedule.\n\n## Context\n\nCityBeat owns the sole Stripe platform account. The editor connected a bank account through Stripe Connect. A $9.99 monthly client appears to have produced only one editor payment, CityBeat wants its share retained under manual platform payouts, and connected payees need monthly statements.\n\n## Scope\n\nDownstream tasks: 202610151955-H80208 forensic audit; 202610151955-D5BBRV policy research; 202610151955-098Z3A payout configuration; 202610151955-PSTR9K statements; 202610151955-KPZ1PN verification; 202610151955-9TWPNB conditional release. No catch-up transfer without separate approval.\n\n## Risks\n\nFinancial settings can affect platform cash flow or editor access. Legal conclusions may depend on worker classification and contracts. Email statements contain sensitive financial data. Every mutation requires evidence and catch-up funds remain calculation-only until separately approved.\n\n## Verify Steps\n\nConfirm every downstream task is completed or explicitly skipped with evidence; reconcile the $9.99 subscription; verify platform manual payouts do not interrupt Connect transfers; verify statement totals and delivery; verify no unauthorized fund movement.\n\n## Rollback Plan\n\nRestore the documented prior payout schedule or application configuration, disable the statement scheduler if reconciliation fails, retain immutable audit evidence, and do not reverse or create financial transactions without explicit approval.\n\n## Notes\n\nUser approved the expanded plan. Immediate editor payout means after funds clear, subject to the policy research and Stripe capabilities. Any exact catch-up transfer requires a new action-time approval."
+    },
+    {
+      "id": "202610151955-098Z3A",
+      "title": "Configure platform manual payouts and editor payout behavior",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202610151955-H80208",
+        "202610151955-D5BBRV"
+      ],
+      "tags": [
+        "stripe",
+        "connect",
+        "configuration"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:56:55+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "After the forensic and policy audits, configure only the CityBeat platform Stripe balance to retain CityBeat funds under manual payouts and configure the editor-connected account to pay earned commissions on the approved after-clearance schedule. Do not move funds, create catch-up transfers, or change editor bank details; capture before-and-after evidence and preserve Connect transfers.",
+      "doc": "## Summary\n\nConfigure the CityBeat platform for manual owner payouts while preserving the approved connected-editor payout behavior after the audits are complete.\n\n## Context\n\nCityBeat wants its platform share retained in Stripe, while editor commission should be transferred and paid out on the approved after-clearance cadence. These are separate platform and connected-account controls.\n\n## Scope\n\nCapture current schedules and pending states; change only the platform payout schedule to manual; configure or verify the editor-connected payout cadence approved from research; preserve Connect transfer attribution and bank destination; document before-and-after evidence. Do not move funds.\n\n## Risks\n\nChanging the wrong account schedule could delay editor funds or cash out CityBeat funds. Pending payouts may already be queued. Stripe capabilities vary by connected-account type. Stop before any action that would initiate fund movement.\n\n## Verify Steps\n\nVerify the selected Stripe account context before each setting; confirm platform payouts are manual; confirm editor payouts follow the approved schedule; verify Connect transfers remain enabled; confirm no payout, transfer, bank change, or customer charge was created.\n\n## Rollback Plan\n\nUse captured prior settings to restore only the affected payout schedule if verification fails. Do not attempt financial reversals; escalate any already-queued payout separately.\n\n## Notes\n\nDepends on 202610151955-H80208 and 202610151955-D5BBRV. Any catch-up commission remains outside scope and requires separate approval."
+    },
+    {
+      "id": "202610151955-9TWPNB",
+      "title": "Release verified Stripe payout and reporting changes",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "INTEGRATOR",
+      "depends_on": [
+        "202610151955-KPZ1PN"
+      ],
+      "tags": [
+        "release",
+        "stripe",
+        "production"
+      ],
+      "verify": [
+        "npm --prefix apps/web run type-check"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:56:57+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "If code or production configuration changes are required and verification passes, deploy the approved changes, confirm production health and scheduler or webhook behavior, and document rollback. Deployment must not initiate customer charges, catch-up transfers, or payouts; skip this task with documented evidence if no releasable changes are needed.",
+      "doc": "## Summary\n\nConditionally release verified payout and statement changes and confirm production health without initiating financial transactions.\n\n## Context\n\nA release is needed only if code or production configuration changed. The deploy must preserve live billing and use the project approval rules for any deployment cost.\n\n## Scope\n\nDeploy verified application changes when required, confirm the production revision, health endpoints, webhook processing, scheduler behavior, report generation controls, and rollback readiness. If no releasable change exists, document why the task is skipped.\n\n## Risks\n\nDeployment can affect live billing, webhooks, email delivery, and scheduled work. Cloud deployment may incur cost and requires the project purchase approval rule when a new charge is possible. No financial transaction may be initiated.\n\n## Verify Steps\n\nRun npm --prefix apps/web run type-check and the approved release verification suite; verify production health, webhook success, scheduler registration, statement controls, and rollback target; record cost approval if deployment is billable.\n\n## Rollback Plan\n\nRoute traffic back to the last known-good revision, restore prior non-financial configuration, disable new scheduled statement sends, and retain logs for reconciliation.\n\n## Notes\n\nDepends on 202610151955-KPZ1PN. Skip release when audits require no code or deployable configuration changes."
+    },
+    {
+      "id": "202610151955-D5BBRV",
+      "title": "Research compliant connected-payee payout frequency",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "REVIEWER",
+      "depends_on": [],
+      "tags": [
+        "stripe",
+        "legal-research",
+        "payouts",
+        "compliance"
+      ],
+      "comments": [
+        {
+          "author": "REVIEWER",
+          "body": "Start: research current Stripe Connect payout schedules and authoritative New Mexico and federal commission-payment rules; compare operational options without changing settings or moving funds"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:56:54+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Research current Stripe Connect payout constraints and applicable New Mexico and United States rules for paying editor or contractor commissions. Compare after-clearance, twice-monthly, and monthly schedules; document authoritative sources, contractual caveats, operational risks, and a recommended policy without changing financial settings.",
+      "doc": "## Summary\n\nResearch the lawful and operationally sound payout cadence for connected editors and other payees, using current authoritative sources and Stripe Connect documentation.\n\n## Context\n\nCityBeat prefers editor commissions to leave as soon as cleared but is considering a predictable twice-monthly rule and needs to understand legal, contractual, and Stripe constraints.\n\n## Scope\n\nCompare after-clearance, twice-monthly, and monthly schedules under relevant New Mexico and United States rules, worker classification and contract considerations, Stripe Connect availability and payout controls, fees, reconciliation effort, and communication requirements. Provide citations and a recommendation.\n\n## Risks\n\nWorker classification and contract terms can change the applicable rules. Research is informational and must distinguish statutes or official guidance from inference; recommend qualified legal review where facts remain material.\n\n## Verify Steps\n\nUse primary authoritative sources where possible; record publication or access dates; confirm Stripe documentation is current; state assumptions and compare each cadence against compliance, cost, cash-flow, and reconciliation criteria.\n\n## Rollback Plan\n\nNo system change is permitted. Withdraw or amend recommendations if newer authority or corrected classification facts change the analysis.\n\n## Notes\n\nResearch does not authorize a payout-schedule change. Configuration depends on both this recommendation and the forensic audit."
+    },
+    {
+      "id": "202610151955-H80208",
+      "title": "Forensic audit of recurring Stripe editor commissions",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "REVIEWER",
+      "depends_on": [],
+      "tags": [
+        "stripe",
+        "connect",
+        "commissions",
+        "audit"
+      ],
+      "comments": [
+        {
+          "author": "REVIEWER",
+          "body": "Start: trace the active 9.99 USD subscription across Stripe invoices, metadata, commission ledger, Connect transfers, and editor payouts; calculate any catch-up amount without changing settings or moving funds."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:56:53+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Read-only trace of the active $9.99 monthly subscription across invoices, payment intents, charges, subscription attribution, commission ledger entries, Connect transfers, holds, and bank payouts. Determine whether renewals were paid, held, omitted, or not yet due; calculate the exact editor catch-up amount without initiating any transfer or payout.",
+      "doc": "## Summary\n\nPerform a read-only forensic reconciliation of the active $9.99 monthly subscriber and every editor commission event, then calculate any exact catch-up amount without moving money.\n\n## Context\n\nOnly one Stripe platform account exists. The editor receives commission through a connected bank account. One prior $4.50 editor payment is known, but recurring renewal handling has not been reconciled.\n\n## Scope\n\nInspect subscription and invoice history, payment intents, charges, metadata and attribution, commission ledger records, holds, Connect transfers, payout records, refunds, disputes, available-balance timing, webhooks, and payout-cycle evidence. Produce an invoice-by-invoice reconciliation and exact catch-up calculation.\n\n## Risks\n\nStripe objects can be confused across invoice, transfer, and payout layers. Pending funds are not missing funds. Customer and bank data must be redacted. This task is strictly read-only and cannot initiate transfers or payouts.\n\n## Verify Steps\n\nCross-check every paid $9.99 invoice against application attribution, commission ledger, Connect transfer, payout status, refunds and disputes; document timestamps, identifiers in redacted form, calculation formula, and exact outstanding amount if any.\n\n## Rollback Plan\n\nNo financial or production mutation is permitted, so rollback is limited to correcting the audit artifact if contradictory evidence is found.\n\n## Notes\n\nDo not treat absence of a bank payout as proof of a missing commission until transfer state and available-balance timing are verified. Separate approval is mandatory before any catch-up transfer."
+    },
+    {
+      "id": "202610151955-KPZ1PN",
+      "title": "Verify recurring commissions payouts and monthly statements",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "TESTER",
+      "depends_on": [
+        "202610151955-098Z3A",
+        "202610151955-PSTR9K"
+      ],
+      "tags": [
+        "testing",
+        "stripe",
+        "reconciliation"
+      ],
+      "verify": [
+        "npm --prefix apps/web test",
+        "npm --prefix apps/web run type-check"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:56:56+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Reconcile the forensic findings and implemented behavior end to end: recurring renewal attribution, commission calculation, available-balance timing, Connect transfer and payout-state handling, platform manual-payout isolation, statement totals, idempotency, refunds and disputes, and notification delivery. Use tests and read-only production evidence; do not initiate payments, transfers, or payouts.",
+      "doc": "## Summary\n\nVerify and reconcile the complete recurring commission, payout-schedule, and monthly-statement workflow before release.\n\n## Context\n\nThe audit, payout configuration, and statement implementation must operate as one coherent workflow without moving unauthorized funds or conflating Connect transfers with bank payouts.\n\n## Scope\n\nTest renewal attribution, commission math, available-balance timing, transfer and payout status handling, platform manual payout isolation, report accuracy, idempotency, refund and dispute adjustments, authorization, email delivery and retries, webhook replay, and scheduler observability. Reconcile against read-only production evidence.\n\n## Risks\n\nTest-mode behavior may differ from live funds availability. Production inspection must remain read-only. False confidence can arise if only first-payment paths are tested.\n\n## Verify Steps\n\nRun npm --prefix apps/web test and npm --prefix apps/web run type-check plus focused tests added by the implementation; document production-readiness evidence, remaining manual checks, and proof that no transfer, payout, or customer charge was initiated.\n\n## Rollback Plan\n\nIf any reconciliation or privacy check fails, block release, restore the prior configuration where safe, disable statement sending, and preserve evidence for correction.\n\n## Notes\n\nDepends on both configuration and reporting. Verification must explicitly cover recurring invoices after the initial sale."
+    },
+    {
+      "id": "202610151955-PSTR9K",
+      "title": "Implement monthly connected-payee payout statements",
+      "status": "TODO",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202610151955-H80208",
+        "202610151955-D5BBRV"
+      ],
+      "tags": [
+        "code",
+        "backend",
+        "email",
+        "reporting",
+        "stripe"
+      ],
+      "verify": [
+        "npm --prefix apps/web test",
+        "npm --prefix apps/web run type-check"
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-15T19:56:55+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Implement automated monthly statements and email notifications for every connected payee, including attributed customer payments, gross amount, rate, commission earned, transfers, payout dates and statuses, refunds, disputes, adjustments, outstanding balance, reporting period, and year-to-date totals. Ensure idempotent generation, privacy-safe delivery, audit records, and no creation or movement of funds.",
+      "doc": "## Summary\n\nBuild monthly, auditable commission and payout statements with privacy-safe email notifications for every connected payee.\n\n## Context\n\nConnected editors and future payees need a clear monthly record of attributed sales, earned commission, transfers, payouts, adjustments, outstanding amounts, and year-to-date totals.\n\n## Scope\n\nImplement statement-period calculations, idempotent generation and sending, payee-scoped access, email delivery, durable audit status, refunds and dispute adjustments, transfer and payout states, outstanding balance, and year-to-date totals. Add operational retry and failure visibility without creating financial transactions.\n\n## Risks\n\nDuplicate emails, cross-payee data leakage, timezone cutoffs, late refunds, and transfer-versus-payout confusion could make statements inaccurate. Financial amounts must use integer cents and deterministic period keys.\n\n## Verify Steps\n\nRun npm --prefix apps/web test and npm --prefix apps/web run type-check; add focused tests for period boundaries, idempotency, multiple payees, refunds, disputes, pending amounts, year-to-date totals, authorization, and email retry behavior.\n\n## Rollback Plan\n\nDisable the statement scheduler or feature flag, stop new sends, preserve existing audit records, and revert application changes. Corrected statements must be versioned rather than silently overwritten.\n\n## Notes\n\nStatement delivery reports financial activity only and must never trigger transfers or payouts. Cadence and terminology should follow task 202610151955-D5BBRV."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "9c6f30ce4f6c6cbb849815e7c154e85ce5df4decf1661af559d6ecbe66bf436b"
+    "checksum": "dcf4d7883acf86335486d91ec09dd63ca2b578acee4db1c24402cbe299e7bec5"
   }
 }
