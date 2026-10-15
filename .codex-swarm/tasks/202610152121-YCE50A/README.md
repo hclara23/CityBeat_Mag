@@ -1,15 +1,17 @@
 ---
 id: "202610152121-YCE50A"
 title: "Expand compliant Southwest business source templates"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: ["202610152121-B8B5RR"]
 tags: ["code", "ingestion", "open-data"]
 verify: ["npm test"]
+commit: { hash: "01d0e3c93495c8471b9ff66d30d5ec7689d289b3", message: "✨ YCE50A add review-first official Southwest business feeds" }
 comments:
   - { author: "CODER", body: "Start: inventory current free official feeds; add Southwest high-claim category templates with provenance and geographic filters; avoid paid AI and restricted map content." }
   - { author: "ORCHESTRATOR", body: "Verified: official-source expansion is review-first; 650 tests and the web TypeScript check pass, with no paid API call or production write." }
+  - { author: "CODER", body: "verified: official Southwest feeds remain disabled and review-first | details: 650 tests and web type-check passed without paid API calls or production writes." }
 doc_version: 2
 doc_updated_at: "2026-10-15T21:27:49+00:00"
 doc_updated_by: "agentctl"
