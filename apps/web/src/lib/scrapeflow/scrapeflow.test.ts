@@ -113,7 +113,11 @@ test('directory sink normalizers', () => {
   assert.equal(mapCategory(null, 'Not A Category'), 'Professional Services')
   assert.equal(inRegion({ address: '123 Main', city: 'El Paso', state: 'TX', zip: null }), true)
   assert.equal(inRegion({ address: '5 Rd, Las Cruces NM 88001', city: null, state: null, zip: null }), true)
+  assert.equal(inRegion({ address: '101 Grant Ave', city: 'Odessa', state: 'TX', zip: '79761' }), true)
+  assert.equal(inRegion({ address: '12 Main St', city: 'Alpine', state: 'TX', zip: '79830' }), true)
+  assert.equal(inRegion({ address: '8 Main St', city: 'Roswell', state: 'NM', zip: '88201' }), true)
   assert.equal(inRegion({ address: '1 Way', city: 'Austin', state: 'TX', zip: '78701' }), false)
+  assert.equal(inRegion({ address: '1 Central Ave', city: 'Albuquerque', state: 'NM', zip: '87102' }), false)
   assert.equal(inRegion({ address: null, city: null, state: null, zip: '79912' }), true)
   assert.equal(inRegion({ address: null, city: null, state: null, zip: null, phone: '(915) 208-4041' }), true, '915 phone-only entry is local')
   assert.equal(inRegion({ address: '1 Way, Austin, TX 78701', city: null, state: null, zip: null, phone: '(915) 208-4041' }), false, 'out-of-area address wins over local phone')
@@ -180,6 +184,26 @@ test('every bundled template uses a category that exists in DIRECTORY_CATEGORIES
       const cat = node.inputs?.['Default category'] || node.inputs?.Category
       if (cat) assert.ok(allowed.has(cat), `${tpl.key}: "${cat}" is not in DIRECTORY_CATEGORIES`)
     }
+  }
+})
+
+test('Southwest expansion templates are official, free-source, disabled, and review-first', () => {
+  const keys = [
+    'tdlr-west-texas-electrical-contractors',
+    'tdlr-west-texas-beauty-establishments',
+    'hhs-west-texas-childcare',
+    'tabc-west-texas-hospitality',
+  ]
+  for (const key of keys) {
+    const tpl = WORKFLOW_TEMPLATES.find((candidate) => candidate.key === key)
+    assert.ok(tpl, `${key} exists`)
+    assert.equal(tpl.enabled, false, `${key} cannot run before operator review`)
+    assert.equal(tpl.definition.nodes.some((node) => node.type === TaskType.SEARCH_GOOGLE_PLACES), false)
+    const fetch = tpl.definition.nodes.find((node) => node.type === TaskType.FETCH_JSON)
+    assert.match(fetch?.inputs.URL || '', /^https:\/\/data\.texas\.gov\/resource\//)
+    const deliver = tpl.definition.nodes.find((node) => node.type === TaskType.DELIVER_TO_DIRECTORY)
+    assert.equal(deliver?.inputs.Publish, 'false', `${key} cannot auto-publish new records`)
+    assert.equal(deliver?.inputs['Region filter'], 'true')
   }
 })
 

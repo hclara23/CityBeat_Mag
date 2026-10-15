@@ -10019,7 +10019,7 @@
     {
       "id": "202610152121-YCE50A",
       "title": "Expand compliant Southwest business source templates",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -10033,6 +10033,12 @@
       "verify": [
         "npm test"
       ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: inventory current free official feeds; add Southwest high-claim category templates with provenance and geographic filters; avoid paid AI and restricted map content."
+        }
+      ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T21:21:30+00:00",
       "doc_updated_by": "agentctl",
@@ -10043,6 +10049,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "82d394472c85496a703c076a29eadc348db5e84e85f9f0deedee6aa2ab485037"
+    "checksum": "4f139dd27710f081efb0ee95548b33972a2006352ca509edaaf644b42faa3212"
   }
 }

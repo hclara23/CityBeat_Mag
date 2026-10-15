@@ -41,14 +41,29 @@ const REGION_CITIES = [
   'fort bliss',
   'tornillo',
   'westway',
+  'midland',
+  'odessa',
+  'andrews',
+  'big spring',
+  'pecos',
+  'fort stockton',
+  'alpine',
+  'marfa',
+  'presidio',
+  'van horn',
+  'monahans',
+  'kermit',
+  'crane',
+  'mccamey',
+  'rankin',
   'ciudad juárez',
   'ciudad juarez',
   'cd. juárez',
   'juárez',
   'juarez',
 ]
-// El Paso County ZIPs are 798xx/799xx; Doña Ana County is 880xx (Las Cruces 88001-88012, etc.).
-const REGION_ZIP = /\b(79[89]\d{2}|880\d{2}|8801\d|8802\d|8803\d|8804\d|8805\d|8806\d|8807\d|8808\d)\b/
+// West Texas ZIPs are 795xx-799xx; southern New Mexico ZIPs are 880xx-883xx.
+const REGION_ZIP = /\b(79[5-9]\d{2}|88[0-3]\d{2})\b/
 
 export function normalizePhone(raw: string | null | undefined): string | null {
   if (!raw) return null

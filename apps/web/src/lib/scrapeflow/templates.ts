@@ -33,6 +33,29 @@ const INDUSTRIAL_SUPPLY_QUERIES = cross(
 const TDLR_BASE = 'https://data.texas.gov/resource/7358-krk7.json'
 const tdlrWhere = (where: string) => `${TDLR_BASE}?$limit=5000&$where=${encodeURIComponent(where)}`
 const tdlrUrl = (licenseType: string) => tdlrWhere(`license_type='${licenseType}' AND business_county='EL PASO'`)
+const WEST_TEXAS_COUNTIES = [
+  'ANDREWS',
+  'BREWSTER',
+  'CRANE',
+  'ECTOR',
+  'HUDSPETH',
+  'JEFF DAVIS',
+  'LOVING',
+  'MIDLAND',
+  'PECOS',
+  'PRESIDIO',
+  'REEVES',
+  'TERRELL',
+  'UPTON',
+  'WARD',
+  'WINKLER',
+]
+const countyWhere = (field: string, counties: string[] = WEST_TEXAS_COUNTIES) =>
+  counties.map((county) => `${field}='${county}'`).join(' OR ')
+const titleCaseCountyWhere = (field: string) =>
+  WEST_TEXAS_COUNTIES.map((county) =>
+    `${field}='${county.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase())}'`
+  ).join(' OR ')
 const TDLR_FIELD_MAP = JSON.stringify({
   name: 'business_name',
   address: 'business_address_line1',
@@ -245,6 +268,66 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
           },
         },
         { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{map.Listings}}', 'Default category': 'Childcare & Education', 'Region filter': 'true', Publish: 'true', Consolidate: 'true' } },
+      ],
+    },
+  },
+  {
+    key: 'tdlr-west-texas-electrical-contractors',
+    name: 'TDLR — licensed Electrical Contractors (West Texas)',
+    description:
+      'Review-first expansion from the official TDLR open-data license file (data.texas.gov 7358-krk7) for electrical contractors across 15 West Texas counties. The template is disabled and creates unpublished candidates until an operator audits source quality and duplicates.',
+    enabled: false,
+    interval_hours: 168,
+    definition: {
+      nodes: [
+        { id: 'fetch', type: TaskType.FETCH_JSON, inputs: { URL: tdlrWhere(`license_type='Electrical Contractor' AND (${countyWhere('business_county')})`), 'Max items': '5000' } },
+        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': TDLR_FIELD_MAP, Category: 'Electrical Contractors', 'Title case names': 'true' } },
+        { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{map.Listings}}', 'Default category': 'Electrical Contractors', 'Region filter': 'true', Publish: 'false', Consolidate: 'true' } },
+      ],
+    },
+  },
+  {
+    key: 'tdlr-west-texas-beauty-establishments',
+    name: 'TDLR — licensed cosmetology establishments (West Texas)',
+    description:
+      'Review-first expansion from the official TDLR open-data license file for fixed cosmetology establishments across 15 West Texas counties. Individual practitioner licenses are excluded. The template is disabled and creates unpublished candidates for duplicate and quality review.',
+    enabled: false,
+    interval_hours: 168,
+    definition: {
+      nodes: [
+        { id: 'fetch', type: TaskType.FETCH_JSON, inputs: { URL: tdlrWhere(`license_type LIKE '%Establishment%' AND (${countyWhere('business_county')})`), 'Max items': '5000' } },
+        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': TDLR_FIELD_MAP, Category: 'Beauty', 'Title case names': 'true' } },
+        { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{map.Listings}}', 'Default category': 'Beauty', 'Region filter': 'true', Publish: 'false', Consolidate: 'true' } },
+      ],
+    },
+  },
+  {
+    key: 'hhs-west-texas-childcare',
+    name: 'Texas HHS — active child care operations (West Texas)',
+    description:
+      'Review-first expansion from the official Texas HHS Child Care Regulation open-data file (data.texas.gov bc5r-88dy) for active operations across 15 West Texas counties. The template is disabled and keeps imported candidates unpublished pending review.',
+    enabled: false,
+    interval_hours: 168,
+    definition: {
+      nodes: [
+        { id: 'fetch', type: TaskType.FETCH_JSON, inputs: { URL: 'https://data.texas.gov/resource/bc5r-88dy.json?$limit=5000&$where=' + encodeURIComponent(`operation_status='Y' AND (${countyWhere('county')})`), 'Max items': '5000' } },
+        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': JSON.stringify({ name: 'operation_name', address: 'address_line', city: 'city', state: 'state', zip: 'zipcode', phone: 'phone_number', description: 'operation_type' }), Category: 'Childcare & Education', 'Title case names': 'true' } },
+        { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{map.Listings}}', 'Default category': 'Childcare & Education', 'Region filter': 'true', Publish: 'false', Consolidate: 'true' } },
+      ],
+    },
+  },
+  {
+    key: 'tabc-west-texas-hospitality',
+    name: 'TABC — active hospitality businesses (West Texas)',
+    description:
+      'Review-first expansion from the official daily TABC License Information dataset (data.texas.gov 7hf9-qc9f) for active restaurants, bars and hospitality businesses across 15 West Texas counties. The template is disabled and keeps candidates unpublished until audited.',
+    enabled: false,
+    interval_hours: 168,
+    definition: {
+      nodes: [
+        { id: 'fetch', type: TaskType.FETCH_JSON, inputs: { URL: 'https://data.texas.gov/resource/7hf9-qc9f.json?$limit=5000&$where=' + encodeURIComponent(`primary_status='Active' AND (${titleCaseCountyWhere('county')})`), 'Max items': '5000' } },
+        { id: 'map', type: TaskType.MAP_JSON_TO_LISTINGS, inputs: { JSON: '{{fetch.JSON}}', 'Field map': JSON.stringify({ name: 'trade_name', address: 'address', city: 'city', state: 'state', zip: 'zip', description: 'license_type' }), Category: 'Restaurant', 'Title case names': 'true' } },
+        { id: 'deliver', type: TaskType.DELIVER_TO_DIRECTORY, inputs: { Listings: '{{map.Listings}}', 'Default category': 'Restaurant', 'Region filter': 'true', Publish: 'false', Consolidate: 'true' } },
       ],
     },
   },
