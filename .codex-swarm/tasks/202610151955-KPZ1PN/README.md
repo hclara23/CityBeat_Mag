@@ -1,14 +1,16 @@
 ---
 id: "202610151955-KPZ1PN"
 title: "Verify recurring commissions payouts and monthly statements"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "TESTER"
 depends_on: ["202610151955-098Z3A", "202610151955-PSTR9K"]
 tags: ["testing", "stripe", "reconciliation"]
 verify: ["npm test", "npm --prefix apps/web run type-check"]
+commit: { hash: "cf42334f340f4e06a3433da6d17621653f380d03", message: "🧪 KPZ1PN verify recurring commissions and include manual catch-up transfers in monthly statements" }
 comments:
   - { author: "TESTER", body: "Start: verify recurring renewal commission attribution and idempotency, platform manual-payout isolation, catch-up ledger behavior, monthly statement totals and privacy, scheduler cadence and ops health, plus payout refund and reconciliation regressions; run focused, full web, repository, and type-check validation without external financial or email side effects" }
+  - { author: "TESTER", body: "verified: fixed manual catch-up ledger inclusion in monthly statements | details: 92 focused payout tests, 640 full repository tests and 4/4 workspace type-checks passed; no external email, Stripe or financial actions occurred during testing." }
 doc_version: 2
 doc_updated_at: "2026-10-15T20:21:39+00:00"
 doc_updated_by: "agentctl"
