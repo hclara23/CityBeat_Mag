@@ -14,6 +14,7 @@ import {
   type ListingPost,
   type ListingServiceItem,
 } from '@/lib/listing-content'
+import { attributedListingUrl, type ListingOutboundChannel } from '@/lib/listing-outbound'
 
 type ContentListing = {
   services?: ListingServiceItem[] | null
@@ -41,28 +42,34 @@ export function ActionLinksBar({
   listing,
   locale,
   onLinkClick,
+  listingId,
 }: {
   listing: ContentListing
   locale: 'en' | 'es'
-  onLinkClick?: () => void
+  listingId: string
+  onLinkClick?: (type: `click_action_${'booking' | 'order' | 'quote'}`) => void
 }) {
   const links = listing.action_links || {}
   const entries = ACTION_LINK_KEYS.filter((k) => links[k])
   if (entries.length === 0) return null
   return (
     <div className="flex flex-wrap gap-2.5">
-      {entries.map((key) => (
+      {entries.map((key) => {
+        const action = key === 'order' ? 'order' : key === 'quote' ? 'quote' : 'booking'
+        const channel = `action_${action}` as ListingOutboundChannel
+        return (
         <a
           key={key}
-          href={links[key]}
+          href={attributedListingUrl(links[key]!, listingId, channel)}
           target="_blank"
-          rel="noopener noreferrer"
-          onClick={onLinkClick}
+          rel="noopener"
+          onClick={() => onLinkClick?.(`click_action_${action}`)}
           className="rounded-md bg-brand-neon px-4 py-2.5 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300"
         >
           {ACTION_LINK_LABELS[key][locale]} ↗
         </a>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -102,9 +109,13 @@ function ItemsPanel({
 export function ListingContentSections({
   listing,
   locale,
+  listingId,
+  onPostClick,
 }: {
   listing: ContentListing
   locale: 'en' | 'es'
+  listingId: string
+  onPostClick?: () => void
 }) {
   const isEs = locale === 'es'
   const posts = activePosts(listing.posts, elPasoDayKey(new Date()))
@@ -148,9 +159,10 @@ export function ListingContentSections({
                 )}
                 {post.cta_url && (
                   <a
-                    href={post.cta_url}
+                    href={attributedListingUrl(post.cta_url, listingId, 'post_cta')}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener"
+                    onClick={onPostClick}
                     className="mt-2 inline-block text-xs font-black uppercase tracking-wider text-brand-neon hover:underline"
                   >
                     {isEs ? 'Más información' : 'Learn more'} →

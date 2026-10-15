@@ -6,6 +6,8 @@ import { breadcrumbJsonLd } from '@/lib/seo'
 import { stripInternalListingFields } from '@/lib/listing-fields'
 import { activePosts, elPasoDayKey } from '@/lib/listing-content'
 import DirectoryDetailClient from './DirectoryDetailClient'
+import { categoryLabel } from '@/lib/categories'
+import { parsePostalAddress, schemaOpeningHours, schemaTypeForCategory } from '@/lib/listing-seo'
 
 // ISR: cache the rendered page for 15 min. (Was force-dynamic, which silently
 // overrode this revalidate — every crawl of all ~6,700 listings re-read Firestore.)
@@ -113,17 +115,13 @@ function cityFromAddress(address?: string | null): string | null {
   return m ? m[1].trim() : null
 }
 
-const DAY_MAP: Record<string, string> = {
-  Monday: 'Mo', Tuesday: 'Tu', Wednesday: 'We', Thursday: 'Th', Friday: 'Fr', Saturday: 'Sa', Sunday: 'Su',
-}
-
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const listing = await getListing(params.id)
-  if (!listing) return { title: 'Business not found · CityBeat' }
+  if (!listing) return { title: 'Business not found · CityBeat', robots: { index: false, follow: false } }
 
   const locale = params.locale === 'es' ? 'es' : 'en'
   const city = cityFromAddress(listing.address) || 'El Paso'
-  const cat = listing.category || 'Local Business'
+  const cat = categoryLabel(listing.category, locale)
   const name = listing.name || 'Local Business'
   const url = `${BASE}/${locale}/directory/${listing.id}`
 
@@ -148,6 +146,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       languages: {
         en: `${BASE}/en/directory/${listing.id}`,
         es: `${BASE}/es/directory/${listing.id}`,
+        'x-default': `${BASE}/en/directory/${listing.id}`,
       },
     },
     robots: indexable ? { index: true, follow: true } : { index: false, follow: true },
@@ -205,21 +204,11 @@ function buildSchema(
     ? listing.service_areas.filter((s: any) => typeof s === 'string' && s.trim()).slice(0, 20)
     : []
 
-  // hours: { Monday: "9:00 AM - 5:00 PM", ... } → schema openingHours strings.
-  let openingHours: string[] | undefined
-  if (listing.hours && typeof listing.hours === 'object') {
-    openingHours = Object.entries(listing.hours as Record<string, string>)
-      .map(([day, val]) => {
-        const d = DAY_MAP[day]
-        if (!d || !val || /closed/i.test(val)) return null
-        return `${d} ${val}`
-      })
-      .filter(Boolean) as string[]
-  }
+  const openingHours = schemaOpeningHours(listing.hours)
 
   return {
     '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
+    '@type': schemaTypeForCategory(listing.category),
     '@id': url,
     name: listing.name,
     url,
@@ -227,7 +216,7 @@ function buildSchema(
     ...(listing.image_url ? { image: [listing.image_url, ...(Array.isArray(listing.gallery_urls) ? listing.gallery_urls.slice(0, 5) : [])] } : {}),
     ...(listing.phone ? { telephone: listing.phone } : {}),
     ...(listing.address
-      ? { address: { '@type': 'PostalAddress', streetAddress: listing.address, addressLocality: cityFromAddress(listing.address) || 'El Paso', addressRegion: 'TX', addressCountry: 'US' } }
+      ? { address: parsePostalAddress(listing.address) }
       : {}),
     ...(typeof listing.latitude === 'number' && typeof listing.longitude === 'number'
       ? { geo: { '@type': 'GeoCoordinates', latitude: listing.latitude, longitude: listing.longitude } }

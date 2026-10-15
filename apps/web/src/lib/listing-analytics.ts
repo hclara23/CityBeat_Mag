@@ -8,6 +8,18 @@ export const LISTING_EVENT_TYPES = [
   'click_website',
   'click_directions',
   'click_action',
+  'click_phone',
+  'click_social_facebook',
+  'click_social_instagram',
+  'click_social_twitter',
+  'click_directions_google',
+  'click_directions_apple',
+  'click_directions_location',
+  'click_action_booking',
+  'click_action_order',
+  'click_action_quote',
+  'click_action_menu',
+  'click_post_cta',
   'lead',
 ] as const
 
@@ -35,7 +47,7 @@ export type DailyStatRow = {
   click_directions?: number
   click_action?: number
   lead?: number
-}
+} & Partial<Record<ListingEventType, number>>
 
 export type StatTotals = {
   view: number
@@ -43,9 +55,26 @@ export type StatTotals = {
   click_directions: number
   click_action: number
   lead: number
+  click_phone: number
+  click_social_facebook: number
+  click_social_instagram: number
+  click_social_twitter: number
+  click_directions_google: number
+  click_directions_apple: number
+  click_directions_location: number
+  click_action_booking: number
+  click_action_order: number
+  click_action_quote: number
+  click_action_menu: number
+  click_post_cta: number
 }
 
-const ZERO: StatTotals = { view: 0, click_website: 0, click_directions: 0, click_action: 0, lead: 0 }
+const ZERO: StatTotals = {
+  view: 0, click_website: 0, click_directions: 0, click_action: 0, lead: 0,
+  click_phone: 0, click_social_facebook: 0, click_social_instagram: 0, click_social_twitter: 0,
+  click_directions_google: 0, click_directions_apple: 0, click_directions_location: 0,
+  click_action_booking: 0, click_action_order: 0, click_action_quote: 0, click_action_menu: 0, click_post_cta: 0,
+}
 
 function addRow(acc: StatTotals, row: DailyStatRow): StatTotals {
   return {
@@ -54,6 +83,18 @@ function addRow(acc: StatTotals, row: DailyStatRow): StatTotals {
     click_directions: acc.click_directions + (Number(row.click_directions) || 0),
     click_action: acc.click_action + (Number(row.click_action) || 0),
     lead: acc.lead + (Number(row.lead) || 0),
+    click_phone: acc.click_phone + (Number(row.click_phone) || 0),
+    click_social_facebook: acc.click_social_facebook + (Number(row.click_social_facebook) || 0),
+    click_social_instagram: acc.click_social_instagram + (Number(row.click_social_instagram) || 0),
+    click_social_twitter: acc.click_social_twitter + (Number(row.click_social_twitter) || 0),
+    click_directions_google: acc.click_directions_google + (Number(row.click_directions_google) || 0),
+    click_directions_apple: acc.click_directions_apple + (Number(row.click_directions_apple) || 0),
+    click_directions_location: acc.click_directions_location + (Number(row.click_directions_location) || 0),
+    click_action_booking: acc.click_action_booking + (Number(row.click_action_booking) || 0),
+    click_action_order: acc.click_action_order + (Number(row.click_action_order) || 0),
+    click_action_quote: acc.click_action_quote + (Number(row.click_action_quote) || 0),
+    click_action_menu: acc.click_action_menu + (Number(row.click_action_menu) || 0),
+    click_post_cta: acc.click_post_cta + (Number(row.click_post_cta) || 0),
   }
 }
 
@@ -124,7 +165,12 @@ export function csvCell(value: unknown): string {
 }
 
 export function statsToCsv(rows: DailyStatRow[]): string {
-  const header = ['day', 'views', 'website_clicks', 'direction_clicks', 'action_clicks', 'leads']
+  const header = [
+    'day', 'views', 'website_clicks', 'direction_clicks', 'action_clicks', 'leads', 'phone_clicks',
+    'facebook_clicks', 'instagram_clicks', 'twitter_clicks', 'google_direction_clicks',
+    'apple_direction_clicks', 'location_direction_clicks', 'booking_clicks', 'order_clicks',
+    'quote_clicks', 'menu_clicks', 'post_cta_clicks',
+  ]
   const lines = [header.join(',')]
   for (const row of [...rows].sort((a, b) => a.day.localeCompare(b.day))) {
     lines.push(
@@ -135,6 +181,18 @@ export function statsToCsv(rows: DailyStatRow[]): string {
         csvCell(Number(row.click_directions) || 0),
         csvCell(Number(row.click_action) || 0),
         csvCell(Number(row.lead) || 0),
+        csvCell(Number(row.click_phone) || 0),
+        csvCell(Number(row.click_social_facebook) || 0),
+        csvCell(Number(row.click_social_instagram) || 0),
+        csvCell(Number(row.click_social_twitter) || 0),
+        csvCell(Number(row.click_directions_google) || 0),
+        csvCell(Number(row.click_directions_apple) || 0),
+        csvCell(Number(row.click_directions_location) || 0),
+        csvCell(Number(row.click_action_booking) || 0),
+        csvCell(Number(row.click_action_order) || 0),
+        csvCell(Number(row.click_action_quote) || 0),
+        csvCell(Number(row.click_action_menu) || 0),
+        csvCell(Number(row.click_post_cta) || 0),
       ].join(',')
     )
   }
