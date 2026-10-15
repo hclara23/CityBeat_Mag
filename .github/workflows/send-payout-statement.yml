@@ -45,8 +45,8 @@ jobs:
           esac
 
           CRON_VALUE=$(gcloud run services describe "$SERVICE" \
-            --project "$GCP_PROJECT" --region "$GCP_REGION" \
-            --format='value(spec.template.spec.containers[0].env.filter(name=CRON_SECRET).value)')
+            --project "$GCP_PROJECT" --region "$GCP_REGION" --format=json \
+            | jq -r '.spec.template.spec.containers[0].env[] | select(.name == "CRON_SECRET") | .value // empty')
           if [ -z "$CRON_VALUE" ]; then
             echo "CRON_SECRET is unavailable; refusing an unauthenticated request."
             exit 1
