@@ -1,11 +1,14 @@
 ---
 id: "202610152030-RDM0NQ"
 title: "Reconcile and send editor year-to-date commission statement"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "REVIEWER"
 depends_on: []
 tags: ["stripe", "reconciliation", "email", "reporting"]
+comments:
+  - { author: "REVIEWER", body: "Start: reconcile both verified .50 editor transfers, prepare the .00 year-to-date statement, and stage one CityBeat email without initiating another financial transfer." }
+  - { author: "REVIEWER", body: "Stripe reconciliation: Aug 28 transfer tr_3U72lqDBCgtcnBrq1lKCaKH9 and Oct 15 catch-up transfer tr_1UQv6CDBCgtcnBrqW0iYc8wp are each .50; connected-account lifetime volume is .00. Email remains pending deployment and delivery verification." }
 doc_version: 2
 doc_updated_at: "2026-10-15T20:31:26+00:00"
 doc_updated_by: "agentctl"

@@ -9735,7 +9735,7 @@
     {
       "id": "202610152030-TTPCR8",
       "title": "Verify semi-monthly commission payout workflow",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "TESTER",
       "depends_on": [
@@ -9750,6 +9750,12 @@
       "verify": [
         "npm test",
         "npm --prefix apps/web run type-check"
+      ],
+      "comments": [
+        {
+          "author": "TESTER",
+          "body": "Start: verify month-end date handling, duplicate delivery protection, refund holds, transfer/report consistency, payee-only authorization, dashboard totals, and retained platform funds."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T20:31:26+00:00",
@@ -9850,6 +9856,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "6e13d601635eca1bd968c4f8c37536accde5813ee71370a1e185a8d11b992b82"
+    "checksum": "6d38fe7e60e796bea9e3de94e47576dd66237c39c0add3a6d491da381a41525a"
   }
 }
