@@ -9972,7 +9972,7 @@
     {
       "id": "202610152121-FR763D",
       "title": "Scale directory SEO and discovery toward 100k listings",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [
@@ -9986,6 +9986,16 @@
       "verify": [
         "npm test",
         "npm run type-check"
+      ],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: audit directory sitemaps, canonical routes, and discovery pagination, then implement scalable indexation for a six-figure listing catalog."
+        },
+        {
+          "author": "CODER",
+          "body": "Start: audit directory sitemaps, canonical routes, and discovery pagination, then implement scalable indexation for a six-figure listing catalog."
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T21:21:31+00:00",
@@ -10062,6 +10072,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "72af2d7aca8b41d0c43dca9c16f76ad8156aaf0ba154914e41e0aa27a86c707f"
+    "checksum": "aa7d6023015da59c22e6208604821b371afe53c695a32001e6dee73c6b8c4f7c"
   }
 }

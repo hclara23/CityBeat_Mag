@@ -89,24 +89,10 @@ async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   }
   slugDates.forEach((date, s) => urls.push(entry(`/stories/${s}`, date)))
 
-  // Directory listings (the long-tail local-SEO engine) — PUBLISHED only. Never
-  // emit unpublished candidates or merged-duplicate siblings: they'd be dead/
-  // soft-404 URLs that waste Google's crawl budget.
-  try {
-    const snap = await adminDb.collection('directory_listings').where('is_published', '==', true).get()
-    snap.forEach((d) => {
-      const data = d.data() as any
-      if (data.merged_into) return
-      urls.push(entry(`/directory/${d.id}`, toDate(data.updated_at)))
-    })
-  } catch {
-    /* ignore */
-  }
-
   return urls
 }
 
-const cachedSitemap = unstable_cache(buildSitemap, ['public-sitemap-v2'], { revalidate: 3600 })
+const cachedSitemap = unstable_cache(buildSitemap, ['public-sitemap-v3'], { revalidate: 3600 })
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return cachedSitemap()
 }

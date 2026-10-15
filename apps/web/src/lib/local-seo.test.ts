@@ -26,6 +26,8 @@ test('category + city slugs are unique and well-formed (no duplicate URLs)', () 
 test('findCategory / findCity resolve known slugs and reject the rest', () => {
   assert.equal(findCategory('restaurants')?.value, 'Restaurant')
   assert.equal(findCity('el-paso')?.name, 'El Paso')
+  assert.equal(findCity('odessa')?.name, 'Odessa')
+  assert.equal(findCity('roswell')?.name, 'Roswell')
   assert.equal(findCategory('not-a-cat'), null)
   assert.equal(findCity(undefined), null)
 })

@@ -1,8 +1,10 @@
 import type { MetadataRoute } from 'next'
+import { getDirectorySitemapPageCount } from '@/lib/directory-sitemap'
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const sitemapPages = await getDirectorySitemapPageCount()
   return {
     rules: [
       {
@@ -24,7 +26,10 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${BASE}/sitemap.xml`,
+    sitemap: [
+      `${BASE}/sitemap.xml`,
+      ...Array.from({ length: sitemapPages }, (_, id) => `${BASE}/directory/sitemap/${id}.xml`),
+    ],
     host: BASE,
   }
 }

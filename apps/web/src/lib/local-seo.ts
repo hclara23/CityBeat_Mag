@@ -54,6 +54,19 @@ export const LOCAL_CITIES: LocalCity[] = [
   { slug: 'clint', name: 'Clint', aliases: ['Clint'] },
   { slug: 'anthony', name: 'Anthony', aliases: ['Anthony'] },
   { slug: 'sunland-park', name: 'Sunland Park', aliases: ['Sunland Park'] },
+  { slug: 'midland', name: 'Midland', aliases: ['Midland'] },
+  { slug: 'odessa', name: 'Odessa', aliases: ['Odessa'] },
+  { slug: 'pecos', name: 'Pecos', aliases: ['Pecos'] },
+  { slug: 'fort-stockton', name: 'Fort Stockton', aliases: ['Fort Stockton'] },
+  { slug: 'alpine', name: 'Alpine', aliases: ['Alpine'] },
+  { slug: 'marfa', name: 'Marfa', aliases: ['Marfa'] },
+  { slug: 'presidio', name: 'Presidio', aliases: ['Presidio'] },
+  { slug: 'van-horn', name: 'Van Horn', aliases: ['Van Horn'] },
+  { slug: 'monahans', name: 'Monahans', aliases: ['Monahans'] },
+  { slug: 'kermit', name: 'Kermit', aliases: ['Kermit'] },
+  { slug: 'roswell', name: 'Roswell', aliases: ['Roswell'] },
+  { slug: 'alamogordo', name: 'Alamogordo', aliases: ['Alamogordo'] },
+  { slug: 'ruidoso', name: 'Ruidoso', aliases: ['Ruidoso'] },
 ]
 
 export function findCategory(slug?: string) {
