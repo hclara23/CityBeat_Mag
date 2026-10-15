@@ -6,6 +6,8 @@ priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+comments:
+  - { author: "PLANNER", body: "Approved decomposition: SEO/referral audit 202610151908-65QK5Z -> implementation 202610151908-1V8V7X; sales UI audit 202610151908-7SR37V -> hardening 202610151908-CSBGR8; read-only Stripe/editor payout readiness 202610151908-W3RZA8; combined verification 202610151908-FQ4M4R depends on both implementations and payout audit; production release 202610151908-63D713 depends on combined verification." }
 doc_version: 2
 doc_updated_at: "2026-10-15T19:08:07+00:00"
 doc_updated_by: "agentctl"
