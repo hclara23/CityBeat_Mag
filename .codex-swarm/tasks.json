@@ -9584,7 +9584,7 @@
     {
       "id": "202610151955-KPZ1PN",
       "title": "Verify recurring commissions payouts and monthly statements",
-      "status": "TODO",
+      "status": "DOING",
       "priority": "high",
       "owner": "TESTER",
       "depends_on": [
@@ -9597,8 +9597,14 @@
         "reconciliation"
       ],
       "verify": [
-        "npm --prefix apps/web test",
+        "npm test",
         "npm --prefix apps/web run type-check"
+      ],
+      "comments": [
+        {
+          "author": "TESTER",
+          "body": "Start: verify recurring renewal commission attribution and idempotency, platform manual-payout isolation, catch-up ledger behavior, monthly statement totals and privacy, scheduler cadence and ops health, plus payout refund and reconciliation regressions; run focused, full web, repository, and type-check validation without external financial or email side effects"
+        }
       ],
       "doc_version": 2,
       "doc_updated_at": "2026-10-15T19:56:56+00:00",
@@ -9656,6 +9662,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "5cb75d9cfb510cef6eb7e2a48960c22545900f598d14f5b4735d387abd2bfb5d"
+    "checksum": "332769bd4afac67424a87d75949c555988c49eb8e08b8da78799fda2013e8944"
   }
 }

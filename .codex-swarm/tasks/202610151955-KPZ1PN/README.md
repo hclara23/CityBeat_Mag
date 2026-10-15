@@ -1,12 +1,14 @@
 ---
 id: "202610151955-KPZ1PN"
 title: "Verify recurring commissions payouts and monthly statements"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "TESTER"
 depends_on: ["202610151955-098Z3A", "202610151955-PSTR9K"]
 tags: ["testing", "stripe", "reconciliation"]
-verify: ["npm --prefix apps/web test", "npm --prefix apps/web run type-check"]
+verify: ["npm test", "npm --prefix apps/web run type-check"]
+comments:
+  - { author: "TESTER", body: "Start: verify recurring renewal commission attribution and idempotency, platform manual-payout isolation, catch-up ledger behavior, monthly statement totals and privacy, scheduler cadence and ops health, plus payout refund and reconciliation regressions; run focused, full web, repository, and type-check validation without external financial or email side effects" }
 doc_version: 2
 doc_updated_at: "2026-10-15T19:56:56+00:00"
 doc_updated_by: "agentctl"
