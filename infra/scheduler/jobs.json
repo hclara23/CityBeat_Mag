@@ -225,6 +225,23 @@
       "state": "ENABLED"
     },
     {
+      "name": "citybeat-payout-statements",
+      "schedule": "0 10 2 * *",
+      "timeZone": "America/Chihuahua",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/payout-statements",
+      "httpMethod": "GET",
+      "requiresCronSecret": true,
+      "attemptDeadline": "300s",
+      "retryConfig": {
+        "maxBackoffDuration": "600s",
+        "maxDoublings": 5,
+        "maxRetryDuration": "0s",
+        "minBackoffDuration": "30s",
+        "retryCount": 3
+      },
+      "state": "ENABLED"
+    },
+    {
       "name": "citybeat-reconcile-orders",
       "schedule": "0 3 * * *",
       "timeZone": "America/Chihuahua",

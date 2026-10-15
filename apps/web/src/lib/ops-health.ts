@@ -99,6 +99,8 @@ export const CRON_EXPECTATIONS: CronExpectation[] = [
   // 1st and 15th — 17 days covers the longest gap (15th → 1st) plus slack.
   // This is the one whose silence costs a rep their commission.
   { source: 'cron:payout-cycle', label: 'commission payout cycle', maxAgeHours: 408 },
+  // Monthly on the 2nd, after the prior calendar month has closed.
+  { source: 'cron:payout-statements', label: 'connected-payee payout statements', maxAgeHours: 840 },
   // Monthly on the 1st.
   { source: 'cron:owner-reports', label: 'owner ROI reports', maxAgeHours: 840 },
   // Cloudflare worker, 5x/day. Reports in over HTTP, so it arms itself.
