@@ -1,14 +1,16 @@
 ---
 id: "202610152121-B8B5RR"
 title: "Protect merged directory records from bulk publication"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: []
 tags: ["code", "backend", "directory"]
 verify: ["npm test"]
+commit: { hash: "d3befc2a83e28a759d4c7508a348154eb63655ae", message: "🔒 B8B5RR audit bulk publication and block merged or restricted listings" }
 comments:
   - { author: "CODER", body: "Start: replace unsafe publish-all with audited eligibility rules; protect merge chains and restricted provenance; add deterministic tests and an admin preview." }
+  - { author: "CODER", body: "verified: merged and restricted listings fail closed, eligible publication is confirmation-gated and capped, 649 repository tests passed, and web type-check passed." }
 doc_version: 2
 doc_updated_at: "2026-10-15T21:23:20+00:00"
 doc_updated_by: "agentctl"

@@ -9937,7 +9937,7 @@
     {
       "id": "202610152121-B8B5RR",
       "title": "Protect merged directory records from bulk publication",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "CODER",
       "depends_on": [],
@@ -9949,16 +9949,25 @@
       "verify": [
         "npm test"
       ],
+      "commit": {
+        "hash": "d3befc2a83e28a759d4c7508a348154eb63655ae",
+        "message": "🔒 B8B5RR audit bulk publication and block merged or restricted listings"
+      },
       "comments": [
         {
           "author": "CODER",
           "body": "Start: replace unsafe publish-all with audited eligibility rules; protect merge chains and restricted provenance; add deterministic tests and an admin preview."
+        },
+        {
+          "author": "CODER",
+          "body": "verified: merged and restricted listings fail closed, eligible publication is confirmation-gated and capped, 649 repository tests passed, and web type-check passed."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-15T21:21:30+00:00",
+      "doc_updated_at": "2026-10-15T21:23:20+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Replace unsafe publish-all behavior with validation that refuses merged duplicates, malformed records, disallowed provenance, and unresolved canonical chains; add an audit preview and tests."
+      "description": "Replace unsafe publish-all behavior with validation that refuses merged duplicates, malformed records, disallowed provenance, and unresolved canonical chains; add an audit preview and tests.",
+      "doc": "## Summary\n\nReplaced unsafe publish-all behavior with an audited, bounded publication workflow that publishes only eligible canonical records.\n\n## Context\n\nProduction contains 1,728 hidden records, all merged siblings. Their merge chains contain no missing targets or cycles and resolve to 884 published canonical roots, so the correct safe publication count is zero.\n\n## Scope\n\nPure publication eligibility audit, merge and provenance safeguards, exact-identity deduplication, closed/thin record validation, a GET preview, a confirmation-gated 250-record POST batch, and safer admin UI copy.\n\n## Risks\n\nA false positive could publish a duplicate or restricted-source page. The implementation fails closed, preserves hidden records, requires explicit confirmation, and caps each batch at 250.\n\n## Verify Steps\n\nFocused publication tests pass 5 of 5; full repository tests pass 649 total; web type-check passes; git diff check passes. Production data audit remains read-only until deployment.\n\n## Rollback Plan\n\nRevert the implementation commit and redeploy. No production records were changed during implementation; any future batch can be identified by publication_method validated_bulk and published_at.\n\n## Notes\n\nThe legacy route path remains stable for the admin UI, but its semantics are now audit-first and eligibility-only."
     },
     {
       "id": "202610152121-FR763D",
@@ -10034,6 +10043,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "fa751deea54ba321d5787175ccdfb7eda8f45fcbaacc4db7702f3f9e9ffd6ce3"
+    "checksum": "82d394472c85496a703c076a29eadc348db5e84e85f9f0deedee6aa2ab485037"
   }
 }
