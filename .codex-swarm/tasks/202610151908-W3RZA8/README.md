@@ -1,13 +1,15 @@
 ---
 id: "202610151908-W3RZA8"
 title: "Verify Stripe and editor payout readiness read-only"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "REVIEWER"
 depends_on: []
 tags: ["stripe", "payouts", "security"]
+commit: { hash: "68beed5956a2102cae031f65b17079e57b13a1d6", message: "🔍 W3RZA8 document live Stripe and editor payout readiness audit" }
 comments:
   - { author: "REVIEWER", body: "Start: audit live Stripe account, editor payout readiness, webhook health, recurring product configuration, and commission calculations using read-only evidence only." }
+  - { author: "REVIEWER", body: "verified: read-only Stripe and editor payout audit confirmed current payment and payout capability, active Premium pricing, primary webhook health, connected bank destination, prior editor payment, commission math, future identity requirements, and a failing legacy webhook | details: no financial mutation occurred." }
 doc_version: 2
 doc_updated_at: "2026-10-15T19:13:03+00:00"
 doc_updated_by: "agentctl"

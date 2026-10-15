@@ -9315,7 +9315,7 @@
     {
       "id": "202610151908-W3RZA8",
       "title": "Verify Stripe and editor payout readiness read-only",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "REVIEWER",
       "depends_on": [],
@@ -9324,10 +9324,18 @@
         "payouts",
         "security"
       ],
+      "commit": {
+        "hash": "68beed5956a2102cae031f65b17079e57b13a1d6",
+        "message": "🔍 W3RZA8 document live Stripe and editor payout readiness audit"
+      },
       "comments": [
         {
           "author": "REVIEWER",
           "body": "Start: audit live Stripe account, editor payout readiness, webhook health, recurring product configuration, and commission calculations using read-only evidence only."
+        },
+        {
+          "author": "REVIEWER",
+          "body": "verified: read-only Stripe and editor payout audit confirmed current payment and payout capability, active Premium pricing, primary webhook health, connected bank destination, prior editor payment, commission math, future identity requirements, and a failing legacy webhook | details: no financial mutation occurred."
         }
       ],
       "doc_version": 2,
@@ -9341,6 +9349,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "5c3707555aed5f0a82207ca85d7ed11e8f4df9ffcf9f68c5f71c3ddfaa4bb42b"
+    "checksum": "300978e0ad23508ed89b54384568fdd3651015c68df7e4ef4279950b635eacf9"
   }
 }
