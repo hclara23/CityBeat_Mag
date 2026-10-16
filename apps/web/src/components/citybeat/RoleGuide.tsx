@@ -176,14 +176,14 @@ export function RoleGuide({ roles, locale }: { roles: GuideRoles; locale: string
           {isEs ? (
             <>
               El plan Básico es gratis. Premium cuesta $19.99 al mes o $199 al año e incluye los datos completos de
-              cada cliente potencial, más herramientas para tu ficha, ofertas, asistencia de marketing con IA y
-              ubicación prioritaria. Destacado cuesta $49 al mes y agrega el primer lugar de tu categoría y presencia
+              cada cliente potencial, más herramientas para tu ficha, ofertas, analíticas y una tarjeta más grande
+              antes de las fichas Básicas. Destacado cuesta $49 al mes y agrega el primer lugar de tu categoría y presencia
               en la portada. Mientras estén disponibles, los planes Fundador cuestan $9.99 al mes o $99 al año.
             </>
           ) : (
             <>
               Basic is free. Premium is $19.99/month or $199/year and unlocks full lead details, richer listing tools,
-              deals, AI marketing assistance, and priority placement. Featured is $49/month and adds top-of-category
+              deals, analytics, and a larger card before Basic listings. Featured is $49/month and adds top-of-category
               and homepage visibility. Founding plans, while available, are $9.99/month or $99/year.
             </>
           )}
