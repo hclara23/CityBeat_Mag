@@ -10152,12 +10152,43 @@
       "doc_updated_by": "agentctl",
       "description": "Inspect and upload the user-approved storefront photo as the Super H Automotive listing cover, then verify the live public listing without altering ownership, subscription, or payment data.",
       "doc": "## Summary\n\nSet the approved Super H Automotive storefront photograph as the live CityBeat directory cover image.\n\n## Context\n\nThe listing had no primary image. The user supplied Screenshot 2026-10-16 153457.png and approved publishing it as the cover.\n\n## Scope\n\nUpload the supplied image to the existing CityBeat media bucket, update only image_url and updated_at on directory listing TJmwyo55waiFiGYp2fmu, and verify the public page. Ownership, claim status, subscription, tier, payment, contact, hours, and gallery data remain unchanged.\n\n## Risks\n\nA wide cover crop may hide edge details on smaller screens. The source file is retained locally and the prior image_url was empty, so rollback is straightforward.\n\n## Verify Steps\n\n1. Confirm the public object URL returns HTTP 200 with image/png. 2. Reload https://citybeatmag.co/en/directory/TJmwyo55waiFiGYp2fmu. 3. Visually confirm the storefront photograph renders as the hero cover above Super H Automotive.\n\n## Rollback Plan\n\nSet directory_listings/TJmwyo55waiFiGYp2fmu image_url back to an empty string and optionally remove directory/TJmwyo55waiFiGYp2fmu/cover-20261016.png from the media bucket.\n\n## Notes\n\nVerified live on 2026-10-16: the public image returned HTTP 200 and the CityBeat listing displayed the Super H storefront as the cover. Edge file upload was unavailable because the ChatGPT extension lacked file-URL permission, so the approved image was uploaded through the authorized Google Cloud account and the listing field was updated directly."
+    },
+    {
+      "id": "202610162154-CT0T2Y",
+      "title": "Create Cardon Insurance half-page ad",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "design",
+        "advertising"
+      ],
+      "commit": {
+        "hash": "a65e59a633a4469a0ea1a8f79b542ea07e94e24f",
+        "message": "✨ CT0T2Y create Cardon Insurance half-page print ad"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: verify Cardon Insurance public details, create a 7.75 x 4.75 inch horizontal ad at 300 DPI, and visually validate the final deliverable."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: the Cardon Insurance ad is 2325 x 1425 pixels at 300 DPI, includes the supplied logo and exact Auto, Home, Flood, and Bonds labels, and uses website-verified phone, address, website, and since-1964 information. | details: Full-resolution visual review confirmed legibility, contrast, safe margins, and correct spelling."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T21:55:54+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Research verified public business details and create a high-resolution horizontal half-page print advertisement for Cardon Insurance featuring Auto, Home, Flood, and Bonds, using the supplied logo.",
+      "doc": "## Summary\n\nCreated a high-resolution horizontal half-page advertisement for Cardon Insurance Agency featuring Auto, Home, Flood, and Bonds.\n\n## Context\n\nThe user supplied the Cardon Insurance logo and requested a horizontal half-page ad. Public business details were verified against cardoninsuranceelpaso.com before composition.\n\n## Scope\n\nDeliver one 7.75 x 4.75 inch, 300-DPI PNG using the supplied logo, the four requested insurance types, verified phone, website, address, and since-1964 positioning.\n\n## Risks\n\nThe supplied logo source is 258 x 80 pixels, so it was carefully upscaled and sharpened; the final placed size was visually checked at full resolution. The ad is sRGB PNG rather than a printer-specific CMYK profile.\n\n## Verify Steps\n\n1. Confirm output dimensions are 2325 x 1425 pixels. 2. Confirm embedded density is 300 DPI. 3. Visually inspect logo, headline, Auto/Home/Flood/Bonds labels, phone, website, address, safe margins, contrast, and spelling. 4. Confirm verified business facts against the public website.\n\n## Rollback Plan\n\nRemove output/ads/cardon-insurance-half-page-2026.png if the creative is rejected; no production website or external account was modified.\n\n## Notes\n\nBuilt-in image generation produced the text-free commercial background using an ads-marketing prompt for an El Paso home, vehicle, subtle flood-protection water, and contractor bonding cue with navy negative space. The supplied logo and all copy were composited deterministically. Final: 2325 x 1425 pixels, 300 DPI, sRGB PNG, 3,890,741 bytes, SHA-256 09E3FF868147C4836FC4FEFB3B23B5CB722C25EAE54D1A25DA062B21275DD433."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "e1e84313df9be23e0eacdbf34d9cc9e847bb47b808aae9425c425ef63c3afb5d"
+    "checksum": "dd097e8e8ca3dc3d59fae71639b2d2d9f8f91f222c3eac4a52ba88b65904be07"
   }
 }

@@ -1,13 +1,15 @@
 ---
 id: "202610162154-CT0T2Y"
 title: "Create Cardon Insurance half-page ad"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["design", "advertising"]
+commit: { hash: "a65e59a633a4469a0ea1a8f79b542ea07e94e24f", message: "✨ CT0T2Y create Cardon Insurance half-page print ad" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: verify Cardon Insurance public details, create a 7.75 x 4.75 inch horizontal ad at 300 DPI, and visually validate the final deliverable." }
+  - { author: "ORCHESTRATOR", body: "verified: the Cardon Insurance ad is 2325 x 1425 pixels at 300 DPI, includes the supplied logo and exact Auto, Home, Flood, and Bonds labels, and uses website-verified phone, address, website, and since-1964 information. | details: Full-resolution visual review confirmed legibility, contrast, safe margins, and correct spelling." }
 doc_version: 2
 doc_updated_at: "2026-10-16T21:55:54+00:00"
 doc_updated_by: "agentctl"
