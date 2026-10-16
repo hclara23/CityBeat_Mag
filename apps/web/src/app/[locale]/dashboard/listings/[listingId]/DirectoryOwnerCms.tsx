@@ -11,6 +11,9 @@ import {
   type DirectoryPlanKey,
 } from '@/lib/directory-entitlements'
 import { profileCompleteness, localSeoScore, type ListingScore } from '@/lib/listing-scores'
+import { LeadsPanel } from '@/components/citybeat/LeadsPanel'
+import { OwnerValueToolkit } from '@/components/citybeat/OwnerValueToolkit'
+import { ListingTrustSignals } from '@/components/citybeat/ListingTrustSignals'
 import {
   MAX_POSTS,
   MAX_PRODUCTS,
@@ -60,6 +63,7 @@ type OwnerListing = {
   is_published: boolean
   rating: number | null
   user_ratings_total: number | null
+  updated_at: string | null
 }
 
 type Props = {
@@ -82,6 +86,7 @@ type SectionKey =
   | 'reviews'
   | 'leads'
   | 'analytics'
+  | 'marketing'
   | 'team'
   | 'settings'
 
@@ -96,6 +101,7 @@ const SECTIONS: { key: SectionKey; en: string; es: string }[] = [
   { key: 'reviews', en: 'Reviews', es: 'Reseñas' },
   { key: 'leads', en: 'Leads & Messages', es: 'Clientes y mensajes' },
   { key: 'analytics', en: 'Analytics', es: 'Analíticas' },
+  { key: 'marketing', en: 'Marketing Toolkit', es: 'Kit de marketing' },
   { key: 'team', en: 'Team & Access', es: 'Equipo y acceso' },
   { key: 'settings', en: 'Settings', es: 'Configuración' },
 ]
@@ -368,6 +374,9 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
             <p className="mt-1 text-sm text-white/50">
               {isEs ? 'Panel de gestión de tu negocio' : 'Your business management dashboard'}
             </p>
+            <div className="mt-3">
+              <ListingTrustSignals locale={locale} claimStatus={listing.claim_status} updatedAt={listing.updated_at} posts={posts} />
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <SaveIndicator status={status} isEs={isEs} onRetry={() => void save()} />
@@ -637,7 +646,7 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
             )}
             {section === 'leads' && (
               <ModulePanel title={isEs ? 'Clientes y mensajes' : 'Leads & Messages'} isEs={isEs}>
-                <ModulePlaceholder entitlementKey="detailedLeads" entitled={isStaff || entitlements.detailedLeads} locale={locale} listingId={listing.id} isEs={isEs} />
+                <LeadsPanel listingId={listing.id} embedded />
               </ModulePanel>
             )}
             {section === 'analytics' && (
@@ -659,6 +668,12 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
                     entitled={isStaff || entitlements.categoryBenchmarking}
                   />
                 </div>
+              </ModulePanel>
+            )}
+            {section === 'marketing' && (
+              <ModulePanel title={isEs ? 'Kit de marketing' : 'Marketing Toolkit'} isEs={isEs}>
+                <p className="mb-5 text-sm text-white/60">{isEs ? 'Promociona tu ficha, pide reseñas y demuestra que tu negocio está verificado sin pagar otra herramienta.' : 'Promote your listing, request reviews, and show customers you are verified—without paying for another tool.'}</p>
+                <OwnerValueToolkit listingId={listing.id} name={name} locale={locale} />
               </ModulePanel>
             )}
             {section === 'team' && (

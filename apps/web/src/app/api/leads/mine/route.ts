@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerUser } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { normalizeLeadStatus } from '@/lib/premium-value'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,6 +72,7 @@ export async function GET() {
           name: unlocked ? x.name : maskName(String(x.name || '')),
           contact: unlocked ? x.contact : maskContact(String(x.contact || '')),
           message: unlocked ? x.message || null : x.message ? '••• upgrade to Premium to read the message •••' : null,
+          status: normalizeLeadStatus(x.owner_status),
         }
       })
       .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))

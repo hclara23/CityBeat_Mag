@@ -19,6 +19,7 @@ import { PrintBadges, PrintRecognitionPanel } from '@/components/citybeat/PrintR
 import { hasEditorAccess } from '@citybeat/lib/roles'
 import { attributedListingUrl } from '@/lib/listing-outbound'
 import type { ListingEventType } from '@/lib/listing-analytics'
+import { ListingTrustSignals } from '@/components/citybeat/ListingTrustSignals'
 
 interface Listing {
   print_recognition?: unknown
@@ -43,6 +44,7 @@ interface Listing {
   } | null
   hours: Record<string, string> | null
   owner_id: string | null
+  updated_at?: string | null
   latitude?: number | null
   longitude?: number | null
   location_count?: number | null
@@ -1037,6 +1039,17 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 <h1 className="font-display text-4xl sm:text-6xl font-black text-white uppercase leading-none">
                   {listing.name}
                 </h1>
+                <div className="mt-4">
+                  <ListingTrustSignals
+                    locale={locale}
+                    claimStatus={listing.claim_status}
+                    updatedAt={listing.updated_at}
+                    posts={listing.posts}
+                    hasOwnerReply={reviews.some((review) => Boolean(review.owner_reply || review.reply))}
+                    hasOwnerAnswer={questions.some((question) => Boolean(question.answer))}
+                    views30={publicStats?.views}
+                  />
+                </div>
                 
                 {listing.rating && (
                   <div className="flex items-center gap-3 mt-4">
@@ -1583,6 +1596,17 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                   <h1 className="font-display text-4xl font-black text-white mt-4 uppercase leading-none">
                     {listing.name}
                   </h1>
+                  <div className="mt-4">
+                    <ListingTrustSignals
+                      locale={locale}
+                      claimStatus={listing.claim_status}
+                      updatedAt={listing.updated_at}
+                      posts={listing.posts}
+                      hasOwnerReply={reviews.some((review) => Boolean(review.owner_reply || review.reply))}
+                      hasOwnerAnswer={questions.some((question) => Boolean(question.answer))}
+                      views30={publicStats?.views}
+                    />
+                  </div>
 
                   {listing.rating && (
                     <div className="flex items-center gap-3 mt-4">

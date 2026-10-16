@@ -221,6 +221,19 @@ export default async function Home({ params }: HomePageProps) {
           </div>
         </div>
       </section>
+      <section className="border-y border-brand-neon/15 bg-brand-neon/[0.035] py-16">
+        <div className="container-wide grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-neon">{locale === 'es' ? 'Para negocios locales' : 'For local businesses'}</p>
+            <h2 className="mt-3 font-display text-4xl font-black uppercase text-white">{locale === 'es' ? 'Reclama gratis. Crece con Premium.' : 'Claim free. Grow with Premium.'}</h2>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-white/60">{locale === 'es' ? 'Administra la información esencial sin tarjeta, o desbloquea prospectos completos, contenido enriquecido y un panel que muestra llamadas, clics, indicaciones y solicitudes.' : 'Manage essential information with no card required, or unlock complete leads, richer content, and a dashboard that shows calls, clicks, directions, and requests.'}</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link href={withLocale(locale, '/directory')} className="rounded-md border border-white/20 px-5 py-3 text-xs font-black uppercase tracking-wider text-white">{locale === 'es' ? 'Reclamar gratis' : 'Claim free'}</Link>
+            <Link href={withLocale(locale, '/premium')} className="rounded-md bg-brand-neon px-5 py-3 text-xs font-black uppercase tracking-wider text-black">{locale === 'es' ? 'Ver Premium' : 'See Premium'}</Link>
+          </div>
+        </div>
+      </section>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
