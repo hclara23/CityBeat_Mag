@@ -673,7 +673,7 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
             {section === 'marketing' && (
               <ModulePanel title={isEs ? 'Kit de marketing' : 'Marketing Toolkit'} isEs={isEs}>
                 <p className="mb-5 text-sm text-white/60">{isEs ? 'Promociona tu ficha, pide reseñas y demuestra que tu negocio está verificado sin pagar otra herramienta.' : 'Promote your listing, request reviews, and show customers you are verified—without paying for another tool.'}</p>
-                <OwnerValueToolkit listingId={listing.id} name={name} locale={locale} />
+                <OwnerValueToolkit listingId={listing.id} name={name} website={website} locale={locale} canPixel={isStaff || entitlements.fullAnalytics} />
               </ModulePanel>
             )}
             {section === 'team' && (

@@ -5,6 +5,19 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+const CF_TOKEN = process.env.NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN
+
+type AnalyticsParams = Record<string, string | number | boolean | undefined>
+
+/** Fire-and-forget GA4 event helper. Analytics must never break a user action. */
+export function trackAnalyticsEvent(name: string, params: AnalyticsParams = {}) {
+  if (typeof window === 'undefined' || typeof (window as any).gtag !== 'function') return
+  try {
+    ;(window as any).gtag('event', name, params)
+  } catch {
+    /* analytics is non-critical */
+  }
+}
 
 // Records a page view on every route change via two sinks:
 //  1. First-party: a beacon to /api/track/pageview (Firestore) so the admin
@@ -38,21 +51,36 @@ export function Analytics() {
 
     // GA4 SPA page view (config is set with send_page_view:false to avoid dupes).
     if (GA_ID && typeof (window as any).gtag === 'function') {
-      ;(window as any).gtag('event', 'page_view', { page_path: pathname })
+      ;(window as any).gtag('event', 'page_view', {
+        page_path: pathname,
+        page_location: window.location.href,
+        page_title: document.title,
+      })
     }
   }, [pathname])
 
-  if (!GA_ID) return null
+  if (!GA_ID && !CF_TOKEN) return null
 
   return (
     <>
-      <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
-      <Script id="ga4-init" strategy="afterInteractive">
-        {`window.dataLayer = window.dataLayer || [];
+      {GA_ID ? (
+        <>
+          <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
+          <Script id="ga4-init" strategy="afterInteractive">
+            {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', '${GA_ID}', { send_page_view: false });`}
-      </Script>
+          </Script>
+        </>
+      ) : null}
+      {CF_TOKEN ? (
+        <Script
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          strategy="afterInteractive"
+          data-cf-beacon={JSON.stringify({ token: CF_TOKEN, spa: true })}
+        />
+      ) : null}
     </>
   )
 }

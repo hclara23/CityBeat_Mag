@@ -20,6 +20,7 @@ import { hasEditorAccess } from '@citybeat/lib/roles'
 import { attributedListingUrl } from '@/lib/listing-outbound'
 import type { ListingEventType } from '@/lib/listing-analytics'
 import { ListingTrustSignals } from '@/components/citybeat/ListingTrustSignals'
+import { trackAnalyticsEvent } from '@/components/Analytics'
 
 interface Listing {
   print_recognition?: unknown
@@ -444,6 +445,12 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
   // identity. The server excludes owner/manager/staff self-traffic.
   const track = useCallback(
     (type: Exclude<ListingEventType, 'lead'>) => {
+      trackAnalyticsEvent('directory_listing_action', {
+        listing_id: id,
+        listing_name: listing?.name || '',
+        listing_tier: listing?.tier || 'basic',
+        action: type,
+      })
       void fetch('/api/track/listing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -451,7 +458,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
         keepalive: true,
       }).catch(() => {})
     },
-    [id]
+    [id, listing?.name, listing?.tier]
   )
 
   useEffect(() => {

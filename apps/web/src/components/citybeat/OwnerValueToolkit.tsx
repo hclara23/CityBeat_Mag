@@ -4,11 +4,16 @@ import { useEffect, useMemo, useState } from 'react'
 import QRCode from 'qrcode'
 import { deterministicSocialCaptions } from '@/lib/premium-value'
 
-export function OwnerValueToolkit({ listingId, name, locale }: { listingId: string; name: string; locale: 'en' | 'es' }) {
+type PixelConfig = { enabled: boolean; domains: string[]; last_seen_at: string | null; last_event: string | null; snippet: string }
+
+export function OwnerValueToolkit({ listingId, name, website, locale, canPixel }: { listingId: string; name: string; website: string; locale: 'en' | 'es'; canPixel: boolean }) {
   const isEs = locale === 'es'
   const [origin, setOrigin] = useState('https://citybeatmag.co')
   const [listingQr, setListingQr] = useState('')
   const [reviewQr, setReviewQr] = useState('')
+  const [pixel, setPixel] = useState<PixelConfig | null>(null)
+  const [pixelDomain, setPixelDomain] = useState('')
+  const [pixelMessage, setPixelMessage] = useState('')
   const shortUrl = `${origin}/b/${listingId}`
   const reviewUrl = `${shortUrl}#reviews`
   const captions = useMemo(() => deterministicSocialCaptions({ name, url: shortUrl, locale }), [name, shortUrl, locale])
@@ -22,6 +27,16 @@ export function OwnerValueToolkit({ listingId, name, locale }: { listingId: stri
     QRCode.toDataURL(shortUrl, { width: 420, margin: 2, errorCorrectionLevel: 'M' }).then(setListingQr).catch(() => {})
     QRCode.toDataURL(reviewUrl, { width: 420, margin: 2, errorCorrectionLevel: 'M' }).then(setReviewQr).catch(() => {})
   }, [shortUrl, reviewUrl])
+  useEffect(() => {
+    if (!canPixel) return
+    fetch(`/api/directory/${listingId}/pixel`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((value: PixelConfig) => {
+        setPixel(value)
+        setPixelDomain(value.domains[0] || (() => { try { return new URL(website).hostname.replace(/^www\./, '') } catch { return '' } })())
+      })
+      .catch(() => setPixelMessage(isEs ? 'No se pudo cargar la configuración del píxel.' : 'Could not load pixel settings.'))
+  }, [canPixel, listingId, website, isEs])
 
   const copy = (value: string) => navigator.clipboard?.writeText(value)
   const downloadSocialCard = async () => {
@@ -56,6 +71,30 @@ export function OwnerValueToolkit({ listingId, name, locale }: { listingId: stri
     anchor.href = canvas.toDataURL('image/png')
     anchor.download = 'citybeat-social-card.png'
     anchor.click()
+  }
+  const updatePixel = async (method: 'PUT' | 'POST' | 'DELETE') => {
+    setPixelMessage('')
+    const response = await fetch(`/api/directory/${listingId}/pixel`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: method === 'PUT' ? JSON.stringify({ domains: pixelDomain.split(',').map((v) => v.trim()), enabled: true }) : undefined,
+    })
+    const value = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      setPixelMessage(value.error || (isEs ? 'No se pudo guardar.' : 'Could not save.'))
+      return
+    }
+    setPixel(value)
+    setPixelMessage(isEs ? 'Configuración guardada.' : 'Settings saved.')
+  }
+  const downloadSnippet = () => {
+    if (!pixel?.snippet) return
+    const blob = new Blob([`${pixel.snippet}\n\n<!-- Optional conversion event: -->\n<script>window.citybeatPixel && window.citybeatPixel('conversion')</script>\n`], { type: 'text/plain' })
+    const anchor = document.createElement('a')
+    anchor.href = URL.createObjectURL(blob)
+    anchor.download = 'citybeat-conversion-pixel.txt'
+    anchor.click()
+    URL.revokeObjectURL(anchor.href)
   }
 
   return (
@@ -103,6 +142,36 @@ export function OwnerValueToolkit({ listingId, name, locale }: { listingId: stri
           <button type="button" onClick={() => window.print()} className="rounded-md border border-white/20 px-3 py-2 text-xs font-black uppercase text-white">{isEs ? 'Imprimir kit' : 'Print toolkit'}</button>
           <button type="button" onClick={() => void downloadSocialCard()} className="rounded-md bg-brand-neon px-3 py-2 text-xs font-black uppercase text-black">{isEs ? 'Descargar gráfico social' : 'Download social graphic'}</button>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-black/25 p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-neon">CityBeat Conversion Pixel</p>
+            <h3 className="mt-1 font-black uppercase">{isEs ? 'Mide resultados en tu propio sitio' : 'Measure results on your own website'}</h3>
+          </div>
+          {canPixel && pixel?.enabled ? <span className="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase text-emerald-300">{isEs ? 'Activo' : 'Active'}</span> : null}
+        </div>
+        {!canPixel ? (
+          <p className="mt-3 text-sm text-white/60">{isEs ? 'El píxel sin cookies está incluido con Premium. Actualiza para medir visitas y conversiones de tu sitio.' : 'The cookieless pixel is included with Premium. Upgrade to measure website visits and conversions.'}</p>
+        ) : (
+          <div className="mt-4 space-y-4">
+            <label className="block text-xs font-bold uppercase text-white/60">{isEs ? 'Dominios permitidos (separados por comas)' : 'Allowed domains (comma-separated)'}
+              <input value={pixelDomain} onChange={(e) => setPixelDomain(e.target.value)} placeholder="example.com" className="mt-2 w-full rounded-md border border-white/15 bg-black/40 p-3 text-sm text-white" />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => void updatePixel('PUT')} className="rounded-md bg-brand-neon px-3 py-2 text-xs font-black uppercase text-black">{pixel?.snippet ? (isEs ? 'Guardar' : 'Save') : (isEs ? 'Crear píxel' : 'Create pixel')}</button>
+              {pixel?.snippet ? <button type="button" onClick={() => copy(pixel.snippet)} className="rounded-md border border-white/20 px-3 py-2 text-xs font-black uppercase text-white">{isEs ? 'Copiar código' : 'Copy code'}</button> : null}
+              {pixel?.snippet ? <button type="button" onClick={downloadSnippet} className="rounded-md border border-white/20 px-3 py-2 text-xs font-black uppercase text-white">{isEs ? 'Descargar' : 'Download'}</button> : null}
+              {pixel?.snippet ? <button type="button" onClick={() => void updatePixel('POST')} className="rounded-md border border-amber-400/30 px-3 py-2 text-xs font-black uppercase text-amber-300">{isEs ? 'Rotar clave' : 'Rotate key'}</button> : null}
+              {pixel?.enabled ? <button type="button" onClick={() => void updatePixel('DELETE')} className="rounded-md border border-red-400/30 px-3 py-2 text-xs font-black uppercase text-red-300">{isEs ? 'Desactivar' : 'Disable'}</button> : null}
+            </div>
+            {pixel?.snippet ? <pre className="overflow-x-auto rounded bg-black/40 p-3 text-xs text-white/60">{pixel.snippet}</pre> : null}
+            {pixel?.last_seen_at ? <p className="text-xs text-emerald-300">✓ {isEs ? 'Última señal recibida' : 'Last signal received'}: {new Date(pixel.last_seen_at).toLocaleString()}</p> : pixel?.snippet ? <p className="text-xs text-amber-200">{isEs ? 'Esperando la primera señal. Instala el código antes de </body>.' : 'Waiting for the first signal. Install the code before </body>.'}</p> : null}
+            <p className="text-xs text-white/45">{isEs ? "Sin cookies ni perfiles de visitantes. Para marcar una conversión usa window.citybeatPixel('conversion') o data-citybeat-conversion=\"conversion\" en un botón." : "No cookies or visitor profiles. To mark a conversion, call window.citybeatPixel('conversion') or add data-citybeat-conversion=\"conversion\" to a button."}</p>
+            {pixelMessage ? <p className="text-xs font-bold text-brand-neon">{pixelMessage}</p> : null}
+          </div>
+        )}
       </div>
     </div>
   )
