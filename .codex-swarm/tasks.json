@@ -10214,12 +10214,43 @@
       "doc_updated_by": "agentctl",
       "description": "Create a separate 4 x 9.5 inch portrait Cardon Insurance print ad at 300 DPI, preserving verified business details and required coverage types, and add a tested QR code to the official website.",
       "doc": "## Summary\n\nCreated a separate 4 x 9.5 inch portrait Cardon Insurance print ad with a scannable QR code to the official website.\n\n## Context\n\nThe user approved adapting the previously completed horizontal ad into a narrow portrait format while preserving the horizontal file and adding a QR code for https://www.cardoninsuranceelpaso.com/.\n\n## Scope\n\nDeliver a 1200 x 2850 pixel, 300-DPI portrait PNG using the supplied logo, Auto/Home/Flood/Bonds labels, verified business details, and a high-error-correction QR code with a protected white quiet zone. Include a standalone QR asset for reuse.\n\n## Risks\n\nThe supplied logo source is 258 x 80 pixels and was carefully upscaled and sharpened. The final ad is sRGB PNG rather than a printer-specific CMYK profile.\n\n## Verify Steps\n\n1. Confirm final dimensions are 1200 x 2850 pixels and density is 300 DPI. 2. Visually inspect logo, headline, four insurance types, phone, website, address, contrast, and safe margins. 3. Crop the QR region from the final composed ad and submit it to a QR decoder. 4. Confirm decoded data equals https://www.cardoninsuranceelpaso.com/ with no error.\n\n## Rollback Plan\n\nRemove the portrait PNG and standalone QR asset; the original horizontal ad remains unchanged and no production website or external account was modified.\n\n## Notes\n\nBuilt-in image generation produced the text-free portrait background with an ads-marketing prompt for an El Paso home, vehicle, flood-protection water, and contractor bonding cue with navy copy zones. Logo, typography, and QR were composited deterministically. QR error correction is level H with a four-module quiet zone. The finished-ad QR decoded exactly to https://www.cardoninsuranceelpaso.com/. Final SHA-256: 097D65612D7C1916E3596AAC254414914F73E299553629A01AF45442DE711C5C."
+    },
+    {
+      "id": "202610162218-BYCTXK",
+      "title": "Document free claimed versus Premium listing perks",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "product"
+      ],
+      "commit": {
+        "hash": "01d0b512c0a15b08d38eb49d085ec169896cb3bf",
+        "message": "📋 202610162218-BYCTXK document verified free and Premium listing benefits"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: inspect current listing entitlements and distinguish enforced free-claim benefits from paid Premium benefits and marketing-only language."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: current server entitlements, owner controls, lead delivery, analytics shaping, directory presentation, pricing, and SEO output were compared and caveats were documented."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T22:19:49+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit the current CityBeat directory entitlement, pricing, editing, analytics, lead, placement, and SEO code and provide an accurate side-by-side customer comparison.",
+      "doc": "## Summary\n\nAudited the currently enforced CityBeat directory behavior and documented the customer-facing differences between an approved claimed Basic listing and an active Premium listing.\n\n## Scope\n\nCompared server-side entitlements, owner editing controls, lead delivery and masking, analytics response shaping, directory presentation, pricing, and listing SEO/schema behavior. No product code or production data was changed.\n\n## Risks\n\nMarketing copy is broader than the current implementation in a few places. Premium does not include Featured-only guaranteed priority placement, category benchmarking, or multi-location tools. AI assistance is registered as an entitlement but has no current product surface. The per-listing leads module is marked coming soon, although the main dashboard lead inbox and Premium lead email delivery are live. Video is server-supported but has no owner-facing editor in the current CMS.\n\n## Verify Steps\n\nReviewed apps/web/src/lib/directory-entitlements.ts, apps/web/src/lib/pricing.ts, the owner CMS, lead capture/inbox routes and component, directory ordering/card presentation, analytics API, and server-rendered listing metadata/structured data.\n\n## Rollback Plan\n\nDocumentation-only analysis; no application rollback is required.\n\n## Notes\n\nCustomer-facing answer should distinguish shared SEO foundations from Premium content enrichment and should not claim guaranteed search rankings. An approved claim is required before owner access; successful payment is required before Premium entitlements activate."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "d35085d03893b0a55c9044d38fb01c359f1926ff8a0e5e9dd68c600a555ef7cb"
+    "checksum": "c215e111cf6e47b0db4e78ce949080b266b3042076e865854191f28653e667be"
   }
 }

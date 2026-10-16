@@ -1,13 +1,15 @@
 ---
 id: "202610162218-BYCTXK"
 title: "Document free claimed versus Premium listing perks"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["directory", "product"]
+commit: { hash: "01d0b512c0a15b08d38eb49d085ec169896cb3bf", message: "📋 202610162218-BYCTXK document verified free and Premium listing benefits" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: inspect current listing entitlements and distinguish enforced free-claim benefits from paid Premium benefits and marketing-only language." }
+  - { author: "ORCHESTRATOR", body: "verified: current server entitlements, owner controls, lead delivery, analytics shaping, directory presentation, pricing, and SEO output were compared and caveats were documented." }
 doc_version: 2
 doc_updated_at: "2026-10-16T22:19:49+00:00"
 doc_updated_by: "agentctl"
