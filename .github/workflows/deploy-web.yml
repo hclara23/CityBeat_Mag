@@ -37,6 +37,9 @@ jobs:
       # Shared only with Elevate's server. GitHub masks it in command output,
       # and --update-env-vars persists it on the Cloud Run revision.
       ELEVATE_PARTNER_SECRET: ${{ secrets.ELEVATE_PARTNER_SECRET }}
+      # Read-only token scoped to Cloudflare Analytics. Stored only in GitHub
+      # and the Cloud Run service environment; never shipped to the browser.
+      CLOUDFLARE_ANALYTICS_API_TOKEN: ${{ secrets.CLOUDFLARE_ANALYTICS_API_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -83,7 +86,7 @@ jobs:
             --source . \
             --project "$GCP_PROJECT" \
             --region "$GCP_REGION" \
-            --update-env-vars ELEVATE_PARTNER_SECRET="$ELEVATE_PARTNER_SECRET" \
+            --update-env-vars ELEVATE_PARTNER_SECRET="$ELEVATE_PARTNER_SECRET",GA4_PROPERTY_ID="542822471",CLOUDFLARE_ACCOUNT_ID="432be79cf4999bafe57cd2d8ef9bc527",CLOUDFLARE_WEB_ANALYTICS_SITE_TAG="23b04154c5e5490f9d6aca6edfefeffa",CLOUDFLARE_ANALYTICS_API_TOKEN="$CLOUDFLARE_ANALYTICS_API_TOKEN" \
             --memory=2Gi \
             --cpu=1 \
             --concurrency=80 \
@@ -150,7 +153,7 @@ jobs:
           # /api/analytics/dashboard shipped with NO authentication of any kind and
           # served real traffic data plus a 5,000-document Firestore read to anyone.
           echo "-- authorization --"
-          for path in "/api/analytics/dashboard" "/api/admin/analytics-health" "/api/admin/security/revoke" "/api/admin/finance" "/api/sales/me" "/api/admin/fulfillment" "/api/directory/smoke-test/pixel"; do
+          for path in "/api/analytics/dashboard" "/api/admin/analytics-health" "/api/admin/traffic-analytics" "/api/admin/security/revoke" "/api/admin/finance" "/api/sales/me" "/api/admin/fulfillment" "/api/directory/smoke-test/pixel"; do
             code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL$path")
             echo "GET $path -> $code"
             case "$code" in

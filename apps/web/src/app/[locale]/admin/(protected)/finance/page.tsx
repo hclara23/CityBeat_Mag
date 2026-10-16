@@ -6,6 +6,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
+import { TrafficAnalyticsPanel } from './TrafficAnalyticsPanel'
 
 function money(cents: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
@@ -27,7 +28,7 @@ export default function FinanceDashboard() {
   useEffect(() => {
     getUser().then(({ user }) => {
       if (!user) return router.push(withLocale(locale, '/login'))
-      if (!user.can_manage_platform && !user.is_developer) {
+      if (!user.can_manage_platform && !user.is_developer && !user.is_editor && user.role !== 'editor' && user.role !== 'admin') {
         return router.push(withLocale(locale, '/'))
       }
       load().finally(() => setReady(true))
@@ -141,6 +142,8 @@ export default function FinanceDashboard() {
             </div>
           </div>
         </div>
+
+        <TrafficAnalyticsPanel />
       </section>
     </CityBeatShell>
   )
