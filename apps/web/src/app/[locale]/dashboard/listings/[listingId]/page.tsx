@@ -62,6 +62,7 @@ function toOwnerListing(id: string, raw: any) {
     is_published: plain.is_published !== false,
     rating: plain.rating ?? null,
     user_ratings_total: plain.user_ratings_total ?? null,
+    updated_at: plain.updated_at ?? plain.claimed_at ?? null,
   }
 }
 

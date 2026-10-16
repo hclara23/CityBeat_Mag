@@ -6,7 +6,7 @@ priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["directory", "premium", "conversion", "retention", "deployment"]
-verify: ["npm run type-check --workspace=@citybeat/web", "npm test --workspace=@citybeat/web"]
+verify: ["npm run type-check --workspace=@citybeat/web", "npm test", "npm run build --workspace=@citybeat/web"]
 comments:
   - { author: "ORCHESTRATOR", body: "Start: approved seven-phase implementation and one-time Google Cloud Build charge capped at ; no new recurring paid services." }
 doc_version: 2

@@ -7,6 +7,8 @@ import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/aler
 import { dayKey, daysAgoKey, totalsForRange, type DailyStatRow } from '@/lib/listing-analytics'
 import { unsubHeaders } from '@/lib/unsub-headers'
 import { isSuppressed } from '@/lib/suppression'
+import { customerActionTotal } from '@/lib/premium-value'
+import { profileCompleteness } from '@/lib/listing-scores'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -39,6 +41,8 @@ type ListingStats = {
   viewsPrev: number
   leadsPrev: number
   rating: number | null
+  customerActions: number
+  completeness: number
 }
 
 // A "vs previous 30 days" delta chip.
@@ -87,6 +91,12 @@ function reportHtml(ownerListings: ListingStats[], locale: 'en' | 'es') {
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>
+  <div style="margin:18px 0;padding:14px 16px;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px">
+    <strong>${isEs ? 'Acciones de clientes' : 'Customer actions'}:</strong>
+    ${ownerListings.reduce((sum, listing) => sum + listing.customerActions, 0)}
+    <span style="color:#666;font-size:12px"> · ${isEs ? 'clics, indicaciones, botones y leads atribuibles a CityBeat' : 'clicks, directions, buttons, and leads attributable to CityBeat'}</span>
+  </div>
+  ${ownerListings.some((listing) => listing.completeness < 100) ? `<p style="font-size:13px;color:#555">${isEs ? 'Consejo: completa los elementos pendientes de tu perfil para generar más confianza. Abre tu panel para ver la lista exacta.' : 'Tip: complete the remaining profile items to build more customer trust. Open your dashboard to see the exact checklist.'}</p>` : ''}
   ${upsell}
   <p style="margin:20px 0"><a href="${APP_URL}/${locale}/dashboard" style="background:#22d3ee;color:#000;font-weight:800;padding:10px 20px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px;font-size:12px">${isEs ? 'Ver mi panel' : 'Open my dashboard'}</a></p>
   <p style="font-size:11px;color:#999">${isEs ? 'Recibes esto porque tienes una ficha verificada en CityBeat.' : 'You receive this because you own a verified listing on CityBeat.'}</p>
@@ -164,6 +174,8 @@ export async function GET(request: NextRequest) {
         viewsPrev: prev.view,
         leadsPrev: prev.lead,
         rating: typeof l.rating === 'number' ? l.rating : null,
+        customerActions: customerActionTotal({ website: cur.click_website, directions: cur.click_directions, actions: cur.click_action, leads: cur.lead }),
+        completeness: profileCompleteness(l).score,
       }
       const arr = byOwner.get(l.owner_id) || []
       arr.push(stats)

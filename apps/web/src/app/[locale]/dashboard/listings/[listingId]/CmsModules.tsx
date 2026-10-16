@@ -18,6 +18,7 @@ import {
   type ListingServiceItem,
   type SpecialHour,
 } from '@/lib/listing-content'
+import { customerActionTotal, daysUntil } from '@/lib/premium-value'
 
 const inputClass =
   'w-full rounded-md p-2.5 border border-white/15 bg-black/40 text-white text-sm focus:border-brand-neon focus:outline-none transition'
@@ -180,6 +181,14 @@ export function PostsEditor({
             </div>
             {statusChip(post)}
           </div>
+          {(() => {
+            const remaining = daysUntil(post.ends_at)
+            return remaining !== null && remaining >= 0 && remaining <= 7 ? (
+              <p className="mb-3 rounded border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs font-bold text-amber-200">
+                {isEs ? `Esta publicación vence en ${remaining} día${remaining === 1 ? '' : 's'}.` : `This post expires in ${remaining} day${remaining === 1 ? '' : 's'}.`}
+              </p>
+            ) : null
+          })()}
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className={smallLabel}>{isEs ? 'Título (inglés)' : 'Title (English)'}</label>
@@ -212,13 +221,10 @@ export function PostsEditor({
               <input className={inputClass} value={post.cta_url || ''} maxLength={300} placeholder="https://…" onChange={(e) => update(post.id, { cta_url: e.target.value || null })} />
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => onChange(posts.filter((p) => p.id !== post.id))}
-            className="mt-3 text-[10px] font-black uppercase tracking-wider text-red-400/80 hover:text-red-300"
-          >
-            {isEs ? 'Eliminar' : 'Remove'}
-          </button>
+          <div className="mt-3 flex flex-wrap gap-4">
+            {posts.length < max && <button type="button" onClick={() => onChange([...posts, { ...post, id: newId('post'), starts_at: null, ends_at: null, created_at: new Date().toISOString(), title: `${post.title} ${isEs ? '(copia)' : '(copy)'}` }])} className="text-[10px] font-black uppercase tracking-wider text-brand-neon hover:text-cyan-300">{isEs ? 'Duplicar' : 'Duplicate'}</button>}
+            <button type="button" onClick={() => onChange(posts.filter((p) => p.id !== post.id))} className="text-[10px] font-black uppercase tracking-wider text-red-400/80 hover:text-red-300">{isEs ? 'Eliminar' : 'Remove'}</button>
+          </div>
         </div>
       ))}
       {posts.length < max && (
@@ -628,9 +634,16 @@ export function AnalyticsPanel({
   const cur = data.current
   const prev = data.previous
   const maxView = data.series ? Math.max(1, ...data.series.map((d) => d.view)) : 1
+  const customerActions = customerActionTotal({ website: cur.click_website, directions: cur.click_directions, actions: cur.click_action, leads: cur.lead })
 
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-brand-neon/30 bg-brand-neon/[0.06] p-5 print:border-black print:bg-white print:text-black">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-neon print:text-black">{isEs ? 'Resultados de CityBeat' : 'CityBeat results'}</p>
+        <p className="mt-2 font-display text-4xl font-black text-white print:text-black">{customerActions.toLocaleString()}</p>
+        <p className="mt-1 text-sm text-white/65 print:text-black/70">{isEs ? 'acciones de clientes en los últimos 30 días: visitas al sitio, indicaciones, botones y solicitudes.' : 'customer actions in the last 30 days: website visits, directions, action-button clicks, and leads.'}</p>
+        <button type="button" onClick={() => window.print()} className="mt-4 rounded-md border border-brand-neon/40 px-3 py-2 text-[10px] font-black uppercase text-brand-neon print:hidden">{isEs ? 'Imprimir resumen' : 'Print performance summary'}</button>
+      </div>
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           label={isEs ? 'Visitas (30 días)' : 'Views (30 days)'}

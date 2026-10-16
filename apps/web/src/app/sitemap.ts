@@ -37,7 +37,7 @@ function toDate(v: any): Date | undefined {
 async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
     '', '/stories', '/directory', '/best', '/events', '/this-weekend', '/deals', '/jobs', '/ads', '/contribute', '/privacy', '/cookies', '/terms',
-    '/leaderboard', '/guide', coverStory.path, `/stories/${machelleStory.slug}`,
+    '/leaderboard', '/guide', '/premium', coverStory.path, `/stories/${machelleStory.slug}`,
     '/topics/news', '/topics/business', '/topics/events', '/topics/culture',
   ]
   const urls: MetadataRoute.Sitemap = staticPaths.map((p) => entry(p))
