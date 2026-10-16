@@ -10390,12 +10390,56 @@
       "doc_updated_by": "agentctl",
       "description": "Implement the approved owner ROI dashboard, onboarding and listing health, factual trust signals, marketing toolkit, proof-led Premium conversion surfaces, retention features, bilingual QA, and guarded production release. Reuse existing first-party data and services, add no new vendor subscription or AI API usage, preserve existing email frequency, and keep the one-time Google Cloud Build charge within the explicitly approved  cap.",
       "doc": "## Summary\n\nBuild and deploy the approved CityBeat Premium Value System: unified owner ROI and lead workflow, guided listing quality, factual public trust signals, a reusable marketing toolkit, proof-led Premium conversion surfaces, retention tools, bilingual QA, and a guarded Cloud Run release.\n\n## Scope\n\nImplement the seven approved phases using existing first-party listing, analytics, lead, review, offer, report, QR, and billing data. Add English and Spanish UI; keep Featured guarantees distinct from Premium; use deterministic templates instead of AI APIs; preserve the existing report email schedule; add no vendor subscription. Deploy once through the existing no-traffic candidate pipeline within the explicitly approved  Google Cloud Build cap.\n\n## Risks\n\nThis is a broad customer-facing release touching authenticated owner workflows, public listing trust, analytics presentation, and conversion pages. Risks include authorization regressions, misleading badges, inflated ROI claims, cross-tier entitlement leakage, mobile overflow, localization drift, and increased email or compute usage. Mitigate with derived-only factual signals, server-side ownership checks, no ranking or traffic guarantees, unchanged email cadence, static templates, targeted tests, candidate smoke tests, and automatic rollback.\n\n## Verify Steps\n\nPassed npm run type-check --workspace=@citybeat/web. Passed npm test: 657 tests total (637 web and 20 shared-library tests). Passed npm run build --workspace=@citybeat/web. Reviewed the bilingual Premium page and mobile/desktop layout locally. GitHub Actions run 38978782893 deployed scoped production commit 96b0d9a34bfe9012bf6c02a051e07a9c052a3ab1 as Cloud Run revision citybeat-web-00326-gik. Candidate route, authorization, checkout guard, webhook signature, and payment-health smoke tests passed before promotion. Revision was promoted to 100 percent traffic. Independent checks returned HTTP 200 and expected release copy for /en/premium, /es/premium, /en, /en/directory, and /api/health.\n\n## Rollback Plan\n\nBefore promotion, the candidate receives no production traffic. If candidate checks fail, do not promote. If live checks fail, the workflow automatically restores the prior Cloud Run revision. Application changes remain reversible through the scoped implementation commit; no billing data, subscriptions, or existing customer entitlements will be migrated or deleted.\n\n## Notes\n\nImplemented owner ROI metrics, lead pipeline statuses, listing completeness guidance, derived factual trust signals, QR and social marketing tools, offer expiration and duplication controls, monthly report enhancements, a bilingual proof-led Premium comparison page, homepage conversion placement, and sitemap discovery. The release adds no new vendor subscription, AI API usage, or email cadence. Premium claims remain factual and do not promise ranking, placement, traffic, or leads. User approved the one-time Google Cloud Build execution up to $1; deployment completed successfully in 6 minutes 52 seconds. Local implementation commit: 0b11e69. Scoped production commit: 96b0d9a34bfe9012bf6c02a051e07a9c052a3ab1. GitHub Actions run: 38978782893."
+    },
+    {
+      "id": "202610162312-XC9HT8",
+      "title": "Repair analytics and add Premium conversion pixel",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "analytics",
+        "premium",
+        "privacy",
+        "frontend",
+        "backend",
+        "deployment"
+      ],
+      "verify": [
+        "npm run type-check --workspace=@citybeat/web",
+        "npm test",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "commit": {
+        "hash": "0649063c9d06d652a1185f4f44af486e2a4d6dae",
+        "message": "✨ 202610162312-XC9HT8 repair analytics and add Premium conversion pixel"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: user approved the analytics repair, privacy-preserving Premium conversion pixel, guarded deployment, and a one-time Google Cloud Build charge capped at $1."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Verified: 661 automated tests, web type-check, optimized production build, guarded candidate smoke tests, 100 percent promotion, correct live GA4 and Cloudflare tags, Premium pixel availability, access controls, and payment health all passed."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: analytics repair and Premium pixel are deployed on revision citybeat-web-00328-hil | details: local and production checks passed, and no recurring vendor expense was added."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T23:31:25+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit and repair production Google Analytics 4 and Cloudflare Web Analytics, add first-party listing interaction events, implement a privacy-preserving domain-restricted Premium business conversion pixel with owner diagnostics and reporting, document privacy behavior, test it, and deploy through the guarded Cloud Run pipeline. Add no recurring vendor expense and keep the explicitly approved one-time Google Cloud Build charge within $1.",
+      "doc": "## Summary\n\nRepair CityBeat analytics so the correct GA4 property receives traffic, verify Cloudflare coverage, strengthen first-party listing events, and add a zero-subscription-cost Premium conversion pixel with owner setup, diagnostics, privacy controls, and reporting.\n\n## Scope\n\nUse GA4 measurement ID G-C6PLK304L6; preserve first-party pageview analytics; add Cloudflare and GA diagnostics; emit meaningful listing actions to GA4; create a Premium/Featured-only pixel configuration and event ingestion API with public script, domain allowlist, rotating key, rate limits, bot filtering, aggregate-only storage, setup UI, connection test, and owner analytics. Update privacy/cookie disclosures. Deploy one guarded Cloud Run candidate within the approved one-time $1 build cap.\n\n## Risks\n\nRisks include measuring the wrong GA property, double-counted pageviews, forged or cross-domain pixel events, PII collection, unbounded Firestore writes, entitlement bypass, CSP failures, and analytics code affecting page reliability. Mitigate with one canonical GA ID, explicit SPA pageviews, aggregate-only events, strict event and domain validation, hashed public keys, no cookies or persistent visitor identifiers, rate limits, bot rejection, server-side entitlement and ownership checks, fail-open client tracking, tests, candidate smoke checks, and automatic rollback.\n\n## Verify Steps\n\nRun targeted unit tests, the web type-check, full test suite, and production build. Confirm generated HTML references G-C6PLK304L6 and loads the Google tag. Verify public pixel script behavior, authorized configuration endpoints, domain enforcement, aggregate counters, CSP compatibility, Cloudflare response headers/beacon state, bilingual owner UI, candidate route/security/payment smoke checks, and live production endpoints after promotion.\n\n## Rollback Plan\n\nDeploy without traffic and promote only after candidate checks. The workflow automatically restores the previous Cloud Run revision if live verification fails. Code changes are reversible through the scoped implementation commit. Pixel configuration is additive; disabling or rotating it invalidates future ingestion without deleting listings, subscriptions, or existing analytics.\n\n## Notes\n\nImplemented in local commit 0649063 and deployed as remote commit 023af59. GitHub Actions run 38981044496 succeeded through no-traffic candidate deployment, smoke tests, promotion, and public-domain verification. Cloud Run revision citybeat-web-00328-hil serves 100 percent of traffic. Live HTML contains GA4 measurement ID G-C6PLK304L6 and the Cloudflare Web Analytics beacon; the old GA ID is absent. The public conversion pixel loader returns JavaScript with cross-origin access, owner and admin APIs return 401 anonymously, and /api/health/payments returns 200. Cloudflare Web Analytics was configured in manual-snippet mode at no recurring vendor charge. Analytics dashboards may need normal ingestion time before showing visits."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "0aa7818159a6dd8941ea778f779f538baff21783c0070ac817d774b2e80621d4"
+    "checksum": "8f6d8de69ecfa17d0b550d0591d414858b849360a6ab34ad8e8b4e340a4c0273"
   }
 }

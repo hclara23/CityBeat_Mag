@@ -1,16 +1,19 @@
 ---
 id: "202610162312-XC9HT8"
 title: "Repair analytics and add Premium conversion pixel"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["analytics", "premium", "privacy", "frontend", "backend", "deployment"]
 verify: ["npm run type-check --workspace=@citybeat/web", "npm test", "npm run build --workspace=@citybeat/web"]
+commit: { hash: "0649063c9d06d652a1185f4f44af486e2a4d6dae", message: "✨ 202610162312-XC9HT8 repair analytics and add Premium conversion pixel" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: user approved the analytics repair, privacy-preserving Premium conversion pixel, guarded deployment, and a one-time Google Cloud Build charge capped at $1." }
+  - { author: "ORCHESTRATOR", body: "Verified: 661 automated tests, web type-check, optimized production build, guarded candidate smoke tests, 100 percent promotion, correct live GA4 and Cloudflare tags, Premium pixel availability, access controls, and payment health all passed." }
+  - { author: "ORCHESTRATOR", body: "verified: analytics repair and Premium pixel are deployed on revision citybeat-web-00328-hil | details: local and production checks passed, and no recurring vendor expense was added." }
 doc_version: 2
-doc_updated_at: "2026-10-16T23:13:14+00:00"
+doc_updated_at: "2026-10-16T23:31:25+00:00"
 doc_updated_by: "agentctl"
 description: "Audit and repair production Google Analytics 4 and Cloudflare Web Analytics, add first-party listing interaction events, implement a privacy-preserving domain-restricted Premium business conversion pixel with owner diagnostics and reporting, document privacy behavior, test it, and deploy through the guarded Cloud Run pipeline. Add no recurring vendor expense and keep the explicitly approved one-time Google Cloud Build charge within $1."
 ---
@@ -36,5 +39,5 @@ Deploy without traffic and promote only after candidate checks. The workflow aut
 
 ## Notes
 
-User approved the full plan and a one-time Google Cloud Build charge up to $1. The screenshot identified GA4 property G-C6PLK304L6. Initial source audit found production was compiled with a different default ID, G-D8V1XC2346, explaining why the shown GA4 property received zero data. Existing first-party per-listing analytics already aggregate CityBeat listing views and actions without visitor identity; the new pixel will extend that model to business-owned websites.
+Implemented in local commit 0649063 and deployed as remote commit 023af59. GitHub Actions run 38981044496 succeeded through no-traffic candidate deployment, smoke tests, promotion, and public-domain verification. Cloud Run revision citybeat-web-00328-hil serves 100 percent of traffic. Live HTML contains GA4 measurement ID G-C6PLK304L6 and the Cloudflare Web Analytics beacon; the old GA ID is absent. The public conversion pixel loader returns JavaScript with cross-origin access, owner and admin APIs return 401 anonymously, and /api/health/payments returns 200. Cloudflare Web Analytics was configured in manual-snippet mode at no recurring vendor charge. Analytics dashboards may need normal ingestion time before showing visits.
 
