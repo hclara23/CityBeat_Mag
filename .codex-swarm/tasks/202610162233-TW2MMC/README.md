@@ -1,14 +1,16 @@
 ---
 id: "202610162233-TW2MMC"
 title: "Deploy Basic versus Premium directory clarification"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202610162227-RFJMJW"]
 tags: ["deployment", "production", "directory"]
 verify: ["npm run type-check --workspace=@citybeat/web"]
+commit: { hash: "2f4726127a69cf71bde63c27202244f1d86780b9", message: "✅ TW2MMC record verified production deployment" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: deploy the approved Basic-versus-Premium directory clarification within the user-approved one-time Google Cloud Build cap of one dollar." }
+  - { author: "ORCHESTRATOR", body: "verified: GitHub Actions run 38976495925 passed candidate smoke tests and payment guards, promoted citybeat-web-00324-mom to 100% production traffic, returned HTTP 200 on live health and directory routes, and served the localized comparison in English and Spanish." }
 doc_version: 2
 doc_updated_at: "2026-10-16T22:42:48+00:00"
 doc_updated_by: "agentctl"

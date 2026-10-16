@@ -10286,7 +10286,7 @@
     {
       "id": "202610162233-TW2MMC",
       "title": "Deploy Basic versus Premium directory clarification",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [
@@ -10300,17 +10300,25 @@
       "verify": [
         "npm run type-check --workspace=@citybeat/web"
       ],
+      "commit": {
+        "hash": "2f4726127a69cf71bde63c27202244f1d86780b9",
+        "message": "✅ TW2MMC record verified production deployment"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: deploy the approved Basic-versus-Premium directory clarification within the user-approved one-time Google Cloud Build cap of one dollar."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: GitHub Actions run 38976495925 passed candidate smoke tests and payment guards, promoted citybeat-web-00324-mom to 100% production traffic, returned HTTP 200 on live health and directory routes, and served the localized comparison in English and Spanish."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-16T22:33:12+00:00",
+      "doc_updated_at": "2026-10-16T22:42:48+00:00",
       "doc_updated_by": "agentctl",
       "description": "Release commits c1a4822 and fd2f531 through the guarded Cloud Run pipeline, promote only after candidate smoke tests pass, and verify the public English and Spanish directory comparison.",
-      "doc": "## Summary\n\nDeploy the committed Basic-versus-Premium directory clarification to the production CityBeat Cloud Run service using the guarded candidate-first workflow.\n\n## Scope\n\nPush the committed release to main, allow GitHub Actions to build and deploy a no-traffic candidate, require automated smoke and security checks, promote to 100% only on success, and verify the public bilingual directory.\n\n## Risks\n\nCloud Build incurs an estimated one-time cost of approximately .03 under the user-approved  cap. The workflow protects customers with a no-traffic candidate and automatically rolls back if live verification fails.\n\n## Verify Steps\n\nConfirm the deploy-web GitHub Actions run passes tests, candidate smoke checks, promotion, and live verification. Confirm English and Spanish public directory pages return HTTP 200 and expose the plan-comparison copy.\n\n## Rollback Plan\n\nThe workflow automatically restores the previously serving Cloud Run revision if live verification fails. If a later issue appears, route 100% traffic back to the recorded prior revision.\n\n## Notes\n\nApproved vendor and cost: Google Cloud Build, one-time deployment estimated around .03 with a hard cap of . No new recurring service is authorized or created."
+      "doc": "## Summary\n\nDeploy the committed Basic-versus-Premium directory clarification to the production CityBeat Cloud Run service using the guarded candidate-first workflow.\n\n## Scope\n\nPush the committed release to main, allow GitHub Actions to build and deploy a no-traffic candidate, require automated smoke and security checks, promote to 100% only on success, and verify the public bilingual directory.\n\n## Risks\n\nCloud Build incurs an estimated one-time cost of approximately .03 under the user-approved  cap. The workflow protects customers with a no-traffic candidate and automatically rolls back if live verification fails.\n\n## Verify Steps\n\n1. GitHub Actions run 38976495925 completed successfully. 2. Install, type-check, and full test steps passed. 3. Candidate revision deployed without traffic and passed smoke and payment security guards. 4. Revision citybeat-web-00324-mom received 100% production traffic. 5. Live /en, /en/directory, and /api/health returned HTTP 200. 6. English and Spanish directory HTML contains the localized plan comparison.\n\n## Rollback Plan\n\nThe workflow automatically restores the previously serving Cloud Run revision if live verification fails. If a later issue appears, route 100% traffic back to the recorded prior revision.\n\n## Notes\n\nDeployment approved for one Google Cloud Build execution estimated at approximately .03 and capped at , with no recurring charge. Scoped production commit 52c721171cb7a63b84c4149b6989edbac05a6764 triggered GitHub Actions run 38976495925. Candidate smoke tests passed, including checkout input guards and unsigned webhook rejection; revision citybeat-web-00324-mom was promoted to 100% traffic from citybeat-web-00322-hiq. Live checks returned HTTP 200 for /en, /en/directory, and /api/health. Independent checks confirmed both /en/directory and /es/directory return 200 and contain their localized Basic-versus-Premium comparison headings."
     },
     {
       "id": "202610162237-YXPESJ",
@@ -10349,6 +10357,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "55574ff5e092a5332735836e74f021cce84973d22907371dc24150d84f6a01c6"
+    "checksum": "089e0c7f50812f1b8ed22a87008c6fd28d76080729cb47e76b0847afa5eab554"
   }
 }
