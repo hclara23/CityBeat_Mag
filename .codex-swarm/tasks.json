@@ -10183,12 +10183,43 @@
       "doc_updated_by": "agentctl",
       "description": "Research verified public business details and create a high-resolution horizontal half-page print advertisement for Cardon Insurance featuring Auto, Home, Flood, and Bonds, using the supplied logo.",
       "doc": "## Summary\n\nCreated a high-resolution horizontal half-page advertisement for Cardon Insurance Agency featuring Auto, Home, Flood, and Bonds.\n\n## Context\n\nThe user supplied the Cardon Insurance logo and requested a horizontal half-page ad. Public business details were verified against cardoninsuranceelpaso.com before composition.\n\n## Scope\n\nDeliver one 7.75 x 4.75 inch, 300-DPI PNG using the supplied logo, the four requested insurance types, verified phone, website, address, and since-1964 positioning.\n\n## Risks\n\nThe supplied logo source is 258 x 80 pixels, so it was carefully upscaled and sharpened; the final placed size was visually checked at full resolution. The ad is sRGB PNG rather than a printer-specific CMYK profile.\n\n## Verify Steps\n\n1. Confirm output dimensions are 2325 x 1425 pixels. 2. Confirm embedded density is 300 DPI. 3. Visually inspect logo, headline, Auto/Home/Flood/Bonds labels, phone, website, address, safe margins, contrast, and spelling. 4. Confirm verified business facts against the public website.\n\n## Rollback Plan\n\nRemove output/ads/cardon-insurance-half-page-2026.png if the creative is rejected; no production website or external account was modified.\n\n## Notes\n\nBuilt-in image generation produced the text-free commercial background using an ads-marketing prompt for an El Paso home, vehicle, subtle flood-protection water, and contractor bonding cue with navy negative space. The supplied logo and all copy were composited deterministically. Final: 2325 x 1425 pixels, 300 DPI, sRGB PNG, 3,890,741 bytes, SHA-256 09E3FF868147C4836FC4FEFB3B23B5CB722C25EAE54D1A25DA062B21275DD433."
+    },
+    {
+      "id": "202610162158-6QHB6N",
+      "title": "Create Cardon Insurance portrait ad with QR",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "design",
+        "advertising"
+      ],
+      "commit": {
+        "hash": "e5babdceaceda25e0634dc3640d6be49d446d6d9",
+        "message": "✨ 6QHB6N create portrait Cardon Insurance ad with verified QR"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: create a 1200 x 2850 portrait ad, preserve the horizontal version, generate a QR code for the official website, and verify the QR from the final artwork."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: the portrait Cardon Insurance ad is 1200 x 2850 pixels at 300 DPI, preserves the horizontal version, includes the supplied logo and all four required coverage labels, and the QR code cropped from the final artwork decodes exactly to https://www.cardoninsuranceelpaso.com/."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T22:00:57+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Create a separate 4 x 9.5 inch portrait Cardon Insurance print ad at 300 DPI, preserving verified business details and required coverage types, and add a tested QR code to the official website.",
+      "doc": "## Summary\n\nCreated a separate 4 x 9.5 inch portrait Cardon Insurance print ad with a scannable QR code to the official website.\n\n## Context\n\nThe user approved adapting the previously completed horizontal ad into a narrow portrait format while preserving the horizontal file and adding a QR code for https://www.cardoninsuranceelpaso.com/.\n\n## Scope\n\nDeliver a 1200 x 2850 pixel, 300-DPI portrait PNG using the supplied logo, Auto/Home/Flood/Bonds labels, verified business details, and a high-error-correction QR code with a protected white quiet zone. Include a standalone QR asset for reuse.\n\n## Risks\n\nThe supplied logo source is 258 x 80 pixels and was carefully upscaled and sharpened. The final ad is sRGB PNG rather than a printer-specific CMYK profile.\n\n## Verify Steps\n\n1. Confirm final dimensions are 1200 x 2850 pixels and density is 300 DPI. 2. Visually inspect logo, headline, four insurance types, phone, website, address, contrast, and safe margins. 3. Crop the QR region from the final composed ad and submit it to a QR decoder. 4. Confirm decoded data equals https://www.cardoninsuranceelpaso.com/ with no error.\n\n## Rollback Plan\n\nRemove the portrait PNG and standalone QR asset; the original horizontal ad remains unchanged and no production website or external account was modified.\n\n## Notes\n\nBuilt-in image generation produced the text-free portrait background with an ads-marketing prompt for an El Paso home, vehicle, flood-protection water, and contractor bonding cue with navy copy zones. Logo, typography, and QR were composited deterministically. QR error correction is level H with a four-module quiet zone. The finished-ad QR decoded exactly to https://www.cardoninsuranceelpaso.com/. Final SHA-256: 097D65612D7C1916E3596AAC254414914F73E299553629A01AF45442DE711C5C."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "dd097e8e8ca3dc3d59fae71639b2d2d9f8f91f222c3eac4a52ba88b65904be07"
+    "checksum": "d35085d03893b0a55c9044d38fb01c359f1926ff8a0e5e9dd68c600a555ef7cb"
   }
 }

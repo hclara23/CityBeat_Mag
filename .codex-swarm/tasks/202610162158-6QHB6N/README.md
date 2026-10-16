@@ -1,13 +1,15 @@
 ---
 id: "202610162158-6QHB6N"
 title: "Create Cardon Insurance portrait ad with QR"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["design", "advertising"]
+commit: { hash: "e5babdceaceda25e0634dc3640d6be49d446d6d9", message: "✨ 6QHB6N create portrait Cardon Insurance ad with verified QR" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: create a 1200 x 2850 portrait ad, preserve the horizontal version, generate a QR code for the official website, and verify the QR from the final artwork." }
+  - { author: "ORCHESTRATOR", body: "verified: the portrait Cardon Insurance ad is 1200 x 2850 pixels at 300 DPI, preserves the horizontal version, includes the supplied logo and all four required coverage labels, and the QR code cropped from the final artwork decodes exactly to https://www.cardoninsuranceelpaso.com/." }
 doc_version: 2
 doc_updated_at: "2026-10-16T22:00:57+00:00"
 doc_updated_by: "agentctl"
