@@ -36,12 +36,16 @@ ENV NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY \
 ARG NEXT_PUBLIC_APP_URL=https://citybeatmag.co
 # Public Google Analytics 4 measurement ID — shipped to the browser by design,
 # inlined into the client bundle at build time so gtag loads on every page.
-ARG NEXT_PUBLIC_GA_MEASUREMENT_ID=G-D8V1XC2346
+ARG NEXT_PUBLIC_GA_MEASUREMENT_ID=G-C6PLK304L6
+# Public Cloudflare Web Analytics site token. Cloudflare provides DNS only for
+# citybeatmag.co, so the free analytics beacon is installed explicitly.
+ARG NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN=9f30a519b13749bd8dfc8572f00a55df
 # Novu public Application Identifier — powers the in-app Inbox bell. Public by
 # design (shipped to the browser), so it's safe to bake into the image.
 ARG NEXT_PUBLIC_NOVU_APP_ID=QzoASbmjG2hj
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID \
+    NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN=$NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN \
     NEXT_PUBLIC_NOVU_APP_ID=$NEXT_PUBLIC_NOVU_APP_ID
 
 RUN npx turbo run build --filter=web

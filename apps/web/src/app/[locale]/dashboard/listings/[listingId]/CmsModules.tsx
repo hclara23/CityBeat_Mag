@@ -560,6 +560,8 @@ type StatTotals = {
   click_directions: number
   click_action: number
   lead: number
+  external_site_view?: number
+  external_conversion?: number
 }
 
 type AnalyticsData = {
@@ -664,6 +666,13 @@ export function AnalyticsPanel({
           isEs={isEs}
         />
       </div>
+
+      {data.full && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <StatCard label={isEs ? 'Visitas al sitio por CityBeat Pixel' : 'Website visits from CityBeat Pixel'} value={cur.external_site_view || 0} isEs={isEs} />
+          <StatCard label={isEs ? 'Conversiones del sitio' : 'Website conversions'} value={cur.external_conversion || 0} isEs={isEs} />
+        </div>
+      )}
 
       {data.full && data.series && (
         <div className="rounded-xl border border-white/10 bg-black/25 p-4">

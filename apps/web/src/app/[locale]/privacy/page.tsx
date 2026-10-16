@@ -53,6 +53,7 @@ const copy: Record<'en' | 'es', PolicyCopy> = {
           'Your IP address is used in the moment — to apply rate limits that keep the site up and to exclude staff and test traffic from our numbers. Rate-limit counters that include an IP are deleted about a day after the window closes.',
           'A sign-in session cookie (named __session) when you have an account. It is required for the site to know you are logged in.',
           'Google Analytics 4 and PostHog product analytics, when they are enabled for the site. These are operated by those companies under their own privacy policies and may set their own cookies.',
+          'Premium businesses may install a CityBeat Conversion Pixel on their own website. It sends only the listing identifier and an event category (page view, conversion, lead, or purchase). CityBeat stores daily aggregate totals, not the page URL, IP address, cookie, or visitor profile. The business controls its allowed domains and may disable or rotate the pixel.',
         ],
       },
       {
@@ -156,6 +157,7 @@ const copy: Record<'en' | 'es', PolicyCopy> = {
           'Su dirección IP se usa en el momento: para aplicar límites de velocidad que mantienen el sitio en pie y para excluir de las cifras el tráfico del personal y de pruebas. Los contadores de límite que incluyen una IP se eliminan aproximadamente un día después de cerrarse la ventana.',
           'Una cookie de sesión (llamada __session) cuando tiene una cuenta. Es necesaria para que el sitio sepa que inició sesión.',
           'Google Analytics 4 y la analítica de producto PostHog, cuando están habilitadas para el sitio. Las operan esas empresas bajo sus propias políticas de privacidad y pueden instalar sus propias cookies.',
+          'Los negocios Premium pueden instalar un píxel de conversión de CityBeat en su propio sitio. Solo envía el identificador de la ficha y una categoría de evento (vista, conversión, cliente potencial o compra). CityBeat guarda totales diarios, no la URL, dirección IP, cookie ni perfil del visitante. El negocio controla sus dominios permitidos y puede desactivar o rotar el píxel.',
         ],
       },
       {

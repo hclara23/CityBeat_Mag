@@ -19,6 +19,7 @@ interface PendingArticle {
 }
 
 const primaryAdminLinks = [
+  { href: '/admin/analytics-health', label: 'Analytics Health', description: 'Verify Google, Cloudflare, first-party, and Premium pixel collection.' },
   { href: '/admin/social-queue', label: 'Social Image Queue', description: 'Upload images for automatic captions, independent review, and Facebook posting.' },
   { href: '/admin/sports', label: 'Sports Desk', description: 'Publish authorized sports updates and inspect source permissions.' },
   { href: '/creator', label: 'Creator Studio', description: 'Manage drafts, review status, and submitted work.' },
