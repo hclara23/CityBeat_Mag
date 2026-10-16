@@ -10121,12 +10121,43 @@
       "doc_updated_by": "agentctl",
       "description": "Add and document free official/open-data sources for high-claim categories across El Paso County, Southern New Mexico, and West Texas, with provenance, freshness, geographic filtering, and deterministic deduplication. Do not use paid APIs or restricted Google/Bing content.",
       "doc": "## Summary\n\nAdded four free official-data expansion templates for West Texas electrical contractors, beauty establishments, childcare operations, and hospitality businesses. Expanded the directory region filter to West Texas and southern New Mexico while keeping every new feed disabled and review-first.\n\n## Scope\n\nAdded TDLR, Texas HHS, and TABC templates backed by data.texas.gov. New templates import unpublished candidates only, retain regional filtering and consolidation, and never invoke Google Places or paid AI. Added West Texas and southern New Mexico cities and ZIP ranges to regional validation plus regression tests.\n\n## Risks\n\nOfficial datasets can contain stale, duplicate, closed, or incomplete records. Templates remain disabled and Publish=false so an operator must dry-run, review, deduplicate, and explicitly approve publication. No paid service or production mutation was triggered.\n\n## Verify Steps\n\nRun npm test from the repository root; run npm --prefix apps/web run type-check; run git diff --check. Confirm all four southwest expansion templates are disabled, contain no SEARCH_GOOGLE_PLACES node, use data.texas.gov, and deliver with Publish=false.\n\n## Rollback Plan\n\nRevert the implementation commit. This removes the four templates and restores the prior regional city and ZIP allowlist; no production data needs rollback because the templates were not enabled or run.\n\n## Notes\n\nVerified against live official Socrata schemas for TDLR dataset 7358-krk7, HHS dataset bc5r-88dy, and TABC dataset 7hf9-qc9f. Full suite: 630 web tests plus 20 package tests passed; TypeScript type-check passed."
+    },
+    {
+      "id": "202610162138-MW634J",
+      "title": "Set Super H Automotive cover image",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "production"
+      ],
+      "commit": {
+        "hash": "397e0dca8ab134a19c956148d37c97a5266ffc49",
+        "message": "✅ MW634J record verified Super H cover image update"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: upload the approved storefront image as Super H Automotive's cover and verify the public listing."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: the public Super H Automotive listing now uses the approved storefront photograph as its cover | details: the media object returns HTTP 200 and the live page renders the image. No other listing fields were changed."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T21:42:52+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Inspect and upload the user-approved storefront photo as the Super H Automotive listing cover, then verify the live public listing without altering ownership, subscription, or payment data.",
+      "doc": "## Summary\n\nSet the approved Super H Automotive storefront photograph as the live CityBeat directory cover image.\n\n## Context\n\nThe listing had no primary image. The user supplied Screenshot 2026-10-16 153457.png and approved publishing it as the cover.\n\n## Scope\n\nUpload the supplied image to the existing CityBeat media bucket, update only image_url and updated_at on directory listing TJmwyo55waiFiGYp2fmu, and verify the public page. Ownership, claim status, subscription, tier, payment, contact, hours, and gallery data remain unchanged.\n\n## Risks\n\nA wide cover crop may hide edge details on smaller screens. The source file is retained locally and the prior image_url was empty, so rollback is straightforward.\n\n## Verify Steps\n\n1. Confirm the public object URL returns HTTP 200 with image/png. 2. Reload https://citybeatmag.co/en/directory/TJmwyo55waiFiGYp2fmu. 3. Visually confirm the storefront photograph renders as the hero cover above Super H Automotive.\n\n## Rollback Plan\n\nSet directory_listings/TJmwyo55waiFiGYp2fmu image_url back to an empty string and optionally remove directory/TJmwyo55waiFiGYp2fmu/cover-20261016.png from the media bucket.\n\n## Notes\n\nVerified live on 2026-10-16: the public image returned HTTP 200 and the CityBeat listing displayed the Super H storefront as the cover. Edge file upload was unavailable because the ChatGPT extension lacked file-URL permission, so the approved image was uploaded through the authorized Google Cloud account and the listing field was updated directly."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "48cb54f4fed6ac7588bd88ad3f33b47037180df423b96411d8a52047d9f26625"
+    "checksum": "e1e84313df9be23e0eacdbf34d9cc9e847bb47b808aae9425c425ef63c3afb5d"
   }
 }

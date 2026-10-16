@@ -1,13 +1,15 @@
 ---
 id: "202610162138-MW634J"
 title: "Set Super H Automotive cover image"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["directory", "production"]
+commit: { hash: "397e0dca8ab134a19c956148d37c97a5266ffc49", message: "✅ MW634J record verified Super H cover image update" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: upload the approved storefront image as Super H Automotive's cover and verify the public listing." }
+  - { author: "ORCHESTRATOR", body: "verified: the public Super H Automotive listing now uses the approved storefront photograph as its cover | details: the media object returns HTTP 200 and the live page renders the image. No other listing fields were changed." }
 doc_version: 2
 doc_updated_at: "2026-10-16T21:42:52+00:00"
 doc_updated_by: "agentctl"
