@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
 import { useLocale } from '@/components/TranslationProvider'
 import { billingTerms } from '@/lib/billing-terms'
+import { DirectoryPlanComparison } from '@/components/citybeat/DirectoryPlanComparison'
 
 interface Listing {
   id: string
@@ -21,12 +22,12 @@ const BOOST_PLANS: PlanId[] = ['premium_annual', 'premium_monthly', 'featured_mo
 
 const TIER_LABEL: Record<string, { en: string; es: string }> = {
   basic: { en: 'Basic', es: 'Básico' },
-  premium: { en: 'Premium — priority placement', es: 'Premium — ubicación prioritaria' },
+  premium: { en: 'Premium — richer profile + full leads', es: 'Premium — perfil completo + prospectos' },
   featured: { en: 'Featured — top of category + homepage', es: 'Destacado — arriba de la categoría + portada' },
 }
 
 export function MyListingsBoost() {
-  const locale = useLocale()
+  const locale = useLocale() as 'en' | 'es'
   const isEs = locale === 'es'
   // Same words the claim page and the cart show before a card is charged. The
   // dashboard buttons below start (or change) a real Stripe subscription and
@@ -93,9 +94,10 @@ export function MyListingsBoost() {
       <h2 className="text-2xl font-bold mb-2">{isEs ? 'Mis fichas del directorio' : 'My directory listings'}</h2>
       <p className="text-sm text-gray-500 mb-6">
         {isEs
-          ? 'Administra el contenido de tu ficha (foto, descripción, horario) o súbela de nivel para aparecer más arriba. Los cambios se aplican al aprobarse.'
-          : 'Manage your listing content (photo, description, hours) or boost it to rank higher in directory search. Changes take effect once approved.'}
+          ? 'Administra tu ficha y compara exactamente qué herramientas incluye tu plan actual. Los cambios se aplican al aprobarse.'
+          : 'Manage your listing and compare exactly which tools your current plan includes. Changes take effect once approved.'}
       </p>
+      <DirectoryPlanComparison locale={locale} compact className="mb-6" />
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
       {notice && <p className="mb-4 text-sm text-emerald-600">{notice}</p>}
 

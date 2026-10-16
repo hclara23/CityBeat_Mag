@@ -12,6 +12,7 @@ import { AdBanner } from '@/components/citybeat/AdBanner'
 import { categoryLabel, DIRECTORY_CATEGORIES } from '@/lib/categories'
 import { selectSponsoredWindow } from '@/lib/sponsored-rotation'
 import { PrintBadges } from '@/components/citybeat/PrintRecognition'
+import { DirectoryPlanComparison } from '@/components/citybeat/DirectoryPlanComparison'
 
 // `export const dynamic` (route segment config) only takes effect from a
 // Server Component — Next.js silently ignores it in a 'use client' module, so
@@ -67,14 +68,17 @@ const translations = {
     searchPlaceholder: 'Search by name, category, address...',
     allCategories: 'All Categories',
     premiumTitle: 'Featured Premium Listings',
+    premiumExplainer: 'Paid partners use richer profiles, receive complete leads, and appear in this larger-card section before Basic listings.',
     basicTitle: 'Local Businesses',
+    basicExplainer: 'Basic listings are public and searchable. A verified owner can keep essential contact details and hours accurate for free.',
+    basicPlanLabel: 'Basic · Free',
     noResults: 'No businesses found matching your criteria.',
     ratingVal: 'rating',
     reviews: 'reviews',
     claimBadge: 'Unclaimed',
     pendingBadge: 'Pending Approval',
     approvedBadge: 'Verified Partner',
-    claimBtn: 'Claim & Upgrade',
+    claimBtn: 'Claim Free / See Premium',
     viewDetails: 'View Details',
     premiumGlowText: 'PREMIUM PARTNER',
     referralSaved: 'Referral saved. Choose your business and complete signup within 30 days.',
@@ -86,14 +90,17 @@ const translations = {
     searchPlaceholder: 'Buscar por nombre, categoría, dirección...',
     allCategories: 'Todas las Categorías',
     premiumTitle: 'Negocios Premium Destacados',
+    premiumExplainer: 'Los socios de pago tienen perfiles más completos, reciben prospectos completos y aparecen con tarjetas grandes antes de las fichas Básicas.',
     basicTitle: 'Negocios Locales',
+    basicExplainer: 'Las fichas Básicas son públicas y aparecen en búsquedas. El propietario verificado puede mantener gratis los datos esenciales y el horario.',
+    basicPlanLabel: 'Básico · Gratis',
     noResults: 'No se encontraron negocios con estos criterios.',
     ratingVal: 'calificación',
     reviews: 'reseñas',
     claimBadge: 'Sin Reclamar',
     pendingBadge: 'Pendiente de Aprobación',
     approvedBadge: 'Socio Verificado',
-    claimBtn: 'Reclamar y Mejorar',
+    claimBtn: 'Reclamar gratis / Ver Premium',
     viewDetails: 'Ver Detalles',
     premiumGlowText: 'SOCIO PREMIUM',
     referralSaved: 'Referido guardado. Elige tu negocio y completa el registro dentro de 30 días.',
@@ -257,6 +264,10 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
           </div>
         </section>
 
+        <div className="container-wide mt-10">
+          <DirectoryPlanComparison locale={locale} ctaHref={`/${locale}/founders`} />
+        </div>
+
         {/* Map Section — opt-in so Leaflet doesn't load above the listings on
             every visit (it also blocked LCP). */}
         <section className="container-wide mt-12 mb-8 relative z-0">
@@ -391,10 +402,11 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
               {/* Premium Listings Section */}
               {premiumListings.length > 0 && (
                 <div>
-                  <h2 className="font-sans text-xl font-bold uppercase tracking-wider text-brand-neon mb-6 flex items-center gap-2">
+                  <h2 className="font-sans text-xl font-bold uppercase tracking-wider text-brand-neon flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full bg-brand-neon animate-pulse" />
                     {t.premiumTitle}
                   </h2>
+                  <p className="mb-6 mt-2 max-w-3xl text-sm leading-relaxed text-white/55">{t.premiumExplainer}</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {premiumListings.map((listing) => (
                       <Link
@@ -472,9 +484,10 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
               {/* Basic Listings Section */}
               {basicListings.length > 0 && (
                 <div>
-                  <h2 className="font-sans text-xl font-bold uppercase tracking-wider text-white/40 mb-6">
+                  <h2 className="font-sans text-xl font-bold uppercase tracking-wider text-white/55">
                     {t.basicTitle}
                   </h2>
+                  <p className="mb-6 mt-2 max-w-3xl text-sm leading-relaxed text-white/45">{t.basicExplainer}</p>
                   {/* Smaller, simpler boxes: grid layout with tight spacing and smaller elements */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {basicListings.map((listing) => (
@@ -484,9 +497,14 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-white/40 bg-white/5 px-2 py-0.5 rounded">
-                              {categoryLabel(listing.category, locale)}
-                            </span>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-white/40 bg-white/5 px-2 py-0.5 rounded">
+                                {categoryLabel(listing.category, locale)}
+                              </span>
+                              <span className="text-[9px] font-black uppercase tracking-wider text-white/55 border border-white/15 px-1.5 py-0.5 rounded bg-white/[0.03]">
+                                {t.basicPlanLabel}
+                              </span>
+                            </div>
                             {listing.claim_status === 'unclaimed' ? (
                               <span className="text-[10px] font-bold uppercase tracking-wider text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded bg-brand-gold/5">
                                 {t.claimBadge}

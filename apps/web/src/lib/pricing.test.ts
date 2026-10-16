@@ -52,6 +52,14 @@ test('founding + sponsored flags are set on exactly the intended plans', () => {
   assert.equal(FOUNDING_LIMIT, 100)
 })
 
+test('Premium copy does not promise Featured-only guaranteed placement', () => {
+  for (const id of ['premium_monthly', 'premium_annual'] as const) {
+    assert.doesNotMatch(DIRECTORY_PLANS[id].description, /priority|top[- ]of[- ]category/i)
+    assert.match(DIRECTORY_PLANS[id].description, /before Basic listings/i)
+  }
+  assert.match(DIRECTORY_PLANS.featured_monthly.description, /top-of-category/i)
+})
+
 test('getPlan resolves known ids and rejects anything else', () => {
   assert.equal(getPlan('premium_monthly')?.id, 'premium_monthly')
   assert.equal(getPlan('featured_monthly')?.tier, 'featured')

@@ -2,7 +2,7 @@
 // the Stripe webhook (tier mapping), and the claim UI.
 //
 // Tiers:
-//   premium  — full listing (gallery, cover, social, hours, priority placement)
+//   premium  — full listing (gallery, cover, social, leads, analytics)
 //   featured — premium + top-of-category "Featured" placement & badge
 //
 // Founding 100 is a launch promo: the first 100 paid claimers lock in $9.99/mo
@@ -76,7 +76,7 @@ export const DIRECTORY_PLANS: Record<PlanId, DirectoryPlan> = {
     effectiveMonthly: '$16.58/mo',
     savingsLabel: '2 months free vs monthly',
     description:
-      'All Premium features billed yearly — two months free vs. monthly. Photo gallery, cover image, social links, hours, and priority placement.',
+      'All Premium features billed yearly — two months free vs. monthly. Includes rich profile tools, full leads, analytics, and a larger card displayed before Basic listings.',
   },
   premium_monthly: {
     id: 'premium_monthly',
@@ -86,7 +86,7 @@ export const DIRECTORY_PLANS: Record<PlanId, DirectoryPlan> = {
     label: 'Premium Monthly',
     priceLabel: '$19.99 / mo',
     description:
-      'Premium listing: photo gallery, cover image, custom description, social links, day-by-day hours, and priority search placement.',
+      'Premium listing: photo gallery, cover image, custom description, social links, full leads, analytics, and a larger card displayed before Basic listings.',
   },
   featured_monthly: {
     id: 'featured_monthly',

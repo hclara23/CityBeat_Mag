@@ -8,6 +8,7 @@ import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
 import { RecurringTerms } from '@/components/citybeat/RecurringTerms'
+import { DirectoryPlanComparison } from '@/components/citybeat/DirectoryPlanComparison'
 
 interface Listing {
   id: string
@@ -49,13 +50,13 @@ const PLAN_ES: Record<PlanId, { label: string; priceLabel: string; badge?: strin
     effectiveMonthly: '$16.58/mes',
     savingsLabel: '2 meses gratis frente al plan mensual',
     description:
-      'Todas las funciones Premium con cobro anual — dos meses gratis frente al mensual. Galería de fotos, imagen de portada, redes sociales, horario y ubicación prioritaria.',
+      'Todas las funciones Premium con cobro anual — dos meses gratis frente al mensual. Incluye perfil completo, prospectos completos, analíticas y una tarjeta grande antes de las fichas Básicas.',
   },
   premium_monthly: {
     label: 'Premium Mensual',
     priceLabel: '$19.99 / mes',
     description:
-      'Ficha Premium: galería de fotos, imagen de portada, descripción personalizada, redes sociales, horario día por día y ubicación prioritaria en las búsquedas.',
+      'Ficha Premium: galería, portada, descripción, redes sociales, prospectos completos, analíticas y una tarjeta grande antes de las fichas Básicas.',
   },
   featured_monthly: {
     label: 'Destacado',
@@ -109,7 +110,7 @@ const translations = {
     priceLabel: 'Monthly Subscription',
     priceValue: '$19.99 / month',
     planFeatureTitle: 'What\'s included with Premium:',
-    premiumRank: 'Priority search placement (display at the top of results)',
+    premiumRank: 'Larger Premium card displayed before Basic listings',
     premiumCover: 'Custom cover image banner to show off your establishment',
     premiumGallery: 'Visual image gallery showing your atmosphere, food or products',
     premiumSocial: 'Direct click links to Instagram, Facebook & Twitter',
@@ -156,7 +157,7 @@ const translations = {
     tryAnotherMethod: 'Try Another Method',
     upgradeTitle: 'Option 2: Upgrade',
     upgradeDesc:
-      'Unlock premium features, cover banners, photo gallery, priority placement, and direct social links. Choose a plan:',
+      'Unlock richer content, complete customer leads, analytics, and a larger Premium directory card. Choose a plan:',
     subscribe: 'Subscribe',
   },
   es: {
@@ -166,7 +167,7 @@ const translations = {
     priceLabel: 'Suscripción Mensual',
     priceValue: '$19.99 / mes',
     planFeatureTitle: 'Qué incluye Premium:',
-    premiumRank: 'Ubicación prioritaria en las búsquedas (se muestra arriba)',
+    premiumRank: 'Tarjeta Premium más grande, mostrada antes de las fichas Básicas',
     premiumCover: 'Imagen de portada personalizada para lucir su local',
     premiumGallery: 'Galería de fotos que muestra su ambiente, comida o productos',
     premiumSocial: 'Enlaces de clic directo a Instagram, Facebook y Twitter',
@@ -215,7 +216,7 @@ const translations = {
     tryAnotherMethod: 'Probar otro método',
     upgradeTitle: 'Opción 2: Mejorar el plan',
     upgradeDesc:
-      'Activa las funciones premium: imagen de portada, galería de fotos, ubicación prioritaria y enlaces directos a tus redes. Elige un plan:',
+      'Activa contenido enriquecido, prospectos completos, analíticas y una tarjeta Premium más grande. Elige un plan:',
     subscribe: 'Suscribirse',
   }
 }
@@ -588,6 +589,10 @@ function ClaimPageInner() {
                 </p>
 
                 {!listing?.sales_created_listing && (
+                  <DirectoryPlanComparison locale={locale} compact className="mt-8" />
+                )}
+
+                {!listing?.sales_created_listing && (
                   <>
                     {/* Checkout Info — reflects the selected optional upgrade plan */}
                     <div className="mt-8 p-6 bg-brand-ink/80 rounded-xl border border-white/10 flex items-center justify-between">
@@ -618,33 +623,6 @@ function ClaimPageInner() {
                       />
                     )}
 
-                    <div className="mt-8 space-y-4">
-                      <h3 className="text-xs font-black uppercase tracking-wider text-brand-neon">
-                        {t.planFeatureTitle}
-                      </h3>
-                      <ul className="space-y-3 text-xs text-white/80 pl-1">
-                        <li className="flex items-start gap-2.5">
-                          <span className="text-brand-neon font-black flex-shrink-0">✓</span>
-                          <span>{t.premiumRank}</span>
-                        </li>
-                        <li className="flex items-start gap-2.5">
-                          <span className="text-brand-neon font-black flex-shrink-0">✓</span>
-                          <span>{t.premiumCover}</span>
-                        </li>
-                        <li className="flex items-start gap-2.5">
-                          <span className="text-brand-neon font-black flex-shrink-0">✓</span>
-                          <span>{t.premiumGallery}</span>
-                        </li>
-                        <li className="flex items-start gap-2.5">
-                          <span className="text-brand-neon font-black flex-shrink-0">✓</span>
-                          <span>{t.premiumSocial}</span>
-                        </li>
-                        <li className="flex items-start gap-2.5">
-                          <span className="text-brand-neon font-black flex-shrink-0">✓</span>
-                          <span>{t.premiumHours}</span>
-                        </li>
-                      </ul>
-                    </div>
                   </>
                 )}
 

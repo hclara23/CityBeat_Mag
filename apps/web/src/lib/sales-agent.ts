@@ -520,7 +520,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     const html = `<div style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;color:#111">
   <h2 style="font-weight:900">CityBeat</h2>
   <p>${locale === 'es' ? `<strong>${name}</strong> ya está verificado y visible en CityBeat. ¡Bien hecho!` : `<strong>${name}</strong> is verified and live on CityBeat. Nice work!`}</p>
-  <p>${locale === 'es' ? 'Con <strong>Premium ($19.99/mes)</strong> recibes cada lead de clientes al instante, añades fotos y horarios, y apareces más arriba en tu categoría.' : 'With <strong>Premium ($19.99/mo)</strong> you get every customer lead instantly, add photos and hours, and rank higher in your category.'}</p>
+  <p>${locale === 'es' ? 'Con <strong>Premium ($19.99/mes)</strong> recibes cada lead al instante, añades fotos y contenido enriquecido, y muestras una tarjeta más grande antes de las fichas Básicas.' : 'With <strong>Premium ($19.99/mo)</strong> you get every customer lead instantly, add photos and richer content, and show a larger card before Basic listings.'}</p>
   <p style="margin:24px 0"><a href="${url}" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Mejorar mi ficha' : 'Upgrade my listing'}</a></p>
   <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(tokenFor(key), 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false
@@ -562,7 +562,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     const html = `<div style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:560px;margin:0 auto;color:#111">
   <h2 style="font-weight:900">CityBeat</h2>
   <p>${locale === 'es' ? `<strong>${name}</strong> sigue en CityBeat, pero sin los beneficios Premium: los leads llegan y no puedes verlos.` : `<strong>${name}</strong> is still on CityBeat — but without Premium, customer leads arrive and you can't see them.`}</p>
-  <p>${locale === 'es' ? 'Reactiva Premium ($19.99/mes) y recupera tus leads, fotos y posicionamiento hoy mismo.' : 'Reactivate Premium ($19.99/mo) and get your leads, photos, and placement back today.'}</p>
+  <p>${locale === 'es' ? 'Reactiva Premium ($19.99/mes) y recupera tus leads completos, fotos y tarjeta Premium hoy mismo.' : 'Reactivate Premium ($19.99/mo) and get your full leads, photos, and Premium card back today.'}</p>
   <p style="margin:24px 0"><a href="${APP_URL}/${locale}/dashboard" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Reactivar' : 'Reactivate'}</a></p>
   <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(tokenFor(key), 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false
