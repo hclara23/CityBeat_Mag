@@ -10245,12 +10245,49 @@
       "doc_updated_by": "agentctl",
       "description": "Audit the current CityBeat directory entitlement, pricing, editing, analytics, lead, placement, and SEO code and provide an accurate side-by-side customer comparison.",
       "doc": "## Summary\n\nAudited the currently enforced CityBeat directory behavior and documented the customer-facing differences between an approved claimed Basic listing and an active Premium listing.\n\n## Scope\n\nCompared server-side entitlements, owner editing controls, lead delivery and masking, analytics response shaping, directory presentation, pricing, and listing SEO/schema behavior. No product code or production data was changed.\n\n## Risks\n\nMarketing copy is broader than the current implementation in a few places. Premium does not include Featured-only guaranteed priority placement, category benchmarking, or multi-location tools. AI assistance is registered as an entitlement but has no current product surface. The per-listing leads module is marked coming soon, although the main dashboard lead inbox and Premium lead email delivery are live. Video is server-supported but has no owner-facing editor in the current CMS.\n\n## Verify Steps\n\nReviewed apps/web/src/lib/directory-entitlements.ts, apps/web/src/lib/pricing.ts, the owner CMS, lead capture/inbox routes and component, directory ordering/card presentation, analytics API, and server-rendered listing metadata/structured data.\n\n## Rollback Plan\n\nDocumentation-only analysis; no application rollback is required.\n\n## Notes\n\nCustomer-facing answer should distinguish shared SEO foundations from Premium content enrichment and should not claim guaranteed search rankings. An approved claim is required before owner access; successful payment is required before Premium entitlements activate."
+    },
+    {
+      "id": "202610162227-RFJMJW",
+      "title": "Clarify Basic versus Premium directory plans",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "frontend",
+        "directory",
+        "conversion",
+        "localization"
+      ],
+      "verify": [
+        "npm run type-check --workspace=@citybeat/web",
+        "node --test --import tsx apps/web/src/lib/directory-entitlements.test.ts"
+      ],
+      "commit": {
+        "hash": "c1a482231da4586f8cfe876d23aec51703e85812",
+        "message": "✨ 202610162227-RFJMJW clarify Basic and Premium directory value"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: implement the approved customer-facing Basic versus Premium education plan across directory discovery, claiming, and owner management surfaces."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: bilingual Basic and Premium education now appears in public browsing, claiming, and owner management | details: automated copy is aligned; type-check, production build, targeted tests, and responsive browser review passed."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T22:31:48+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Make the Basic and Premium listing differences unmistakable across public directory browsing, claim and upgrade flows, and owner dashboard using bilingual, entitlement-accurate copy and resilient responsive UI.",
+      "doc": "## Summary\n\nImplemented a bilingual, entitlement-accurate Basic-versus-Premium comparison across the public directory, listing claim and upgrade flow, and owner dashboard. Aligned automated customer communications and sales guidance to the same distinction.\n\n## Scope\n\nAdded a reusable responsive plan comparison component; labeled and explained Basic and Premium listing sections; clarified free claiming and Premium benefits; exposed the comparison in the dashboard; corrected Premium placement language in pricing, owner reports, sales follow-ups, staff guidance, and chat; added regression coverage preventing Premium from claiming Featured-only guaranteed placement.\n\n## Risks\n\nThe local directory API had no accessible listing data in the preview environment, so the shared comparison component was visually verified on the public directory in English and Spanish and its claim-page integration was type-checked and production-built. Deployment remains a separate external action and requires specific cost approval if Cloud Build charges apply.\n\n## Verify Steps\n\nPassed npm run type-check --workspace=@citybeat/web; passed npm run build --workspace=@citybeat/web; passed 29 targeted pricing, billing, and entitlement tests; passed git diff --check. Browser review verified desktop and 390px mobile layouts, English and Spanish copy, accessible comparison structure, and no horizontal overflow.\n\n## Rollback Plan\n\nRevert the implementation commit to remove the shared comparison component and restore prior directory, claim, dashboard, pricing, report, sales, and chat copy.\n\n## Notes\n\nPremium is described as a richer card displayed before Basic listings, while guaranteed top-of-category placement remains explicitly reserved for Featured. No payment, subscription, deployment, production data, or external customer communication was triggered."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "c215e111cf6e47b0db4e78ce949080b266b3042076e865854191f28653e667be"
+    "checksum": "98a4fccfe122034f181bc152502ca77f57dd99a7600afb6d469a8e98e4f27f61"
   }
 }

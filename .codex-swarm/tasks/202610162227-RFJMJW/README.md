@@ -1,14 +1,16 @@
 ---
 id: "202610162227-RFJMJW"
 title: "Clarify Basic versus Premium directory plans"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["frontend", "directory", "conversion", "localization"]
 verify: ["npm run type-check --workspace=@citybeat/web", "node --test --import tsx apps/web/src/lib/directory-entitlements.test.ts"]
+commit: { hash: "c1a482231da4586f8cfe876d23aec51703e85812", message: "✨ 202610162227-RFJMJW clarify Basic and Premium directory value" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implement the approved customer-facing Basic versus Premium education plan across directory discovery, claiming, and owner management surfaces." }
+  - { author: "ORCHESTRATOR", body: "verified: bilingual Basic and Premium education now appears in public browsing, claiming, and owner management | details: automated copy is aligned; type-check, production build, targeted tests, and responsive browser review passed." }
 doc_version: 2
 doc_updated_at: "2026-10-16T22:31:48+00:00"
 doc_updated_by: "agentctl"
