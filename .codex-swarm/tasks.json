@@ -10351,12 +10351,51 @@
       "doc_updated_by": "agentctl",
       "description": "Evaluate CityBeat as a website, directory, and paid listing product; identify conversion and retention improvements plus additional customer perks that reuse existing capabilities without adding monthly operating expense.",
       "doc": "## Summary\n\nAudit CityBeat's public website, business directory, listing detail experience, claim/upgrade path, and owner dashboard. Identify conversion and retention improvements, emphasizing perks that reuse existing data and components without adding a recurring vendor or infrastructure charge.\n\n## Scope\n\nReviewed the homepage commerce section, listing detail layouts, claim messaging, plan entitlements, owner/advertiser dashboards, leads, analytics, QR/review, badge, referral, content, and reporting capabilities. Deliver a prioritized product recommendation rather than modifying production code. Recommendations distinguish zero-new-monthly-cost reuse from items with possible marginal email, AI, moderation, or compute expense.\n\n## Risks\n\nDo not promise rankings, guaranteed leads, or unverifiable traffic. Keep Featured placement distinct from Premium card prominence. Avoid calling AI generation free because model usage can incur variable cost. Email reports, user notifications, PDFs, and human moderation can create marginal operating cost or labor even when no new subscription is required. Trust badges must reflect observable facts such as claimed ownership, freshness, response activity, or active offers.\n\n## Verify Steps\n\n1. Inspect the public homepage directory commerce section and listing detail actions. 2. Confirm existing Basic, Premium, and Featured entitlements in source. 3. Inspect owner dashboard components for analytics, leads, referrals, badges, AI assistance, deals, reviews, and reporting. 4. Rank recommendations by client value, implementation effort, and recurring-cost exposure. 5. Confirm every zero-cost recommendation can derive from existing first-party data or static templates.\n\n## Rollback Plan\n\nNo product code, billing configuration, customer records, or external services are changed by this audit. If a recommendation is rejected, remove it from the future roadmap; no operational rollback is required.\n\n## Notes\n\nKey finding: the product already contains strong value—bilingual SEO pages, tracked calls/web/directions, quote leads, reviews and owner replies, QR tools, offers/posts/events, analytics/export, referral tools, badges, and owner reports—but these are fragmented across surfaces and under-explained on the homepage. Highest-value no-new-monthly-cost opportunities are a customer-actions ROI card, verified/fresh/responsive trust signals, a template-generated share kit and review QR poster, an onboarding checklist, a proof-led sales page, and eligibility for organic deal/editorial rotation without guaranteed placement."
+    },
+    {
+      "id": "202610162251-DZJBW5",
+      "title": "Build and deploy CityBeat Premium Value System",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "premium",
+        "conversion",
+        "retention",
+        "deployment"
+      ],
+      "verify": [
+        "npm run type-check --workspace=@citybeat/web",
+        "npm test",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "commit": {
+        "hash": "0b11e6954939d2fc6d271eed201c874ad49c1ed2",
+        "message": "✨ DZJBW5 build CityBeat Premium Value System"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: approved seven-phase implementation and one-time Google Cloud Build charge capped at ; no new recurring paid services."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: 657 automated tests, web type-check, production build, local bilingual UI review, no-traffic candidate security and payment smoke tests, 100 percent promotion of citybeat-web-00326-gik, and live HTTP 200 checks all passed."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T23:05:26+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Implement the approved owner ROI dashboard, onboarding and listing health, factual trust signals, marketing toolkit, proof-led Premium conversion surfaces, retention features, bilingual QA, and guarded production release. Reuse existing first-party data and services, add no new vendor subscription or AI API usage, preserve existing email frequency, and keep the one-time Google Cloud Build charge within the explicitly approved  cap.",
+      "doc": "## Summary\n\nBuild and deploy the approved CityBeat Premium Value System: unified owner ROI and lead workflow, guided listing quality, factual public trust signals, a reusable marketing toolkit, proof-led Premium conversion surfaces, retention tools, bilingual QA, and a guarded Cloud Run release.\n\n## Scope\n\nImplement the seven approved phases using existing first-party listing, analytics, lead, review, offer, report, QR, and billing data. Add English and Spanish UI; keep Featured guarantees distinct from Premium; use deterministic templates instead of AI APIs; preserve the existing report email schedule; add no vendor subscription. Deploy once through the existing no-traffic candidate pipeline within the explicitly approved  Google Cloud Build cap.\n\n## Risks\n\nThis is a broad customer-facing release touching authenticated owner workflows, public listing trust, analytics presentation, and conversion pages. Risks include authorization regressions, misleading badges, inflated ROI claims, cross-tier entitlement leakage, mobile overflow, localization drift, and increased email or compute usage. Mitigate with derived-only factual signals, server-side ownership checks, no ranking or traffic guarantees, unchanged email cadence, static templates, targeted tests, candidate smoke tests, and automatic rollback.\n\n## Verify Steps\n\nPassed npm run type-check --workspace=@citybeat/web. Passed npm test: 657 tests total (637 web and 20 shared-library tests). Passed npm run build --workspace=@citybeat/web. Reviewed the bilingual Premium page and mobile/desktop layout locally. GitHub Actions run 38978782893 deployed scoped production commit 96b0d9a34bfe9012bf6c02a051e07a9c052a3ab1 as Cloud Run revision citybeat-web-00326-gik. Candidate route, authorization, checkout guard, webhook signature, and payment-health smoke tests passed before promotion. Revision was promoted to 100 percent traffic. Independent checks returned HTTP 200 and expected release copy for /en/premium, /es/premium, /en, /en/directory, and /api/health.\n\n## Rollback Plan\n\nBefore promotion, the candidate receives no production traffic. If candidate checks fail, do not promote. If live checks fail, the workflow automatically restores the prior Cloud Run revision. Application changes remain reversible through the scoped implementation commit; no billing data, subscriptions, or existing customer entitlements will be migrated or deleted.\n\n## Notes\n\nImplemented owner ROI metrics, lead pipeline statuses, listing completeness guidance, derived factual trust signals, QR and social marketing tools, offer expiration and duplication controls, monthly report enhancements, a bilingual proof-led Premium comparison page, homepage conversion placement, and sitemap discovery. The release adds no new vendor subscription, AI API usage, or email cadence. Premium claims remain factual and do not promise ranking, placement, traffic, or leads. User approved the one-time Google Cloud Build execution up to $1; deployment completed successfully in 6 minutes 52 seconds. Local implementation commit: 0b11e69. Scoped production commit: 96b0d9a34bfe9012bf6c02a051e07a9c052a3ab1. GitHub Actions run: 38978782893."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "089e0c7f50812f1b8ed22a87008c6fd28d76080729cb47e76b0847afa5eab554"
+    "checksum": "0aa7818159a6dd8941ea778f779f538baff21783c0070ac817d774b2e80621d4"
   }
 }
