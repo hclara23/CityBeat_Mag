@@ -4,7 +4,7 @@ export type RangeDays = 7 | 30 | 90
 export type MetricRow = { label: string; value: number; secondary?: number }
 export type TrendPoint = { date: string; views: number; visitors: number }
 export type ProviderReport = {
-  source: 'google' | 'cloudflare' | 'first_party'
+  source: 'google' | 'cloudflare' | 'first_party' | 'google_business'
   status: 'ok' | 'not_configured' | 'unavailable'
   message?: string
   totals: { views: number; visitors: number; sessions: number; engagement_rate?: number; average_session_seconds?: number }
@@ -13,6 +13,7 @@ export type ProviderReport = {
   channels: MetricRow[]
   countries: MetricRow[]
   devices: MetricRow[]
+  actions?: { calls: number; website_clicks: number; directions: number }
 }
 
 export function normalizeRange(value: string | null): RangeDays {

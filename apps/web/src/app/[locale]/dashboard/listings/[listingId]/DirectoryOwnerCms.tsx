@@ -14,6 +14,7 @@ import { profileCompleteness, localSeoScore, type ListingScore } from '@/lib/lis
 import { LeadsPanel } from '@/components/citybeat/LeadsPanel'
 import { OwnerValueToolkit } from '@/components/citybeat/OwnerValueToolkit'
 import { ListingTrustSignals } from '@/components/citybeat/ListingTrustSignals'
+import { GoogleBusinessConnection } from '@/components/citybeat/GoogleBusinessConnection'
 import {
   MAX_POSTS,
   MAX_PRODUCTS,
@@ -421,8 +422,8 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
             </div>}
             {section === 'settings' && <div className="citybeat-panel rounded-2xl p-6 mb-6 border border-white/10">
               <h2 className="font-bold text-white">Google Business Profile</h2>
-              <p className="text-sm text-brand-neon mt-2">{isEs ? 'Sincronización no disponible' : 'Sync not available'}</p>
-              <p className="text-sm text-white/60 mt-2">{isEs ? 'Iniciar sesión con Google no conecta tu Perfil de Empresa. La republicación automática requiere autorización y confirmación de las políticas de Google. Por ahora, actualiza tus datos directamente en CityBeat; no cambiaremos tu perfil de Google.' : 'Google sign-in does not connect your Business Profile. Automatic republication requires authorization and confirmation of Google’s policies. For now, update your details directly in CityBeat; we will not change your Google profile.'}</p>
+              <p className="text-sm text-white/60 mt-2">{isEs ? 'Conecta una cuenta autorizada, revisa cada campo y decide qué copiar a CityBeat. No cambiamos tu perfil de Google y nunca sobrescribimos esta ficha sin tu confirmación.' : 'Connect an authorized account, review every field, and choose what to copy into CityBeat. We do not change your Google profile or overwrite this listing without your confirmation.'}</p>
+              <GoogleBusinessConnection listingId={listing.id} locale={locale} />
             </div>}
             {section === 'overview' && (
               <OverviewSection
