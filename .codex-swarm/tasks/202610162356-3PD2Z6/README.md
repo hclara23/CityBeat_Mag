@@ -9,6 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: audit existing authentication, directory owner controls, analytics providers, and verified CityBeat brand details before implementing secure GBP connection and synchronization." }
   - { author: "ORCHESTRATOR", body: "Release update: Google Business Profile phone change from (915) 500-9640 to (915) 336-7080 was submitted and is pending Google's review. Commit 0095cc0 deployed successfully in GitHub Actions run 38985047974; candidate smoke tests, production promotion, and live verification passed. OAuth credentials/API approval, Cloudflare reporting credential, website/social/description/logo profile edits remain open." }
+  - { author: "ORCHESTRATOR", body: "Google profile update: public Search/Maps profile now shows phone (915) 336-7080, website https://citybeatmag.co/, Facebook CityBEATMagazine, and Instagram citybeat_mag. Updated bilingual/local-publication description and SMS number +1 915-336-7080 are submitted and pending Google review. Google Services editor currently stalls on a blank provider iframe; no duplicate submission made. Exact replacement logo asset and Google/Cloudflare API credentials remain outstanding." }
 doc_version: 2
 doc_updated_at: "2026-10-17T00:00:01+00:00"
 doc_updated_by: "agentctl"
