@@ -10283,12 +10283,55 @@
       "doc_updated_by": "agentctl",
       "description": "Use official imagery and branding from varsityroofing.com to refresh the matching CityBeat business listing logo, cover image, and gallery after identity verification, while preserving existing business details.",
       "doc": "## Summary\n\nRefresh the production Varsity Roofing directory listing with official brand imagery sourced from the business website.\n\n## Context\n\nThe user approved using images and the logo published on varsityroofing.com for the CityBeat listing.\n\n## Scope\n\nVerify the matching business record, select and retrieve official logo and representative roofing images, upload them through the supported listing media workflow, set an appropriate cover, and verify the public listing without changing unrelated business information.\n\n## Risks\n\nPotential risks are mismatching the business record, selecting decorative or low-resolution assets, duplicate gallery items, or overwriting unrelated listing fields. Mitigate by matching contact details and limiting writes to media fields.\n\n## Verify Steps\n\nConfirm website and listing identity; verify each selected source image is official and usable; confirm logo, cover, and gallery render on the public English and Spanish listing pages.\n\n## Rollback Plan\n\nRestore the previous cover/logo/gallery references or remove only the newly uploaded assets if verification fails.\n\n## Notes\n\nNo paid service or application deployment is expected."
+    },
+    {
+      "id": "202610170155-KXPHD4",
+      "title": "Add tracked Call Now action to directory listings",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "frontend",
+        "directory",
+        "analytics",
+        "localization",
+        "deployment"
+      ],
+      "verify": [
+        "npm test",
+        "npm --prefix apps/web run type-check",
+        "npm --prefix apps/web run build"
+      ],
+      "commit": {
+        "hash": "d6428d8c4ea01326cbdc0d293d02974d031e2c69",
+        "message": "✨ KXPHD4 add tracked bilingual Call Now action"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: implement the approved bilingual Call Now action, track phone-click conversions, validate conditional rendering, and deploy within the authorized Google Cloud budget."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Verified: 667 automated tests, TypeScript validation, and production build passed; Google Cloud release 38992980947 completed candidate smoke, promotion, and live rollback checks; English and Spanish buttons resolve to tel:9152026730, and a listing without a phone renders no call action."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: released the bilingual Call Now conversion action with safe telephone normalization, listing analytics, complete automated validation, and live production checks across phone and no-phone listings."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-17T01:55:20+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Increase qualified lead conversion by adding a prominent bilingual call action to public directory listing contact cards, reusing validated listing phone numbers and existing click analytics, with safe rendering for listings without phones.",
+      "doc": "## Summary\n\nAdd and release a prominent bilingual telephone conversion action on public business listing contact cards.\n\n## Scope\n\nUpdate the directory detail client to render Call Now or Llamar ahora only when a listing has a usable phone number; preserve the existing number link and map actions; record the call interaction with the established listing analytics endpoint; add focused automated coverage and deploy to production.\n\n## Risks\n\nMalformed phone values could produce unusable tel links, analytics must not block navigation, and the new control must remain readable on mobile and in both locales.\n\n## Verify Steps\n\nRun npm test, npm --prefix apps/web run type-check, and npm --prefix apps/web run build. Verify live English and Spanish listing pages show the call action only when a phone exists and that its destination is a tel URL.\n\n## Rollback Plan\n\nRevert the scoped component and test commit, redeploy the prior main revision, and confirm the original phone and map links remain operational.\n\n## Notes\n\nUser approved implementation and Google Cloud deployment under the previously stated one-time  cap with no new recurring charge."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "bd362f604fc859e1b76d62d5dbd45121c102a9bd8b663fa02289e9d01d656a93"
+    "checksum": "c33ee2ff14c3b13afd10561f44b5d2a0ca834749f23845f84108b95649c4b3cb"
   }
 }
