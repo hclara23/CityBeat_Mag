@@ -10,6 +10,7 @@ verify: ["npm test"]
 comments:
   - { author: "ORCHESTRATOR", body: "Start: verify Varsity Roofing identity, source official brand media, update only listing media, and confirm the public listing renders correctly." }
   - { author: "ORCHESTRATOR", body: "Verified: official website identity matched by name, phone, and website; 666 tests pass, production build succeeds, and serial TypeScript validation reports no errors." }
+  - { author: "ORCHESTRATOR", body: "Prepared an audited one-off publication script; dry-run confirmed the official cover, logo, and five gallery assets are reachable images before any database mutation." }
 doc_version: 2
 doc_updated_at: "2026-10-17T01:34:19+00:00"
 doc_updated_by: "agentctl"
