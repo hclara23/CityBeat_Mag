@@ -1,16 +1,19 @@
 ---
 id: "202610170134-BYFRQF"
 title: "Update Varsity Roofing listing media"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["directory", "media", "production"]
 verify: ["npm test"]
+commit: { hash: "68fd4637beb3f718f8aea3a55637558ca3e9e277", message: "🛡️ BYFRQF add audited Varsity media publication workflow" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: verify Varsity Roofing identity, source official brand media, update only listing media, and confirm the public listing renders correctly." }
   - { author: "ORCHESTRATOR", body: "Verified: official website identity matched by name, phone, and website; 666 tests pass, production build succeeds, and serial TypeScript validation reports no errors." }
   - { author: "ORCHESTRATOR", body: "Prepared an audited one-off publication script; dry-run confirmed the official cover, logo, and five gallery assets are reachable images before any database mutation." }
+  - { author: "ORCHESTRATOR", body: "Verified: production release 38992040257 passed candidate smoke and live checks; the Varsity Roofing listing now serves its official cover plus six-image gallery, while category, address, phone, website, tier, and publication status remain unchanged." }
+  - { author: "ORCHESTRATOR", body: "verified: published and visually confirmed Varsity Roofing official website media on the live bilingual listing after the production image-host release passed all tests and rollback checks." }
 doc_version: 2
 doc_updated_at: "2026-10-17T01:34:19+00:00"
 doc_updated_by: "agentctl"
