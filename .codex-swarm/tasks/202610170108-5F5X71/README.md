@@ -1,16 +1,18 @@
 ---
 id: "202610170108-5F5X71"
 title: "Revamp CityBeat homepage and directory UI"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["frontend", "ui", "directory", "responsive"]
 verify: ["npm test", "npm --prefix apps/web run type-check", "npm --prefix apps/web run build"]
+commit: { hash: "f45096d029ea5efed2f985b173d5a0f4fa616c38", message: "🧪 5F5X71 make encrypted-token tamper test cross-platform" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implement the approved editorial CityBeat redesign, validate desktop and mobile behavior, preserve existing business logic, and deploy only within the approved one-time  Google Cloud cap." }
   - { author: "ORCHESTRATOR", body: "Verified: all 666 automated tests pass, TypeScript reports no errors, the Next.js production build succeeds, and desktop plus 390px mobile visual reviews confirm readable responsive homepage and directory layouts." }
   - { author: "ORCHESTRATOR", body: "CI follow-up: fixed a cross-platform GBP encryption test that altered only unused base64url padding bits on Linux; all 666 tests pass after the deterministic tamper change." }
+  - { author: "ORCHESTRATOR", body: "verified: all 666 tests, TypeScript, production build, responsive desktop/mobile review, both GitHub workflows, candidate smoke tests, traffic promotion, rollback gate, and all four English/Spanish public routes passed." }
 doc_version: 2
 doc_updated_at: "2026-10-17T01:08:33+00:00"
 doc_updated_by: "agentctl"
