@@ -1,28 +1,52 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { coverStory, coverStoryCopy } from '@/lib/cover-story'
-import { ImageGlare } from './ImageGlare'
+
+const editorialSections = [
+  { href: '/stories?category=food', image: '/articles-media/gluten-free-toasted-pecan-and-coconut-caramel-brownies.webp', en: 'Food & Drink', es: 'Comida' },
+  { href: '/stories?category=culture', image: '/articles-media/rey-de-la-luna-el-pasos-cosmic-barrio-takes-the-stage.webp', en: 'Arts & Culture', es: 'Arte y cultura' },
+  { href: '/directory', image: '/print/premier-community.webp', en: 'Local Business', es: 'Negocios locales' },
+  { href: '/events', image: '/print/machelle-wood-speaking.webp', en: 'Things To Do', es: 'Qué hacer' },
+] as const
 
 export function CoverStoryFeature({ locale }: { locale: string }) {
   const copy = coverStoryCopy(locale)
   const href = `/${locale}${coverStory.path}`
   return (
-    <section aria-labelledby="cover-story-heading" className="relative overflow-hidden border-b border-white/10 bg-brand-ink">
-      <div className="container-wide grid items-center gap-10 py-10 md:grid-cols-[1.2fr_0.8fr] md:gap-16 md:py-16">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-neon">CityBeat Magazine · {copy.issue}</p>
-          <p className="mt-8 text-xs font-bold uppercase tracking-[0.24em] text-brand-gold">{copy.label} / Premier Clinic</p>
-          <h1 id="cover-story-heading" className="mt-4 max-w-2xl text-balance font-display text-5xl font-black leading-[1.02] tracking-tight text-white sm:text-6xl lg:text-7xl">{copy.headline}</h1>
-          <p className="mt-6 max-w-xl text-xl leading-8 text-white/80">{copy.summary}</p>
-          <p className="mt-4 max-w-xl text-sm leading-6 text-white/60">{locale === 'es' ? 'Una historia de raíces locales, atención bilingüe y pacientes que se sienten escuchados.' : 'A story of local roots, bilingual care, and patients who feel heard.'}</p>
-          <div className="mt-8 flex flex-wrap gap-4">
-            <Link href={href} className="inline-flex min-h-[48px] items-center justify-center rounded-md bg-brand-neon px-6 py-3 text-center text-sm font-black text-black transition hover:bg-cyan-300">{copy.read} <span aria-hidden="true" className="ml-2">→</span></Link>
-            <Link href={`/${locale}/directory/premier-clinic`} className="inline-flex min-h-[48px] items-center text-sm font-bold text-white/80 underline decoration-white/30 underline-offset-4 hover:text-brand-neon">{copy.listing}</Link>
+    <section aria-labelledby="cover-story-heading" className="border-b border-white/10 bg-[#080d13]">
+      <div className="container-wide py-4 sm:py-6 lg:py-8">
+        <div className="relative min-h-[520px] overflow-hidden rounded-[1.75rem] border border-white/15 bg-slate-950 shadow-[0_24px_80px_rgba(0,0,0,.42)] sm:min-h-[600px]">
+          <Image
+            src="/print/premier-team.webp"
+            alt={copy.coverAlt}
+            fill
+            priority
+            sizes="(max-width: 1280px) 100vw, 1280px"
+            className="object-cover object-[58%_center]"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(4,9,16,.98)_0%,rgba(4,9,16,.88)_34%,rgba(4,9,16,.2)_72%,rgba(4,9,16,.08)_100%)]" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#080d13] to-transparent" />
+          <div className="relative z-10 flex min-h-[520px] max-w-2xl flex-col justify-end p-6 sm:min-h-[600px] sm:p-10 lg:p-14">
+            <p className="text-[11px] font-black uppercase tracking-[0.25em] text-brand-neon">CityBeat Magazine · {copy.issue}</p>
+            <p className="mt-5 text-xs font-black uppercase tracking-[0.25em] text-brand-gold">{copy.label} / Premier Clinic</p>
+            <h1 id="cover-story-heading" className="mt-3 text-balance font-display text-5xl font-black uppercase leading-[0.92] tracking-[-0.04em] text-white sm:text-7xl lg:text-8xl">{copy.headline}</h1>
+            <p className="mt-5 max-w-xl text-lg font-semibold leading-7 text-white/88 sm:text-xl">{copy.summary}</p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link href={href} className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-brand-neon px-6 py-3 text-center text-sm font-black uppercase tracking-wider text-black transition hover:bg-cyan-300">{copy.read} <span aria-hidden="true" className="ml-2">→</span></Link>
+              <Link href={`/${locale}/directory/premier-clinic`} className="inline-flex min-h-[48px] items-center rounded-full border border-white/30 bg-black/25 px-6 py-3 text-sm font-bold text-white backdrop-blur transition hover:border-brand-neon hover:text-brand-neon">{copy.listing}</Link>
+            </div>
           </div>
         </div>
-        <Link href={href} aria-label={copy.read} className="mx-auto block w-full max-w-[340px] transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-neon">
-          <ImageGlare><Image src={coverStory.cover} alt={copy.coverAlt} width={1400} height={1771} priority sizes="(max-width: 400px) 90vw, 340px" className="h-auto w-full border border-white/15 shadow-2xl" /></ImageGlare>
-        </Link>
+
+        <nav aria-label={locale === 'es' ? 'Explorar secciones' : 'Explore sections'} className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {editorialSections.map((section) => (
+            <Link key={section.href} href={`/${locale}${section.href}`} className="group relative min-h-[150px] overflow-hidden rounded-2xl border border-white/10 bg-brand-charcoal">
+              <Image src={section.image} alt="" fill sizes="(max-width: 1024px) 50vw, 25vw" className="object-cover opacity-70 transition duration-500 group-hover:scale-105 group-hover:opacity-90" />
+              <span className="absolute inset-0 bg-gradient-to-t from-black via-black/15 to-transparent" />
+              <span className="absolute inset-x-4 bottom-4 text-sm font-black uppercase tracking-[0.12em] text-white">{locale === 'es' ? section.es : section.en}</span>
+            </Link>
+          ))}
+        </nav>
       </div>
     </section>
   )

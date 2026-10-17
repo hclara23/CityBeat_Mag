@@ -33,8 +33,8 @@ export function SiteHeader() {
   const toggleRef = useRef<HTMLButtonElement>(null)
   const mobileNavRef = useRef<HTMLElement>(null)
 
-  // Keep the compact menu through laptop widths: both auth states and Spanish
-  // labels need more room than the old 768px desktop breakpoint allowed.
+  // Expose editorial navigation on ordinary laptops while retaining the
+  // compact account menu until the full action rail fits at 2xl.
   useEffect(() => {
     const desktop = window.matchMedia('(min-width: 1536px)')
     const closeOnDesktop = () => { if (desktop.matches) setOpen(false) }
@@ -116,16 +116,16 @@ export function SiteHeader() {
   const navItems = getNavItems(locale)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-brand-dark/85 backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8 2xl:gap-8">
-        <Link href={`/${locale}`} className="group inline-flex shrink-0 items-baseline gap-1 whitespace-nowrap">
-          <span className="font-display text-xl font-black tracking-tighter text-white sm:text-2xl">
-            city<span className="italic text-brand-neon">BEat</span>
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#07111d]/95 shadow-[0_8px_30px_rgba(0,0,0,.18)] backdrop-blur-xl">
+      <div className="mx-auto flex min-h-[68px] w-full max-w-[1600px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 2xl:gap-8">
+        <Link href={`/${locale}`} className="group inline-flex shrink-0 items-baseline gap-1 whitespace-nowrap" aria-label="CityBeat Magazine home">
+          <span className="font-display text-2xl font-black tracking-[-0.06em] text-white sm:text-3xl">
+            city<span className="text-brand-neon">BEat</span>
           </span>
-          <span className="hidden text-xs uppercase tracking-[0.3em] text-white/40 sm:inline">mag</span>
+          <span className="hidden text-[10px] font-bold uppercase tracking-[0.35em] text-white/55 sm:inline">mag</span>
         </Link>
 
-        <nav aria-label={locale === 'es' ? 'Navegación principal' : 'Main navigation'} className="hidden shrink-0 items-center gap-5 whitespace-nowrap 2xl:flex">
+        <nav aria-label={locale === 'es' ? 'Navegación principal' : 'Main navigation'} className="hidden shrink-0 items-center gap-7 whitespace-nowrap xl:flex">
           {navItems.map((item) => {
             const active = basePath === item.href || basePath.startsWith(`${item.href}/`)
             return (
@@ -133,8 +133,8 @@ export function SiteHeader() {
                 key={item.href}
                 href={withLocale(locale, item.href)}
                 aria-current={active ? 'page' : undefined}
-                className={`text-xs font-bold uppercase tracking-[0.16em] transition ${
-                  active ? 'text-brand-neon' : 'text-white/70 hover:text-brand-neon'
+                className={`border-b-2 py-6 text-xs font-bold tracking-[0.04em] transition ${
+                  active ? 'border-brand-neon text-brand-neon' : 'border-transparent text-white/78 hover:border-white/25 hover:text-white'
                 }`}
               >
                 {item.label}
@@ -195,18 +195,19 @@ export function SiteHeader() {
             ref={toggleRef}
             type="button"
             onClick={() => setOpen((value) => !value)}
-            className="rounded-md border border-white/15 px-2 py-2 text-sm font-bold uppercase tracking-wider text-white sm:px-3 2xl:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white 2xl:hidden"
             aria-expanded={open}
             aria-controls="mobile-navigation"
             aria-label={open ? (locale === 'es' ? 'Cerrar menú' : 'Close menu') : (locale === 'es' ? 'Abrir menú' : 'Open menu')}
           >
-            {locale === 'es' ? 'Menú' : 'Menu'}
+            <span className="sr-only">{locale === 'es' ? 'Menú' : 'Menu'}</span>
+            <span aria-hidden="true" className="text-xl leading-none">{open ? '×' : '☰'}</span>
           </button>
         </div>
       </div>
 
       {open && (
-        <nav ref={mobileNavRef} id="mobile-navigation" aria-label={locale === 'es' ? 'Navegación móvil' : 'Mobile navigation'} className="max-h-[calc(100dvh-5rem)] overflow-y-auto border-t border-white/10 bg-brand-dark px-4 py-6 2xl:hidden">
+        <nav ref={mobileNavRef} id="mobile-navigation" aria-label={locale === 'es' ? 'Navegación móvil' : 'Mobile navigation'} className="max-h-[calc(100dvh-4.25rem)] overflow-y-auto border-t border-white/10 bg-[#07111d] px-4 py-6 2xl:hidden">
           <div className="flex flex-col gap-5">
             {navItems.map((item) => (
               <Link

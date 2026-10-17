@@ -166,6 +166,34 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
+/* The directory finder intentionally uses a bright, phone-app-like surface.
+   These scoped rules override the dark form defaults without weakening them
+   anywhere else in the product. */
+.citybeat-app .directory-search-light input,
+.citybeat-app .directory-search-light select {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.citybeat-app .directory-search-light {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.citybeat-app .directory-search-light .bg-white {
+  background-color: #ffffff !important;
+}
+
+.citybeat-app .directory-search-light .bg-slate-50,
+.citybeat-app .directory-search-light .bg-cyan-50\/60 {
+  background-color: #f8fafc !important;
+}
+
+.citybeat-app .directory-search-light input::placeholder {
+  color: #64748b !important;
+}
+
 /* Contrast floor (WCAG 1.4.3). The house style leans on low-opacity white text
    utilities; below ~0.5 alpha they drop under 4.5:1 on the near-black theme.
    Raise the effective alpha of the sub-threshold steps site-wide so body/label

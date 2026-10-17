@@ -6,9 +6,10 @@ priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: ["frontend", "ui", "directory", "responsive"]
-verify: ["npm --prefix apps/web test", "npm --prefix apps/web run typecheck", "npm --prefix apps/web run build"]
+verify: ["npm test", "npm --prefix apps/web run type-check", "npm --prefix apps/web run build"]
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implement the approved editorial CityBeat redesign, validate desktop and mobile behavior, preserve existing business logic, and deploy only within the approved one-time  Google Cloud cap." }
+  - { author: "ORCHESTRATOR", body: "Verified: all 666 automated tests pass, TypeScript reports no errors, the Next.js production build succeeds, and desktop plus 390px mobile visual reviews confirm readable responsive homepage and directory layouts." }
 doc_version: 2
 doc_updated_at: "2026-10-17T01:08:33+00:00"
 doc_updated_by: "agentctl"

@@ -61,6 +61,16 @@ function LocationBadge({ count }: { count?: number | null }) {
 // Notary/Web Development from even earlier).
 const CATEGORIES = ['All', ...DIRECTORY_CATEGORIES]
 
+const DIRECTORY_SHORTCUTS = [
+  { category: 'Restaurant', icon: '🍴', tone: 'bg-cyan-500' },
+  { category: 'Retail', icon: '▣', tone: 'bg-fuchsia-500' },
+  { category: 'Health', icon: '♥', tone: 'bg-rose-500' },
+  { category: 'Home Services', icon: '◆', tone: 'bg-sky-500' },
+  { category: 'Professional Services', icon: '▰', tone: 'bg-indigo-500' },
+  { category: 'Arts & Culture', icon: '♫', tone: 'bg-pink-500' },
+  { category: 'Auto Repair', icon: '●', tone: 'bg-slate-700' },
+] as const
+
 const translations = {
   en: {
     title: 'Local Business Directory',
@@ -207,59 +217,85 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
             {referralNotice === 'saved' ? t.referralSaved : t.referralInvalid}
           </div>
         )}
-        {/* Header Hero Area */}
-        <section className="relative overflow-hidden py-20 citybeat-grid border-b border-white/10">
-          <div className="container-wide relative z-10 text-center max-w-4xl">
-            <h1 className="font-display text-5xl font-black tracking-tight text-white sm:text-6xl md:text-7xl uppercase leading-none">
-              CITY<span className="text-brand-neon">BEAT</span> <span className="italic text-brand-magenta">DIRECTORY</span>
-            </h1>
-            <p className="mt-4 text-lg text-white/70 max-w-2xl mx-auto">
-              {t.subtitle}
-            </p>
+        {/* Editorial directory finder: compact on desktop and app-like on mobile. */}
+        <section className="border-b border-white/10 bg-[#080d13] py-7 sm:py-10">
+          <div className="container-wide">
+            <div className="overflow-hidden rounded-[1.75rem] border border-white/12 bg-white text-slate-950 shadow-[0_25px_80px_rgba(0,0,0,.32)]">
+              <div className="grid lg:grid-cols-[.86fr_1.14fr]">
+                <div className="relative min-h-[350px] overflow-hidden bg-[#0a1723] p-7 text-white sm:p-10 lg:min-h-[510px] lg:p-12">
+                  <div className="absolute inset-0 opacity-30 citybeat-grid" />
+                  <div className="absolute -right-16 -top-20 h-72 w-72 rounded-full bg-brand-neon/20 blur-3xl" />
+                  <div className="relative z-10 flex h-full flex-col justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-neon">{locale === 'es' ? 'Compra local. Crece local.' : 'Shop local. Grow local.'}</p>
+                      <h1 className="mt-4 max-w-xl font-display text-5xl font-black uppercase leading-[.9] tracking-[-.05em] sm:text-6xl lg:text-7xl">
+                        {locale === 'es' ? 'Directorio de negocios' : 'Business directory'}
+                      </h1>
+                      <p className="mt-6 max-w-xl text-base leading-7 text-white/72 sm:text-lg">{t.subtitle}</p>
+                    </div>
+                    <div className="mt-10 flex flex-wrap gap-3 text-xs font-black uppercase tracking-[0.15em]">
+                      <span className="rounded-full border border-brand-neon/45 bg-brand-neon/10 px-4 py-2 text-brand-neon">El Paso</span>
+                      <span className="rounded-full border border-white/20 px-4 py-2 text-white/75">Las Cruces</span>
+                      <span className="rounded-full border border-white/20 px-4 py-2 text-white/75">Borderlands</span>
+                    </div>
+                  </div>
+                </div>
 
-            {/* Search Input Box */}
-            <div className="mt-8 max-w-xl mx-auto relative">
-              <input
-                type="text"
-                placeholder={t.searchPlaceholder}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 rounded-full border border-white/15 bg-black/60 text-white font-medium focus:outline-none focus:border-brand-neon focus:ring-1 focus:ring-brand-neon transition"
-              />
-              <svg
-                className="pointer-events-none absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-white/40"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
+                <div className="directory-search-light p-6 sm:p-9 lg:p-12">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-700">CityBeat local guide</p>
+                      <h2 className="mt-1 text-3xl font-black tracking-tight text-slate-950">{locale === 'es' ? 'Encuentra un negocio' : 'Find a local business'}</h2>
+                    </div>
+                    <span aria-hidden="true" className="hidden text-3xl sm:block">⌕</span>
+                  </div>
 
-            {/* Category selection */}
-            <div className="mt-8 -mx-4 flex flex-nowrap justify-start gap-2 overflow-x-auto px-4 pb-2 md:mx-0 md:flex-wrap md:justify-center md:gap-3 md:overflow-visible md:px-0">
-              {CATEGORIES.map((cat) => {
-                const isActive = selectedCategory === cat
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`shrink-0 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-bold uppercase tracking-wider transition ${
-                      isActive
-                        ? 'bg-brand-neon text-black font-black shadow-[0_0_12px_rgba(0,240,255,0.4)]'
-                        : 'border border-white/20 text-white hover:bg-white/10'
-                    }`}
-                  >
-                    {cat === 'All' ? (locale === 'es' ? 'Todos' : 'All') : categoryLabel(cat, locale)}
-                  </button>
-                )
-              })}
+                  <label className="relative mt-6 block">
+                    <span className="sr-only">{t.searchPlaceholder}</span>
+                    <input
+                      type="search"
+                      placeholder={t.searchPlaceholder}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-base font-semibold text-slate-950 placeholder:text-slate-400 focus:border-cyan-600 focus:ring-cyan-600"
+                    />
+                    <svg className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </label>
+
+                  <div className="mt-6 grid gap-2 sm:grid-cols-2">
+                    {DIRECTORY_SHORTCUTS.map((item) => {
+                      const isActive = selectedCategory === item.category
+                      return (
+                        <button
+                          type="button"
+                          key={item.category}
+                          onClick={() => setSelectedCategory(isActive ? 'All' : item.category)}
+                          aria-pressed={isActive}
+                          className={`flex min-h-[48px] items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm font-bold transition ${isActive ? 'border-cyan-600 bg-cyan-50 text-cyan-950' : 'border-slate-200 bg-white text-slate-800 hover:border-cyan-500 hover:bg-cyan-50/60'}`}
+                        >
+                          <span aria-hidden="true" className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-black text-white ${item.tone}`}>{item.icon}</span>
+                          <span>{categoryLabel(item.category, locale)}</span>
+                        </button>
+                      )
+                    })}
+                    <label className="flex min-h-[48px] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800">
+                      <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-300 text-slate-800">•••</span>
+                      <span className="sr-only">{t.allCategories}</span>
+                      <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-bold text-slate-800 focus:ring-0">
+                        {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat === 'All' ? t.allCategories : categoryLabel(cat, locale)}</option>)}
+                      </select>
+                    </label>
+                  </div>
+
+                  {(searchQuery || selectedCategory !== 'All') && (
+                    <button type="button" onClick={() => { setSearchQuery(''); setSelectedCategory('All') }} className="mt-5 text-xs font-black uppercase tracking-wider text-cyan-700 hover:text-cyan-900">
+                      {locale === 'es' ? 'Limpiar búsqueda' : 'Clear search'}
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </section>
