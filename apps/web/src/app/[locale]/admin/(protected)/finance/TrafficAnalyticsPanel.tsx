@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-const providerLabel: Record<string, string> = { google: 'Google Analytics 4', cloudflare: 'Cloudflare Web Analytics', first_party: 'CityBeat first-party' }
+const providerLabel: Record<string, string> = { google: 'Google Analytics 4', cloudflare: 'Cloudflare Web Analytics', first_party: 'CityBeat first-party', google_business: 'Google Business Profile' }
 const fmt = (value: number) => new Intl.NumberFormat('en-US', { notation: value >= 10000 ? 'compact' : 'standard' }).format(value || 0)
 
 export function TrafficAnalyticsPanel() {
@@ -36,9 +36,11 @@ export function TrafficAnalyticsPanel() {
 
       {loading ? <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-8 text-sm text-white/50">Loading traffic sources…</div> : !data ? <div className="mt-6 rounded-xl border border-red-400/20 bg-red-400/5 p-6 text-sm text-red-200">Traffic reporting could not be loaded.</div> : (
         <>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {['google', 'cloudflare', 'first_party'].map((key) => <ProviderCard key={key} report={providers[key]} />)}
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {['google', 'cloudflare', 'first_party', 'google_business'].map((key) => <ProviderCard key={key} report={providers[key]} />)}
           </div>
+
+          {providers.google_business?.status === 'ok' && <div className="mt-6 grid gap-4 sm:grid-cols-4"><Kpi label="Google Search + Maps views" value={fmt(providers.google_business.totals.views)} /><Kpi label="Calls from Google" value={fmt(providers.google_business.actions?.calls)} /><Kpi label="Website clicks from Google" value={fmt(providers.google_business.actions?.website_clicks)} /><Kpi label="Direction requests" value={fmt(providers.google_business.actions?.directions)} /></div>}
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Kpi label="Page views" value={fmt(primary?.totals?.views)} />

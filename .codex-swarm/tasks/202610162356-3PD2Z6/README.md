@@ -1,13 +1,15 @@
 ---
 id: "202610162356-3PD2Z6"
 title: "Integrate Google Business Profile and refresh CityBeat profile"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+comments:
+  - { author: "ORCHESTRATOR", body: "Start: audit existing authentication, directory owner controls, analytics providers, and verified CityBeat brand details before implementing secure GBP connection and synchronization." }
 doc_version: 2
-doc_updated_at: "2026-10-16T23:56:40+00:00"
+doc_updated_at: "2026-10-17T00:00:01+00:00"
 doc_updated_by: "agentctl"
 description: "Add a secure Google Business Profile connection and performance integration for directory owners, surface connected GBP analytics in Finance, provide controlled profile synchronization to reduce duplicate data entry, and refresh the managed CityBeat Magazine Google Business Profile with verified brand details. No paid advertising or recurring service purchase is authorized."
 ---
@@ -37,5 +39,5 @@ Disable GBP feature flags and OAuth routes, revoke the OAuth client/token, resto
 
 ## Notes
 
-Approved plan: 1) audit existing auth/listing/analytics and verified brand data; 2) implement secure GBP connection and sync-preview foundation; 3) add GBP performance to Finance; 4) stage and, after action-time confirmation, publish the live CityBeat profile refresh; 5) test, deploy within the previously approved release cap only where applicable, and verify. No paid ads or new recurring purchase.
+Implemented owner-authorized GBP OAuth, encrypted refresh-token storage, signed short-lived state, listing access checks, discover/select/preview/apply/disconnect flows, audit snapshots, and Google Search/Maps performance metrics in Finance. Verified current public profile before-state: City Beat Magazine; Publisher; website applepolishing.media; phone (915) 500-9640; service area El Paso; 4.8 stars from 4 reviews; Google reports 194 search-result views last month. Public search identifies likely social profiles Facebook /CityBEATMagazine and Instagram /citybeat_mag, but these and the apparent Instagram booking phone (915) 261-1098 must not be treated as operator-confirmed replacement data. Google API approval/OAuth credentials and exact new phone/logo remain required before activation/public profile edits.
 
