@@ -53,6 +53,13 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'images.unsplash.com',
       },
+      {
+        // Official business-site media hosted by GoDaddy Website Builder.
+        // Listing URLs remain reviewed/admin-managed; this only lets Next's
+        // image optimizer render those approved assets.
+        protocol: 'https',
+        hostname: 'img1.wsimg.com',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
   },
