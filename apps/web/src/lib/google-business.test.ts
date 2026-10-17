@@ -17,7 +17,9 @@ test('GBP refresh tokens encrypt with authenticated encryption', () => {
   assert.notEqual(encrypted, 'refresh-token-value')
   assert.equal(decryptGbpToken(encrypted), 'refresh-token-value')
   const parts = encrypted.split('.')
-  parts[2] = `${parts[2].slice(0, -1)}${parts[2].endsWith('A') ? 'B' : 'A'}`
+  // Flip a significant base64url character. Changing the final character can
+  // alter only unused padding bits, which decodes to identical bytes on Linux.
+  parts[2] = `${parts[2].startsWith('A') ? 'B' : 'A'}${parts[2].slice(1)}`
   assert.throws(() => decryptGbpToken(parts.join('.')))
 })
 
