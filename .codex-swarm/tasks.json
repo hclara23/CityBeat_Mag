@@ -10236,12 +10236,39 @@
       "doc_updated_by": "agentctl",
       "description": "Translate the approved editorial reference into CityBeat's production homepage, shared shell, and business directory while preserving bilingual content, SEO, listings, claims, advertising, analytics, accessibility, and responsive behavior; verify and deploy within the explicitly approved one-time Google Cloud charge cap of .",
       "doc": "## Summary\n\nRevamp the public CityBeat experience around a sharper editorial homepage and a compact, mobile-first business directory inspired by the approved reference image.\n\n## Context\n\nThe current site already supports bilingual content, live listings, claims, plans, advertising, analytics, and SEO. The redesign must improve visual hierarchy and discovery without changing those contracts.\n\n## Scope\n\nRefresh the shared public shell/header, homepage hero and editorial category presentation, and directory search/category navigation and cards. Use the selected CityBeat logo asset, retain English and Spanish copy, and preserve all existing actions and data flows.\n\n## Risks\n\nPrimary risks are mobile overflow, reduced accessibility, weakened SEO content, regressions in directory filtering and claim flows, and accidental changes to revenue or analytics behavior. Changes will remain presentation-focused and use existing routes and data.\n\n## Verify Steps\n\nRun the web test suite, TypeScript typecheck, and production build. Inspect the English and Spanish homepage and directory at desktop and mobile viewports. Verify search, category filters, premium/basic distinctions, navigation, and public production responses after deployment.\n\n## Rollback Plan\n\nRevert the isolated redesign commit and redeploy the prior known-good Cloud Run revision if visual or functional regressions appear.\n\n## Notes\n\nUser approved the plan and a one-time Google Cloud deployment charge capped at . No recurring service or paid asset is authorized."
+    },
+    {
+      "id": "202610170134-BYFRQF",
+      "title": "Update Varsity Roofing listing media",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "media",
+        "production"
+      ],
+      "verify": [
+        "npm test"
+      ],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: verify Varsity Roofing identity, source official brand media, update only listing media, and confirm the public listing renders correctly."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-17T01:34:19+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Use official imagery and branding from varsityroofing.com to refresh the matching CityBeat business listing logo, cover image, and gallery after identity verification, while preserving existing business details.",
+      "doc": "## Summary\n\nRefresh the production Varsity Roofing directory listing with official brand imagery sourced from the business website.\n\n## Context\n\nThe user approved using images and the logo published on varsityroofing.com for the CityBeat listing.\n\n## Scope\n\nVerify the matching business record, select and retrieve official logo and representative roofing images, upload them through the supported listing media workflow, set an appropriate cover, and verify the public listing without changing unrelated business information.\n\n## Risks\n\nPotential risks are mismatching the business record, selecting decorative or low-resolution assets, duplicate gallery items, or overwriting unrelated listing fields. Mitigate by matching contact details and limiting writes to media fields.\n\n## Verify Steps\n\nConfirm website and listing identity; verify each selected source image is official and usable; confirm logo, cover, and gallery render on the public English and Spanish listing pages.\n\n## Rollback Plan\n\nRestore the previous cover/logo/gallery references or remove only the newly uploaded assets if verification fails.\n\n## Notes\n\nNo paid service or application deployment is expected."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "9d5704a85af0f32794f286ed250c0d0b1fd5996e661c31b51bf013f8ea576364"
+    "checksum": "fa38bbe2973cbc34ef5f5b9ed332e7138d80db2fc0206aeaacd597c561f4293c"
   }
 }
