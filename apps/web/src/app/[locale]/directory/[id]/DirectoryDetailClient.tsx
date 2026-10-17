@@ -17,7 +17,7 @@ import {
 import type { ActionLinks, ListingPost, ListingServiceItem, SpecialHour } from '@/lib/listing-content'
 import { PrintBadges, PrintRecognitionPanel } from '@/components/citybeat/PrintRecognition'
 import { hasEditorAccess } from '@citybeat/lib/roles'
-import { attributedListingUrl } from '@/lib/listing-outbound'
+import { attributedListingUrl, listingPhoneHref } from '@/lib/listing-outbound'
 import type { ListingEventType } from '@/lib/listing-analytics'
 import { ListingTrustSignals } from '@/components/citybeat/ListingTrustSignals'
 import { trackAnalyticsEvent } from '@/components/Analytics'
@@ -91,6 +91,7 @@ const translations = {
     ratingVal: 'rating',
     reviews: 'reviews',
     phone: 'Phone',
+    callNow: 'Call Now',
     website: 'Website',
     address: 'Address',
     locationsTitle: 'Locations',
@@ -139,6 +140,7 @@ const translations = {
     ratingVal: 'calificación',
     reviews: 'reseñas',
     phone: 'Teléfono',
+    callNow: 'Llamar ahora',
     website: 'Sitio Web',
     address: 'Dirección',
     locationsTitle: 'Ubicaciones',
@@ -692,6 +694,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.name + ' ' + (listing.address || ''))}`
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(listing.name + ' ' + (listing.address || ''))}`
+  const callHref = listingPhoneHref(listing.phone)
 
   return (
     <CityBeatShell locale={locale}>
@@ -1552,6 +1555,16 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                   )}
 
                   <div className="pt-4 border-t border-white/5 space-y-2.5">
+                    {callHref && (
+                      <a
+                        href={callHref}
+                        onClick={() => track('click_phone')}
+                        aria-label={`${t.callNow}: ${listing.phone}`}
+                        className="w-full text-center block rounded-md bg-brand-neon hover:bg-cyan-300 text-black font-black uppercase tracking-wider text-sm py-3.5 transition shadow-[0_4px_16px_rgba(0,240,255,0.3)]"
+                      >
+                        {t.callNow}
+                      </a>
+                    )}
                     <a href={googleMapsUrl} target="_blank" rel="noopener" onClick={() => track('click_directions_google')} className="w-full text-center block rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-2.5 transition">
                       {t.mapsBtn}
                     </a>
@@ -1652,13 +1665,25 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     )}
                   </div>
 
-                  <div className="mt-8 pt-6 border-t border-white/5 flex flex-col sm:flex-row gap-4">
-                    <a href={googleMapsUrl} target="_blank" rel="noopener" onClick={() => track('click_directions_google')} className="flex-1 text-center block rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-3 transition">
-                      {t.mapsBtn}
-                    </a>
-                    <a href={appleMapsUrl} target="_blank" rel="noopener" onClick={() => track('click_directions_apple')} className="flex-1 text-center block rounded border border-white/20 hover:bg-white/5 text-white font-bold uppercase tracking-wider text-xs py-3 transition">
-                      {t.appleMapsBtn}
-                    </a>
+                  <div className="mt-8 pt-6 border-t border-white/5 space-y-4">
+                    {callHref && (
+                      <a
+                        href={callHref}
+                        onClick={() => track('click_phone')}
+                        aria-label={`${t.callNow}: ${listing.phone}`}
+                        className="w-full text-center block rounded-md bg-brand-neon hover:bg-cyan-300 text-black font-black uppercase tracking-wider text-sm py-3.5 transition shadow-[0_4px_16px_rgba(0,240,255,0.3)]"
+                      >
+                        {t.callNow}
+                      </a>
+                    )}
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <a href={googleMapsUrl} target="_blank" rel="noopener" onClick={() => track('click_directions_google')} className="flex-1 text-center block rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-3 transition">
+                        {t.mapsBtn}
+                      </a>
+                      <a href={appleMapsUrl} target="_blank" rel="noopener" onClick={() => track('click_directions_apple')} className="flex-1 text-center block rounded border border-white/20 hover:bg-white/5 text-white font-bold uppercase tracking-wider text-xs py-3 transition">
+                        {t.appleMapsBtn}
+                      </a>
+                    </div>
                   </div>
                 </div>
 
