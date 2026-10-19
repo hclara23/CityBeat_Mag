@@ -140,6 +140,7 @@ export function summarizeListingStats(rows: DailyStatRow[], now: Date, windowDay
       view: Number(row?.view) || 0,
       lead: Number(row?.lead) || 0,
       clicks:
+        (Number(row?.click_phone) || 0) +
         (Number(row?.click_website) || 0) +
         (Number(row?.click_directions) || 0) +
         (Number(row?.click_action) || 0),

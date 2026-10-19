@@ -276,7 +276,11 @@ function ClaimPageInner() {
   }, [id, t.unclaimedStatusError, t.listingNotFound, t.loadError])
 
   const [claimMethod, setClaimMethod] = useState<'email' | 'phone' | 'postcard'>('email')
-  const [selectedPlan, setSelectedPlan] = useState<PlanId>('founding_annual')
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>(() => {
+    const plan = searchParams.get('plan')
+    return plan && Object.prototype.hasOwnProperty.call(DIRECTORY_PLANS, plan) ? plan as PlanId : 'founding'
+  })
+  const [upgradeChosen, setUpgradeChosen] = useState(false)
   const [claimStep, setClaimStep] = useState<'select_method' | 'enter_code' | 'verified'>('select_method')
   const [verificationCode, setVerificationCode] = useState('')
   const [verifying, setVerifying] = useState(false)
@@ -588,13 +592,13 @@ function ClaimPageInner() {
                   {listing?.sales_created_listing ? t.salesManagedSubtitle : t.subtitle}
                 </p>
 
-                {!listing?.sales_created_listing && (
+                {!listing?.sales_created_listing && userProfile && (
                   <DirectoryPlanComparison locale={locale} compact className="mt-8" />
                 )}
 
-                {!listing?.sales_created_listing && (
+                {!listing?.sales_created_listing && userProfile && upgradeChosen && (
                   <>
-                    {/* Checkout Info — reflects the selected optional upgrade plan */}
+                    {/* Checkout info appears only after an explicit paid choice. */}
                     <div className="mt-8 p-6 bg-brand-ink/80 rounded-xl border border-white/10 flex items-center justify-between">
                       <div>
                         <p className="text-xs font-bold text-white/50 uppercase tracking-wider">{planCopy(selectedPlan, locale).label}</p>
@@ -626,6 +630,7 @@ function ClaimPageInner() {
                   </>
                 )}
 
+                <p className="mt-5 rounded-lg border border-brand-neon/30 p-4 text-sm text-white">{locale === 'es' ? 'Reclamar Básico es gratis. Inicia sesión y verifica tu relación con el negocio. No se necesita tarjeta. Premium es opcional.' : 'Claiming Basic is free. Sign in and verify your relationship to the business. No card is required. Premium is optional.'}</p>
                 {/* Authentication Check */}
                 <div className="mt-10 pt-8 border-t border-white/10">
                   {!userProfile ? (
@@ -637,7 +642,7 @@ function ClaimPageInner() {
                         {t.loginRequiredDesc}
                       </p>
                       <button
-                        onClick={() => router.push(`/${locale}/login?redirectTo=/directory/${id}/claim`)}
+                        onClick={() => router.push(`/${locale}/login?redirectTo=${encodeURIComponent(`/directory/${id}/claim${searchParams.get('plan') ? `?plan=${encodeURIComponent(selectedPlan)}` : ''}`)}`)}
                         className="mt-5 inline-block rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs px-6 py-3 hover:bg-cyan-300 transition"
                       >
                         {t.loginBtn}
@@ -789,7 +794,7 @@ function ClaimPageInner() {
                           )}
                         </div>
 
-                        {!listing?.sales_created_listing && (
+                        {!listing?.sales_created_listing && userProfile && (
                           <div className="citybeat-panel rounded-xl p-5 border border-brand-gold/30 bg-gradient-to-b from-brand-charcoal to-brand-dark flex flex-col justify-between shadow-[0_0_15px_rgba(255,215,0,0.05)]">
                           <div>
                             <h3 className="font-display text-lg font-black text-brand-gold uppercase tracking-wide mb-2">
@@ -802,7 +807,7 @@ function ClaimPageInner() {
                             <div className="flex flex-col gap-2 my-4">
                               {(['founding_annual', 'founding', 'premium_annual', 'premium_monthly', 'featured_monthly'] as PlanId[]).map((pid) => {
                                 const p = planCopy(pid, locale)
-                                const active = selectedPlan === pid
+                                const active = upgradeChosen && selectedPlan === pid
                                 const isBestValue = pid === 'founding_annual'
                                 return (
                                   <label
@@ -819,7 +824,7 @@ function ClaimPageInner() {
                                       type="radio"
                                       name="plan"
                                       checked={active}
-                                      onChange={() => setSelectedPlan(pid)}
+                                      onChange={() => { setSelectedPlan(pid); setUpgradeChosen(true) }}
                                       className="accent-brand-gold mt-0.5"
                                     />
                                     <span className="flex-1">
@@ -852,10 +857,10 @@ function ClaimPageInner() {
 
                           <button
                             onClick={handleCheckoutRedirect}
-                            disabled={redirecting}
+                            disabled={redirecting || !upgradeChosen}
                             className="w-full text-center rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs py-3.5 hover:bg-cyan-300 transition shadow-[0_4px_12px_rgba(0,240,255,0.25)] disabled:opacity-50 mt-2"
                           >
-                            {redirecting ? t.redirecting : `${t.subscribe} · ${planTotalLabel(selectedPlan, listing?.location_count, locale)}`}
+                            {!upgradeChosen ? (locale === 'es' ? 'Elige un plan de pago opcional' : 'Choose an optional paid plan') : redirecting ? t.redirecting : `${t.subscribe} · ${planTotalLabel(selectedPlan, listing?.location_count, locale)}`}
                           </button>
                           </div>
                         )}

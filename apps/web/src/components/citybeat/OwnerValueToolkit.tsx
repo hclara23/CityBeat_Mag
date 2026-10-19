@@ -148,6 +148,7 @@ export function OwnerValueToolkit({ listingId, name, website, locale, canPixel }
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-neon">CityBeat Conversion Pixel</p>
+            <p className="mt-2 text-sm text-white/75">{isEs ? 'Mide actividad de todas las fuentes, no solo de CityBeat. Los eventos de conversión son definidos por ti; no prueban ventas, ingresos ni atribución a CityBeat.' : 'Measures activity from all sources, not just CityBeat. Conversion events are defined by you; they do not prove sales, revenue or CityBeat attribution.'}</p>
             <h3 className="mt-1 font-black uppercase">{isEs ? 'Mide resultados en tu propio sitio' : 'Measure results on your own website'}</h3>
           </div>
           {canPixel && pixel?.enabled ? <span className="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase text-emerald-300">{isEs ? 'Activo' : 'Active'}</span> : null}

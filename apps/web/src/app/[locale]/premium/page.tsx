@@ -43,7 +43,7 @@ export default async function PremiumPage(props: { params: Promise<{ locale: str
             <p className="mt-3 font-display text-6xl font-black text-white">14</p>
             <p className="text-sm text-white/60">{es ? 'acciones de clientes en 30 días' : 'customer actions in 30 days'}</p>
             <div className="mt-6 grid grid-cols-2 gap-3 text-center"><div className="rounded-lg bg-black/25 p-3"><strong className="block text-2xl text-white">6</strong><span className="text-xs text-white/45">{es ? 'clics web' : 'website clicks'}</span></div><div className="rounded-lg bg-black/25 p-3"><strong className="block text-2xl text-white">4</strong><span className="text-xs text-white/45">{es ? 'indicaciones' : 'directions'}</span></div><div className="rounded-lg bg-black/25 p-3"><strong className="block text-2xl text-white">3</strong><span className="text-xs text-white/45">{es ? 'acciones' : 'actions'}</span></div><div className="rounded-lg bg-black/25 p-3"><strong className="block text-2xl text-white">1</strong><span className="text-xs text-white/45">lead</span></div></div>
-            <p className="mt-4 text-[10px] text-white/35">{es ? 'Ejemplo ilustrativo; los resultados reales varían.' : 'Illustrative example; actual results vary.'}</p>
+            <p className="mt-4 rounded border border-white/20 p-3 text-sm font-semibold text-white/80">{es ? 'Ejemplo ilustrativo; los resultados reales varían.' : 'Illustrative example; actual results vary.'}</p>
           </div>
         </section>
 

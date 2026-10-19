@@ -6,6 +6,7 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 import { cache } from 'react'
 import { getEventById as getEventByIdRaw } from '@/lib/events'
+import { formatEventTime } from '@/lib/customer-experience'
 import { jsonLdSafe } from '@/lib/jsonld'
 
 // Dedupe the read across generateMetadata + the component within one request.
@@ -54,12 +55,7 @@ export default async function EventDetail(props: { params: Promise<Params> }) {
   const title = isEs ? e.title_es || e.title_en : e.title_en
   const desc = isEs ? e.meta_es || e.meta_en : e.meta_en
 
-  const start = new Date(e.start_date)
-  const when = Number.isNaN(start.getTime())
-    ? ''
-    : start.toLocaleString(isEs ? 'es-MX' : 'en-US', {
-        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
-      })
+  const when = formatEventTime(e.start_date, params.locale, e.timezone)
 
   // Optional end time when the data model carries one (raw doc may have it even
   // though the typed PublicEvent doesn't expose it).

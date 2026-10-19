@@ -36,6 +36,7 @@ type ListingStats = {
   owner_id: string
   views: number
   clicks: number
+  phoneClicks: number
   leads: number
   reviews: number
   viewsPrev: number
@@ -63,7 +64,7 @@ function reportHtml(ownerListings: ListingStats[], locale: 'en' | 'es') {
       <td style="padding:10px 12px;border-bottom:1px solid #eee"><strong>${l.name}</strong><br/>
         <span style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px">${l.tier}${l.rating ? ` · ★ ${l.rating}` : ''}</span></td>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center"><span style="font-size:20px;font-weight:800">${l.views}</span><br/>${delta(l.views, l.viewsPrev)}</td>
-      <td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center;font-size:20px;font-weight:800">${l.clicks}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center;font-size:20px;font-weight:800">${l.clicks}<br/><span style="font-size:11px;font-weight:400">${l.phoneClicks} ${isEs ? 'clics al teléfono' : 'phone clicks'}</span></td>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center"><span style="font-size:20px;font-weight:800">${l.leads}</span><br/>${delta(l.leads, l.leadsPrev)}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center;font-size:20px;font-weight:800">${l.reviews}</td>
     </tr>`
@@ -97,6 +98,7 @@ function reportHtml(ownerListings: ListingStats[], locale: 'en' | 'es') {
     <span style="color:#666;font-size:12px"> · ${isEs ? 'clics, indicaciones, botones y leads atribuibles a CityBeat' : 'clicks, directions, buttons, and leads attributable to CityBeat'}</span>
   </div>
   ${ownerListings.some((listing) => listing.completeness < 100) ? `<p style="font-size:13px;color:#555">${isEs ? 'Consejo: completa los elementos pendientes de tu perfil para generar más confianza. Abre tu panel para ver la lista exacta.' : 'Tip: complete the remaining profile items to build more customer trust. Open your dashboard to see the exact checklist.'}</p>` : ''}
+  <p style="font-size:12px;color:#555">${isEs ? 'Los clics incluyen teléfono, sitio, mapas y botones. No son llamadas completadas, clientes únicos ni ventas.' : 'Clicks include phone, website, maps and action buttons. They are not completed calls, unique customers or sales.'}</p>
   ${upsell}
   <p style="margin:20px 0"><a href="${APP_URL}/${locale}/dashboard" style="background:#22d3ee;color:#000;font-weight:800;padding:10px 20px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px;font-size:12px">${isEs ? 'Ver mi panel' : 'Open my dashboard'}</a></p>
   <p style="font-size:11px;color:#999">${isEs ? 'Recibes esto porque tienes una ficha verificada en CityBeat.' : 'You receive this because you own a verified listing on CityBeat.'}</p>
@@ -168,13 +170,14 @@ export async function GET(request: NextRequest) {
         tier: l.tier || 'basic',
         owner_id: l.owner_id,
         views: cur.view,
-        clicks: cur.click_website + cur.click_directions + cur.click_action,
+        phoneClicks: cur.click_phone || 0,
+        clicks: (cur.click_phone || 0) + cur.click_website + cur.click_directions + cur.click_action,
         leads: cur.lead,
         reviews: reviewsById.get(l.id) || 0,
         viewsPrev: prev.view,
         leadsPrev: prev.lead,
         rating: typeof l.rating === 'number' ? l.rating : null,
-        customerActions: customerActionTotal({ website: cur.click_website, directions: cur.click_directions, actions: cur.click_action, leads: cur.lead }),
+        customerActions: customerActionTotal({ phone: cur.click_phone, website: cur.click_website, directions: cur.click_directions, actions: cur.click_action, leads: cur.lead }),
         completeness: profileCompleteness(l).score,
       }
       const arr = byOwner.get(l.owner_id) || []

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useLocale } from '@/components/TranslationProvider'
 import { dashboardPathFor } from '@citybeat/lib/roles'
 import { signInWithGoogle } from '@citybeat/lib/firebase/auth-client'
+import { localizedReturnPath } from '@/lib/customer-experience'
 
 // The Spanish headings here sat on top of an entirely English form, 2FA step
 // and error set. Every string the customer can read is localized now — sign-in
@@ -66,11 +67,6 @@ async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
   }
 }
 
-function destFor(profile: any, redirectTo: string | null) {
-  if (redirectTo && redirectTo.startsWith('/')) return redirectTo
-  return dashboardPathFor(profile)
-}
-
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -106,7 +102,7 @@ function LoginContent() {
   }
 
   const go = (profile: any) => {
-    router.replace(`/${locale}${destFor(profile, redirectTo)}`)
+    router.replace(localizedReturnPath(locale, redirectTo, dashboardPathFor(profile)))
     router.refresh()
   }
 

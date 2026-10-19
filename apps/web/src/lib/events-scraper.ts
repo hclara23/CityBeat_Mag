@@ -11,6 +11,7 @@ export interface ScrapedEvent {
   meta_es: string
   image_url: string
   ticket_url: string
+  timezone?: string
   start_date: string
   venue: string | null
 }
@@ -72,6 +73,7 @@ export async function fetchTicketmasterEvents(): Promise<ScrapedEvent[]> {
       ticket_url: ev.url || '',
       start_date: new Date(start).toISOString(),
       venue: venueName,
+      timezone: venueObj?.timezone || ev.dates?.timezone || 'America/Denver',
     })
   }
   return events

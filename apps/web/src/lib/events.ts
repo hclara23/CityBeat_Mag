@@ -7,6 +7,7 @@ export type PublicEvent = {
   meta_en?: string
   meta_es?: string
   venue?: string | null
+  timezone?: string
   start_date: string
   ticket_url?: string | null
   image_url?: string | null

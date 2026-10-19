@@ -1,0 +1,9 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-t', '${_IMAGE}', '.']
+images: ['${_IMAGE}']
+# 12 minutes at $0.0156/min caps build compute at $0.1872 per attempt.
+# Operator must track cumulative attempts against the approved $1 release cap.
+timeout: 720s
+options:
+  machineType: E2_HIGHCPU_8

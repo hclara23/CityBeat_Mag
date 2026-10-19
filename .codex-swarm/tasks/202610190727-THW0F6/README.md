@@ -9,7 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implement approved audit findings and verify candidate before promotion within explicit one dollar deployment cap." }
 doc_version: 2
-doc_updated_at: "2026-10-19T07:27:34+00:00"
+doc_updated_at: "2026-10-19T07:36:48+00:00"
 doc_updated_by: "agentctl"
 description: "Implement F01-F15 from approved customer experience audit, regression test and deploy candidate then promote only after verification. Approved Google Cloud one-time cap USD1, no new recurring services. No subagents or customer financial mutations."
 ---
@@ -32,4 +32,8 @@ Run targeted and full test suite, type check and production build, candidate HTT
 ## Rollback Plan
 
 Retain current production revision citybeat-web-audit-ef346a3; route traffic back on regression.
+
+## Notes
+
+Implemented F01-F15; 679 tests pass, TypeScript and local production build pass. Read-only release script added. Existing operator morningstarelp account verified; rollback revision audit-ef346a3. Build timeout 720s at USD0.0156/min limits compute per attempt to USD0.1872. No new recurring services. Pixel attribution is explicitly all-source, not a new attribution engine; search offers bounded continuation windows beyond 8000 records.
 

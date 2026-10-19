@@ -96,25 +96,7 @@ export function ChatWidget() {
     if (open && messages.length === 0) setMessages([{ role: 'assistant', content: greeting }])
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Proactively greet first-time visitors: pop the assistant open once per browser
-  // session, a few seconds after landing, so it introduces itself and offers help.
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    try {
-      if (sessionStorage.getItem('cb_chat_greeted')) return
-      const t = setTimeout(() => {
-        setOpen(true)
-        try {
-          sessionStorage.setItem('cb_chat_greeted', '1')
-        } catch {
-          /* ignore */
-        }
-      }, 3500)
-      return () => clearTimeout(t)
-    } catch {
-      /* ignore */
-    }
-  }, [])
+  // Open only on request: never cover content or steal focus on a timer.
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -192,7 +174,7 @@ export function ChatWidget() {
           aria-label={locale === 'es' ? 'Abrir chat de CityBeat' : 'Open CityBeat chat'}
           className="fixed bottom-5 right-5 z-50 rounded-full bg-brand-neon px-5 py-4 text-sm font-black uppercase tracking-wider text-black shadow-xl transition hover:bg-cyan-300"
         >
-          {locale === 'es' ? '¿Anunciar?' : 'Advertise?'}
+          {locale === 'es' ? 'Pregunta a CityBeat' : 'Ask CityBeat'}
         </button>
       )}
 

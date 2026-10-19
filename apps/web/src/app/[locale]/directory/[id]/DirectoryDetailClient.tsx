@@ -1,5 +1,6 @@
 'use client'
 
+import { cleanListingText } from '@/lib/customer-experience'
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -405,7 +406,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
           setAddress(l.address || '')
           setPhone(l.phone || '')
           setWebsite(l.website || '')
-          
+
           const defaultHours: Record<string, string> = {}
           DAYS_OF_WEEK.forEach(day => {
             defaultHours[day] = l.hours?.[day] || '9:00 AM - 9:00 PM'
@@ -524,14 +525,14 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
-    
+
     setUploadingPhotos(true)
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
         const formData = new FormData()
         formData.append('file', file)
-        
+
         const response = await fetch('/api/upload/image', {
           method: 'POST',
           body: formData,
@@ -695,6 +696,344 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.name + ' ' + (listing.address || ''))}`
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(listing.name + ' ' + (listing.address || ''))}`
   const callHref = listingPhoneHref(listing.phone)
+
+  const communityContent = (<>
+                {/* Reviews Section */}
+                <div id="reviews" className="citybeat-panel rounded-2xl p-8 border border-white/10 space-y-8">
+                  <div>
+                    <h2 className="font-display text-2xl font-black uppercase text-white tracking-wide mb-6">
+                      {t.reviewsTitle}
+                    </h2>
+
+                    {reviewsLoading ? (
+                      <div className="flex items-center gap-2 text-white/50 text-sm">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-neon"></div>
+                        <span>Loading reviews...</span>
+                      </div>
+                    ) : reviews.length === 0 ? (
+                      <p className="text-white/60 text-sm italic">{t.noReviews}</p>
+                    ) : (
+                      <div className="space-y-6">
+                        {reviews.map((rev) => {
+                          const reviewerName = rev.profiles?.full_name || rev.profiles?.email || 'Anonymous'
+                          const avatarInitials = reviewerName.substring(0, 2).toUpperCase()
+                          return (
+                            <div key={rev.id} className="pb-6 border-b border-white/5 last:border-0 last:pb-0">
+                              <div className="flex items-start gap-4">
+                                {rev.profiles?.avatar_url ? (
+                                  <div className="relative h-10 w-10 rounded-full overflow-hidden flex-shrink-0 bg-brand-charcoal">
+                                    <Image
+                                      src={rev.profiles.avatar_url}
+                                      alt={reviewerName}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="h-10 w-10 rounded-full bg-brand-neon/10 border border-brand-neon/20 flex items-center justify-center font-bold text-brand-neon text-sm flex-shrink-0">
+                                    {avatarInitials}
+                                  </div>
+                                )}
+                                <div className="flex-grow">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <h4 className="font-bold text-white text-sm">{reviewerName}</h4>
+                                    <span className="text-[10px] text-white/40">
+                                      {new Date(rev.created_at).toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric'
+                                      })}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center mt-1">
+                                    {renderStars(rev.rating)}
+                                  </div>
+                                  {rev.comment && (
+                                    <p className="text-white/70 text-sm mt-2.5 leading-relaxed whitespace-pre-line">
+                                      {rev.comment}
+                                    </p>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      const reason = window.prompt(locale === 'es' ? '¿Por qué reportas esta reseña?' : 'Why are you reporting this review?')
+                                      if (reason === null) return
+                                      fetch('/api/reviews/report', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ reviewId: rev.id, reason }),
+                                      }).then(() => alert(locale === 'es' ? 'Reseña reportada. Gracias.' : 'Review reported. Thank you.'))
+                                    }}
+                                    className="mt-1 inline-block py-1.5 text-[11px] font-bold uppercase tracking-wider text-white/25 hover:text-white/60"
+                                  >
+                                    {locale === 'es' ? 'Reportar' : 'Report'}
+                                  </button>
+                                  {rev.owner_response && (
+                                    <div className="mt-3 rounded-lg border border-brand-neon/20 bg-brand-neon/5 p-3">
+                                      <p className="text-[10px] font-black uppercase tracking-wider text-brand-neon">
+                                        {locale === 'es' ? 'Respuesta del negocio' : 'Response from the business'}
+                                      </p>
+                                      <p className="text-white/70 text-sm mt-1 leading-relaxed whitespace-pre-line">
+                                        {rev.owner_response}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {rev.photo_urls && rev.photo_urls.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-3.5">
+                                      {rev.photo_urls.map((photoUrl: string, idx: number) => (
+                                        <button
+                                          key={idx}
+                                          type="button"
+                                          onClick={() => window.open(photoUrl, '_blank', 'noopener')}
+                                          aria-label={`${locale === 'es' ? 'Ver foto de la reseña' : 'View review photo'} ${idx + 1} — ${listing.name}`}
+                                          className="relative h-16 w-16 rounded overflow-hidden border border-white/10 bg-brand-charcoal cursor-pointer hover:opacity-80 transition flex-shrink-0"
+                                        >
+                                          <Image
+                                            src={photoUrl}
+                                            alt={`${listing.name} — ${locale === 'es' ? 'foto de reseña' : 'review photo'} ${idx + 1}`}
+                                            fill
+                                            sizes="64px"
+                                            className="object-cover"
+                                          />
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Leave a Review Form */}
+                  <div className="pt-6 border-t border-white/5">
+                    <h3 className="font-display text-xl font-bold uppercase text-white tracking-wide mb-4">
+                      {t.writeReview}
+                    </h3>
+
+                    {userProfile ? (
+                      reviews.find((r: any) => r.user_id === userProfile?.id) ? (
+                        <div className="rounded-md border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+                          {locale === 'es'
+                            ? 'Ya escribiste una reseña para este negocio. ¡Gracias por tu opinión!'
+                            : 'You’ve already reviewed this business. Thanks for your feedback!'}
+                        </div>
+                      ) : (
+                      <form onSubmit={handleSubmitReview} className="space-y-4">
+                        {reviewSuccess && (
+                          <div role="status" className="p-3 bg-brand-neon/10 border border-brand-neon/30 text-brand-neon rounded-md text-xs font-bold">
+                            {reviewSuccess}
+                          </div>
+                        )}
+
+                        <div>
+                          <span id="review-rating-label" className="block text-xs font-bold uppercase tracking-wider text-brand-neon mb-2">
+                            {t.ratingLabel}
+                          </span>
+                          <div role="radiogroup" aria-labelledby="review-rating-label" className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => {
+                              const active = hoverRating !== null ? star <= hoverRating : star <= userRating
+                              const starLabel =
+                                locale === 'es'
+                                  ? `${star} ${star === 1 ? 'estrella' : 'estrellas'}`
+                                  : `${star} ${star === 1 ? 'star' : 'stars'}`
+                              return (
+                                <button
+                                  key={star}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={userRating === star}
+                                  aria-label={starLabel}
+                                  onClick={() => setUserRating(star)}
+                                  onMouseEnter={() => setHoverRating(star)}
+                                  onMouseLeave={() => setHoverRating(null)}
+                                  className="p-1 transition-transform active:scale-95"
+                                >
+                                  <svg
+                                    aria-hidden="true"
+                                    className={`h-7 w-7 ${active ? 'text-brand-gold fill-brand-gold' : 'text-white/20'}`}
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        <div>
+                          <textarea
+                            rows={4}
+                            value={userComment}
+                            onChange={(e) => setUserComment(e.target.value)}
+                            placeholder={t.commentPlaceholder}
+                            aria-label={t.commentPlaceholder}
+                            className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none text-sm transition"
+                          />
+                        </div>
+
+                        {/* Review Image Upload Area */}
+                        <div className="space-y-3">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
+                            Add Photos (optional)
+                          </label>
+                          <div className="flex flex-wrap gap-3 items-center">
+                            {uploadedPhotos.map((photoUrl, idx) => (
+                              <div key={idx} className="relative h-20 w-20 rounded border border-white/20 overflow-hidden bg-brand-charcoal group">
+                                <Image
+                                  src={photoUrl}
+                                  alt={`${locale === 'es' ? 'Foto para subir' : 'Photo to upload'} ${idx + 1}`}
+                                  fill
+                                  sizes="80px"
+                                  className="object-cover"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeUploadedPhoto(idx)}
+                                  aria-label={`${locale === 'es' ? 'Quitar foto' : 'Remove photo'} ${idx + 1}`}
+                                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity"
+                                >
+                                  {locale === 'es' ? 'Quitar' : 'Remove'}
+                                </button>
+                              </div>
+                            ))}
+                            <label className={`h-20 w-20 rounded border border-dashed border-white/20 hover:border-brand-neon cursor-pointer flex flex-col items-center justify-center gap-1 transition ${uploadingPhotos ? 'pointer-events-none opacity-50 bg-white/5' : 'hover:bg-white/5 bg-black/20'}`}>
+                              <span className="text-white/60 text-lg font-bold">{uploadingPhotos ? '...' : '+'}</span>
+                              <span className="text-[10px] text-white/50">{uploadingPhotos ? 'Uploading' : 'Upload'}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handlePhotoUpload}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={submittingReview}
+                          className="px-5 py-2.5 rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs hover:bg-cyan-300 transition shadow-[0_4px_12px_rgba(0,240,255,0.2)] disabled:opacity-50"
+                        >
+                          {submittingReview ? t.submittingReview : t.submitReview}
+                        </button>
+                      </form>
+                      )
+                    ) : (
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
+                        <p className="text-sm text-white/70 mb-4">{t.logInToReview}</p>
+                        <Link
+                          href={`/${locale}/login?redirectTo=/${locale}/directory/${id}`}
+                          className="inline-block rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs px-5 py-2.5 hover:bg-cyan-300 transition"
+                        >
+                          {t.loginToReviewBtn}
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Customer Q&A — Google Business Profile parity. Public asks;
+                    the owner (or an editor) answers inline; askers get notified. */}
+                <div className="citybeat-panel rounded-2xl p-8 border border-white/10 space-y-6">
+                  <h2 className="font-display text-2xl font-black uppercase text-white tracking-wide">
+                    {locale === 'es' ? 'Preguntas y Respuestas' : 'Questions & Answers'}
+                  </h2>
+
+                  {questionsLoading ? (
+                    <p className="text-sm text-white/50">{locale === 'es' ? 'Cargando…' : 'Loading…'}</p>
+                  ) : questions.length === 0 ? (
+                    <p className="text-sm italic text-white/60">
+                      {locale === 'es' ? 'Aún no hay preguntas. ¡Haz la primera!' : 'No questions yet. Ask the first one!'}
+                    </p>
+                  ) : (
+                    <ul className="space-y-4">
+                      {questions.map((q) => (
+                        <li key={q.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                          <p className="text-sm font-bold text-white">
+                            <span className="text-brand-neon">Q:</span> {q.question}
+                          </p>
+                          <p className="mt-1 text-[11px] text-white/40">{q.asker_name}</p>
+                          {q.answer ? (
+                            <div className="mt-3 rounded-md border border-brand-neon/20 bg-brand-neon/5 p-3">
+                              <p className="text-[10px] font-black uppercase tracking-wider text-brand-neon">
+                                {q.answered_by === 'owner'
+                                  ? locale === 'es' ? 'Respuesta del negocio' : 'Answer from the business'
+                                  : locale === 'es' ? 'Respuesta' : 'Answer'}
+                              </p>
+                              <p className="mt-1 whitespace-pre-line text-sm text-white/80">{q.answer}</p>
+                            </div>
+                          ) : showEditButton ? (
+                            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                              <input
+                                value={answerDrafts[q.id] || ''}
+                                onChange={(e) => setAnswerDrafts((d) => ({ ...d, [q.id]: e.target.value }))}
+                                aria-label={locale === 'es' ? 'Responder esta pregunta' : 'Answer this question'}
+                                placeholder={locale === 'es' ? 'Responde esta pregunta…' : 'Answer this question…'}
+                                className="flex-1 rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-brand-neon"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleAnswerQuestion(q.id)}
+                                disabled={answering === q.id}
+                                className="rounded-md bg-brand-neon px-4 py-2 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-50"
+                              >
+                                {answering === q.id ? '…' : locale === 'es' ? 'Responder' : 'Answer'}
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-[11px] italic text-white/35">
+                              {locale === 'es' ? 'Esperando respuesta' : 'Awaiting an answer'}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {userProfile ? (
+                    <form onSubmit={handleSubmitQuestion} className="space-y-2">
+                      {questionMsg && (
+                        <div role="status" className="text-xs font-bold text-brand-neon">{questionMsg}</div>
+                      )}
+                      <textarea
+                        value={newQuestion}
+                        onChange={(e) => setNewQuestion(e.target.value)}
+                        rows={2}
+                        aria-label={locale === 'es' ? 'Tu pregunta' : 'Your question'}
+                        placeholder={locale === 'es' ? 'Haz una pregunta a este negocio…' : 'Ask this business a question…'}
+                        className="w-full rounded-md border border-white/15 bg-black/40 p-3 text-sm text-white outline-none transition focus:border-brand-neon"
+                      />
+                      <button
+                        type="submit"
+                        disabled={questionSubmitting}
+                        className="rounded-md bg-brand-neon px-5 py-2.5 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-50"
+                      >
+                        {questionSubmitting
+                          ? locale === 'es' ? 'Enviando…' : 'Posting…'
+                          : locale === 'es' ? 'Preguntar' : 'Ask a question'}
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
+                      <p className="mb-3 text-sm text-white/70">
+                        {locale === 'es' ? 'Inicia sesión para hacer una pregunta.' : 'Sign in to ask a question.'}
+                      </p>
+                      <Link
+                        href={`/${locale}/login?redirectTo=/${locale}/directory/${id}`}
+                        className="inline-block rounded bg-brand-neon px-5 py-2.5 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300"
+                      >
+                        {locale === 'es' ? 'Iniciar sesión' : 'Sign in'}
+                      </Link>
+                    </div>
+                  )}
+                </div>
+  </>)
 
   return (
     <CityBeatShell locale={locale}>
@@ -1037,7 +1376,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 className="object-cover opacity-80"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/40 to-transparent" />
-              
+
               {/* Floating Verified Badge */}
               <div className="absolute bottom-8 left-0 right-0 z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="inline-flex items-center gap-2 bg-brand-neon text-black font-black text-xs tracking-widest px-3 py-1.5 rounded-full mb-4">
@@ -1060,12 +1399,12 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     views30={publicStats?.views}
                   />
                 </div>
-                
+
                 {listing.rating && (
                   <div className="flex items-center gap-3 mt-4">
                     {renderStars(listing.rating)}
                     <span className="text-sm font-bold text-white">
-                      {listing.rating} ({listing.user_ratings_total} {t.reviews})
+                      {listing.rating} ({listing.user_ratings_total} {locale === 'es' ? 'reseñas importadas' : 'imported reviews'})
                     </span>
                   </div>
                 )}
@@ -1087,7 +1426,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                   <p className="text-white/70 text-lg leading-relaxed whitespace-pre-line">
                     {(locale === 'es' ? listing.description_es || listing.description : listing.description) ||
                       (locale === 'es'
-                        ? `${listing.name} es un negocio de ${(listing.category || 'servicios').toLowerCase()} en El Paso.`
+                        ? `${listing.name} es un negocio de ${categoryLabel(listing.category || 'Services', locale).toLowerCase()} en El Paso.`
                         : `Discover ${listing.name} in El Paso. Category: ${listing.category || 'Local business'}.`)}
                   </p>
 
@@ -1183,341 +1522,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                   </div>
                 )}
 
-                {/* Reviews Section */}
-                <div className="citybeat-panel rounded-2xl p-8 border border-white/10 space-y-8">
-                  <div>
-                    <h2 className="font-display text-2xl font-black uppercase text-white tracking-wide mb-6">
-                      {t.reviewsTitle}
-                    </h2>
-                    
-                    {reviewsLoading ? (
-                      <div className="flex items-center gap-2 text-white/50 text-sm">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-neon"></div>
-                        <span>Loading reviews...</span>
-                      </div>
-                    ) : reviews.length === 0 ? (
-                      <p className="text-white/60 text-sm italic">{t.noReviews}</p>
-                    ) : (
-                      <div className="space-y-6">
-                        {reviews.map((rev) => {
-                          const reviewerName = rev.profiles?.full_name || rev.profiles?.email || 'Anonymous'
-                          const avatarInitials = reviewerName.substring(0, 2).toUpperCase()
-                          return (
-                            <div key={rev.id} className="pb-6 border-b border-white/5 last:border-0 last:pb-0">
-                              <div className="flex items-start gap-4">
-                                {rev.profiles?.avatar_url ? (
-                                  <div className="relative h-10 w-10 rounded-full overflow-hidden flex-shrink-0 bg-brand-charcoal">
-                                    <Image
-                                      src={rev.profiles.avatar_url}
-                                      alt={reviewerName}
-                                      fill
-                                      className="object-cover"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="h-10 w-10 rounded-full bg-brand-neon/10 border border-brand-neon/20 flex items-center justify-center font-bold text-brand-neon text-sm flex-shrink-0">
-                                    {avatarInitials}
-                                  </div>
-                                )}
-                                <div className="flex-grow">
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <h4 className="font-bold text-white text-sm">{reviewerName}</h4>
-                                    <span className="text-[10px] text-white/40">
-                                      {new Date(rev.created_at).toLocaleDateString(locale === 'es' ? 'es-MX' : 'en-US', {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: 'numeric'
-                                      })}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center mt-1">
-                                    {renderStars(rev.rating)}
-                                  </div>
-                                  {rev.comment && (
-                                    <p className="text-white/70 text-sm mt-2.5 leading-relaxed whitespace-pre-line">
-                                      {rev.comment}
-                                    </p>
-                                  )}
-                                  <button
-                                    onClick={() => {
-                                      const reason = window.prompt(locale === 'es' ? '¿Por qué reportas esta reseña?' : 'Why are you reporting this review?')
-                                      if (reason === null) return
-                                      fetch('/api/reviews/report', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ reviewId: rev.id, reason }),
-                                      }).then(() => alert(locale === 'es' ? 'Reseña reportada. Gracias.' : 'Review reported. Thank you.'))
-                                    }}
-                                    className="mt-1 inline-block py-1.5 text-[11px] font-bold uppercase tracking-wider text-white/25 hover:text-white/60"
-                                  >
-                                    {locale === 'es' ? 'Reportar' : 'Report'}
-                                  </button>
-                                  {rev.owner_response && (
-                                    <div className="mt-3 rounded-lg border border-brand-neon/20 bg-brand-neon/5 p-3">
-                                      <p className="text-[10px] font-black uppercase tracking-wider text-brand-neon">
-                                        {locale === 'es' ? 'Respuesta del negocio' : 'Response from the business'}
-                                      </p>
-                                      <p className="text-white/70 text-sm mt-1 leading-relaxed whitespace-pre-line">
-                                        {rev.owner_response}
-                                      </p>
-                                    </div>
-                                  )}
-                                  {rev.photo_urls && rev.photo_urls.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 mt-3.5">
-                                      {rev.photo_urls.map((photoUrl: string, idx: number) => (
-                                        <button
-                                          key={idx}
-                                          type="button"
-                                          onClick={() => window.open(photoUrl, '_blank', 'noopener')}
-                                          aria-label={`${locale === 'es' ? 'Ver foto de la reseña' : 'View review photo'} ${idx + 1} — ${listing.name}`}
-                                          className="relative h-16 w-16 rounded overflow-hidden border border-white/10 bg-brand-charcoal cursor-pointer hover:opacity-80 transition flex-shrink-0"
-                                        >
-                                          <Image
-                                            src={photoUrl}
-                                            alt={`${listing.name} — ${locale === 'es' ? 'foto de reseña' : 'review photo'} ${idx + 1}`}
-                                            fill
-                                            sizes="64px"
-                                            className="object-cover"
-                                          />
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Leave a Review Form */}
-                  <div className="pt-6 border-t border-white/5">
-                    <h3 className="font-display text-xl font-bold uppercase text-white tracking-wide mb-4">
-                      {t.writeReview}
-                    </h3>
-
-                    {userProfile ? (
-                      reviews.find((r: any) => r.user_id === userProfile?.id) ? (
-                        <div className="rounded-md border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-                          {locale === 'es'
-                            ? 'Ya escribiste una reseña para este negocio. ¡Gracias por tu opinión!'
-                            : 'You’ve already reviewed this business. Thanks for your feedback!'}
-                        </div>
-                      ) : (
-                      <form onSubmit={handleSubmitReview} className="space-y-4">
-                        {reviewSuccess && (
-                          <div role="status" className="p-3 bg-brand-neon/10 border border-brand-neon/30 text-brand-neon rounded-md text-xs font-bold">
-                            {reviewSuccess}
-                          </div>
-                        )}
-
-                        <div>
-                          <span id="review-rating-label" className="block text-xs font-bold uppercase tracking-wider text-brand-neon mb-2">
-                            {t.ratingLabel}
-                          </span>
-                          <div role="radiogroup" aria-labelledby="review-rating-label" className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => {
-                              const active = hoverRating !== null ? star <= hoverRating : star <= userRating
-                              const starLabel =
-                                locale === 'es'
-                                  ? `${star} ${star === 1 ? 'estrella' : 'estrellas'}`
-                                  : `${star} ${star === 1 ? 'star' : 'stars'}`
-                              return (
-                                <button
-                                  key={star}
-                                  type="button"
-                                  role="radio"
-                                  aria-checked={userRating === star}
-                                  aria-label={starLabel}
-                                  onClick={() => setUserRating(star)}
-                                  onMouseEnter={() => setHoverRating(star)}
-                                  onMouseLeave={() => setHoverRating(null)}
-                                  className="p-1 transition-transform active:scale-95"
-                                >
-                                  <svg
-                                    aria-hidden="true"
-                                    className={`h-7 w-7 ${active ? 'text-brand-gold fill-brand-gold' : 'text-white/20'}`}
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 20 20"
-                                  >
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                  </svg>
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-
-                        <div>
-                          <textarea
-                            rows={4}
-                            value={userComment}
-                            onChange={(e) => setUserComment(e.target.value)}
-                            placeholder={t.commentPlaceholder}
-                            aria-label={t.commentPlaceholder}
-                            className="w-full rounded-md p-3 border border-white/15 bg-black/40 text-white focus:border-brand-neon focus:outline-none text-sm transition"
-                          />
-                        </div>
-
-                        {/* Review Image Upload Area */}
-                        <div className="space-y-3">
-                          <label className="block text-xs font-bold uppercase tracking-wider text-brand-neon">
-                            Add Photos (optional)
-                          </label>
-                          <div className="flex flex-wrap gap-3 items-center">
-                            {uploadedPhotos.map((photoUrl, idx) => (
-                              <div key={idx} className="relative h-20 w-20 rounded border border-white/20 overflow-hidden bg-brand-charcoal group">
-                                <Image
-                                  src={photoUrl}
-                                  alt={`${locale === 'es' ? 'Foto para subir' : 'Photo to upload'} ${idx + 1}`}
-                                  fill
-                                  sizes="80px"
-                                  className="object-cover"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => removeUploadedPhoto(idx)}
-                                  aria-label={`${locale === 'es' ? 'Quitar foto' : 'Remove photo'} ${idx + 1}`}
-                                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity"
-                                >
-                                  {locale === 'es' ? 'Quitar' : 'Remove'}
-                                </button>
-                              </div>
-                            ))}
-                            <label className={`h-20 w-20 rounded border border-dashed border-white/20 hover:border-brand-neon cursor-pointer flex flex-col items-center justify-center gap-1 transition ${uploadingPhotos ? 'pointer-events-none opacity-50 bg-white/5' : 'hover:bg-white/5 bg-black/20'}`}>
-                              <span className="text-white/60 text-lg font-bold">{uploadingPhotos ? '...' : '+'}</span>
-                              <span className="text-[10px] text-white/50">{uploadingPhotos ? 'Uploading' : 'Upload'}</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={handlePhotoUpload}
-                                className="hidden"
-                              />
-                            </label>
-                          </div>
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={submittingReview}
-                          className="px-5 py-2.5 rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs hover:bg-cyan-300 transition shadow-[0_4px_12px_rgba(0,240,255,0.2)] disabled:opacity-50"
-                        >
-                          {submittingReview ? t.submittingReview : t.submitReview}
-                        </button>
-                      </form>
-                      )
-                    ) : (
-                      <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-                        <p className="text-sm text-white/70 mb-4">{t.logInToReview}</p>
-                        <Link
-                          href={`/${locale}/login?redirectTo=/${locale}/directory/${id}`}
-                          className="inline-block rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs px-5 py-2.5 hover:bg-cyan-300 transition"
-                        >
-                          {t.loginToReviewBtn}
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Customer Q&A — Google Business Profile parity. Public asks;
-                    the owner (or an editor) answers inline; askers get notified. */}
-                <div className="citybeat-panel rounded-2xl p-8 border border-white/10 space-y-6">
-                  <h2 className="font-display text-2xl font-black uppercase text-white tracking-wide">
-                    {locale === 'es' ? 'Preguntas y Respuestas' : 'Questions & Answers'}
-                  </h2>
-
-                  {questionsLoading ? (
-                    <p className="text-sm text-white/50">{locale === 'es' ? 'Cargando…' : 'Loading…'}</p>
-                  ) : questions.length === 0 ? (
-                    <p className="text-sm italic text-white/60">
-                      {locale === 'es' ? 'Aún no hay preguntas. ¡Haz la primera!' : 'No questions yet. Ask the first one!'}
-                    </p>
-                  ) : (
-                    <ul className="space-y-4">
-                      {questions.map((q) => (
-                        <li key={q.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                          <p className="text-sm font-bold text-white">
-                            <span className="text-brand-neon">Q:</span> {q.question}
-                          </p>
-                          <p className="mt-1 text-[11px] text-white/40">{q.asker_name}</p>
-                          {q.answer ? (
-                            <div className="mt-3 rounded-md border border-brand-neon/20 bg-brand-neon/5 p-3">
-                              <p className="text-[10px] font-black uppercase tracking-wider text-brand-neon">
-                                {q.answered_by === 'owner'
-                                  ? locale === 'es' ? 'Respuesta del negocio' : 'Answer from the business'
-                                  : locale === 'es' ? 'Respuesta' : 'Answer'}
-                              </p>
-                              <p className="mt-1 whitespace-pre-line text-sm text-white/80">{q.answer}</p>
-                            </div>
-                          ) : showEditButton ? (
-                            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                              <input
-                                value={answerDrafts[q.id] || ''}
-                                onChange={(e) => setAnswerDrafts((d) => ({ ...d, [q.id]: e.target.value }))}
-                                aria-label={locale === 'es' ? 'Responder esta pregunta' : 'Answer this question'}
-                                placeholder={locale === 'es' ? 'Responde esta pregunta…' : 'Answer this question…'}
-                                className="flex-1 rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-brand-neon"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleAnswerQuestion(q.id)}
-                                disabled={answering === q.id}
-                                className="rounded-md bg-brand-neon px-4 py-2 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-50"
-                              >
-                                {answering === q.id ? '…' : locale === 'es' ? 'Responder' : 'Answer'}
-                              </button>
-                            </div>
-                          ) : (
-                            <p className="mt-2 text-[11px] italic text-white/35">
-                              {locale === 'es' ? 'Esperando respuesta' : 'Awaiting an answer'}
-                            </p>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {userProfile ? (
-                    <form onSubmit={handleSubmitQuestion} className="space-y-2">
-                      {questionMsg && (
-                        <div role="status" className="text-xs font-bold text-brand-neon">{questionMsg}</div>
-                      )}
-                      <textarea
-                        value={newQuestion}
-                        onChange={(e) => setNewQuestion(e.target.value)}
-                        rows={2}
-                        aria-label={locale === 'es' ? 'Tu pregunta' : 'Your question'}
-                        placeholder={locale === 'es' ? 'Haz una pregunta a este negocio…' : 'Ask this business a question…'}
-                        className="w-full rounded-md border border-white/15 bg-black/40 p-3 text-sm text-white outline-none transition focus:border-brand-neon"
-                      />
-                      <button
-                        type="submit"
-                        disabled={questionSubmitting}
-                        className="rounded-md bg-brand-neon px-5 py-2.5 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300 disabled:opacity-50"
-                      >
-                        {questionSubmitting
-                          ? locale === 'es' ? 'Enviando…' : 'Posting…'
-                          : locale === 'es' ? 'Preguntar' : 'Ask a question'}
-                      </button>
-                    </form>
-                  ) : (
-                    <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-center">
-                      <p className="mb-3 text-sm text-white/70">
-                        {locale === 'es' ? 'Inicia sesión para hacer una pregunta.' : 'Sign in to ask a question.'}
-                      </p>
-                      <Link
-                        href={`/${locale}/login?redirectTo=/${locale}/directory/${id}`}
-                        className="inline-block rounded bg-brand-neon px-5 py-2.5 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300"
-                      >
-                        {locale === 'es' ? 'Iniciar sesión' : 'Sign in'}
-                      </Link>
-                    </div>
-                  )}
-                </div>
+                {communityContent}
               </div>
 
               {/* Right Column: Contact info & Hours. order-first lifts address/
@@ -1526,12 +1531,12 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
               <div className="order-first space-y-8 lg:order-none">
                 {/* Contact Panel */}
                 <div className="citybeat-panel rounded-2xl p-6 border border-white/10 space-y-4">
-                  <h3 className="font-display text-xl font-bold uppercase border-b border-white/5 pb-3">Contact Details</h3>
-                  
+                  <h3 className="font-display text-xl font-bold uppercase border-b border-white/5 pb-3">{locale === 'es' ? 'Datos de contacto' : 'Contact Details'}</h3>
+
                   {listing.address && (
                     <div>
                       <p className="text-[10px] uppercase font-bold text-brand-neon">{t.address}</p>
-                      <p className="text-sm mt-1 text-white/80">{listing.address}</p>
+                      <p className="text-sm mt-1 text-white/80">{cleanListingText(listing.address)}</p>
                     </div>
                   )}
 
@@ -1589,7 +1594,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                               {locale === 'es' ? DIAS_SEMANA[day as keyof typeof DIAS_SEMANA] : day}
                             </span>
                             <span className="text-white/90 font-medium">
-                              {listing.hours?.[day] || 'Closed'}
+                              {(locale === 'es' && /^(closed|open 24 hours)$/i.test(listing.hours?.[day] || '') ? (/closed/i.test(listing.hours?.[day] || '') ? 'Cerrado' : 'Abierto las 24 horas') : listing.hours?.[day]) || (locale === 'es' ? 'Cerrado' : 'Closed')}
                             </span>
                           </div>
                         ))}
@@ -1612,7 +1617,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                   <span className="text-xs font-black uppercase tracking-wider text-brand-neon bg-brand-neon/10 px-2.5 py-1 rounded">
                     {categoryLabel(listing.category, locale)}
                   </span>
-                  
+
                   <h1 className="font-display text-4xl font-black text-white mt-4 uppercase leading-none">
                     {listing.name}
                   </h1>
@@ -1632,7 +1637,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     <div className="flex items-center gap-3 mt-4">
                       {renderStars(listing.rating)}
                       <span className="text-sm font-bold text-white/70">
-                        {listing.rating} ({listing.user_ratings_total} {t.reviews})
+                        {listing.rating} ({listing.user_ratings_total} {locale === 'es' ? 'reseñas importadas' : 'imported reviews'})
                       </span>
                     </div>
                   )}
@@ -1641,7 +1646,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     {listing.address && (
                       <div>
                         <h4 className="text-[10px] font-black uppercase tracking-wider text-brand-neon">{t.address}</h4>
-                        <p className="text-white/80 mt-1 text-sm">{listing.address}</p>
+                        <p className="text-white/80 mt-1 text-sm">{cleanListingText(listing.address)}</p>
                       </div>
                     )}
                     {listing.phone && (
@@ -1691,6 +1696,8 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 <ActionLinksBar listing={listing} locale={locale} listingId={id} onLinkClick={track} />
                 <ListingContentSections listing={listing} locale={locale} listingId={id} onPostClick={() => track('click_post_cta')} />
 
+                {communityContent}
+
                 {/* Hours (core, all tiers) */}
                 {(listing.hours || (listing.special_hours?.length ?? 0) > 0) && (
                   <div className="citybeat-panel rounded-2xl p-6 border border-white/10">
@@ -1702,7 +1709,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                             <span className="font-bold text-white/70">
                               {locale === 'es' ? DIAS_SEMANA[day as keyof typeof DIAS_SEMANA] : day}
                             </span>
-                            <span className="text-white/90 font-medium">{listing.hours?.[day] || 'Closed'}</span>
+                            <span className="text-white/90 font-medium">{(locale === 'es' && /^(closed|open 24 hours)$/i.test(listing.hours?.[day] || '') ? (/closed/i.test(listing.hours?.[day] || '') ? 'Cerrado' : 'Abierto las 24 horas') : listing.hours?.[day]) || (locale === 'es' ? 'Cerrado' : 'Closed')}</span>
                           </div>
                         ))}
                       </div>

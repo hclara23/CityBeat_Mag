@@ -38,7 +38,7 @@ export function QuoteForm({ listingId, locale = 'en' }: { listingId: string; loc
   if (done) {
     return (
       <div className="rounded-xl border border-brand-neon/30 bg-brand-neon/5 p-5 text-sm text-white/70">
-        {isEs ? '¡Enviado! El negocio se pondrá en contacto contigo.' : "Sent! The business will get back to you."}
+        {isEs ? 'Solicitud registrada. No se garantiza una respuesta. Para asuntos urgentes, usa el botón Llamar de esta ficha.' : 'Request recorded. A response is not guaranteed. For urgent needs, use this listing’s Call Now button.'}
       </div>
     )
   }

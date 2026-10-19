@@ -36,7 +36,7 @@ export default async function AdsPage(props: AdsPageProps) {
       description: 'CityBeat placements now live under the main site. Build a campaign for newsletter, sponsored story, or category banner inventory from one domain.',
       start: 'Start',
       stats: [
-        ['50,000+', 'monthly bilingual readers across the region'],
+        ['Local', 'bilingual coverage of El Paso and the borderlands'],
         ['5', 'core coverage zones for focused local placement'],
         ['24 hr', 'campaign review target for submitted creative'],
       ],
@@ -51,7 +51,7 @@ export default async function AdsPage(props: AdsPageProps) {
       description: 'Las ubicaciones de CityBeat ahora están en el sitio principal. Crea una campaña para boletín, historia patrocinada o banner de categoría desde un solo dominio.',
       start: 'Comenzar',
       stats: [
-        ['50,000+', 'lectores bilingües mensuales en la región'],
+        ['Local', 'cobertura bilingüe de El Paso y la frontera'],
         ['5', 'zonas principales de cobertura para colocación local'],
         ['24 h', 'objetivo de revisión de campaña para creativos enviados'],
       ],

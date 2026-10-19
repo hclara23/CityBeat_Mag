@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
       .catch(() => {})
   }
 
+  let notificationStatus = 'not_configured'
   // First-party inbox record for the owner. The email below already delivers
   // the lead to the business, so the record skips the email channel.
   if (isClaimed) {
@@ -152,7 +153,10 @@ export async function POST(request: NextRequest) {
         <p style="font-size:11px;color:#999">Sent via citybeatmag.co</p></div>`
     }
 
-    await sendEmail(to, subject, html, FROM).catch(() => {})
+    try {
+      const delivery = await sendEmail(to, subject, html, FROM)
+      notificationStatus = delivery.sent ? 'sent_to_provider' : 'failed'
+    } catch { notificationStatus = 'failed' }
   } else if (to) {
     // Unclaimed → relay through the shared unclaimed pipe (bilingual, deduped
     // per quote, suppression-aware, capped per listing, unsubscribe link).
@@ -163,6 +167,7 @@ export async function POST(request: NextRequest) {
     // claimed-basic listing gets, so claiming never REDUCES what a business
     // receives. Awaited (never throws): Cloud Run can freeze CPU after the
     // response, so a detached send could consume the dedupe without sending.
+    notificationStatus = 'relay_requested'
     await sendUnclaimedRelay({
       listingId,
       listing: listing || {},
@@ -171,5 +176,6 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  return NextResponse.json({ ok: true })
+  await adminDb.collection('quote_requests').doc(quoteId).set({ notification_status: notificationStatus }, { merge: true }).catch(() => {})
+  return NextResponse.json({ ok: true, status: 'recorded' })
 }

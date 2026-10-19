@@ -66,6 +66,7 @@ const ES_LABELS: Record<string, string> = {
 // Localized display label. Value stays English everywhere else.
 export function categoryLabel(category: string | null | undefined, locale: string): string {
   if (!category) return locale === 'es' ? 'Negocio' : 'Business'
-  if (locale === 'es') return ES_LABELS[category] || category
+  const canonical = Object.keys(ES_LABELS).find((key) => key.toLowerCase() === category.trim().toLowerCase()) || category
+  if (locale === 'es') return ES_LABELS[canonical] || category
   return category
 }

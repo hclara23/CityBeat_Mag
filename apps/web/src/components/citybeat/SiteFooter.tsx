@@ -24,10 +24,10 @@ export function SiteFooter({ locale = 'en' }: { locale?: string }) {
               <Link href={withLocale(locale, '/stories')} className="hover:text-brand-neon">
                 {locale === 'es' ? 'Boletines' : 'Stories'}
               </Link>
-              <Link href={withLocale(locale, '/#events')} className="hover:text-brand-neon">
+              <Link href={withLocale(locale, '/events')} className="hover:text-brand-neon">
                 {locale === 'es' ? 'Eventos' : 'Events'}
               </Link>
-              <Link href={withLocale(locale, '/#directory')} className="hover:text-brand-neon">
+              <Link href={withLocale(locale, '/directory')} className="hover:text-brand-neon">
                 {locale === 'es' ? 'Directorio' : 'Directory'}
               </Link>
               <Link href={withLocale(locale, '/best')} className="hover:text-brand-neon">
@@ -66,7 +66,7 @@ export function SiteFooter({ locale = 'en' }: { locale?: string }) {
             </h3>
             <div className="grid gap-3 text-sm text-white/55">
               <Link href={withLocale(locale, '/login')} className="hover:text-brand-neon">
-                {locale === 'es' ? 'Escritores y Editores' : 'Writers & Editors'}
+                {locale === 'es' ? 'Acceso: propietarios, escritores y editores' : 'Login: Business Owners, Writers & Editors'}
               </Link>
               {/* The only contact affordance in the site chrome used to be the
                   ADVERTISING address, so a paying customer with a billing

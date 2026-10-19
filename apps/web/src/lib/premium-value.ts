@@ -8,6 +8,7 @@ export function normalizeLeadStatus(value: unknown): LeadStatus {
 }
 
 export type CustomerActions = {
+  phone?: number
   website: number
   directions: number
   actions: number
@@ -15,7 +16,7 @@ export type CustomerActions = {
 }
 
 export function customerActionTotal(input: CustomerActions): number {
-  return Math.max(0, input.website) + Math.max(0, input.directions) + Math.max(0, input.actions) + Math.max(0, input.leads)
+  return Math.max(0, input.phone || 0) + Math.max(0, input.website) + Math.max(0, input.directions) + Math.max(0, input.actions) + Math.max(0, input.leads)
 }
 
 export type TrustSignalKey =

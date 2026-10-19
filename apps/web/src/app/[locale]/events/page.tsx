@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
+import { formatEventTime } from '@/lib/customer-experience'
 import { getUpcomingEvents } from '@/lib/events'
 
 export const dynamic = 'force-dynamic'
@@ -28,13 +29,6 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
   }
 }
 
-function fmt(date: string, locale: string) {
-  const d = new Date(date)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleString(locale === 'es' ? 'es-MX' : 'en-US', {
-    weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-  })
-}
 
 export default async function EventsIndex(props: { params: Promise<{ locale: string }> }) {
   const params = await props.params;
@@ -83,7 +77,7 @@ export default async function EventsIndex(props: { params: Promise<{ locale: str
                   )}
                   <div className="p-5">
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-neon">{fmt(e.start_date, params.locale)}</p>
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-neon">{formatEventTime(e.start_date, params.locale, e.timezone)}</p>
                       {e.featured && (
                         <span className="rounded bg-brand-gold/20 px-1.5 py-0.5 text-[10px] font-black uppercase text-brand-gold">
                           {isEs ? 'Destacado' : 'Featured'}

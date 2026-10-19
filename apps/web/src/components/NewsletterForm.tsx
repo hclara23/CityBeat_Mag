@@ -52,7 +52,7 @@ export function NewsletterForm({
   }
 
   return (
-    <form className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]" onSubmit={handleSubmit}>
+    <form className="mt-6 grid min-w-0 gap-3" onSubmit={handleSubmit}>
       <input
         type="email"
         required
@@ -60,7 +60,7 @@ export function NewsletterForm({
         onChange={(e) => setEmail(e.target.value)}
         placeholder={emailPlaceholder}
         aria-label={locale === 'es' ? 'Correo electrónico' : 'Email address'}
-        className="rounded-md border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-brand-neon"
+        className="min-w-0 w-full rounded-md border border-white/15 bg-black/40 px-4 py-3 text-white outline-none focus:border-brand-neon"
       />
       <button 
         type="submit" 

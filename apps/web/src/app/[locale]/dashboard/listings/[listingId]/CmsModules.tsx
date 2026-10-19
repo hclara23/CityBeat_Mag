@@ -555,6 +555,7 @@ export function NotifyPrefsPanel({ isEs }: { isEs: boolean }) {
 // ── Listing analytics ────────────────────────────────────────────────────────
 
 type StatTotals = {
+  click_phone: number
   view: number
   click_website: number
   click_directions: number
@@ -632,18 +633,18 @@ export function AnalyticsPanel({
   if (failed) return <p className="text-sm text-white/45">{isEs ? 'No se pudieron cargar las analíticas.' : 'Could not load analytics.'}</p>
   if (!data) return <p className="text-sm text-white/40">{isEs ? 'Cargando analíticas…' : 'Loading analytics…'}</p>
 
-  const clicks = (t: StatTotals) => t.click_website + t.click_directions + t.click_action
+  const clicks = (t: StatTotals) => (t.click_phone || 0) + t.click_website + t.click_directions + t.click_action
   const cur = data.current
   const prev = data.previous
   const maxView = data.series ? Math.max(1, ...data.series.map((d) => d.view)) : 1
-  const customerActions = customerActionTotal({ website: cur.click_website, directions: cur.click_directions, actions: cur.click_action, leads: cur.lead })
+  const customerActions = customerActionTotal({ phone: cur.click_phone, website: cur.click_website, directions: cur.click_directions, actions: cur.click_action, leads: cur.lead })
 
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-brand-neon/30 bg-brand-neon/[0.06] p-5 print:border-black print:bg-white print:text-black">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-brand-neon print:text-black">{isEs ? 'Resultados de CityBeat' : 'CityBeat results'}</p>
         <p className="mt-2 font-display text-4xl font-black text-white print:text-black">{customerActions.toLocaleString()}</p>
-        <p className="mt-1 text-sm text-white/65 print:text-black/70">{isEs ? 'acciones de clientes en los últimos 30 días: visitas al sitio, indicaciones, botones y solicitudes.' : 'customer actions in the last 30 days: website visits, directions, action-button clicks, and leads.'}</p>
+        <p className="mt-1 text-sm text-white/65 print:text-black/70">{isEs ? 'acciones de clientes en los últimos 30 días: clics al teléfono y sitio, indicaciones, botones y solicitudes; no son personas únicas ni ventas.' : 'customer actions in the last 30 days: phone and website clicks, directions, action-button clicks, and leads—not unique people or sales.'}</p>
         <button type="button" onClick={() => window.print()} className="mt-4 rounded-md border border-brand-neon/40 px-3 py-2 text-[10px] font-black uppercase text-brand-neon print:hidden">{isEs ? 'Imprimir resumen' : 'Print performance summary'}</button>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
@@ -654,7 +655,7 @@ export function AnalyticsPanel({
           isEs={isEs}
         />
         <StatCard
-          label={isEs ? 'Clics (web, mapa, acciones)' : 'Clicks (web, map, actions)'}
+          label={isEs ? 'Clics (teléfono, web, mapa, acciones)' : 'Clicks (phone, web, map, actions)'}
           value={clicks(cur)}
           change={prev ? pct(clicks(cur), clicks(prev)) : undefined}
           isEs={isEs}
@@ -667,13 +668,15 @@ export function AnalyticsPanel({
         />
       </div>
 
+      <StatCard label={isEs ? 'Clics al teléfono (no llamadas completadas)' : 'Phone clicks (not completed calls)'} value={cur.click_phone || 0} isEs={isEs} />
       {data.full && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <StatCard label={isEs ? 'Visitas al sitio por CityBeat Pixel' : 'Website visits from CityBeat Pixel'} value={cur.external_site_view || 0} isEs={isEs} />
-          <StatCard label={isEs ? 'Conversiones del sitio' : 'Website conversions'} value={cur.external_conversion || 0} isEs={isEs} />
+          <StatCard label={isEs ? 'Vistas del sitio (todas las fuentes, píxel)' : 'Website views (all sources, pixel)'} value={cur.external_site_view || 0} isEs={isEs} />
+          <StatCard label={isEs ? 'Eventos de conversión (todas las fuentes)' : 'Conversion events (all sources)'} value={cur.external_conversion || 0} isEs={isEs} />
         </div>
       )}
 
+      <p className="text-sm text-white/70">{isEs ? 'El píxel mide actividad de todas las fuentes; no demuestra referencias de CityBeat, ventas ni ingresos.' : 'The pixel measures activity from all sources; it does not establish CityBeat referrals, sales or revenue.'}</p>
       {data.full && data.series && (
         <div className="rounded-xl border border-white/10 bg-black/25 p-4">
           <p className="mb-3 text-[10px] font-black uppercase tracking-wider text-white/40">

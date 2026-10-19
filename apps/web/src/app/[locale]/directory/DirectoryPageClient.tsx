@@ -12,7 +12,7 @@ import { AdBanner } from '@/components/citybeat/AdBanner'
 import { categoryLabel, DIRECTORY_CATEGORIES } from '@/lib/categories'
 import { selectSponsoredWindow } from '@/lib/sponsored-rotation'
 import { PrintBadges } from '@/components/citybeat/PrintRecognition'
-import { DirectoryPlanComparison } from '@/components/citybeat/DirectoryPlanComparison'
+import { cleanListingText } from '@/lib/customer-experience'
 
 // `export const dynamic` (route segment config) only takes effect from a
 // Server Component — Next.js silently ignores it in a 'use client' module, so
@@ -124,6 +124,10 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
   const router = useRouter()
 
   const [listings, setListings] = useState<Listing[]>([])
+  const [page, setPage] = useState(0)
+  const [after, setAfter] = useState('')
+  const [pageInfo, setPageInfo] = useState({ total: 0, hasMore: false, nextWindow: null as string | null, searchLimited: false })
+  const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
@@ -155,19 +159,22 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
   }, [])
 
   useEffect(() => {
+    const controller = new AbortController()
     const fetchListings = async () => {
       try {
         setLoading(true)
+        setLoadError(false)
         const categoryParam = selectedCategory === 'All' ? '' : selectedCategory
-        const response = await fetch(`/api/directory?query=${encodeURIComponent(searchQuery)}&category=${encodeURIComponent(categoryParam)}`)
+        const response = await fetch(`/api/directory?query=${encodeURIComponent(searchQuery)}&category=${encodeURIComponent(categoryParam)}&page=${page}&after=${encodeURIComponent(after)}`, { signal: controller.signal })
         if (response.ok) {
           const data = await response.json()
           setListings(data.listings || [])
-        }
+          setPageInfo({ total: data.total || 0, hasMore: !!data.hasMore, nextWindow: data.nextWindow || null, searchLimited: !!data.searchLimited })
+        } else { setListings([]); setLoadError(true) }
       } catch (err) {
-        console.error('Failed to load listings:', err)
+        if (!controller.signal.aborted) { setListings([]); setLoadError(true) }
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
 
@@ -175,8 +182,8 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
       fetchListings()
     }, 300)
 
-    return () => clearTimeout(timer)
-  }, [searchQuery, selectedCategory])
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [searchQuery, selectedCategory, page, after])
 
   const renderStars = (rating: number | null) => {
     if (!rating) return null
@@ -256,7 +263,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                       type="search"
                       placeholder={t.searchPlaceholder}
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => { setSearchQuery(e.target.value); setPage(0); setAfter('') }}
                       className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-base font-semibold text-slate-950 placeholder:text-slate-400 focus:border-cyan-600 focus:ring-cyan-600"
                     />
                     <svg className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -271,7 +278,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                         <button
                           type="button"
                           key={item.category}
-                          onClick={() => setSelectedCategory(isActive ? 'All' : item.category)}
+                          onClick={() => { setSelectedCategory(isActive ? 'All' : item.category); setPage(0); setAfter('') }}
                           aria-pressed={isActive}
                           className={`flex min-h-[48px] items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm font-bold transition ${isActive ? 'border-cyan-600 bg-cyan-50 text-cyan-950' : 'border-slate-200 bg-white text-slate-800 hover:border-cyan-500 hover:bg-cyan-50/60'}`}
                         >
@@ -283,14 +290,14 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                     <label className="flex min-h-[48px] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800">
                       <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-300 text-slate-800">•••</span>
                       <span className="sr-only">{t.allCategories}</span>
-                      <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-bold text-slate-800 focus:ring-0">
+                      <select value={selectedCategory} onChange={(e) => { setSelectedCategory(e.target.value); setPage(0); setAfter('') }} className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-bold text-slate-800 focus:ring-0">
                         {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat === 'All' ? t.allCategories : categoryLabel(cat, locale)}</option>)}
                       </select>
                     </label>
                   </div>
 
                   {(searchQuery || selectedCategory !== 'All') && (
-                    <button type="button" onClick={() => { setSearchQuery(''); setSelectedCategory('All') }} className="mt-5 text-xs font-black uppercase tracking-wider text-cyan-700 hover:text-cyan-900">
+                    <button type="button" onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setPage(0); setAfter('') }} className="mt-5 text-xs font-black uppercase tracking-wider text-cyan-700 hover:text-cyan-900">
                       {locale === 'es' ? 'Limpiar búsqueda' : 'Clear search'}
                     </button>
                   )}
@@ -300,35 +307,9 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
           </div>
         </section>
 
-        <div className="container-wide mt-10">
-          <DirectoryPlanComparison locale={locale} ctaHref={`/${locale}/founders`} />
-        </div>
-
-        {/* Map Section — opt-in so Leaflet doesn't load above the listings on
-            every visit (it also blocked LCP). */}
-        <section className="container-wide mt-12 mb-8 relative z-0">
-          {showMap ? (
-            <div className="citybeat-panel rounded-2xl p-4">
-              <DirectoryMap listings={listings} locale={locale} />
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowMap(true)}
-              className="w-full rounded-2xl border border-dashed border-white/15 bg-white/[0.03] py-4 text-sm font-bold uppercase tracking-wider text-white/60 transition hover:border-brand-neon/40 hover:text-brand-neon"
-            >
-              🗺️ {locale === 'es' ? 'Mostrar mapa' : 'Show map'}
-            </button>
-          )}
-        </section>
-
-        {/* Sponsored banner (renders only when an active banner exists) */}
-        <div className="container-wide mb-8">
-          <AdBanner placement="directory" locale={locale} />
-        </div>
-
         {/* Content Listings section */}
-        <section className="container-wide mt-16">
+        <section className="container-wide mt-6">
+          <p role="status" className="mb-4 text-sm text-white/75">{loading ? (locale === 'es' ? 'Buscando…' : 'Searching…') : loadError ? (locale === 'es' ? 'No se pudieron cargar los resultados. Inténtalo de nuevo.' : 'Results could not be loaded. Please try again.') : `${listings.length} ${locale === 'es' ? 'mostrados de' : 'shown of'} ${pageInfo.total}${pageInfo.searchLimited ? (locale === 'es' ? ' en este bloque; continúa para buscar más negocios.' : ' in this search window; continue to search more businesses.') : ''}`}</p>
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-neon"></div>
@@ -393,7 +374,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                             )}
 
                             <p className="mt-3 text-sm text-white/60 line-clamp-3 leading-relaxed flex-grow">
-                              {listing.description || (locale === 'es' ? 'Socio patrocinado de primer nivel. Haz clic para conocer más detalles sobre el menú, los horarios y su historia.' : 'A top-tier sponsored favorite. Click to learn more details about their menu, hours, and story.')}
+                              {listing.description || (locale === 'es' ? 'Consulta los datos de contacto, horarios e información de este negocio.' : 'View this business’s contact details, hours and information.')}
                             </p>
 
                             {listing.address && (
@@ -402,7 +383,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
-                                <span className="truncate">{listing.address}</span>
+                                <span className="truncate">{cleanListingText(listing.address)}</span>
                               </p>
                             )}
 
@@ -416,23 +397,8 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                       ))}
                     </div>
                   </div>
-                ) : (
-                  <div className="bg-gradient-to-r from-brand-charcoal/40 via-brand-dark/60 to-brand-ink/40 border border-brand-gold/25 rounded-2xl p-6.5 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_15px_rgba(255,215,0,0.03)] mb-8">
-                    <div className="flex items-center gap-4 text-left">
-                      <span className="text-3xl text-brand-gold animate-pulse">★</span>
-                      <div>
-                        <h3 className="text-white font-extrabold text-base uppercase tracking-wider">Want your business listed on top?</h3>
-                        <p className="text-white/60 text-xs mt-1 max-w-xl">Get premium exposure and be the first business customers see when searching the CityBeat Directory.</p>
-                      </div>
-                    </div>
-                    <a
-                      href="mailto:ads@citybeatmag.co"
-                      className="px-5 py-2.5 rounded bg-brand-gold hover:bg-yellow-400 text-black font-black uppercase tracking-wider text-xs transition shadow-[0_4px_12px_rgba(255,215,0,0.15)] flex-shrink-0"
-                    >
-                      Advertise With Us
-                    </a>
-                  </div>
-                )}
+                ) : null
+                }
               </div>
 
               {/* Premium Listings Section */}
@@ -492,7 +458,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                           )}
 
                           <p className="mt-3 text-sm text-white/60 line-clamp-3 leading-relaxed flex-grow">
-                            {listing.description || (locale === 'es' ? 'Experiencia local única de primer nivel. Haz clic para conocer más detalles sobre el menú, los horarios de apertura y su historia.' : 'A top-tier local favorite. Click to learn more details about their menu, hours of operation, and story.')}
+                            {listing.description || (locale === 'es' ? 'Consulta los datos de contacto, horarios e información de este negocio.' : 'View this business’s contact details, hours and information.')}
                           </p>
 
                           {listing.address && (
@@ -501,7 +467,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
-                              <span className="truncate">{listing.address}</span>
+                              <span className="truncate">{cleanListingText(listing.address)}</span>
                             </p>
                           )}
 
@@ -558,7 +524,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
 
                           {/* Highly legible font-sans with clean styling */}
                           <h3 className="font-sans text-base font-bold tracking-normal text-white mt-2.5 leading-snug">
-                            {listing.name}
+                            <Link href={`/${locale}/directory/${listing.id}`} className="hover:text-brand-neon underline-offset-4 hover:underline">{listing.name}</Link>
                             <LocationBadge count={listing.location_count} />
                           </h3>
                           <div className="mt-2"><PrintBadges value={listing.print_recognition} locale={locale} /></div>
@@ -573,11 +539,12 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                           )}
 
                           <p className="text-[11px] text-white/50 mt-2 line-clamp-1 leading-relaxed">
-                            {listing.address}
+                            {cleanListingText(listing.address)}
                           </p>
                         </div>
 
-                        {/* Direct claim button linking to claim redirect page */}
+                        <Link href={`/${locale}/directory/${listing.id}`} className="mt-4 flex min-h-11 items-center justify-center rounded bg-white/10 px-3 py-2 text-sm font-bold text-white hover:bg-white/20">{t.viewDetails}</Link>
+                        {/* Owner action remains secondary. */}
                         {listing.claim_status === 'unclaimed' && (
                           <div className="mt-4 pt-3 border-t border-white/5">
                             <Link
@@ -597,9 +564,17 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
           )}
         </section>
 
+        <nav aria-label={locale === 'es' ? 'Páginas de resultados' : 'Result pages'} className="container-wide my-6 flex flex-wrap gap-3">
+          {page > 0 && <button disabled={loading} onClick={() => setPage(page - 1)} className="min-h-11 rounded border border-white/30 px-5">{locale === 'es' ? 'Anterior' : 'Previous'}</button>}
+          {pageInfo.hasMore && <button disabled={loading} onClick={() => setPage(page + 1)} className="min-h-11 rounded bg-brand-neon px-5 font-bold text-black">{locale === 'es' ? 'Siguiente' : 'Next'}</button>}
+          {!pageInfo.hasMore && pageInfo.nextWindow && <button disabled={loading} onClick={() => { setAfter(pageInfo.nextWindow!); setPage(0) }} className="min-h-11 rounded bg-brand-neon px-5 font-bold text-black">{locale === 'es' ? 'Buscar en el siguiente bloque' : 'Search next inventory window'}</button>}
+        </nav>
         {/* Server-rendered "browse by category & city" internal links (passed
             from the server page). In the initial SSR HTML — crawlable, keyword-
             rich, and feeds PageRank to the /best money pages + listing details. */}
+        <div className="container-wide my-8 flex flex-wrap items-center justify-between gap-4 text-sm"><Link href={`/${locale}/premium`} className="text-brand-neon underline">{locale === 'es' ? '¿Tienes un negocio? Compara Básico gratis y Premium' : 'Own a business? Compare free Basic and Premium'}</Link><button type="button" onClick={() => setShowMap(!showMap)} className="min-h-11 rounded border border-white/20 px-4">{locale === 'es' ? 'Mostrar / ocultar mapa' : 'Show / hide map'}</button></div>
+        {showMap && <section className="container-wide"><DirectoryMap listings={listings} locale={locale} /></section>}
+        <div className="container-wide my-8"><AdBanner placement="directory" locale={locale} /></div>
         {browseLinks}
       </div>
     </CityBeatShell>

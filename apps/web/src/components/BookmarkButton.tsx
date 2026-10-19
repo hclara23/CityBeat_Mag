@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLocale } from './TranslationProvider'
 
 interface BookmarkButtonProps {
   contentType: 'article' | 'directory'
@@ -9,6 +10,7 @@ interface BookmarkButtonProps {
 }
 
 export default function BookmarkButton({ contentType, contentId, className = '' }: BookmarkButtonProps) {
+  const locale = useLocale()
   const [isSaved, setIsSaved] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -84,7 +86,7 @@ export default function BookmarkButton({ contentType, contentId, className = '' 
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
       </svg>
       <span className="text-xs font-bold uppercase tracking-wider">
-        {loading ? '...' : isSaved ? 'Saved' : 'Save for Later'}
+        {loading ? '...' : isSaved ? (locale === 'es' ? 'Guardado' : 'Saved') : (locale === 'es' ? 'Guardar para después' : 'Save for Later')}
       </span>
     </button>
   )
