@@ -1,13 +1,15 @@
 ---
 id: "202610190727-THW0F6"
 title: "Remediate customer experience audit and release"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202610190711-B76N4T"]
 tags: []
+commit: { hash: "f495befb74334a526495d5e59bb8bcadc0e53902", message: "✅ THW0F6 record live release checks screenshot rollback and deployment cost" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implement approved audit findings and verify candidate before promotion within explicit one dollar deployment cap." }
+  - { author: "ORCHESTRATOR", body: "verified: implemented all fifteen audit remediations and promoted tested revision | details: 679 tests, type check, build, candidate and public regression gates plus 37 release checks pass. Documented cost estimate, screenshot, rollback and authenticated test limits." }
 doc_version: 2
 doc_updated_at: "2026-10-19T07:57:08+00:00"
 doc_updated_by: "agentctl"
