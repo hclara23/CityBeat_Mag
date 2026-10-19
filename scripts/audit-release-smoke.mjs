@@ -42,6 +42,7 @@ if (listingId) {
     assert.ok(page.text.includes('application/ld+json'), 'Business structured data')
     assert.ok(page.text.includes('tel:'), 'Call action is rendered')
     if (page.text.includes(' is a auto repair')) contentIssues.push(`${locale}: incorrect fallback grammar`)
+    if (page.text.includes('href="/directory') || page.text.includes('?redirectTo=/directory/')) contentIssues.push(`${locale}: directory navigation is missing its locale`)
     assert.ok(!page.text.includes('claim_token_hash'), 'Private claim data must not be rendered')
   }
   console.log(`Reference listing: ${record.name}; tier=${record.tier}; phone=${record.phone}`)

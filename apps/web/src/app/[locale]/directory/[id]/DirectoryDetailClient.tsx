@@ -681,7 +681,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
       <CityBeatShell locale={locale}>
         <div className="citybeat-app min-h-screen flex flex-col items-center justify-center py-20">
           <h2 className="text-2xl font-black uppercase text-brand-neon">Listing not found</h2>
-          <Link href="/directory" className="mt-4 btn-primary">{t.backToDirectory}</Link>
+          <Link href={`/${locale}/directory`} className="mt-4 btn-primary">{t.backToDirectory}</Link>
         </div>
       </CityBeatShell>
     )
@@ -703,7 +703,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
       <div className="citybeat-app min-h-screen pb-24">
         {/* Navigation Breadcrumb */}
         <div className="container-wide pt-8 pb-4">
-          <Link href="/directory" className="text-sm font-bold uppercase tracking-wider text-brand-neon hover:text-cyan-300 transition">
+          <Link href={`/${locale}/directory`} className="text-sm font-bold uppercase tracking-wider text-brand-neon hover:text-cyan-300 transition">
             {t.backToDirectory}
           </Link>
         </div>
@@ -866,7 +866,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                         {t.imageUrlLabel}
                       </label>
                       {(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor && (
-                        <Link href={`/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
+                        <Link href={`/${locale}/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
                           🔒 Premium Feature - Click to Unlock
                         </Link>
                       )}
@@ -897,7 +897,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                         {t.galleryLabel}
                       </label>
                       {(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor && (
-                        <Link href={`/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
+                        <Link href={`/${locale}/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
                           🔒 Premium Feature - Click to Unlock
                         </Link>
                       )}
@@ -928,7 +928,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                         Social Media Links
                       </label>
                       {(listing.tier !== 'premium' && listing.tier !== 'featured') && !isEditor && (
-                        <Link href={`/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
+                        <Link href={`/${locale}/directory/${listing.id}/claim`} className="text-[10px] font-black uppercase tracking-wider text-brand-gold hover:underline flex items-center gap-1">
                           🔒 Premium Feature - Click to Unlock
                         </Link>
                       )}
@@ -1413,7 +1413,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                       <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
                         <p className="text-sm text-white/70 mb-4">{t.logInToReview}</p>
                         <Link
-                          href={`/${locale}/login?redirectTo=/directory/${id}`}
+                          href={`/${locale}/login?redirectTo=/${locale}/directory/${id}`}
                           className="inline-block rounded bg-brand-neon text-black font-black uppercase tracking-wider text-xs px-5 py-2.5 hover:bg-cyan-300 transition"
                         >
                           {t.loginToReviewBtn}
@@ -1510,7 +1510,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                         {locale === 'es' ? 'Inicia sesión para hacer una pregunta.' : 'Sign in to ask a question.'}
                       </p>
                       <Link
-                        href={`/${locale}/login?redirectTo=/directory/${id}`}
+                        href={`/${locale}/login?redirectTo=/${locale}/directory/${id}`}
                         className="inline-block rounded bg-brand-neon px-5 py-2.5 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300"
                       >
                         {locale === 'es' ? 'Iniciar sesión' : 'Sign in'}
