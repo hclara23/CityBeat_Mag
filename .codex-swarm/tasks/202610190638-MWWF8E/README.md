@@ -9,17 +9,17 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: user approved one-dollar one-time deployment; build no-traffic candidate, run release checks and promote exact revision only if gates pass." }
 doc_version: 2
-doc_updated_at: "2026-10-19T06:40:10+00:00"
+doc_updated_at: "2026-10-19T07:09:08+00:00"
 doc_updated_by: "agentctl"
 description: "Deploy commit 457e84b with no traffic under the approved one-dollar one-time cap, test candidate, promote only on passing release checks, and verify public production with rollback available."
 ---
 ## Summary
 
-Deploy committed audit remediation as a no-traffic candidate under the user-approved one-dollar one-time cap, verify, then promote only after passing release gates.
+Deployed and verified citybeat-web-audit-ef346a3 at 100 percent traffic; all 37 public smoke checks and four localized SEO/CSP checks pass. Evidence: docs/audits/citybeat-release-2026-10-19.md.
 
 ## Scope
 
-Immutable source 457e84b; existing Cloud Run service and runtime secrets preserved. Add non-charging release smoke test and record candidate, traffic, cost estimate and rollback evidence.
+Final application source ef346a3. Existing runtime credentials and Hosting routing preserved. Hosting clone/cache refresh verified; estimated build compute USD 0.1755 under approved USD 1 one-time cap.
 
 ## Risks
 

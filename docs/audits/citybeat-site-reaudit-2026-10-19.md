@@ -70,3 +70,7 @@ No live rollback is currently needed; production was not changed. Before deploym
 ## Notes
 
 Tracking task: `202610190617-E9ZBBD`. Source implementation is saved; full closure remains blocked on external analytics configuration/access and release verification. No new paid resources, IAM grants, credentials, subscriptions, or deployments were created.
+# Production release addendum
+
+The remediation was subsequently deployed and verified on 2026-10-19. See [release evidence](citybeat-release-2026-10-19.md). Provider analytics access and development-only advisories remain open; earlier not-deployed statements below describe the pre-release audit state.
+
