@@ -9,13 +9,13 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implement approved audit findings and verify candidate before promotion within explicit one dollar deployment cap." }
 doc_version: 2
-doc_updated_at: "2026-10-19T07:36:48+00:00"
+doc_updated_at: "2026-10-19T07:57:08+00:00"
 doc_updated_by: "agentctl"
 description: "Implement F01-F15 from approved customer experience audit, regression test and deploy candidate then promote only after verification. Approved Google Cloud one-time cap USD1, no new recurring services. No subagents or customer financial mutations."
 ---
 ## Summary
 
-Implement all fifteen approved customer experience audit fixes and release after candidate verification.
+F01-F15 remediation live at citybeatmag.co on citybeat-web-cx-fe1db3c, 100 percent traffic. 679 tests, TypeScript, production build, candidate/live regression and 37 release checks pass. Evidence in docs/audits/customer-experience-remediation-2026-10-19.md.
 
 ## Scope
 
@@ -35,5 +35,5 @@ Retain current production revision citybeat-web-audit-ef346a3; route traffic bac
 
 ## Notes
 
-Implemented F01-F15; 679 tests pass, TypeScript and local production build pass. Read-only release script added. Existing operator morningstarelp account verified; rollback revision audit-ef346a3. Build timeout 720s at USD0.0156/min limits compute per attempt to USD0.1872. No new recurring services. Pixel attribution is explicitly all-source, not a new attribution engine; search offers bounded continuation windows beyond 8000 records.
+Source 7cdfdab, build network fe1db3c. First build cancelled; second e9c12a19-5f39-472d-9211-e7462295b755 succeeded. Estimated combined compute USD0.1963 plus small storage/runtime/network costs. No new recurring services or financial changes. Authenticated real-customer and delivery tests excluded; pixel labels corrected without new attribution engine. Existing provider analytics credentials remain outside this audit.
 
