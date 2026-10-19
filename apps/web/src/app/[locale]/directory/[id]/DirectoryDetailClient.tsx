@@ -1088,7 +1088,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     {(locale === 'es' ? listing.description_es || listing.description : listing.description) ||
                       (locale === 'es'
                         ? `${listing.name} es un negocio de ${(listing.category || 'servicios').toLowerCase()} en El Paso.`
-                        : `${listing.name} is a ${(listing.category || 'local').toLowerCase()} business in El Paso.`)}
+                        : `Discover ${listing.name} in El Paso. Category: ${listing.category || 'Local business'}.`)}
                   </p>
 
                   {/* Social media links */}

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 const origin = process.argv[2]
 if (!origin?.startsWith('https://')) throw new Error('Usage: node scripts/audit-release-smoke.mjs HTTPS_ORIGIN')
 let passed = 0
+const contentIssues = []
 async function check(path, expected, init) {
   const start = Date.now()
   const response = await fetch(origin + path, { ...init, signal: AbortSignal.timeout(45000) })
@@ -40,7 +41,7 @@ if (listingId) {
     assert.ok(page.text.includes(record.name), 'Business identity is rendered')
     assert.ok(page.text.includes('application/ld+json'), 'Business structured data')
     assert.ok(page.text.includes('tel:'), 'Call action is rendered')
-    assert.ok(!page.text.includes(' is a auto repair'), 'Fallback grammar')
+    if (page.text.includes(' is a auto repair')) contentIssues.push(`${locale}: incorrect fallback grammar`)
     assert.ok(!page.text.includes('claim_token_hash'), 'Private claim data must not be rendered')
   }
   console.log(`Reference listing: ${record.name}; tier=${record.tier}; phone=${record.phone}`)
@@ -58,4 +59,5 @@ for (let attempt = 0; attempt < 2; attempt++) {
   assert.equal(new Set(locations).size, locations.length, 'Duplicate sitemap URLs')
   console.log(`Sitemap: ${locations.length} URLs, ${Buffer.byteLength(sitemap.text)} bytes`)
 }
+assert.deepEqual(contentIssues, [], 'Listing content checks')
 console.log(`PASS: ${passed} release checks; no payment or payout created.`)
