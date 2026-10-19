@@ -10,7 +10,7 @@ verify: ["npm test"]
 comments:
   - { author: "ORCHESTRATOR", body: "Start: map the application architecture, inspect live English and Spanish user journeys, run automated quality checks, and report prioritized findings without changing production." }
 doc_version: 2
-doc_updated_at: "2026-10-19T05:48:33+00:00"
+doc_updated_at: "2026-10-19T05:57:25+00:00"
 doc_updated_by: "agentctl"
 description: "Perform a read-only evidence-backed audit of the live CityBeat website and repository across public UX, bilingual behavior, directory conversion flows, SEO, accessibility, analytics, performance, reliability, and security; deliver prioritized findings without modifying production."
 ---
@@ -36,5 +36,5 @@ No application or production changes are authorized. Remove only audit-generated
 
 ## Notes
 
-The user approved the comprehensive read-only audit plan. Remediation and deployment require a separate approved implementation plan.
+Audit completed against the current Firebase/Cloud Run application only; retired Sanity paths were excluded. Evidence and prioritized findings are recorded in docs/audits/citybeat-site-audit-2026-10-18.md. No production behavior was changed or deployed.
 
