@@ -10506,12 +10506,32 @@
       "doc_updated_by": "agentctl",
       "description": "Approved fix: record successful no-work heartbeat for owner ROI reports. Local mocked route regression tests only; no real reports, email, live cron execution or unapproved deployment spending.",
       "doc": "## Summary\n\nFix successful owner ROI no-work runs that previously skipped the liveness heartbeat.\n\n## Scope\n\nRecord reportSuccess before the no_claimed_listings return. Add isolated route regressions for empty listings, unowned listings, query failure and rejected authorization. No production invocation, reporting or email.\n\n## Risks\n\nOnly successful no-work executions gain heartbeat recording. Existing report delivery flow is unchanged. Production alert remains until release and a genuine successful execution. No deployment spending approved.\n\n## Verify Steps\n\n17 targeted tests pass including ops health and isolated actual-route regressions. TypeScript passes. Every route dependency mocked; fetch blocked; unknown imports rejected; zero email or notification calls asserted.\n\n## Rollback Plan\n\nRevert the scoped route heartbeat change and regression test if needed. No production data or scheduler configuration changed.\n\n## Notes\n\nReleased October 19 source d810438, production 100 percent citybeat-web-roi-d810438; digest sha256:d4d03163705b40a5797d1ba9c8bf213d0e66c0e35934fafc7a7bc2e46c5bdfbc. First build 26ced150 cancelled after stalled page-data collection; retried using existing scripts/customer-experience-cloudbuild.yaml network. Regional build 3e54ef9c-0d51-499d-aad3-3085c7da89ff SUCCESS in 4m12s. Combined estimated compute about USD0.10 below approved USD1 cap. Initial candidate cold health check timed out on Firestore; subsequent public checks twice healthy with app Firestore and Stripe ok. Homepage HTTP200. No owner-report endpoint invoked, no test reports or emails sent; scheduler lastAttempt remains October1, next November1. Existing liveness alert may persist until normal successful run. Rollback citybeat-web-cx-fe1db3c."
+    },
+    {
+      "id": "202610191956-TCNVVJ",
+      "title": "Temporarily suppress owner ROI missing heartbeat",
+      "status": "DOING",
+      "priority": "med",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: add expiring owner ROI missing-heartbeat grace | details: preserve other alerts and prevent false recovery email; verify expiry boundaries and isolated no-delivery regressions"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-19T19:57:03+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved targeted exception only for missing owner ROI heartbeat until November 2 2026 15:00 UTC, 24 hours after scheduled November1 run. Preserve actual failure alerts and all other liveness alerts. No live cron or email tests.",
+      "doc": "## Summary\n\nOne-time missing-heartbeat grace for owner ROI until November2 2026 15:00 UTC.\n\n## Scope\n\nOnly cron:owner-reports with absent heartbeat enters waiting. Recorded stale runs and other jobs still alert. Heartbeat does not emit liveness recovery while owner report is waiting.\n\n## Risks\n\nProduction unchanged until deployment. Fixed absolute expiry needs no scheduled cleanup. Actual owner-report execution failures remain untouched; no heartbeat fabricated.\n\n## Verify Steps\n\n18 isolated targeted tests pass: before/at/after expiry, other stale jobs, actual recorded stale run, real success, no artificial recovery, no delivery calls. TypeScript passes. No production cron invoked.\n\n## Rollback Plan\n\nRevert scoped grace and recovery gate without changing data or scheduler.\n\n## Notes\n\nUser approved targeted suppression and automatic expiry, prohibits reports/emails. Implementation ready; deployment requires specific spending approval."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "e98204f25a5b57fc7255c371daae4db2bfdbc6d19e8cac28d2b48b8c3d67ae28"
+    "checksum": "c47aabdd5e82f1427ad3cbcb8face94f5bd0e5025556a925d5aedb7cffefb9ad"
   }
 }

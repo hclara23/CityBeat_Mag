@@ -27,6 +27,21 @@
 
 const HOUR_MS = 3600_000
 
+// One-time operator-approved grace for the no-work heartbeat bug fixed Oct 19.
+// Ends 24h after the Nov 1 scheduled run; never invent a successful execution.
+const OWNER_ROI_GRACE_START = Date.parse('2026-10-19T00:00:00Z')
+const OWNER_ROI_GRACE_END = Date.parse('2026-11-02T15:00:00Z')
+
+export function ownerRoiMissingHeartbeatGrace(source: string, last: number | null | undefined, nowMs: number): boolean {
+  return source === 'cron:owner-reports' && (last === null || last === undefined)
+    && nowMs >= OWNER_ROI_GRACE_START && nowMs < OWNER_ROI_GRACE_END
+}
+
+/** Waiting is not recovery: do not send a recovery email for a temporary grace. */
+export function canReportLivenessRecovery(report: { stale: unknown[]; waiting: string[] }): boolean {
+  return report.stale.length === 0 && !report.waiting.includes('cron:owner-reports')
+}
+
 export type CronExpectation = {
   /** system_health doc id — must match the string the job passes to reportSuccess(). */
   source: string
@@ -146,6 +161,11 @@ export function evaluateCronLiveness(input: LivenessInput): LivenessReport {
   for (const expectation of expectations) {
     const maxAgeMs = expectation.maxAgeHours * HOUR_MS
     const last = input.lastRunAtMs[expectation.source]
+
+    if (ownerRoiMissingHeartbeatGrace(expectation.source, last, input.nowMs)) {
+      waiting.push(expectation.source)
+      continue
+    }
 
     if (typeof last === 'number' && Number.isFinite(last) && last > 0) {
       const ageMs = input.nowMs - last

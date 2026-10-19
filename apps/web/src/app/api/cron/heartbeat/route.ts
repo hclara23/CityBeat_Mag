@@ -9,6 +9,7 @@ import {
   REVENUE_BASELINE_DAYS,
   describeStaleCron,
   evaluateCronLiveness,
+  canReportLivenessRecovery,
   evaluateRevenueHealth,
   type RevenueSignal,
 } from '@/lib/ops-health'
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
           // the one that has to survive the operator not reading email.
           { escalate: true }
         )
-      } else {
+      } else if (canReportLivenessRecovery(liveness)) {
         await reportSuccess('cron:liveness')
       }
 

@@ -10,6 +10,8 @@ import {
   REVENUE_STALL_HOURS,
   describeStaleCron,
   evaluateCronLiveness,
+  canReportLivenessRecovery,
+  ownerRoiMissingHeartbeatGrace,
   evaluateRevenueHealth,
   parseAlertRecipients,
   type CronExpectation,
@@ -19,6 +21,29 @@ const HOUR = 3600_000
 const NOW = Date.parse('2026-09-05T12:00:00.000Z')
 
 const daily: CronExpectation[] = [{ source: 'cron:daily', label: 'daily job', maxAgeHours: 36 }]
+
+test('owner ROI missing-heartbeat exception expires automatically and cannot hide other stale jobs', () => {
+  const end = Date.parse('2026-11-02T15:00:00Z')
+  const expectations = [CRON_EXPECTATIONS.find(x => x.source === 'cron:owner-reports')!, ...daily]
+  const evaluate = (nowMs: number, lastRunAtMs: Record<string, number> = {}) => evaluateCronLiveness({
+    nowMs, lastRunAtMs, trackingSinceMs: Date.parse('2026-09-01T00:00:00Z'), expectations,
+  })
+  const before = evaluate(end - 1)
+  assert.deepEqual(before.waiting, ['cron:owner-reports'])
+  assert.deepEqual(before.stale.map(x => x.source), ['cron:daily'])
+  assert.equal(canReportLivenessRecovery(before), false)
+  assert.equal(canReportLivenessRecovery({ stale: [], waiting: ['cron:owner-reports'] }), false)
+  assert.ok(evaluate(end).stale.some(x => x.source === 'cron:owner-reports'))
+  assert.ok(evaluate(end + 1).stale.some(x => x.source === 'cron:owner-reports'))
+  const successful = evaluate(end - 1, { 'cron:owner-reports': end - HOUR, 'cron:daily': end - HOUR })
+  assert.deepEqual(successful.waiting, [])
+  assert.equal(canReportLivenessRecovery(successful), true)
+  const overdue = evaluate(end - 1, { 'cron:owner-reports': end - 900 * HOUR })
+  assert.ok(overdue.stale.some(x => x.source === 'cron:owner-reports'))
+  assert.equal(ownerRoiMissingHeartbeatGrace('cron:owner-reports', null, Date.parse('2026-10-18T23:59:59Z')), false)
+  assert.equal(ownerRoiMissingHeartbeatGrace('cron:other', null, end - 1), false)
+  assert.equal(ownerRoiMissingHeartbeatGrace('cron:owner-reports', NaN, end - 1), false)
+})
 
 test('a job that ran within its budget is on time, and one past it is stale', () => {
   const fresh = evaluateCronLiveness({
