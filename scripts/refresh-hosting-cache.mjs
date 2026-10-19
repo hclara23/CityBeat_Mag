@@ -34,10 +34,24 @@ if (apply) {
     operation = await poll.json()
   }
   assert.ok(operation.done && !operation.error, 'Hosting clone did not complete successfully')
-  const cloned = operation.response
-  assert.match(cloned?.name || '', /^sites\/kerstenblueprint\/versions\/[a-zA-Z0-9_-]+$/)
+  assert.match(operation.response?.name || '', /^sites\/kerstenblueprint\/versions\/[a-zA-Z0-9_-]+$/)
+  const detail = await fetch(`${base}/${operation.response.name}`, { headers, signal: AbortSignal.timeout(30000) })
+  assert.equal(detail.status, 200)
+  const cloned = await detail.json()
   assert.deepEqual(cloned.config, current.version.config, 'Cloned routing differs')
-  assert.equal(cloned.fileCount, current.version.fileCount, 'Cloned file count differs')
+  const filesFor = async name => {
+    const files = await fetch(`${base}/${name}/files?pageSize=1000`, { headers, signal: AbortSignal.timeout(30000) })
+    assert.equal(files.status, 200)
+    const data = await files.json()
+    assert.ok(!data.nextPageToken, 'File list needs pagination; refusing incomplete comparison')
+    return (data.files || []).map(file => ({ path: file.path, hash: file.hash })).sort((a, b) => a.path.localeCompare(b.path))
+  }
+  const clonedFiles = await filesFor(cloned.name)
+  const originalFiles = await filesFor(version)
+  assert.deepEqual(clonedFiles.map(file => file.path), originalFiles.map(file => file.path), 'Cloned paths differ')
+  // Hosting regenerates its reserved Firebase initialization files on clone.
+  const custom = files => files.filter(file => !['/__/firebase/init.js', '/__/firebase/init.json'].includes(file.path))
+  assert.deepEqual(custom(clonedFiles), custom(originalFiles), 'Custom hosted files differ')
   assert.equal(cloned.status, 'FINALIZED')
   const latest = await fetch(`${base}/sites/kerstenblueprint/releases?pageSize=1`, { headers, signal: AbortSignal.timeout(30000) })
   assert.equal(latest.status, 200)
