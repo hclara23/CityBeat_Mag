@@ -1,4 +1,4 @@
-// Re-release the existing Hosting version without changing any files or routing.
+// Clone and release the existing Hosting version without changing files or routing.
 // A Cloud Run traffic switch alone does not invalidate Firebase's cached HTML.
 import { execFileSync } from 'node:child_process'
 import assert from 'node:assert/strict'
@@ -21,11 +21,32 @@ assert.ok(current.version.config?.rewrites?.some(rule => rule.glob === '**' && r
 console.log(JSON.stringify({ currentRelease: current.name, version, fileCount: current.version.fileCount, apply }))
 if (apply) {
   assert.equal(version, expectedVersion, 'Hosting changed since inspection; refusing to overwrite another release')
-  const response = await fetch(`${base}/sites/kerstenblueprint/releases?versionName=${encodeURIComponent(version)}`, {
+  const clone = await fetch(`${base}/sites/kerstenblueprint/versions:clone`, {
+    method: 'POST', headers, body: JSON.stringify({ sourceVersion: version, finalize: true }), signal: AbortSignal.timeout(30000),
+  })
+  assert.equal(clone.status, 200, 'Hosting clone failed')
+  let operation = await clone.json()
+  for (let attempt = 0; !operation.done && attempt < 30; attempt++) {
+    assert.match(operation.name || '', /^sites\/kerstenblueprint\/versions\/[\w-]+\/operations\/[\w-]+$/)
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    const poll = await fetch(`${base}/${operation.name}`, { headers, signal: AbortSignal.timeout(30000) })
+    assert.equal(poll.status, 200)
+    operation = await poll.json()
+  }
+  assert.ok(operation.done && !operation.error, 'Hosting clone did not complete successfully')
+  const cloned = operation.response
+  assert.match(cloned?.name || '', /^sites\/kerstenblueprint\/versions\/[a-zA-Z0-9_-]+$/)
+  assert.deepEqual(cloned.config, current.version.config, 'Cloned routing differs')
+  assert.equal(cloned.fileCount, current.version.fileCount, 'Cloned file count differs')
+  assert.equal(cloned.status, 'FINALIZED')
+  const latest = await fetch(`${base}/sites/kerstenblueprint/releases?pageSize=1`, { headers, signal: AbortSignal.timeout(30000) })
+  assert.equal(latest.status, 200)
+  assert.equal((await latest.json()).releases?.[0]?.version?.name, version, 'Concurrent Hosting release detected')
+  const response = await fetch(`${base}/sites/kerstenblueprint/releases?versionName=${encodeURIComponent(cloned.name)}`, {
     method: 'POST', headers, body: JSON.stringify({ message: 'Refresh cached HTML after tested Cloud Run audit release; preserve existing files and routing.' }), signal: AbortSignal.timeout(30000),
   })
-  assert.equal(response.status, 200, 'Hosting refresh failed')
   const released = await response.json()
-  assert.equal(released.version?.name, version)
+  assert.equal(response.status, 200, `Hosting refresh failed: ${released.error?.message || response.status}`)
+  assert.equal(released.version?.name, cloned.name)
   console.log(JSON.stringify({ release: released.name, version: released.version.name, releaseTime: released.releaseTime }))
 }
