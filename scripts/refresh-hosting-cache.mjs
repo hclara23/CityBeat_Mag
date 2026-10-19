@@ -27,7 +27,7 @@ if (apply) {
   assert.equal(clone.status, 200, 'Hosting clone failed')
   let operation = await clone.json()
   for (let attempt = 0; !operation.done && attempt < 30; attempt++) {
-    assert.match(operation.name || '', /^sites\/kerstenblueprint\/versions\/[\w-]+\/operations\/[\w-]+$/)
+    assert.match(operation.name || '', /^projects\/854761587817\/operations\/[\w-]+$/)
     await new Promise(resolve => setTimeout(resolve, 1000))
     const poll = await fetch(`${base}/${operation.name}`, { headers, signal: AbortSignal.timeout(30000) })
     assert.equal(poll.status, 200)
