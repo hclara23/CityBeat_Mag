@@ -10478,11 +10478,15 @@
     {
       "id": "202610191908-95NZ4G",
       "title": "Diagnose owner ROI missing heartbeat alert",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "med",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "d81043829c0b06456cf4f3640bc8600de2144072",
+        "message": "🚧 95NZ4G start: fix successful no-work owner report heartbeat | details: add isolated regression tests blocking network and all delivery services; verify 17 tests and TypeScript without live cron invocation"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
@@ -10491,19 +10495,23 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: fix successful no-work owner report heartbeat | details: add isolated regression tests blocking network and all delivery services; verify 17 tests and TypeScript without live cron invocation"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: deploy owner ROI no-work heartbeat fix within approved budget | details: pass isolated regression checks and live read-only health probes; preserve scheduler and confirm no report job invocation during testing"
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-19T19:10:13+00:00",
+      "doc_updated_at": "2026-10-19T19:29:21+00:00",
       "doc_updated_by": "agentctl",
       "description": "Approved fix: record successful no-work heartbeat for owner ROI reports. Local mocked route regression tests only; no real reports, email, live cron execution or unapproved deployment spending.",
-      "doc": "## Summary\n\nFix successful owner ROI no-work runs that previously skipped the liveness heartbeat.\n\n## Scope\n\nRecord reportSuccess before the no_claimed_listings return. Add isolated route regressions for empty listings, unowned listings, query failure and rejected authorization. No production invocation, reporting or email.\n\n## Risks\n\nOnly successful no-work executions gain heartbeat recording. Existing report delivery flow is unchanged. Production alert remains until release and a genuine successful execution. No deployment spending approved.\n\n## Verify Steps\n\n17 targeted tests pass including ops health and isolated actual-route regressions. TypeScript passes. Every route dependency mocked; fetch blocked; unknown imports rejected; zero email or notification calls asserted.\n\n## Rollback Plan\n\nRevert the scoped route heartbeat change and regression test if needed. No production data or scheduler configuration changed.\n\n## Notes\n\nUser explicitly requires no reports or emails while testing. No live cron request or deployment performed."
+      "doc": "## Summary\n\nFix successful owner ROI no-work runs that previously skipped the liveness heartbeat.\n\n## Scope\n\nRecord reportSuccess before the no_claimed_listings return. Add isolated route regressions for empty listings, unowned listings, query failure and rejected authorization. No production invocation, reporting or email.\n\n## Risks\n\nOnly successful no-work executions gain heartbeat recording. Existing report delivery flow is unchanged. Production alert remains until release and a genuine successful execution. No deployment spending approved.\n\n## Verify Steps\n\n17 targeted tests pass including ops health and isolated actual-route regressions. TypeScript passes. Every route dependency mocked; fetch blocked; unknown imports rejected; zero email or notification calls asserted.\n\n## Rollback Plan\n\nRevert the scoped route heartbeat change and regression test if needed. No production data or scheduler configuration changed.\n\n## Notes\n\nReleased October 19 source d810438, production 100 percent citybeat-web-roi-d810438; digest sha256:d4d03163705b40a5797d1ba9c8bf213d0e66c0e35934fafc7a7bc2e46c5bdfbc. First build 26ced150 cancelled after stalled page-data collection; retried using existing scripts/customer-experience-cloudbuild.yaml network. Regional build 3e54ef9c-0d51-499d-aad3-3085c7da89ff SUCCESS in 4m12s. Combined estimated compute about USD0.10 below approved USD1 cap. Initial candidate cold health check timed out on Firestore; subsequent public checks twice healthy with app Firestore and Stripe ok. Homepage HTTP200. No owner-report endpoint invoked, no test reports or emails sent; scheduler lastAttempt remains October1, next November1. Existing liveness alert may persist until normal successful run. Rollback citybeat-web-cx-fe1db3c."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "db68e88b755472bde7484f24030dc94cd27ae196c1b29994e7cdeaf46ecf9964"
+    "checksum": "e98204f25a5b57fc7255c371daae4db2bfdbc6d19e8cac28d2b48b8c3d67ae28"
   }
 }
