@@ -135,7 +135,11 @@ export async function GET(request: NextRequest) {
     const listings = listingsSnap.docs
       .map((d) => ({ id: d.id, ...(d.data() as any) }))
       .filter((l: any) => l.owner_id)
-    if (listings.length === 0) return NextResponse.json({ ok: true, skipped: 'no_claimed_listings' })
+    if (listings.length === 0) {
+      // A successful no-work run is still a live scheduler execution.
+      await reportSuccess('cron:owner-reports')
+      return NextResponse.json({ ok: true, skipped: 'no_claimed_listings' })
+    }
 
     // Listing-scoped stats over the last 60 days (current + previous window),
     // grouped by listing — the accurate views/clicks/leads the owner CMS shows.
