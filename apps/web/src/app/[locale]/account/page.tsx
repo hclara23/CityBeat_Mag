@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useLocale } from '@/components/TranslationProvider'
 import { Navigation, Button, Input } from '@citybeat/ui'
 import { LocaleToggle } from '@/components/citybeat/LocaleToggle'
@@ -379,9 +380,9 @@ export default function AccountPage() {
                 <p className="font-medium text-gray-900">Password</p>
                 <p className="text-sm text-gray-500 mt-1">Change your password</p>
               </div>
-              <a href="/reset-password" className="text-blue-600 hover:text-blue-700 font-medium">
+              <Link href={withLocale(locale, '/reset-password')} className="text-blue-600 hover:text-blue-700 font-medium">
                 Update
-              </a>
+              </Link>
             </div>
 
             <div className="flex items-center justify-between pt-4">

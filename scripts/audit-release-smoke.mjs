@@ -28,6 +28,23 @@ const health = JSON.parse(payment.text)
 assert.equal(health.can_take_payments, true)
 assert.equal(health.detail, null, 'Stripe probe must not be unreachable or failed')
 console.log(`Payment probe revision: ${health.revision}`)
+const listingId = process.argv[3]
+if (listingId) {
+  assert.match(listingId, /^[A-Za-z0-9_-]+$/)
+  const listing = await check(`/api/directory/${listingId}`, [200])
+  const parsed = JSON.parse(listing.text)
+  const record = parsed.listing || parsed
+  assert.equal(record.is_published, true)
+  for (const locale of ['en', 'es']) {
+    const page = await check(`/${locale}/directory/${listingId}`, [200])
+    assert.ok(page.text.includes(record.name), 'Business identity is rendered')
+    assert.ok(page.text.includes('application/ld+json'), 'Business structured data')
+    assert.ok(page.text.includes('tel:'), 'Call action is rendered')
+    assert.ok(!page.text.includes(' is a auto repair'), 'Fallback grammar')
+    assert.ok(!page.text.includes('claim_token_hash'), 'Private claim data must not be rendered')
+  }
+  console.log(`Reference listing: ${record.name}; tier=${record.tier}; phone=${record.phone}`)
+}
 const pixel = await check('/pixel.js?id=smoke-test&key=12345678901234567890', [200])
 assert.ok(pixel.text.includes('citybeatPixel'))
 await check('/pixel.js?id=bad/id&key=short', [400])
