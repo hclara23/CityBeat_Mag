@@ -10326,12 +10326,50 @@
       "doc_updated_by": "agentctl",
       "description": "Increase qualified lead conversion by adding a prominent bilingual call action to public directory listing contact cards, reusing validated listing phone numbers and existing click analytics, with safe rendering for listings without phones.",
       "doc": "## Summary\n\nAdd and release a prominent bilingual telephone conversion action on public business listing contact cards.\n\n## Scope\n\nUpdate the directory detail client to render Call Now or Llamar ahora only when a listing has a usable phone number; preserve the existing number link and map actions; record the call interaction with the established listing analytics endpoint; add focused automated coverage and deploy to production.\n\n## Risks\n\nMalformed phone values could produce unusable tel links, analytics must not block navigation, and the new control must remain readable on mobile and in both locales.\n\n## Verify Steps\n\nRun npm test, npm --prefix apps/web run type-check, and npm --prefix apps/web run build. Verify live English and Spanish listing pages show the call action only when a phone exists and that its destination is a tel URL.\n\n## Rollback Plan\n\nRevert the scoped component and test commit, redeploy the prior main revision, and confirm the original phone and map links remain operational.\n\n## Notes\n\nUser approved implementation and Google Cloud deployment under the previously stated one-time  cap with no new recurring charge."
+    },
+    {
+      "id": "202610190548-H00E3Z",
+      "title": "Audit CityBeat website and directory",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "audit",
+        "frontend",
+        "seo",
+        "accessibility",
+        "analytics",
+        "security"
+      ],
+      "verify": [
+        "npm test"
+      ],
+      "commit": {
+        "hash": "e6e38f8feb2deb183ccc2ae11d9f61dc1cecfe7a",
+        "message": "📋 202610190548-H00E3Z document production site audit findings"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: map the application architecture, inspect live English and Spanish user journeys, run automated quality checks, and report prioritized findings without changing production."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: all 667 automated tests pass, TypeScript and production build succeed, representative English and Spanish live routes return healthy rendered content, and prioritized audit evidence is documented without production changes."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-19T05:57:25+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Perform a read-only evidence-backed audit of the live CityBeat website and repository across public UX, bilingual behavior, directory conversion flows, SEO, accessibility, analytics, performance, reliability, and security; deliver prioritized findings without modifying production.",
+      "doc": "## Summary\n\nRead-only audit of the CityBeat public website, directory product, conversion paths, bilingual experience, SEO, accessibility, analytics, performance, reliability, and security.\n\n## Scope\n\nMap the codebase from the existing Graphify graph; inspect representative live English and Spanish pages on desktop and mobile; run repository tests and static checks; inspect metadata, structured data, tracking, authentication boundaries, and conversion flows; produce evidence-backed prioritized recommendations. No production mutations or purchases.\n\n## Risks\n\nLive results may vary by authentication, cache, third-party availability, and production data. The audit will distinguish verified defects from risks or recommendations and will avoid submitting forms, initiating payments, or editing external accounts.\n\n## Verify Steps\n\nRun npm test and applicable static/build checks; inspect live representative routes and response metadata; validate bilingual pages, directory phone/no-phone behavior, analytics hooks, robots and sitemap behavior, accessibility signals, and key API failure modes.\n\n## Rollback Plan\n\nNo application or production changes are authorized. Remove only audit-generated local artifacts if requested; task documentation remains the audit record.\n\n## Notes\n\nAudit completed against the current Firebase/Cloud Run application only; retired Sanity paths were excluded. Evidence and prioritized findings are recorded in docs/audits/citybeat-site-audit-2026-10-18.md. No production behavior was changed or deployed."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "c33ee2ff14c3b13afd10561f44b5d2a0ca834749f23845f84108b95649c4b3cb"
+    "checksum": "77b23a4a1d7c3bf942f3e4d90a2edbd2f2bf9260dd0ab223c8338c5669d30891"
   }
 }
