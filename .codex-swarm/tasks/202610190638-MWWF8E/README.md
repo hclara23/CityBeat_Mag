@@ -1,13 +1,15 @@
 ---
 id: "202610190638-MWWF8E"
 title: "Deploy audit remediation candidate and verify release"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "e9f5b25cd5552af9dab73306be5337e73a02b245", message: "✅ MWWF8E record live release gates cost and CDN cache remediation" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: user approved one-dollar one-time deployment; build no-traffic candidate, run release checks and promote exact revision only if gates pass." }
+  - { author: "ORCHESTRATOR", body: "verified: candidate and live public release gates pass | details: 673 tests, 37 smoke checks, four localized SEO/CSP checks and browser navigation. Exact revision promoted; CDN refreshed; cost estimate documented." }
 doc_version: 2
 doc_updated_at: "2026-10-19T07:09:08+00:00"
 doc_updated_by: "agentctl"

@@ -10381,6 +10381,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "Blocked: source remediation and re-audit pass build, TypeScript, 673 tests and zero production advisories. Full closure needs Cloudflare reporting credentials, authorized GA verification and release approval; development-toolchain advisories remain documented."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Remediation deployed under release task 202610190638-MWWF8E. All public release gates pass; retain BLOCKED for Cloudflare missing reporting token, GA reporting access and ten dev-only advisories."
         }
       ],
       "doc_version": 2,
@@ -10392,27 +10396,36 @@
     {
       "id": "202610190638-MWWF8E",
       "title": "Deploy audit remediation candidate and verify release",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "e9f5b25cd5552af9dab73306be5337e73a02b245",
+        "message": "✅ MWWF8E record live release gates cost and CDN cache remediation"
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
           "body": "Start: user approved one-dollar one-time deployment; build no-traffic candidate, run release checks and promote exact revision only if gates pass."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: candidate and live public release gates pass | details: 673 tests, 37 smoke checks, four localized SEO/CSP checks and browser navigation. Exact revision promoted; CDN refreshed; cost estimate documented."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-19T06:38:02+00:00",
+      "doc_updated_at": "2026-10-19T07:09:08+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Deploy commit 457e84b with no traffic under the approved one-dollar one-time cap, test candidate, promote only on passing release checks, and verify public production with rollback available."
+      "description": "Deploy commit 457e84b with no traffic under the approved one-dollar one-time cap, test candidate, promote only on passing release checks, and verify public production with rollback available.",
+      "doc": "## Summary\n\nDeployed and verified citybeat-web-audit-ef346a3 at 100 percent traffic; all 37 public smoke checks and four localized SEO/CSP checks pass. Evidence: docs/audits/citybeat-release-2026-10-19.md.\n\n## Scope\n\nFinal application source ef346a3. Existing runtime credentials and Hosting routing preserved. Hosting clone/cache refresh verified; estimated build compute USD 0.1755 under approved USD 1 one-time cap.\n\n## Risks\n\nNext/React major migration and nonce CSP require candidate checks. Existing Cloudflare missing reporting token, GA operator access and dev-only advisories remain separate open findings. Do not claim provider analytics verified.\n\n## Verify Steps\n\nRun localized response security assertions, public and private route smoke checks, payment authentication probe, malformed checkout/webhook rejection, sitemap cold/warm checks and browser navigation. Repeat on public origin after exact-revision promotion.\n\n## Rollback Plan\n\nKeep citybeat-web-00336-yen serving while candidate is tested. On failed candidate gate do not promote. On post-promotion failure route 100 percent back to that exact revision, preserving runtime credentials."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "84e1bace5f48b101e9497f3d921785b7bd2fc04779c0d684bcfa6e3f03ae66ab"
+    "checksum": "8466b53278d75e12c8f240a10d4e1e5449d4e1eb9b8ee245eec70fc4eef67b46"
   }
 }
