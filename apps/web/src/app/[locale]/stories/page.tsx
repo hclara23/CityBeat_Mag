@@ -10,11 +10,12 @@ import { MachelleStoryCard } from '@/components/citybeat/MachelleStoryCard'
 export const dynamic = 'force-dynamic'
 
 type Props = {
-  params: { locale: string }
-  searchParams: { category?: string }
+  params: Promise<{ locale: string }>
+  searchParams: Promise<{ category?: string }>
 }
 
-export function generateMetadata({ params }: Props): Metadata {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const isEs = params.locale === 'es'
   const title = isEs ? 'Noticias y reportajes de El Paso · CityBeat' : 'El Paso News & Stories · CityBeat'
   const description = isEs
@@ -43,7 +44,9 @@ const categoryLabels: Record<string, { en: string; es: string }> = {
   sports: { en: 'Sports', es: 'Deportes' },
 }
 
-export default async function StoriesPage({ params, searchParams }: Props) {
+export default async function StoriesPage(props: Props) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const locale = (params.locale || 'en') as Locale
   const selected =
     searchParams.category && (CATEGORY_IDS as readonly string[]).includes(searchParams.category)

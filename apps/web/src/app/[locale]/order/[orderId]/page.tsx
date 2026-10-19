@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react';
 import Link from 'next/link'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
@@ -11,7 +11,8 @@ import { orderStatusHeadline, orderStatusSteps } from '@/lib/order-status'
 // ?access= token. Shows a plain timeline (paid → details → review → live) so a
 // buyer can see exactly where their order stands — previously there was no
 // answer to "where is my order" anywhere in the product.
-export default function OrderStatusPage({ params }: { params: { orderId: string } }) {
+export default function OrderStatusPage(props: { params: Promise<{ orderId: string }> }) {
+  const params = use(props.params);
   const locale = useLocale() as 'en' | 'es'
   const isEs = locale === 'es'
   const [order, setOrder] = useState<any>(null)

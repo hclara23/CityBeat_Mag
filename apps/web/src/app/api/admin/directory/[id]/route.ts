@@ -27,7 +27,8 @@ async function requireEditor() {
 }
 
 // PATCH /api/admin/directory/[id] — update any field on a listing (admin only)
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id } = params
   const auth = await requireEditor()
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
@@ -85,7 +86,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 // DELETE /api/admin/directory/[id] — permanently delete a listing
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id } = params
   const auth = await requireEditor()
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })

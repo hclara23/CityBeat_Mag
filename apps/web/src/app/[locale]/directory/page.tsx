@@ -4,7 +4,8 @@ import { localeAlternates } from '@/lib/seo'
 import { getNonEmptyCombos } from '@/lib/local-seo'
 import DirectoryPageClient from './DirectoryPageClient'
 
-export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const isEs = params.locale === 'es'
   const title = isEs
     ? 'Directorio de negocios de El Paso · CityBeat'
@@ -91,7 +92,8 @@ async function BrowseByCategory({ locale }: { locale: string }) {
   )
 }
 
-export default function DirectoryPage({ params }: { params: { locale: string } }) {
+export default async function DirectoryPage(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
   const locale = params.locale === 'es' ? 'es' : 'en'
   return <DirectoryPageClient browseLinks={<BrowseByCategory locale={locale} />} />
 }

@@ -3,13 +3,23 @@ import Link from 'next/link'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { DirectoryPlanComparison } from '@/components/citybeat/DirectoryPlanComparison'
 import { withLocale, type Locale } from '@/components/citybeat/content'
+import { localeAlternates } from '@/lib/seo'
 
-export const metadata: Metadata = {
-  title: 'Premium Business Listings · CityBeat',
-  description: 'Turn your CityBeat business listing into a measurable local customer channel with full leads, richer content, and performance reporting.',
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const params = await props.params;
+  const es = params.locale === 'es'
+  const title = es ? 'Fichas de negocios Premium · CityBeat' : 'Premium Business Listings · CityBeat'
+  const description = es
+    ? 'Convierte tu ficha de CityBeat en un canal de clientes medible con prospectos completos, contenido enriquecido y reportes de resultados.'
+    : 'Turn your CityBeat business listing into a measurable local customer channel with full leads, richer content, and performance reporting.'
+  const alternates = localeAlternates(params.locale, '/premium')
+  return { title, description, alternates,
+    openGraph: { title, description, url: alternates.canonical, type: 'website', images: ['/api/og'] },
+    twitter: { card: 'summary_large_image', title, description, images: ['/api/og'] } }
 }
 
-export default function PremiumPage({ params }: { params: { locale: string } }) {
+export default async function PremiumPage(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
   const locale: Locale = params.locale === 'es' ? 'es' : 'en'
   const es = locale === 'es'
   const outcomes = es
@@ -17,7 +27,7 @@ export default function PremiumPage({ params }: { params: { locale: string } }) 
     : ['Calls, website clicks, directions, and leads in one dashboard', 'Complete contact details for every lead', 'Bilingual content, offers, services, and action buttons', 'Monthly reporting and a printable performance summary']
   return (
     <CityBeatShell locale={locale}>
-      <main className="container-wide py-16">
+      <div className="container-wide py-16">
         <section className="grid gap-10 lg:grid-cols-[1.1fr_.9fr] lg:items-center">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-neon">{es ? 'Crece con CityBeat' : 'Grow with CityBeat'}</p>
@@ -40,7 +50,7 @@ export default function PremiumPage({ params }: { params: { locale: string } }) 
         <section className="mt-16 grid gap-4 md:grid-cols-2">{outcomes.map((item) => <div key={item} className="rounded-xl border border-white/10 bg-white/[0.03] p-5 text-sm font-bold text-white/75"><span className="mr-2 text-brand-neon">✓</span>{item}</div>)}</section>
         <div id="compare" className="mt-16"><DirectoryPlanComparison locale={locale} ctaHref={withLocale(locale, '/directory')} /></div>
         <section className="mt-16 rounded-2xl border border-brand-gold/25 bg-brand-gold/[0.05] p-8 text-center"><h2 className="font-display text-3xl font-black uppercase text-white">{es ? 'Sin promesas infladas.' : 'No inflated promises.'}</h2><p className="mx-auto mt-3 max-w-3xl text-sm leading-relaxed text-white/60">{es ? 'Premium no garantiza una posición en Google ni un número de clientes. Te da una ficha más completa, mejores oportunidades de SEO, prospectos completos y medición transparente.' : 'Premium does not guarantee a Google position or a number of customers. It gives you a richer listing, stronger SEO opportunities, complete leads, and transparent measurement.'}</p></section>
-      </main>
+      </div>
     </CityBeatShell>
   )
 }

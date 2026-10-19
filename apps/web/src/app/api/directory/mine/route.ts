@@ -6,7 +6,7 @@ import { resolveEntitlements, resolveListingPatchAccess } from '@/lib/directory-
 
 export const dynamic = 'force-dynamic'
 
-function readonlyCookieStore(store: Awaited<ReturnType<typeof cookies>>) {
+function readonlyCookieStore(store: Awaited<Awaited<ReturnType<typeof cookies>>>) {
   return { getAll: () => store.getAll(), setAll: () => {} }
 }
 

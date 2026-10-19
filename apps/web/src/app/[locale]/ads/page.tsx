@@ -1,16 +1,32 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
+import { localeAlternates } from '@/lib/seo'
 import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { AddToCartButton } from '@/components/citybeat/cart/AddToCartButton'
 import { getAdProducts, withLocale, AD_KEY_TO_SALES_PRODUCT, type Locale } from '@/components/citybeat/content'
 
 type AdsPageProps = {
-  params: {
+  params: Promise<{
     locale: string
-  }
+  }>
 }
 
-export default function AdsPage({ params }: AdsPageProps) {
+export async function generateMetadata(props: AdsPageProps): Promise<Metadata> {
+  const params = await props.params;
+  const es = params.locale === 'es'
+  const title = es ? 'Publicidad para negocios de El Paso | CityBeat' : 'Advertise Your El Paso Business | CityBeat'
+  const description = es
+    ? 'Promociona tu negocio con publicidad en el boletín, historias patrocinadas y banners de CityBeat. Compara opciones y precios para tu campaña local.'
+    : 'Promote your business with CityBeat newsletter placements, sponsored stories and banners. Compare options and pricing for your local campaign.'
+  const alternates = localeAlternates(params.locale, '/ads')
+  return { title, description, alternates,
+    openGraph: { title, description, url: alternates.canonical, type: 'website', images: ['/api/og'] },
+    twitter: { card: 'summary_large_image', title, description, images: ['/api/og'] } }
+}
+
+export default async function AdsPage(props: AdsPageProps) {
+  const params = await props.params;
   const locale = (params.locale || 'en') as Locale
   const adProducts = getAdProducts(locale)
   const copy = {

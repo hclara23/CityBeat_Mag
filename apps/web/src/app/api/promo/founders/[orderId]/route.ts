@@ -26,7 +26,8 @@ export const runtime = 'nodejs'
 // route mints a FRESH session on every click, then redirects into Stripe.
 // The promo itself is carried as session metadata; the webhook applies the
 // 3-months-free coupon only after the first invoice is actually paid.
-export async function GET(request: NextRequest, { params }: { params: Promise<{ orderId: string }> }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ orderId: string }> }) {
+  const params = await props.params;
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY
   if (!stripeSecretKey) return NextResponse.json({ error: 'Stripe configuration missing' }, { status: 500 })
 

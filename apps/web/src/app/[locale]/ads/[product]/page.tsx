@@ -15,15 +15,15 @@ import { isBotSubmission } from '@/lib/form-spam'
 import { genuineProbability, isJevSpam } from '@/lib/jev'
 
 type ProductPageProps = {
-  params: {
+  params: Promise<{
     locale: string
     product: string
-  }
+  }>
   // Reading searchParams makes this route render dynamically instead of being
   // prerendered. That is the price of showing the customer whether their
   // enquiry actually arrived; the page fetches nothing (all copy is static, no
   // Firestore reads), so the cost is CPU, not the read bill.
-  searchParams?: { contact?: string }
+  searchParams?: Promise<{ contact?: string }>
 }
 
 const ADS_INBOX = 'ads@citybeatmag.co'
@@ -105,7 +105,7 @@ async function submitAdInquiry(formData: FormData) {
   // getClientIp only reads request.headers, and a Server Action has no Request.
   // Hand it the incoming headers rather than re-deriving the trusted-proxy hop
   // logic, which is security-sensitive and belongs in exactly one place.
-  const ip = getClientIp({ headers: headers() } as unknown as Request)
+  const ip = getClientIp({ headers: await headers() } as unknown as Request)
   const limit = await checkRateLimit(`ads-inquiry:ip:${ip}`, { max: 10, windowMs: 60 * 60 * 1000 })
   if (!limit.ok) redirect(`${base}?contact=throttled`)
 
@@ -182,7 +182,9 @@ async function submitAdInquiry(formData: FormData) {
   redirect(`${base}?contact=${stored ? 'ok' : 'failed'}`)
 }
 
-export default function ProductPage({ params, searchParams }: ProductPageProps) {
+export default async function ProductPage(props: ProductPageProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const locale = (params.locale || 'en') as Locale
   const adProducts = getAdProducts(locale)
   const productKey = params.product as AdProductKey

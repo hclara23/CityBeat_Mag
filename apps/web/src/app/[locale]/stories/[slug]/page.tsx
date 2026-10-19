@@ -18,10 +18,11 @@ export const dynamic = 'force-dynamic'
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
 
 type Props = {
-  params: { locale: string; slug: string }
+  params: Promise<{ locale: string; slug: string }>
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const article = await getArticleBySlug(params.slug)
   if (!article) return { title: 'Story not found · CityBeat' }
   const isEs = params.locale === 'es'
@@ -49,7 +50,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function StoryPage({ params }: Props) {
+export default async function StoryPage(props: Props) {
+  const params = await props.params;
   const locale = (params.locale || 'en') as Locale
   const article = await getArticleBySlug(params.slug)
 

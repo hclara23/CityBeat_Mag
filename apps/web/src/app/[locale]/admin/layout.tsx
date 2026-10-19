@@ -14,13 +14,18 @@ export const dynamic = 'force-dynamic'
 // (login even redirects a sales-only account to /admin/sales/me, straight
 // into that bounce) — splitting the gate by route group is what makes "sales
 // rep access" actually possible without loosening the editorial-only pages.
-export default async function AdminLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode
-  params: { locale: string }
-}) {
+export default async function AdminLayout(
+  props: {
+    children: React.ReactNode
+    params: Promise<{ locale: string }>
+  }
+) {
+  const params = await props.params;
+
+  const {
+    children
+  } = props;
+
   const locale = params.locale || 'en'
   const user = await getServerUser()
   if (!user) {

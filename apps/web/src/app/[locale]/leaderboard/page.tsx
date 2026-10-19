@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { localeAlternates } from '@/lib/seo'
 import LeaderboardClient from './LeaderboardClient'
 
-export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const isEs = params.locale === 'es'
   const title = isEs ? 'Tabla de colaboradores · CityBeat' : 'Contributor Leaderboard · CityBeat'
   const description = isEs

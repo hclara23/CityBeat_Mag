@@ -11,8 +11,9 @@ export const dynamic = 'force-dynamic'
 // the listing, not the plan. Empty response clears the reply.
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string; reviewId: string } }
+  props: { params: Promise<{ id: string; reviewId: string }> }
 ) {
+  const params = await props.params;
   const { id: listingId, reviewId } = params
   if (!listingId || !reviewId) {
     return NextResponse.json({ error: 'Missing listing or review ID' }, { status: 400 })

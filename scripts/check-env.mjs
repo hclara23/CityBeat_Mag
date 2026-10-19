@@ -24,6 +24,14 @@ import { fileURLToPath } from 'node:url'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const manifest = JSON.parse(readFileSync(join(ROOT, 'infra/cloud-run/env.json'), 'utf8'))
 const { service, project, region } = manifest
+// Select an already-authenticated operator explicitly without changing gcloud's
+// global account or silently trying unrelated accounts.
+const accountIndex = process.argv.indexOf('--account')
+const account = accountIndex < 0 ? null : process.argv[accountIndex + 1]
+if (accountIndex >= 0 && (!account || account.startsWith('--'))) {
+  console.error('--account requires an authenticated Google account email')
+  process.exit(2)
+}
 
 let raw
 try {
@@ -32,6 +40,7 @@ try {
     [
       'run', 'services', 'describe', service,
       '--project', project, '--region', region,
+      ...(account ? ['--account', account] : []),
       // Ask gcloud for names only, so no secret value is ever fetched.
       '--format=value(spec.template.spec.containers[0].env[].name)',
     ],

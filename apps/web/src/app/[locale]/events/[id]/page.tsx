@@ -20,7 +20,8 @@ const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
 
 type Params = { locale: string; id: string }
 
-export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<Params> }): Promise<Metadata> {
+  const params = await props.params;
   const e = await getEventById(params.id)
   if (!e) return { title: 'Event not found · CityBeat' }
   const isEs = params.locale === 'es'
@@ -45,7 +46,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   }
 }
 
-export default async function EventDetail({ params }: { params: Params }) {
+export default async function EventDetail(props: { params: Promise<Params> }) {
+  const params = await props.params;
   const e = await getEventById(params.id)
   if (!e) notFound()
   const isEs = params.locale === 'es'

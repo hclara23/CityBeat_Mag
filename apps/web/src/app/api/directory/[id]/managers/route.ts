@@ -52,7 +52,8 @@ function managerIds(listing: Record<string, any>): string[] {
 }
 
 // GET: the current team (owner + staff only — includes manager emails).
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!params.id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
   const auth = await authorizeTeamAccess(params.id)
   if (!auth.ok) return auth.res
@@ -79,7 +80,8 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 // POST { email }: invite a manager by email. The person must already have a
 // CityBeat account (matching Firebase Auth email) so access binds to a real,
 // authenticated identity.
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!params.id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
   const auth = await authorizeTeamAccess(params.id)
   if (!auth.ok) return auth.res
@@ -168,7 +170,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 }
 
 // DELETE { userId }: revoke a manager.
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!params.id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
   const auth = await authorizeTeamAccess(params.id)
   if (!auth.ok) return auth.res

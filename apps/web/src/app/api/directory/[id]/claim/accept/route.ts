@@ -12,7 +12,8 @@ export const runtime = 'nodejs'
 // requires the customer to be signed in with the EXACT recorded email and to
 // present the signed, single-use, unexpired token. Free listings activate on
 // acceptance; paid listings only bind ownership (the tier stays gated on Stripe).
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id: listingId } = params
   if (!listingId) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
 

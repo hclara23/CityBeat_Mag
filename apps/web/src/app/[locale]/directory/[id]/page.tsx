@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { cache } from 'react'
+import { unstable_cache } from 'next/cache'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { jsonLdSafe } from '@/lib/jsonld'
 import { breadcrumbJsonLd } from '@/lib/seo'
@@ -9,8 +10,7 @@ import DirectoryDetailClient from './DirectoryDetailClient'
 import { categoryLabel } from '@/lib/categories'
 import { parsePostalAddress, schemaOpeningHours, schemaTypeForCategory } from '@/lib/listing-seo'
 
-// ISR: cache the rendered page for 15 min. (Was force-dynamic, which silently
-// overrode this revalidate — every crawl of all ~6,700 listings re-read Firestore.)
+// HTML uses fresh CSP nonces; cache the public listing data for 15 minutes.
 export const revalidate = 900
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
@@ -22,11 +22,18 @@ type Params = { locale: string; id: string }
 // page actually rank and show rich results — the core of the Premium SEO perk.
 // cache() dedupes the read across generateMetadata + the component within one
 // request, so each business page hits Firestore once instead of twice.
+const getCachedListing = unstable_cache(async (id: string): Promise<any | null> => {
+  const doc = await adminDb.collection('directory_listings').doc(id).get()
+  // Keep billing state server-side until the final public serialization. Stripping
+  // twice can incorrectly downgrade a paid listing whose complimentary trial ended.
+  return doc.exists && doc.data()?.is_published !== false ? toPlain({ id: doc.id, ...(doc.data() as any) }) : null
+}, ['public-listing-v1'], { revalidate: 900 })
+
 const getListing = cache(async (id: string): Promise<any | null> => {
   try {
-    const doc = await adminDb.collection('directory_listings').doc(id).get()
-    return doc.exists && doc.data()?.is_published !== false ? { id: doc.id, ...(doc.data() as any) } : null
+    return await getCachedListing(id)
   } catch {
+    // Database errors are not cached as a missing listing for 15 minutes.
     return null
   }
 })
@@ -115,7 +122,8 @@ function cityFromAddress(address?: string | null): string | null {
   return m ? m[1].trim() : null
 }
 
-export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<Params> }): Promise<Metadata> {
+  const params = await props.params;
   const listing = await getListing(params.id)
   if (!listing) return { title: 'Business not found · CityBeat', robots: { index: false, follow: false } }
 
@@ -132,7 +140,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     (typeof rawDesc === 'string' && rawDesc.trim().slice(0, 155)) ||
     (locale === 'es'
       ? `${name} es un negocio de ${cat.toLowerCase()} en ${city}. Ve horarios, fotos, reseñas y contacto en CityBeat.`
-      : `${name} is a ${cat.toLowerCase()} in ${city}. See hours, photos, reviews, and contact info on CityBeat.`)
+      : `Discover ${name} in ${city}. Category: ${cat}. See hours, photos, reviews, and contact information on CityBeat.`)
 
   const image = listing.image_url || `${BASE}/api/og?title=${encodeURIComponent(name)}&eyebrow=${encodeURIComponent(cat)}`
   // Only index published listings; keep unpublished/merged out of the index.
@@ -253,7 +261,8 @@ function buildSchema(
   }
 }
 
-export default async function DirectoryDetailPage({ params }: { params: Params }) {
+export default async function DirectoryDetailPage(props: { params: Promise<Params> }) {
+  const params = await props.params;
   const listing = await getListing(params.id)
   const locale = params.locale === 'es' ? 'es' : 'en'
   const indexable = listing && listing.is_published !== false && !listing.merged_into

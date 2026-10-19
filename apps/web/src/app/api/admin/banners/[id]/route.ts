@@ -25,7 +25,8 @@ const PLACEMENTS = ['home_top', 'directory', 'sidebar', 'newsletter']
 const EDITABLE = ['sponsor_name', 'title', 'description', 'image_url', 'link_url', 'is_active']
 
 // PATCH — update a banner
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const auth = await requireDeveloper()
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   if (!params.id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
@@ -85,7 +86,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 // DELETE — remove a banner
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const auth = await requireDeveloper()
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   if (!params.id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })

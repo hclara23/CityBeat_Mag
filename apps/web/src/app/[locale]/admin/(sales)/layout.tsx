@@ -13,13 +13,18 @@ export const dynamic = 'force-dynamic'
 // bouncing at the door. 2FA is still mandatory: these pages create Stripe
 // checkouts and approve paid listings, which is privileged enough to require
 // it even without a broader admin role.
-export default async function AdminSalesLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode
-  params: { locale: string }
-}) {
+export default async function AdminSalesLayout(
+  props: {
+    children: React.ReactNode
+    params: Promise<{ locale: string }>
+  }
+) {
+  const params = await props.params;
+
+  const {
+    children
+  } = props;
+
   const locale = params.locale || 'en'
   const user = await getServerUser()
   if (!user) redirect(`/${locale}/login?redirectTo=/admin`)

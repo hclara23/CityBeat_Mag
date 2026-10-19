@@ -32,7 +32,7 @@ export function Button({
   const finalClassName = `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`
 
   if (asChild) {
-    return React.cloneElement(children as React.ReactElement, {
+    return React.cloneElement(children as React.ReactElement<React.HTMLAttributes<HTMLElement>>, {
       className: finalClassName,
       ...props,
     })

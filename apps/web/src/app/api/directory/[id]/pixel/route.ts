@@ -45,13 +45,15 @@ function publicConfig(listing: Record<string, any>, id: string) {
   }
 }
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const result = await authorizedListing(params.id)
   if ('response' in result) return result.response
   return NextResponse.json(publicConfig(result.listing, params.id))
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const result = await authorizedListing(params.id)
   if ('response' in result) return result.response
   const body = await request.json().catch(() => ({}))
@@ -72,7 +74,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   return NextResponse.json(publicConfig({ ...result.listing, conversion_pixel }, params.id))
 }
 
-export async function POST(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const result = await authorizedListing(params.id)
   if ('response' in result) return result.response
   const existing = result.listing.conversion_pixel || {}
@@ -91,7 +94,8 @@ export async function POST(_request: NextRequest, { params }: { params: { id: st
   return NextResponse.json(publicConfig({ ...result.listing, conversion_pixel }, params.id))
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const result = await authorizedListing(params.id)
   if ('response' in result) return result.response
   const conversion_pixel = {

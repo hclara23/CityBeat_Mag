@@ -2,7 +2,6 @@
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
-  swcMinify: true,
   // The Novu Inbox UI (@novu/react, wrapped by @novu/nextjs) is built on Solid.js;
   // its Solid deps use exports maps webpack can't resolve without transpiling them.
   transpilePackages: [
@@ -75,11 +74,8 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           {
-            // Defense-in-depth against XSS/clickjacking. 'unsafe-inline' is required
-            // for Next's hydration/inline styles (a nonce-based policy is a future
-            // hardening step); the high-value lockdowns (object-src, base-uri,
-            // frame-ancestors, form-action) are strict. Allowlists cover Stripe,
-            // Firebase/Google, and image hosts the app actually uses.
+            // Non-HTML fallback. Middleware supplies a fresh nonce-based policy
+            // for HTML and Next hydration; inline styles remain supported.
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
@@ -87,7 +83,8 @@ const nextConfig = {
               "object-src 'none'",
               "frame-ancestors 'self'",
               "form-action 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com https://www.googletagmanager.com https://apis.google.com https://static.cloudflareinsights.com",
+              // HTML responses receive the nonce policy from middleware.
+              "script-src 'self'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",

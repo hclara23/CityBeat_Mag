@@ -17,7 +17,8 @@ function toIso(v: any): string | null {
 }
 
 // GET: Fetch reviews for a listing, joining reviewer profiles
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id } = params
   if (!id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
 
@@ -50,7 +51,8 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 }
 
 // POST: Leave a review, updating listing rating aggregates + owner notifications
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id } = params
   if (!id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
 

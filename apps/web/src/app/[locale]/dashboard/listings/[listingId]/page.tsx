@@ -66,7 +66,8 @@ function toOwnerListing(id: string, raw: any) {
   }
 }
 
-export default async function OwnerListingCmsPage({ params }: { params: Params }) {
+export default async function OwnerListingCmsPage(props: { params: Promise<Params> }) {
+  const params = await props.params;
   const locale = params.locale === 'es' ? 'es' : 'en'
 
   const user = await getServerUser()

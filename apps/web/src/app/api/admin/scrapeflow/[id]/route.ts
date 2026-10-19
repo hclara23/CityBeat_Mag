@@ -20,7 +20,8 @@ async function requireDeveloper() {
 }
 
 // GET — one workflow + its recent runs
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const auth = await requireDeveloper()
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   const workflow = await getWorkflow(params.id)
@@ -30,7 +31,8 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 }
 
 // PATCH — update name/description/definition/enabled/interval
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const auth = await requireDeveloper()
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   const body = await request.json().catch(() => ({}))
@@ -49,7 +51,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   return NextResponse.json({ workflow })
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const auth = await requireDeveloper()
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   const ok = await deleteWorkflow(params.id)

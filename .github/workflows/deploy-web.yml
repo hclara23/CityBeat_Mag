@@ -17,6 +17,8 @@ on:
     paths:
       - 'apps/web/**'
       - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
       - 'Dockerfile'
       - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
@@ -52,7 +54,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -60,6 +62,9 @@ jobs:
 
       - name: Type check
         run: npm run type-check --workspace=apps/web
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=low
 
       # Gate the deploy on the test suite. Until now tests ran only in a separate
       # workflow that could not block a release, so a red suite still shipped to
@@ -86,11 +91,20 @@ jobs:
       - name: Deploy candidate revision (no traffic)
         id: candidate
         run: |
+          # Missing repository secrets must not erase existing production values.
+          ENV_UPDATES='GA4_PROPERTY_ID=542822471,CLOUDFLARE_ACCOUNT_ID=432be79cf4999bafe57cd2d8ef9bc527,CLOUDFLARE_WEB_ANALYTICS_SITE_TAG=23b04154c5e5490f9d6aca6edfefeffa'
+          for key in ELEVATE_PARTNER_SECRET CLOUDFLARE_ANALYTICS_API_TOKEN GBP_GOOGLE_CLIENT_ID GBP_GOOGLE_CLIENT_SECRET GBP_OAUTH_STATE_SECRET GBP_TOKEN_ENCRYPTION_KEY; do
+            if [[ -n "${!key}" ]]; then
+              ENV_UPDATES+=",${key}=${!key}"
+            else
+              echo "::warning::${key} absent in CI; preserving existing production configuration."
+            fi
+          done
           gcloud run deploy "$SERVICE" \
             --source . \
             --project "$GCP_PROJECT" \
             --region "$GCP_REGION" \
-            --update-env-vars ELEVATE_PARTNER_SECRET="$ELEVATE_PARTNER_SECRET",GA4_PROPERTY_ID="542822471",CLOUDFLARE_ACCOUNT_ID="432be79cf4999bafe57cd2d8ef9bc527",CLOUDFLARE_WEB_ANALYTICS_SITE_TAG="23b04154c5e5490f9d6aca6edfefeffa",CLOUDFLARE_ANALYTICS_API_TOKEN="$CLOUDFLARE_ANALYTICS_API_TOKEN",GBP_GOOGLE_CLIENT_ID="$GBP_GOOGLE_CLIENT_ID",GBP_GOOGLE_CLIENT_SECRET="$GBP_GOOGLE_CLIENT_SECRET",GBP_OAUTH_STATE_SECRET="$GBP_OAUTH_STATE_SECRET",GBP_TOKEN_ENCRYPTION_KEY="$GBP_TOKEN_ENCRYPTION_KEY" \
+            --update-env-vars "$ENV_UPDATES" \
             --memory=2Gi \
             --cpu=1 \
             --concurrency=80 \

@@ -11,7 +11,8 @@ export const metadata: Metadata = { title: 'Audience & Accounts · CityBeat', ro
 
 type Params = { locale: string }
 
-export default async function AudiencePage({ params }: { params: Params }) {
+export default async function AudiencePage(props: { params: Promise<Params> }) {
+  const params = await props.params;
   const locale = params.locale === 'es' ? 'es' : 'en'
   // Server-enforced developer-only — never the client redirect alone.
   const user = await getServerUser()

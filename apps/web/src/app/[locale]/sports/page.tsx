@@ -6,10 +6,12 @@ import { getPublishedArticles } from '@/lib/articles'
 import { localeAlternates } from '@/lib/seo'
 
 export const dynamic = 'force-dynamic'
-export function generateMetadata({ params }: { params: { locale: string } }) {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
   return { title: params.locale === 'es' ? 'Deportes de El Paso · CityBeat' : 'El Paso Sports · CityBeat', alternates: localeAlternates(params.locale, '/sports') }
 }
-export default async function SportsPage({ params }: { params: { locale: string } }) {
+export default async function SportsPage(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
   const locale = (params.locale === 'es' ? 'es' : 'en') as Locale
   const es = locale === 'es'
   let unavailable = false

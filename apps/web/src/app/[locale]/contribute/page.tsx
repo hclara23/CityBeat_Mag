@@ -467,7 +467,7 @@ function Field({
   const errId = `field-${uid}-err`
   const childId = isValidElement(children) ? (children as any).props.id || fieldId : undefined
   const control = isValidElement(children)
-    ? cloneElement(children as React.ReactElement, {
+    ? cloneElement(children as React.ReactElement<React.HTMLAttributes<HTMLElement>>, {
         id: childId,
         'aria-invalid': error ? true : (children as any).props['aria-invalid'],
         'aria-describedby': error

@@ -10,7 +10,7 @@ import { localeAlternates } from '@/lib/seo'
 export const dynamic = 'force-dynamic'
 
 type Props = {
-  params: { locale: string; category: string }
+  params: Promise<{ locale: string; category: string }>
 }
 
 const categoryLabels: Record<string, { en: string; es: string }> = {
@@ -20,7 +20,8 @@ const categoryLabels: Record<string, { en: string; es: string }> = {
   culture: { en: 'Culture', es: 'Cultura' },
 }
 
-export function generateMetadata({ params }: Props): Metadata {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const isEs = params.locale === 'es'
   const label = categoryLabels[params.category]
   if (!label) return {}
@@ -42,7 +43,8 @@ export function generateMetadata({ params }: Props): Metadata {
   }
 }
 
-export default async function TopicPage({ params }: Props) {
+export default async function TopicPage(props: Props) {
+  const params = await props.params;
   const locale = (params.locale || 'en') as Locale
   const category = params.category
 

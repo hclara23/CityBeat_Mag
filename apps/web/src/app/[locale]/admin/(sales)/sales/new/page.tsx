@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation'
 
-export default function LegacyNewSaleRedirect({
-  params,
-  searchParams,
-}: {
-  params: { locale: string }
-  searchParams: Record<string, string | string[] | undefined>
-}) {
+export default async function LegacyNewSaleRedirect(
+  props: {
+    params: Promise<{ locale: string }>
+    searchParams: Promise<Record<string, string | string[] | undefined>>
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const query = new URLSearchParams()
   for (const [key, value] of Object.entries(searchParams || {})) {
     if (typeof value === 'string') query.set(key, value)

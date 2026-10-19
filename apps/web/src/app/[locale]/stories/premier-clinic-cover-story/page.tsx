@@ -5,7 +5,8 @@ import { coverStory } from '@/lib/cover-story'
 import { jsonLdSafe } from '@/lib/jsonld'
 import { localeAlternates } from '@/lib/seo'
 
-export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const params = await props.params;
   return {
     title: `${coverStory.title} · CityBeat Cover Story`,
     description: coverStory.excerpt,
@@ -16,7 +17,8 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
   }
 }
 
-export default function PremierCoverStoryPage({ params }: { params: { locale: string } }) {
+export default async function PremierCoverStoryPage(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
   return <CityBeatShell locale={params.locale}>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe({
       '@context': 'https://schema.org', '@type': 'Article',

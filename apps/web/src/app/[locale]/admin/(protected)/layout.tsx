@@ -9,13 +9,18 @@ export const dynamic = 'force-dynamic'
 // godmode sales agent, and the Admin Hub itself). The parent layout already
 // confirmed a user is signed in; this adds the actual role check plus the
 // mandatory 2FA enrollment for privileged accounts.
-export default async function AdminProtectedLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode
-  params: { locale: string }
-}) {
+export default async function AdminProtectedLayout(
+  props: {
+    children: React.ReactNode
+    params: Promise<{ locale: string }>
+  }
+) {
+  const params = await props.params;
+
+  const {
+    children
+  } = props;
+
   const locale = params.locale || 'en'
   const user = await getServerUser()
   if (!user) redirect(`/${locale}/login?redirectTo=/admin`)

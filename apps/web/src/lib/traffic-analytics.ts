@@ -93,6 +93,7 @@ export async function fetchCloudflareAnalytics(days: RangeDays): Promise<Provide
     const body = await response.json()
     if (!response.ok || body.errors?.length) throw new Error(body.errors?.[0]?.message || `HTTP ${response.status}`)
     const account = body.data?.viewer?.accounts?.[0]
+    if (!account) throw new Error('Configured Cloudflare account was not returned; check token scope.')
     const map = (items: any[], field: string) => (items || []).map((item) => ({ label: item.dimensions?.[field] || 'Unknown', value: n(item.count) }))
     return {
       source: 'cloudflare', status: 'ok',

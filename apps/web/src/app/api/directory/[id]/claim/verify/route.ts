@@ -11,7 +11,8 @@ function createdMs(v: any): number {
   return 0
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id: listingId } = params
   if (!listingId) {
     return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })

@@ -7,17 +7,14 @@ import { unstable_cache } from 'next/cache'
 import { coverStory } from '@/lib/cover-story'
 import machelleStory from '@/lib/machelle-story.json'
 
-// ISR: regenerate at most hourly (was force-dynamic, so every /sitemap.xml hit
-// ran full scans of listings + articles + events + jobs + the 24 category reads).
-// Runtime-only DB scans keep image builds credential-free. Cache hourly below.
-export const dynamic = 'force-dynamic'
+// Called only by the runtime route; credential-free builds never scan Firestore.
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
 
 function entry(path: string, lastModified?: Date): MetadataRoute.Sitemap[number] {
   return {
     url: `${BASE}/en${path}`,
-    lastModified: lastModified || new Date(),
+    ...(lastModified ? { lastModified } : {}),
     alternates: { languages: { en: `${BASE}/en${path}`, es: `${BASE}/es${path}`, 'x-default': `${BASE}/en${path}` } },
   }
 }
@@ -92,7 +89,7 @@ async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   return urls
 }
 
-const cachedSitemap = unstable_cache(buildSitemap, ['public-sitemap-v3'], { revalidate: 3600 })
+const cachedSitemap = unstable_cache(buildSitemap, ['public-sitemap-v4'], { revalidate: 3600 })
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return cachedSitemap()
 }

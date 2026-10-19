@@ -6,14 +6,15 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { redirect } from 'next/navigation'
 
 type CampaignsPageProps = {
-  params: {
+  params: Promise<{
     locale: string
-  }
+  }>
 }
 
 export const dynamic = 'force-dynamic'
 
-export default async function CampaignsPage({ params }: CampaignsPageProps) {
+export default async function CampaignsPage(props: CampaignsPageProps) {
+  const params = await props.params;
   const locale = (params.locale || 'en') as Locale
   const adProducts = getAdProducts(locale)
 

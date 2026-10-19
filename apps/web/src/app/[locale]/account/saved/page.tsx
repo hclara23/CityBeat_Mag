@@ -10,10 +10,11 @@ import { getArticleById, getArticleBySlug, type Article } from '@/lib/articles'
 export const dynamic = 'force-dynamic'
 
 type Props = {
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }
 
-export default async function SavedPage({ params }: Props) {
+export default async function SavedPage(props: Props) {
+  const params = await props.params;
   const locale = (params.locale || 'en') as Locale
   const user = await getServerUser()
 

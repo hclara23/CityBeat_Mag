@@ -72,7 +72,8 @@ function mapWithDeletes(sanitized: Record<string, string>, allKeys: readonly str
 }
 
 // GET: Fetch single listing details
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id } = params
   if (!id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
 
@@ -95,7 +96,8 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 }
 
 // PATCH: Update fields by approved owner or admin/editor
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id } = params
   if (!id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
 

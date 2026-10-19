@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character] || character))
+  return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character] || character));
 }
 
 function accessError(error: unknown) {
@@ -81,7 +81,8 @@ async function sendResumeLinkOnce(input: {
   )
 }
 
-export async function GET(request: NextRequest, { params }: { params: { orderId: string } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ orderId: string }> }) {
+  const params = await props.params;
   try {
     const result = await authorized(request, params.orderId)
     const schema = getSalesIntakeSchema(result.order.intake_kind)
@@ -99,7 +100,8 @@ export async function GET(request: NextRequest, { params }: { params: { orderId:
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { orderId: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ orderId: string }> }) {
+  const params = await props.params;
   try {
     const result = await authorized(request, params.orderId)
     if (result.order.intake_status === 'submitted') {
@@ -132,7 +134,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { orderI
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { orderId: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ orderId: string }> }) {
+  const params = await props.params;
   try {
     const result = await authorized(request, params.orderId)
     const schema = getSalesIntakeSchema(result.order.intake_kind)

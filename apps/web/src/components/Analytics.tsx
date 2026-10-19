@@ -3,6 +3,7 @@
 import Script from 'next/script'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
+import { queueGooglePageView } from '@/lib/analytics-queue'
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 const CF_TOKEN = process.env.NEXT_PUBLIC_CF_WEB_ANALYTICS_TOKEN
@@ -24,7 +25,7 @@ export function trackAnalyticsEvent(name: string, params: AnalyticsParams = {}) 
 //     dashboard shows real numbers even before Google Analytics is configured.
 //  2. Google Analytics 4: loads gtag and sends page_view, but only when
 //     NEXT_PUBLIC_GA_MEASUREMENT_ID is set.
-export function Analytics() {
+export function Analytics({ nonce }: { nonce?: string }) {
   const pathname = usePathname()
   const lastPath = useRef<string | null>(null)
 
@@ -49,9 +50,10 @@ export function Analytics() {
       /* ignore */
     }
 
-    // GA4 SPA page view (config is set with send_page_view:false to avoid dupes).
-    if (GA_ID && typeof (window as any).gtag === 'function') {
-      ;(window as any).gtag('event', 'page_view', {
+    // Create the queue synchronously, before the external script can load.
+    // A first visit must not disappear just because gtag loads after this effect.
+    if (GA_ID) {
+      queueGooglePageView(window as any, GA_ID, {
         page_path: pathname,
         page_location: window.location.href,
         page_title: document.title,
@@ -65,17 +67,12 @@ export function Analytics() {
     <>
       {GA_ID ? (
         <>
-          <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
-          <Script id="ga4-init" strategy="afterInteractive">
-            {`window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${GA_ID}', { send_page_view: false });`}
-          </Script>
+          <Script nonce={nonce} src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
         </>
       ) : null}
       {CF_TOKEN ? (
         <Script
+          nonce={nonce}
           src="https://static.cloudflareinsights.com/beacon.min.js"
           strategy="afterInteractive"
           data-cf-beacon={JSON.stringify({ token: CF_TOKEN, spa: true })}

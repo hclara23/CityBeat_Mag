@@ -24,7 +24,8 @@ async function requireDeveloper() {
 // POST — run a workflow now. Body: { dryRun?: boolean }. Dry run executes every
 // phase (including AI extraction) but the directory sink only reports what it
 // WOULD insert — the safe way to preview a new source.
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const auth = await requireDeveloper()
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
   const workflow = await getWorkflow(params.id)

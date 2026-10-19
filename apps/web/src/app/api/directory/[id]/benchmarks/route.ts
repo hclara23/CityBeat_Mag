@@ -12,7 +12,8 @@ export const runtime = 'nodejs'
 // Category/competitor benchmarks — a Featured entitlement. Returns anonymized
 // aggregates only, and only when the cohort is large enough (enforced by
 // computeCategoryBenchmark) so no single competitor is identifiable.
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id } = params
   if (!id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
 

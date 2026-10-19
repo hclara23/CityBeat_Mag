@@ -13,8 +13,9 @@ export const runtime = 'nodejs'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { locale: string; code: string } }
+  props: { params: Promise<{ locale: string; code: string }> }
 ) {
+  const params = await props.params;
   const locale = params.locale === 'es' ? 'es' : 'en'
   const code = normalizeReferralCode(params.code)
   const destination = new URL(`/${locale}/directory`, request.url)

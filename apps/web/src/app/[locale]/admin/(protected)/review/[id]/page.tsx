@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use, type JSX } from 'react';
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -68,11 +68,12 @@ function renderContent(content: any) {
   return <pre className="text-xs text-white/50 overflow-x-auto">{JSON.stringify(content, null, 2)}</pre>
 }
 
-export default function ReviewArticlePage({ params }: { params: { id: string } }) {
+export default function ReviewArticlePage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params);
   const router = useRouter()
   const locale = useLocale() as 'en' | 'es'
   const { id } = params
-  
+
   const [article, setArticle] = useState<Article | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isBusy, setIsBusy] = useState(false)

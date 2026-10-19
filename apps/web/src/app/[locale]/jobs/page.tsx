@@ -7,7 +7,8 @@ import { jsonLdSafe } from '@/lib/jsonld'
 
 export const dynamic = 'force-dynamic'
 
-export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const isEs = params.locale === 'es'
   const title = isEs ? 'Empleos en El Paso · CityBeat' : 'Jobs in El Paso · CityBeat'
   const description = isEs
@@ -36,13 +37,14 @@ interface Job {
   created_at: string
 }
 
-export default async function JobsPage({ params }: { params: { locale: string } }) {
+export default async function JobsPage(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
   const locale = params?.locale || 'en'
   const isEs = locale === 'es'
   // Fetch active paid jobs
   let jobs: Job[] = []
   let error: any = null
-  
+
   try {
     const jobsSnapshot = await adminDb.collection('jobs')
       .where('is_paid', '==', true)

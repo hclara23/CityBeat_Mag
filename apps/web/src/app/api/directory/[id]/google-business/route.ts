@@ -6,7 +6,8 @@ import { GBP_CONNECTIONS, discoverGbpLocations, fetchGbpLocation, gbpImportPatch
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const access = await requireGbpListingAccess(params.id)
   if ('error' in access) return NextResponse.json({ error: access.error }, { status: access.status })
   const connection = await adminDb.collection(GBP_CONNECTIONS).doc(params.id).get()
@@ -14,7 +15,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   return NextResponse.json({ configured: googleOAuthConfigured(), connected: connection.exists && data?.status === 'connected', selected_location: data?.selected_location || null, locations: data?.locations || [], last_synced_at: data?.last_synced_at || null, error: data?.last_error || null })
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const access = await requireGbpListingAccess(params.id)
   if ('error' in access) return NextResponse.json({ error: access.error }, { status: access.status })
   const body = await request.json().catch(() => ({})) as any

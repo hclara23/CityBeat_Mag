@@ -22,7 +22,8 @@ function maskContact(value: string, type: 'email' | 'sms'): string {
   return digits.length >= 4 ? `•••• ${digits.slice(-4)}` : value
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id: listingId } = params
   if (!listingId) {
     return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })

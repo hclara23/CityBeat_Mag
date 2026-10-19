@@ -13,14 +13,15 @@ import { affiliateTicketUrl } from '@/lib/affiliate'
 import type { Metadata } from 'next'
 import { localeAlternates } from '@/lib/seo'
 type HomePageProps = {
-  params: {
+  params: Promise<{
     locale: string
-  }
+  }>
 }
 
 export const dynamic = 'force-dynamic'
 
-export function generateMetadata({ params }: HomePageProps): Metadata {
+export async function generateMetadata(props: HomePageProps): Promise<Metadata> {
+  const params = await props.params;
   const isEs = params.locale === 'es'
   const title = isEs
     ? 'CityBeat — Noticias locales, eventos y directorio de negocios de El Paso'
@@ -41,7 +42,8 @@ export function generateMetadata({ params }: HomePageProps): Metadata {
   }
 }
 
-export default async function Home({ params }: HomePageProps) {
+export default async function Home(props: HomePageProps) {
+  const params = await props.params;
   const locale = (params.locale || 'en') as Locale
   const published = await getPublishedArticles({ limit: 3 })
   const importedStories = published.map((article) => ({
@@ -57,7 +59,7 @@ export default async function Home({ params }: HomePageProps) {
 
   // Upcoming, publicly-visible events (excludes pending submissions + past events).
   const dbEvents = (await getUpcomingEvents(3)) as any[]
-  
+
   const staticEvents = getEvents(locale)
   const events = dbEvents && dbEvents.length > 0 
     ? dbEvents.map(e => ({

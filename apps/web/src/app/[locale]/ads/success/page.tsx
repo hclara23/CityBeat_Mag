@@ -3,12 +3,13 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 
 type SuccessPageProps = {
-  params: {
+  params: Promise<{
     locale: string
-  }
+  }>
 }
 
-export default function SuccessPage({ params }: SuccessPageProps) {
+export default async function SuccessPage(props: SuccessPageProps) {
+  const params = await props.params;
   const locale = params.locale || 'en'
   const isEs = locale === 'es'
 

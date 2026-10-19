@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 
-export default function ReviewQueueRedirect({ params }: { params: { locale: string } }) {
+export default async function ReviewQueueRedirect(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
   const locale = params.locale === 'es' ? 'es' : 'en'
   redirect(`/${locale}/admin`)
 }

@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { headers } from 'next/headers'
 import { Space_Grotesk } from 'next/font/google'
 import { getMessages, locales } from '@/i18n'
 import { TranslationProvider } from '@/components/TranslationProvider'
@@ -25,15 +26,13 @@ type Props = {
   }>
 }
 
-export function generateStaticParams() {
-  // Generate locale pages on first request with runtime database credentials.
-  // Prebuilding them queried Firestore inside credential-free Docker builds and
-  // timed out. Individual page revalidation/cache policies remain unchanged.
-  return [] as Array<{ locale: string }>
-}
+// Nonce-bearing HTML must be rendered per request, including the first visit.
+// Public database reads use explicit unstable_cache independently of this HTML.
+export const dynamic = 'force-dynamic'
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params
+  const nonce = (await headers()).get('x-nonce') || undefined
 
   // Reject anything that is not a real locale. generateStaticParams does not
   // RESTRICT anything — the pages under here render
@@ -60,7 +59,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         <PostHogProvider phKey={process.env.NEXT_PUBLIC_POSTHOG_KEY} phHost={process.env.NEXT_PUBLIC_POSTHOG_HOST}>
           <TranslationProvider locale={locale} messages={messages}>
             <SiteJsonLd locale={lang} />
-            <Analytics />
+            <Analytics nonce={nonce} />
             <OutreachVerify />
             <div className="citybeat-app">{children}</div>
           </TranslationProvider>

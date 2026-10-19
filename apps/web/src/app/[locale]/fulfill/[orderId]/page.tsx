@@ -1,6 +1,6 @@
 'use client'
 
-import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState, use } from 'react';
 import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { useLocale } from '@/components/TranslationProvider'
@@ -16,7 +16,8 @@ function formatMoney(cents: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((cents || 0) / 100)
 }
 
-export default function CustomerFulfillmentWizard({ params }: { params: { orderId: string } }) {
+export default function CustomerFulfillmentWizard(props: { params: Promise<{ orderId: string }> }) {
+  const params = use(props.params);
   const locale = useLocale() as 'en' | 'es'
   // The intake API mails a Spanish buyer an /es/fulfill link on purpose (it
   // reads order.locale, stamped at checkout), and this page rendered a wholly

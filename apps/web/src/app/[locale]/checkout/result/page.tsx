@@ -3,11 +3,13 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 
 type CheckoutResultProps = {
-  params: { locale: string }
-  searchParams?: { status?: string; billing?: string }
+  params: Promise<{ locale: string }>
+  searchParams?: Promise<{ status?: string; billing?: string }>
 }
 
-export default function CheckoutResultPage({ params, searchParams }: CheckoutResultProps) {
+export default async function CheckoutResultPage(props: CheckoutResultProps) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const locale = params.locale === 'es' ? 'es' : 'en'
   const isEs = locale === 'es'
   const paid = searchParams?.status === 'success'

@@ -3,12 +3,13 @@ import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { withLocale } from '@/components/citybeat/content'
 
 type OrdersPageProps = {
-  params: {
+  params: Promise<{
     locale: string
-  }
+  }>
 }
 
-export default function OrdersPage({ params }: OrdersPageProps) {
+export default async function OrdersPage(props: OrdersPageProps) {
+  const params = await props.params;
   const locale = params.locale || 'en'
 
   return (

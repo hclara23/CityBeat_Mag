@@ -22,7 +22,8 @@ export const runtime = 'nodejs'
 // - analyticsExport (+ ?format=csv): CSV download (formula-injection safe).
 // Protected data never leaks to non-entitled callers — the response is shaped
 // server-side by the resolved entitlements, not by hiding UI.
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id } = params
   if (!id) return NextResponse.json({ error: 'Missing listing ID' }, { status: 400 })
 

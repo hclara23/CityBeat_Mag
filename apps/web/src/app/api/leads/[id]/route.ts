@@ -7,7 +7,8 @@ import { resolveEntitlements, resolveListingPatchAccess } from '@/lib/directory-
 
 export const dynamic = 'force-dynamic'
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const user = await getServerUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const body = await request.json().catch(() => ({}))

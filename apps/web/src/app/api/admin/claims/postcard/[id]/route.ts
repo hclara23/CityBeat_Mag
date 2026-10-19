@@ -7,7 +7,8 @@ import { privilegedDenial } from '@/lib/privileged-access'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const { id: claimId } = params
   if (!claimId) return NextResponse.json({ error: 'Missing claim ID' }, { status: 400 })
 

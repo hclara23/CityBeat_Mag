@@ -11,7 +11,8 @@ import { localeAlternates } from '@/lib/seo'
 const path = `/stories/${story.slug}`
 const photo = '/print/machelle-wood-speaking.webp'
 
-export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const params = await props.params;
   return {
     title: `${story.title} · Machelle Wood · CityBeat`, description: story.excerpt,
     ...(story.author ? { authors: [{ name: story.author }] } : {}),
@@ -21,7 +22,8 @@ export function generateMetadata({ params }: { params: { locale: string } }): Me
   }
 }
 
-export default function MachelleStoryPage({ params }: { params: { locale: string } }) {
+export default async function MachelleStoryPage(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
   const locale = params.locale === 'es' ? 'es' : 'en'
   const url = `https://citybeatmag.co/${locale}${path}`
   const share = { locale, url, title: story.title } as const

@@ -12,7 +12,8 @@ export const revalidate = 3600
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
 
-export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const isEs = params.locale === 'es'
   const title = isEs
     ? 'Qué hacer este fin de semana en El Paso · CityBeat'
@@ -43,7 +44,8 @@ function fmtTime(date: string, locale: string) {
   return d.toLocaleTimeString(locale === 'es' ? 'es-MX' : 'en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
-export default async function ThisWeekendPage({ params }: { params: { locale: string } }) {
+export default async function ThisWeekendPage(props: { params: Promise<{ locale: string }> }) {
+  const params = await props.params;
   const isEs = params.locale === 'es'
   const { events, label } = await getThisWeekendEvents()
 

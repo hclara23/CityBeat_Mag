@@ -20,7 +20,8 @@ const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citybeatmag.co'
 
 type Params = { locale: string; category: string; city: string }
 
-export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<Params> }): Promise<Metadata> {
+  const params = await props.params;
   const cat = findCategory(params.category)
   const city = findCity(params.city)
   if (!cat || !city) return { title: 'Not found · CityBeat' }
@@ -50,7 +51,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   }
 }
 
-export default async function LocalBestPage({ params }: { params: Params }) {
+export default async function LocalBestPage(props: { params: Promise<Params> }) {
+  const params = await props.params;
   const cat = findCategory(params.category)
   const city = findCity(params.city)
   if (!cat || !city) notFound()

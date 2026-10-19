@@ -42,7 +42,8 @@ const getJob = cache(async (id: string): Promise<Job | null> => {
   }
 })
 
-export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<Params> }): Promise<Metadata> {
+  const params = await props.params;
   const job = await getJob(params.id)
   if (!job) return { title: 'Job not found · CityBeat', robots: { index: false, follow: true } }
   const isEs = params.locale === 'es'
@@ -61,7 +62,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   }
 }
 
-export default async function JobDetailPage({ params }: { params: Params }) {
+export default async function JobDetailPage(props: { params: Promise<Params> }) {
+  const params = await props.params;
   const job = await getJob(params.id)
   if (!job) notFound()
   const isEs = params.locale === 'es'

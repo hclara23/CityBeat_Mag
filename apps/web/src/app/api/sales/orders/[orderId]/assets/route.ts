@@ -25,7 +25,8 @@ function uploadAllowed(orderId: string) {
   return true
 }
 
-export async function POST(request: NextRequest, { params }: { params: { orderId: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ orderId: string }> }) {
+  const params = await props.params;
   try {
     const result = await authorizePaidSalesOrder({
       orderId: params.orderId,
