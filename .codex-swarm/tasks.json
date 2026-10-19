@@ -10444,12 +10444,34 @@
       "doc_updated_by": "agentctl",
       "description": "Approved read-only live desktop/mobile customer journeys and source inspection. Report severity, reproduction, value perception and prioritized recommendations; no deployment spending purchases or customer messages.",
       "doc": "## Summary\n\nCompleted read-only customer experience audit with 15 prioritized findings, live reproduction evidence, source references, feature/value assessment and acceptance gates. Report: docs/audits/citybeat-customer-experience-audit-2026-10-19.md. No application changes or deployment.\n\n## Scope\n\nPublic desktop/mobile journeys, source-inspected owner features, read-only API diagnostics. No purchases messages production changes or deployment.\n\n## Risks\n\nAnonymous audit cannot prove authenticated owner workflows or real conversions; distinguish observation, code evidence and judgment.\n\n## Verify Steps\n\nLive desktop and 390px mobile public journeys inspected with screenshots viewed, DOM measurements and API checks; source traced authenticated boundaries. Audit cart cleared and viewport reset. Report distinguishes live evidence, source-only findings and untested financial/authenticated operations. git diff --check required before commit.\n\n## Rollback Plan\n\nNo application changes. Audit documents only; revert scoped documentation commit if necessary."
+    },
+    {
+      "id": "202610190727-THW0F6",
+      "title": "Remediate customer experience audit and release",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "202610190711-B76N4T"
+      ],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: implement approved audit findings and verify candidate before promotion within explicit one dollar deployment cap."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-19T07:27:34+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Implement F01-F15 from approved customer experience audit, regression test and deploy candidate then promote only after verification. Approved Google Cloud one-time cap USD1, no new recurring services. No subagents or customer financial mutations.",
+      "doc": "## Summary\n\nImplement all fifteen approved customer experience audit fixes and release after candidate verification.\n\n## Scope\n\nF01-F15 in audit 2026-10-19. Single-agent implementation, tests, source review and candidate deployment with USD1 one-time cap; no new recurring services or financial settings.\n\n## Risks\n\nPublic navigation, claims and reporting changes require regression coverage; no live customer charges or messages for tests.\n\n## Verify Steps\n\nRun targeted and full test suite, type check and production build, candidate HTTP and browser checks before promotion; document each finding and remaining limits.\n\n## Rollback Plan\n\nRetain current production revision citybeat-web-audit-ef346a3; route traffic back on regression."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "42a31924f5330b5d7307582d63031eea0f565969fd9cecfbd39793cd62393464"
+    "checksum": "940e978cdd1cffec78e9605a4b0feed6c0052d827f015da1513ee8ce3285c31f"
   }
 }
