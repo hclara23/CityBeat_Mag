@@ -10534,12 +10534,32 @@
       "doc_updated_by": "agentctl",
       "description": "Approved targeted exception only for missing owner ROI heartbeat until November 2 2026 15:00 UTC, 24 hours after scheduled November1 run. Preserve actual failure alerts and all other liveness alerts. No live cron or email tests.",
       "doc": "## Summary\n\nOne-time missing-heartbeat grace for owner ROI until November2 2026 15:00 UTC.\n\n## Scope\n\nOnly cron:owner-reports with absent heartbeat enters waiting. Recorded stale runs and other jobs still alert. Heartbeat does not emit liveness recovery while owner report is waiting.\n\n## Risks\n\nProduction unchanged until deployment. Fixed absolute expiry needs no scheduled cleanup. Actual owner-report execution failures remain untouched; no heartbeat fabricated.\n\n## Verify Steps\n\n18 isolated targeted tests pass: before/at/after expiry, other stale jobs, actual recorded stale run, real success, no artificial recovery, no delivery calls. TypeScript passes. No production cron invoked.\n\n## Rollback Plan\n\nRevert scoped grace and recovery gate without changing data or scheduler.\n\n## Notes\n\nDeployed October19 source73f0cae. Build88a14465-82b0-4e57-a08c-f9d3d02658b5 SUCCESS 4m04s, estimated compute USD0.064; combined heartbeat and suppression builds approximately USD0.16 within same USD1 cap. Production100 percent citybeat-web-roi-grace-73f0cae digest sha256:d5e1d0d7267d9b336b10ef3aab8e0d04fa841c3aea0c72d034431e28c9644811. Initial candidate startup Firestore timeout resolved; two candidate checks and public health healthy. No cron/report/email endpoint invoked. Scheduler lastAttempt October1 unchanged, next November1. Grace expires automatically November2 15:00UTC, 08:00America/Denver; actual failures and other liveness alerts unchanged. No fake heartbeat or recovery notification. Rollback citybeat-web-roi-d810438."
+    },
+    {
+      "id": "202610202341-R7SRW4",
+      "title": "Assess El Paso directory coverage and reusable sources",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: execute approved read-only coverage inventory and source research without subagents or production changes."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-20T23:41:37+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Read-only inventory and source assessment approved October 20. Measure published inventory, duplicates, category and ZIP coverage, source provenance and completeness; recommend compliant expansion and search priorities. No imports, deployments, spending or subagents.",
+      "doc": "## Summary\n\nAssess El Paso directory coverage and reusable sources without changing production.\n\n## Scope\n\nInventory existing listings, quality, category and ZIP distribution; source terms and gaps; recommend next-stage work. No imports, paid services, deployment or subagents.\n\n## Risks\n\nInventory is not a count of all active businesses. Duplicates require location-aware review. Source licenses and database reads may constrain collection. No financial authorization assumed.\n\n## Verify Steps\n\nReconcile aggregate counts; inspect live read-only data if available; verify source terms against official documentation; distinguish observed inventory from estimated coverage.\n\n## Rollback Plan\n\nNo production mutation. Revert only assessment artifacts if required."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "2a7dc31e3c2825f5f81d26a4a4e7adc8c97aa8e543590d91c65ab1038ec925ae"
+    "checksum": "9c343f7b597d4715af507bd6ef48ac78c9908af5910a27d97a332d3d4243c67a"
   }
 }

@@ -1,0 +1,516 @@
+{
+  "observedAt": "2026-10-20T23:44:08.479Z",
+  "results": [
+    {
+      "id": "jrea-zgmq",
+      "name": "Active Sales Tax Permit Holders",
+      "metadataUrl": "https://data.texas.gov/api/views/jrea-zgmq.json",
+      "license": {
+        "name": "Public Domain"
+      },
+      "licenseId": "PUBLIC_DOMAIN",
+      "updatedAt": "2026-10-17T10:31:10.000Z",
+      "where": "outlet_state='TX' AND outlet_city='EL PASO'",
+      "count": [
+        {
+          "records": "18877"
+        }
+      ],
+      "byZip": [
+        {
+          "outlet_zip_code": "79936",
+          "records": "2589"
+        },
+        {
+          "outlet_zip_code": "79912",
+          "records": "2255"
+        },
+        {
+          "outlet_zip_code": "79925",
+          "records": "1727"
+        },
+        {
+          "outlet_zip_code": "79938",
+          "records": "1653"
+        },
+        {
+          "outlet_zip_code": "79915",
+          "records": "1065"
+        },
+        {
+          "outlet_zip_code": "79901",
+          "records": "973"
+        },
+        {
+          "outlet_zip_code": "79907",
+          "records": "963"
+        },
+        {
+          "outlet_zip_code": "79928",
+          "records": "909"
+        },
+        {
+          "outlet_zip_code": "79902",
+          "records": "865"
+        },
+        {
+          "outlet_zip_code": "79924",
+          "records": "860"
+        },
+        {
+          "outlet_zip_code": "79932",
+          "records": "833"
+        },
+        {
+          "outlet_zip_code": "79905",
+          "records": "784"
+        },
+        {
+          "outlet_zip_code": "79903",
+          "records": "641"
+        },
+        {
+          "outlet_zip_code": "79935",
+          "records": "510"
+        },
+        {
+          "outlet_zip_code": "79904",
+          "records": "455"
+        },
+        {
+          "outlet_zip_code": "79934",
+          "records": "378"
+        },
+        {
+          "outlet_zip_code": "79922",
+          "records": "377"
+        },
+        {
+          "outlet_zip_code": "79930",
+          "records": "373"
+        },
+        {
+          "outlet_zip_code": "79911",
+          "records": "215"
+        },
+        {
+          "outlet_zip_code": "79927",
+          "records": "187"
+        },
+        {
+          "outlet_zip_code": "79906",
+          "records": "131"
+        },
+        {
+          "outlet_zip_code": "79835",
+          "records": "74"
+        },
+        {
+          "outlet_zip_code": "79908",
+          "records": "27"
+        },
+        {
+          "outlet_zip_code": "79968",
+          "records": "10"
+        },
+        {
+          "outlet_zip_code": "79918",
+          "records": "9"
+        },
+        {
+          "outlet_zip_code": "79916",
+          "records": "5"
+        },
+        {
+          "outlet_zip_code": "79920",
+          "records": "2"
+        },
+        {
+          "outlet_zip_code": "79917",
+          "records": "1"
+        },
+        {
+          "outlet_zip_code": "79926",
+          "records": "1"
+        },
+        {
+          "outlet_zip_code": "79705",
+          "records": "1"
+        },
+        {
+          "outlet_zip_code": "79910",
+          "records": "1"
+        },
+        {
+          "outlet_zip_code": "79950",
+          "records": "1"
+        },
+        {
+          "outlet_zip_code": "79821",
+          "records": "1"
+        },
+        {
+          "outlet_zip_code": "79996",
+          "records": "1"
+        }
+      ],
+      "categoryGroupsReturned": 797,
+      "topCategories": [
+        {
+          "outlet_naics_code": "722511",
+          "records": "1066"
+        },
+        {
+          "outlet_naics_code": "454110",
+          "records": "882"
+        },
+        {
+          "outlet_naics_code": "722513",
+          "records": "765"
+        },
+        {
+          "outlet_naics_code": "454390",
+          "records": "733"
+        },
+        {
+          "outlet_naics_code": "722330",
+          "records": "448"
+        },
+        {
+          "outlet_naics_code": "453998",
+          "records": "436"
+        },
+        {
+          "outlet_naics_code": "441120",
+          "records": "404"
+        },
+        {
+          "outlet_naics_code": "722515",
+          "records": "322"
+        },
+        {
+          "outlet_naics_code": "424990",
+          "records": "304"
+        },
+        {
+          "outlet_naics_code": "452319",
+          "records": "296"
+        },
+        {
+          "outlet_naics_code": "447110",
+          "records": "288"
+        },
+        {
+          "outlet_naics_code": "722410",
+          "records": "287"
+        },
+        {
+          "outlet_naics_code": "453220",
+          "records": "236"
+        },
+        {
+          "outlet_naics_code": "812112",
+          "records": "230"
+        },
+        {
+          "outlet_naics_code": "443142",
+          "records": "211"
+        },
+        {
+          "outlet_naics_code": "238220",
+          "records": "181"
+        },
+        {
+          "outlet_naics_code": "711510",
+          "records": "178"
+        },
+        {
+          "outlet_naics_code": "236220",
+          "records": "177"
+        },
+        {
+          "outlet_naics_code": "811111",
+          "records": "171"
+        },
+        {
+          "outlet_naics_code": "561720",
+          "records": "162"
+        },
+        {
+          "outlet_naics_code": "441310",
+          "records": "156"
+        },
+        {
+          "outlet_naics_code": "423990",
+          "records": "153"
+        },
+        {
+          "outlet_naics_code": "446120",
+          "records": "142"
+        },
+        {
+          "outlet_naics_code": "453310",
+          "records": "137"
+        },
+        {
+          "outlet_naics_code": "238210",
+          "records": "132"
+        }
+      ]
+    },
+    {
+      "id": "7358-krk7",
+      "name": "TDLR - All Licenses",
+      "metadataUrl": "https://data.texas.gov/api/views/7358-krk7.json",
+      "license": null,
+      "licenseId": null,
+      "updatedAt": "2026-10-19T18:51:17.000Z",
+      "where": "business_county='EL PASO'",
+      "count": [
+        {
+          "records": "19776"
+        }
+      ],
+      "byZip": null,
+      "categoryGroupsReturned": 71,
+      "topCategories": [
+        {
+          "license_type": "Cosmetology Operator",
+          "records": "5344"
+        },
+        {
+          "license_type": "Apprentice Electrician",
+          "records": "4827"
+        },
+        {
+          "license_type": "Cosmetology Manicurist",
+          "records": "1414"
+        },
+        {
+          "license_type": "Journeyman Electrician",
+          "records": "1286"
+        },
+        {
+          "license_type": "A/C Technician",
+          "records": "1128"
+        },
+        {
+          "license_type": "Full Service Establishment",
+          "records": "1083"
+        },
+        {
+          "license_type": "Cosmetology Esthetician",
+          "records": "945"
+        },
+        {
+          "license_type": "Class A Barber",
+          "records": "661"
+        },
+        {
+          "license_type": "A/C Contractor",
+          "records": "383"
+        },
+        {
+          "license_type": "Master Electrician",
+          "records": "367"
+        },
+        {
+          "license_type": "Electrical Contractor",
+          "records": "316"
+        },
+        {
+          "license_type": "Devices",
+          "records": "282"
+        },
+        {
+          "license_type": "Mini Establishment",
+          "records": "204"
+        },
+        {
+          "license_type": "Tow Truck Operator (Incident Management)",
+          "records": "175"
+        },
+        {
+          "license_type": "Cosmetology Eyelash Extension Specialist",
+          "records": "172"
+        },
+        {
+          "license_type": "Manicurist/Esthetician Establishment",
+          "records": "158"
+        },
+        {
+          "license_type": "Tow Truck Operator (Consent Tow)",
+          "records": "150"
+        },
+        {
+          "license_type": "Esthetician Establishment",
+          "records": "112"
+        },
+        {
+          "license_type": "Cosmetology Manicurist/Esthetician",
+          "records": "101"
+        },
+        {
+          "license_type": "VSF Employee",
+          "records": "87"
+        },
+        {
+          "license_type": "Apprentice Sign Electrician",
+          "records": "86"
+        },
+        {
+          "license_type": "Property Tax Appraiser",
+          "records": "74"
+        },
+        {
+          "license_type": "Property Tax Consultant",
+          "records": "49"
+        },
+        {
+          "license_type": "Manicurist Establishment",
+          "records": "41"
+        },
+        {
+          "license_type": "Electrical Sign Contractor",
+          "records": "33"
+        }
+      ]
+    },
+    {
+      "id": "bc5r-88dy",
+      "name": "HHSC CCL Daycare and Residential Operations Data",
+      "metadataUrl": "https://data.texas.gov/api/views/bc5r-88dy.json",
+      "license": {
+        "name": "Creative Commons 1.0 Universal (Public Domain Dedication)",
+        "logoUrl": "images/licenses/ccZero.png",
+        "termsLink": "http://creativecommons.org/publicdomain/zero/1.0/legalcode"
+      },
+      "licenseId": "CC0_10",
+      "updatedAt": "2026-10-20T09:12:16.000Z",
+      "where": "county='EL PASO' AND operation_status='Y'",
+      "count": [
+        {
+          "records": "389"
+        }
+      ],
+      "byZip": null,
+      "categoryGroupsReturned": 6,
+      "topCategories": [
+        {
+          "operation_type": "Licensed Center",
+          "records": "273"
+        },
+        {
+          "operation_type": "Licensed Child-Care Home",
+          "records": "73"
+        },
+        {
+          "operation_type": "Registered Child-Care Home",
+          "records": "24"
+        },
+        {
+          "operation_type": "Listed Family Home",
+          "records": "16"
+        },
+        {
+          "operation_type": "Child Placing Agency",
+          "records": "2"
+        },
+        {
+          "operation_type": "General Residential Operation",
+          "records": "1"
+        }
+      ]
+    },
+    {
+      "id": "7hf9-qc9f",
+      "name": "TABC License Information",
+      "metadataUrl": "https://data.texas.gov/api/views/7hf9-qc9f.json",
+      "license": null,
+      "licenseId": null,
+      "updatedAt": "2026-10-20T23:18:12.000Z",
+      "where": "county='El Paso' AND primary_status='Active'",
+      "count": [
+        {
+          "records": "1890"
+        }
+      ],
+      "byZip": null,
+      "categoryGroupsReturned": 18,
+      "topCategories": [
+        {
+          "license_type": "MB",
+          "records": "607"
+        },
+        {
+          "license_type": "BQ",
+          "records": "496"
+        },
+        {
+          "license_type": "BG",
+          "records": "312"
+        },
+        {
+          "license_type": "NT",
+          "records": "261"
+        },
+        {
+          "license_type": "P",
+          "records": "63"
+        },
+        {
+          "license_type": "Q",
+          "records": "51"
+        },
+        {
+          "license_type": "BE",
+          "records": "31"
+        },
+        {
+          "license_type": "BF",
+          "records": "14"
+        },
+        {
+          "license_type": "W",
+          "records": "14"
+        },
+        {
+          "license_type": "NE",
+          "records": "9"
+        },
+        {
+          "license_type": "C",
+          "records": "9"
+        },
+        {
+          "license_type": "S",
+          "records": "6"
+        },
+        {
+          "license_type": "G",
+          "records": "4"
+        },
+        {
+          "license_type": "BB",
+          "records": "4"
+        },
+        {
+          "license_type": "BC",
+          "records": "3"
+        },
+        {
+          "license_type": "AW",
+          "records": "2"
+        },
+        {
+          "license_type": "PR",
+          "records": "2"
+        },
+        {
+          "license_type": "X",
+          "records": "2"
+        }
+      ]
+    }
+  ]
+}
