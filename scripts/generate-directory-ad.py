@@ -200,7 +200,8 @@ COPY = {
         "free_body": (
             "Business name, phone, website, category and address · standard and holiday hours · "
             "service areas and extra categories · a short description · one photo · replies to your "
-            "reviews · rolling 30-day headline numbers. Claiming is free and there is no card."
+            "reviews and a review-request QR code · new leads, with contact details masked · "
+            "rolling 30-day headline numbers. Claiming is free and there is no card."
         ),
         "more_heading": "If you need to be impossible to miss",
         "more_rows": [
@@ -250,7 +251,8 @@ COPY = {
         "free_body": (
             "Nombre, teléfono, sitio web, categoría y dirección · horario normal y de días festivos · "
             "zonas de servicio y categorías adicionales · una descripción breve · una foto · respuestas "
-            "a tus reseñas · números principales de los últimos 30 días. Reclamar es gratis y sin tarjeta."
+            "a tus reseñas y un código QR para pedir reseñas · nuevos prospectos, con los datos de "
+            "contacto ocultos · números principales de los últimos 30 días. Reclamar es gratis y sin tarjeta."
         ),
         "more_heading": "Si necesitas que no te puedan pasar por alto",
         "more_rows": [

@@ -48,3 +48,63 @@ test('public UI guards: basic details, shared reviews, user-initiated chat and h
   assert.match(source('app/[locale]/directory/[id]/claim/page.tsx'), /userProfile && upgradeChosen/)
   assert.match(source('components/citybeat/QuoteForm.tsx'), /response is not guaranteed/)
 })
+
+test('the public plan comparison names every capability Premium actually grants', () => {
+  // The drift this pins: /premium is the page a business reads before paying,
+  // and its paid list is hand-written prose while the entitlements it describes
+  // live in directory-entitlements.ts. The two silently disagreed — PREMIUM
+  // granted `video: true` and `aiAssistance: true` and the page mentioned
+  // neither, so customers were paying for two features nobody told them about.
+  // Under-promising is not a safe default here: an owner who never learns they
+  // can upload a video gets less from the plan and is likelier to cancel.
+  const comparison = source('components/citybeat/DirectoryPlanComparison.tsx')
+  const entitlements = source('lib/directory-entitlements.ts')
+
+  // Only assert on capabilities PREMIUM really has, read from the registry, so
+  // this test follows the product rather than freezing today's feature set.
+  const premium = entitlements.slice(
+    entitlements.indexOf('const PREMIUM:'),
+    entitlements.indexOf('const FEATURED:')
+  )
+  const granted = (flag: string) => premium.includes(`${flag}: true`)
+
+  // One probe per capability: a word the copy must contain in each language.
+  const probes: Array<[string, RegExp, RegExp]> = [
+    ['enhancedDescription', /description/i, /descripci/i],
+    ['video', /video/i, /video/i],
+    ['socialLinks', /social links/i, /redes sociales/i],
+    ['servicesAndProducts', /products/i, /productos/i],
+    ['postsOffersEvents', /posts/i, /publicaciones/i],
+    ['fullAnalytics', /analytics/i, /anal[ií]ticas/i],
+    ['analyticsExport', /CSV/i, /CSV/i],
+    ['detailedLeads', /contact details/i, /contacto/i],
+    ['aiAssistance', /AI assistance/i, /IA/],
+    ['bookingLinks', /action buttons/i, /botones de acci/i],
+  ]
+
+  // The two paidFeatures arrays, in source order: English then Spanish.
+  const blocks = comparison.split('paidFeatures: [').slice(1).map((part) => part.slice(0, part.indexOf(']')))
+  assert.equal(blocks.length, 2, 'expected an English and a Spanish paid feature list')
+  const [en, es] = blocks
+
+  for (const [flag, enPattern, esPattern] of probes) {
+    if (!granted(flag)) continue
+    assert.match(en, enPattern, `Premium grants ${flag} but the English paid list never mentions it`)
+    assert.match(es, esPattern, `Premium grants ${flag} but the Spanish paid list never mentions it`)
+  }
+
+  // Quantities, which are the easiest thing to leave stale after a change.
+  if (premium.includes('mediaLimit: 15')) {
+    assert.match(en, /15 photos/i)
+    assert.match(es, /15 fotos/i)
+  }
+  if (premium.includes('additionalManagers: 3')) {
+    assert.match(en, /3 additional managers/i)
+    assert.match(es, /3 administradores/i)
+  }
+
+  // And the other direction: the page must not sell Featured-only perks as
+  // Premium. It currently says so explicitly, which is the honest framing.
+  assert.match(comparison, /belong to the Featured plan|pertenecen al plan Destacado/)
+  assert.doesNotMatch(en, /guaranteed top|top of your category/i)
+})
