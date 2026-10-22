@@ -48,19 +48,53 @@ export async function GET(request: NextRequest) {
 
   try {
     // Crawls OSM/Overpass and upserts into Firestore `directory_listings`.
+    // Budgeted: see packages/lib/src/directory/ingest-schedule.ts. One run
+    // deliberately sweeps a rotating slice of the categories rather than all of
+    // them — the unbudgeted version could not finish inside Cloud Run's 300s
+    // request timeout and discarded everything it had fetched when it overran.
     const result = await runDirectoryIngest({
       write: true,
       limit,
       categories,
     })
 
+    // Liveness is about whether the job RAN, which it did. Content problems are
+    // alerted separately below, so a bad night cannot masquerade as a dead cron
+    // and a dead cron cannot hide behind a bad night.
     await reportSuccess('cron:directory-ingest')
-    return NextResponse.json({
-      ok: true,
-      categories,
+
+    if (result.failed.length > 0) {
+      await reportFailure(
+        'cron:directory-ingest',
+        new Error(
+          `Overpass failed for ${result.failed.length} categor${result.failed.length === 1 ? 'y' : 'ies'}: ` +
+            result.failed.map((f) => `${f.category} (${f.reason})`).join('; ')
+        ),
+        { swept: result.swept, skipped: result.skipped, limit },
+        { skipHealth: true }
+      ).catch(() => {})
+    }
+
+    const body = {
+      ok: result.swept.length > 0,
+      requested: categories,
+      swept: result.swept,
+      skipped: result.skipped,
+      failed: result.failed,
+      budget_exhausted: result.budgetExhausted,
       prepared: result.candidates.length,
       inserted: result.inserted,
-    })
+    }
+
+    // Every attempted category failed: nothing was ingested and nothing will be
+    // until someone looks. Answer 500 so the scheduler's own status code goes
+    // red — that status code is the ONLY signal that surfaced the week-long
+    // outage this route just came out of, and it must keep working.
+    if (result.swept.length === 0 && result.failed.length > 0) {
+      return NextResponse.json({ ...body, error: 'Every category failed' }, { status: 500 })
+    }
+
+    return NextResponse.json(body)
   } catch (error) {
     await reportFailure('cron:directory-ingest', error, { categories, limit })
     return NextResponse.json({ error: 'Ingest failed' }, { status: 500 })

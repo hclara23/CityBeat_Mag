@@ -1,4 +1,16 @@
 import { adminDb } from '../firebase/admin'
+import {
+  INGEST_FETCH_BUDGET_MS,
+  OVERPASS_ATTEMPT_MS,
+  OVERPASS_BACKOFF_MS,
+  OVERPASS_MAX_ATTEMPTS,
+  canStartCategory,
+  guaranteedCategoriesPerRun,
+  ingestRunIndex,
+  sweepOffsetForRun,
+  summarizeSweep,
+  sweepOrder,
+} from './ingest-schedule'
 
 type OsmElementType = 'node' | 'way' | 'relation'
 
@@ -36,11 +48,25 @@ export interface DirectoryIngestOptions {
   limit?: number
   categories?: string[]
   overpassUrl?: string
+  /** Wall-clock budget for the Overpass fetches. See ingest-schedule.ts. */
+  budgetMs?: number
+  /** Which rotation this run uses. Defaults to the day-based index. */
+  runIndex?: number
+  /** Injected for tests; the sweep measures itself against this clock. */
+  now?: () => number
 }
 
 export interface DirectoryIngestResult {
   candidates: DirectoryCandidate[]
   inserted: number
+  /** Categories actually fetched this run. */
+  swept: string[]
+  /** Deferred to the next run because the budget ran out. Not an error. */
+  skipped: string[]
+  /** Attempted and failed. These ARE errors and must be surfaced, not logged. */
+  failed: Array<{ category: string; reason: string }>
+  /** True when the budget cut the sweep short — expected, and worth reporting. */
+  budgetExhausted: boolean
 }
 
 const DEFAULT_OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
@@ -312,16 +338,41 @@ export async function runDirectoryIngest(options: DirectoryIngestOptions = {}): 
   // BasicCrawler, but its storage engine can't initialize inside the bundled
   // Next.js serverless runtime (openStorage → "reading 'bind'"), and a crawler
   // framework is overkill for fetching a handful of Overpass URLs anyway.
+  //
+  // BUDGETED since 2026-10-22. Unbudgeted, this loop could run for 1,932 seconds
+  // inside a 300-second request, and because the write below happens afterwards,
+  // overrunning threw away every category that HAD succeeded. The job failed
+  // every attempt for a week and produced nothing. It now sweeps a rotating
+  // slice, writes what it got, and reports the rest as deferred.
+  const now = options.now ?? (() => Date.now())
+  const startedAt = now()
+  const budgetMs = options.budgetMs ?? INGEST_FETCH_BUDGET_MS
+  const perRun = guaranteedCategoriesPerRun(budgetMs)
+  const runIndex = options.runIndex ?? ingestRunIndex(new Date(startedAt))
+  const ordered = sweepOrder(selectedQueries, sweepOffsetForRun(runIndex, perRun))
+
   const candidates: DirectoryCandidate[] = []
-  for (const query of selectedQueries) {
+  const swept: string[] = []
+  const skipped: string[] = []
+  const failed: Array<{ category: string; reason: string }> = []
+  let budgetExhausted = false
+
+  for (const query of ordered) {
+    if (!canStartCategory(now() - startedAt, swept.length + failed.length, budgetMs)) {
+      // Not an error: the remaining categories lead the next run's rotation.
+      budgetExhausted = true
+      skipped.push(query.category)
+      continue
+    }
+
     const url = toOverpassUrl(options.overpassUrl || DEFAULT_OVERPASS_URL, buildOverpassQuery(query.selector))
     let lastError: unknown = null
-    for (let attempt = 0; attempt <= 2; attempt++) {
+    for (let attempt = 0; attempt < OVERPASS_MAX_ATTEMPTS; attempt++) {
       try {
         console.log(`Fetching OpenStreetMap businesses for ${query.category} (attempt ${attempt + 1})`)
         const response = await fetch(url, {
           headers: { Accept: 'application/json', 'User-Agent': CITYBEAT_USER_AGENT },
-          signal: AbortSignal.timeout(90_000),
+          signal: AbortSignal.timeout(OVERPASS_ATTEMPT_MS),
         })
         if (!response.ok) throw new Error(`Overpass returned ${response.status} for ${query.category}`)
 
@@ -336,11 +387,22 @@ export async function runDirectoryIngest(options: DirectoryIngestOptions = {}): 
       } catch (error) {
         lastError = error
         // Overpass rate-limits aggressive callers — brief pause before retrying.
-        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)))
+        // Skip the pause after the final attempt; it only burns budget.
+        if (attempt < OVERPASS_MAX_ATTEMPTS - 1) {
+          await new Promise((r) => setTimeout(r, OVERPASS_BACKOFF_MS * (attempt + 1)))
+        }
       }
     }
+
     if (lastError) {
-      console.error(`Failed to fetch ${query.category}: ${lastError instanceof Error ? lastError.message : String(lastError)}`)
+      const reason = lastError instanceof Error ? lastError.message : String(lastError)
+      console.error(`Failed to fetch ${query.category}: ${reason}`)
+      // Returned rather than only logged: a category failing every night is the
+      // shape of the outage this whole change came from, and console.error in a
+      // cron is a message nobody receives.
+      failed.push({ category: query.category, reason })
+    } else {
+      swept.push(query.category)
     }
   }
 
@@ -354,5 +416,9 @@ export async function runDirectoryIngest(options: DirectoryIngestOptions = {}): 
   return {
     candidates: deduped,
     inserted,
+    // Per-query outcomes collapsed to per-category, so a category with two
+    // selectors is not reported twice or as both swept and deferred.
+    ...summarizeSweep({ swept, skipped, failed }),
+    budgetExhausted,
   }
 }
