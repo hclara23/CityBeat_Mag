@@ -21,6 +21,7 @@ on:
       - 'package-lock.json'
       - 'Dockerfile'
       - '.github/workflows/deploy-web.yml'
+      - 'scripts/wait-for-candidate.mjs'
   workflow_dispatch:
 
 env:
@@ -150,7 +151,7 @@ jobs:
         run: |
           URL="${{ steps.candidate.outputs.candidate_url }}"
           if [ -z "$URL" ]; then echo "No candidate URL resolved"; exit 1; fi
-          sleep 10
+          node scripts/wait-for-candidate.mjs "$URL"
           fail=0
           for path in "/en" "/es" "/en/directory" "/api/health"; do
             code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL$path")
