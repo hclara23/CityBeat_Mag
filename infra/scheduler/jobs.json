@@ -311,9 +311,9 @@
     },
     {
       "name": "citybeat-social",
-      "schedule": "0 11 * * *",
-      "timeZone": "America/Chihuahua",
-      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/social?limit=5",
+      "schedule": "*/10 * * * *",
+      "timeZone": "America/Denver",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/social?limit=5&queue=1",
       "httpMethod": "GET",
       "requiresCronSecret": true,
       "attemptDeadline": "600s",

@@ -18,6 +18,7 @@
 
 import { readFileSync, readdirSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
+import { accountFromArgv, explainGcloudFailure } from './gcloud-account.mjs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -26,12 +27,7 @@ const manifest = JSON.parse(readFileSync(join(ROOT, 'infra/cloud-run/env.json'),
 const { service, project, region } = manifest
 // Select an already-authenticated operator explicitly without changing gcloud's
 // global account or silently trying unrelated accounts.
-const accountIndex = process.argv.indexOf('--account')
-const account = accountIndex < 0 ? null : process.argv[accountIndex + 1]
-if (accountIndex >= 0 && (!account || account.startsWith('--'))) {
-  console.error('--account requires an authenticated Google account email')
-  process.exit(2)
-}
+const account = accountFromArgv()
 
 let raw
 try {
@@ -47,9 +43,7 @@ try {
     { encoding: 'utf8', shell: process.platform === 'win32' }
   )
 } catch (error) {
-  console.error('Could not describe the Cloud Run service. Authenticated to gcloud?')
-  console.error(String(error.message || error).slice(0, 400))
-  process.exit(2)
+  explainGcloudFailure('describe the Cloud Run service', error)
 }
 
 const live = new Set(

@@ -20,6 +20,7 @@
 
 import { readFileSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
+import { accountFromArgv, explainGcloudFailure } from './gcloud-account.mjs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -28,18 +29,24 @@ const MANIFEST = join(ROOT, 'infra/scheduler/jobs.json')
 
 const manifest = JSON.parse(readFileSync(MANIFEST, 'utf8'))
 const { project, location } = manifest
+// Parity with check-env: name the operator without changing gcloud's global
+// account. Two accounts are authenticated here and only one can read the project.
+const account = accountFromArgv()
 
 let raw
 try {
   raw = execFileSync(
     'gcloud',
-    ['scheduler', 'jobs', 'list', '--location', location, '--project', project, '--format=json'],
+    [
+      'scheduler', 'jobs', 'list',
+      '--location', location, '--project', project,
+      ...(account ? ['--account', account] : []),
+      '--format=json',
+    ],
     { encoding: 'utf8', shell: process.platform === 'win32', maxBuffer: 32 * 1024 * 1024 }
   )
 } catch (error) {
-  console.error('Could not list scheduler jobs. Are you authenticated to gcloud?')
-  console.error(String(error.message || error).slice(0, 400))
-  process.exit(2)
+  explainGcloudFailure('list scheduler jobs', error)
 }
 
 const live = JSON.parse(raw).map((j) => {

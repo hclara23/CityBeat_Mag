@@ -112,6 +112,14 @@ that the header must be present.
 > nine-day budget, which pages every six hours for three weeks out of four about
 > a healthy job and teaches whoever reads those alerts to ignore them.
 
+> **Two Google accounts are authenticated on the dev machine and only one can
+> read this project.** With the wrong one active, `env:check` and
+> `scheduler:check` both fail with what looks like a sign-out. They now name
+> the authenticated accounts and the `-- --account <email>` flag to pass. This
+> is not cosmetic: while those checks could not start, `citybeat-social` had
+> been changed in the console to run every ten minutes instead of daily and
+> nothing reported it.
+
 **Verify a new or changed job by its OWN recorded outcome, not by calling it by
 hand.** `gcloud scheduler jobs list --format="csv(name.basename(),state,lastAttemptTime,status.code)"`
 — a non-empty `status.code` means the last run FAILED (13 = INTERNAL). A hand-run
