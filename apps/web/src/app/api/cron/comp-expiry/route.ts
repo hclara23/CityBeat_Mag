@@ -8,6 +8,7 @@ import { isSuppressed } from '@/lib/suppression'
 import { unsubHeaders } from '@/lib/unsub-headers'
 import { sendEmail } from '@/lib/email'
 import { premierExpiryExtras } from '@/lib/premier-promotion'
+import { foundingOfferAvailable } from '@/lib/sales-founding'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -42,6 +43,11 @@ export async function GET(request: NextRequest) {
   const now = new Date()
 
   try {
+    // Resolved once per run, not per listing: foundingOfferAvailable() counts a
+    // collection, and the answer is the same for every recipient in the batch.
+    // It fails CLOSED — if availability cannot be established the reminder
+    // quotes the standard price rather than promising a rate we cannot honour.
+    const foundingAvailable = await foundingOfferAvailable().catch(() => false)
     // Single-field filter → automatic index; no composite index to forget.
     const snap = await adminDb
       .collection('directory_listings')
@@ -81,6 +87,7 @@ export async function GET(request: NextRequest) {
       const claimed = listing.claim_status === 'approved' && listing.owner_id
       const locale = listing.locale === 'es' ? 'es' : 'en'
       const { subject, html } = compReminderEmail({
+        foundingAvailable,
         businessName: String(listing.name || 'Your business'),
         listingUrl: `${APP_URL}/${locale}/directory/${doc.id}`,
         claimUrl: `${APP_URL}/${locale}/directory/${doc.id}/claim`,

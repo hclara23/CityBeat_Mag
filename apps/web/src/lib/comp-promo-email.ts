@@ -96,22 +96,43 @@ export function compGrantEmail(input: CompEmailInput): { subject: string; html: 
   return { subject, html: wrap(parts.join('') + footer(input)) }
 }
 
-function reminderBody(input: CompEmailInput & { upgradeUrl: string }, lang: 'en' | 'es'): string {
+function reminderBody(
+  input: CompEmailInput & { upgradeUrl: string; foundingAvailable?: boolean },
+  lang: 'en' | 'es'
+): string {
   const name = esc(input.businessName)
   const date = esc(formatCompDate(input.until, lang))
   if (lang === 'es') {
     return `<h2 style="font-weight:900;margin:0 0 12px">Su Premium gratis termina el ${date}</h2>
     <p>La ficha de <strong>${name}</strong> regresará sola al plan Básico gratuito el ${date}. No se le cobrará nada.</p>
-    <p>Si quiere conservar las fotos, las ofertas y los datos completos de sus clientes, puede seguir con Premium por <strong>$19.99 al mes</strong>, y cancelar cuando quiera.</p>
+    <p>${input.foundingAvailable
+      ? 'Si quiere conservar las fotos, las ofertas y los datos completos de sus clientes, puede seguir con Premium al precio de <strong>Fundador: $9.99 al mes</strong> — la mitad del precio normal, y ese precio se queda fijo mientras mantenga la suscripción. Es para los primeros 100 negocios y queda sujeto a disponibilidad al momento del pago'
+      : 'Si quiere conservar las fotos, las ofertas y los datos completos de sus clientes, puede seguir con Premium por <strong>$19.99 al mes</strong>'}, y cancelar cuando quiera.</p>
     ${button(input.upgradeUrl, 'Seguir con Premium')}`
   }
   return `<h2 style="font-weight:900;margin:0 0 12px">Your free Premium ends ${date}</h2>
     <p><strong>${name}</strong>'s listing will return to the free Basic plan on its own on ${date}. You won't be charged anything.</p>
-    <p>If you'd like to keep your photos, offers and full customer contact details, you can stay on Premium for <strong>$19.99/month</strong> and cancel any time.</p>
+    <p>If you'd like to keep your photos, offers and full customer contact details, ${input.foundingAvailable
+      ? 'you can stay on Premium at the <strong>Founding rate of $9.99/month</strong> — half the regular price, and it stays locked in for as long as you keep the subscription. It is limited to the first 100 businesses and is subject to availability at checkout'
+      : 'you can stay on Premium for <strong>$19.99/month</strong>'} and cancel any time.</p>
     ${button(input.upgradeUrl, 'Keep Premium')}`
 }
 
-export function compReminderEmail(input: CompEmailInput & { upgradeUrl: string }): { subject: string; html: string } {
+/**
+ * The reminder quoted $19.99/month while 99 of the 100 Founding spots were still
+ * unsold — so the warmest prospects in the system were being offered double the
+ * best published rate, for inventory that was sitting idle.
+ *
+ * `foundingAvailable` is resolved by the caller at SEND time via
+ * foundingOfferAvailable(), never assumed. The sales guide's rule is explicit:
+ * never promise a Founding spot, let checkout confirm the cap. So the copy says
+ * the rate is subject to availability, and if the caller cannot establish
+ * availability the email falls back to the standard price rather than making a
+ * claim it cannot keep.
+ */
+export function compReminderEmail(
+  input: CompEmailInput & { upgradeUrl: string; foundingAvailable?: boolean }
+): { subject: string; html: string } {
   const es = input.locale === 'es'
   const subject = es
     ? `Su Premium gratis de CityBeat termina el ${formatCompDate(input.until, 'es')}`

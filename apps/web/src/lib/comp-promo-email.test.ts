@@ -50,3 +50,61 @@ test('dates render in El Paso time', () => {
   // 03:00 UTC on the 31st is still the 30th in El Paso.
   assert.equal(formatCompDate('2026-12-31T03:00:00Z', 'en'), 'December 30, 2026')
 })
+
+// --- The Founding rate in the expiry reminder ---------------------------------
+//
+// 99 of the 100 Founding spots were unsold while this reminder quoted $19.99 to
+// the warmest prospects in the system. Offering the real best rate is the point;
+// doing it without promising a spot is the constraint.
+
+const reminderInput = {
+  businessName: 'Taco Shop',
+  listingUrl: 'https://citybeatmag.co/en/directory/x',
+  claimUrl: 'https://citybeatmag.co/en/directory/x/claim',
+  upgradeUrl: 'https://citybeatmag.co/en/directory/x/claim',
+  until: '2026-12-30T00:00:00.000Z',
+  unsubUrl: 'https://citybeatmag.co/api/newsletter/unsubscribe?u=t',
+  postalAddress: '1 Example St, El Paso, TX',
+}
+
+test('with a Founding spot open the reminder offers the Founding rate, not full price', () => {
+  const { html } = compReminderEmail({ ...reminderInput, foundingAvailable: true })
+  assert.match(html, /\$9\.99/)
+  assert.match(html, /Founding rate/i)
+  assert.doesNotMatch(html, /stay on Premium for <strong>\$19\.99/)
+})
+
+test('the Founding offer never promises a spot', () => {
+  // The sales guide rule, in the one place a customer could be told otherwise:
+  // never promise availability, let checkout confirm the cap.
+  const { html } = compReminderEmail({ ...reminderInput, foundingAvailable: true })
+  assert.match(html, /subject to availability at checkout/i)
+  assert.match(html, /sujeto a disponibilidad/i)
+  assert.doesNotMatch(html, /reserved for you|guaranteed|your spot is/i)
+})
+
+test('with no Founding spot the reminder quotes the standard price and never mentions Founding', () => {
+  const { html } = compReminderEmail({ ...reminderInput, foundingAvailable: false })
+  assert.match(html, /\$19\.99/)
+  assert.doesNotMatch(html, /\$9\.99/)
+  assert.doesNotMatch(html, /Founding|Fundador/i)
+})
+
+test('an unknown availability falls back to the standard price', () => {
+  // The caller resolves availability from Firestore and may fail. An undefined
+  // flag must never be read as "yes" — quoting a rate we cannot honour is worse
+  // than quoting a higher one we can.
+  const { html } = compReminderEmail({ ...reminderInput })
+  assert.match(html, /\$19\.99/)
+  assert.doesNotMatch(html, /\$9\.99/)
+})
+
+test('both language halves of the reminder agree on the price', () => {
+  // The English-locale email carries EN then ES. A customer who reads both must
+  // not see two different prices.
+  const open = compReminderEmail({ ...reminderInput, foundingAvailable: true }).html
+  assert.equal((open.match(/\$9\.99/g) || []).length, 2, 'EN and ES both quote Founding')
+  assert.doesNotMatch(open, /\$19\.99/)
+  const closed = compReminderEmail({ ...reminderInput, foundingAvailable: false }).html
+  assert.equal((closed.match(/\$19\.99/g) || []).length, 2, 'EN and ES both quote standard')
+})
