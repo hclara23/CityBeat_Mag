@@ -10922,12 +10922,40 @@
       "doc_updated_by": "agentctl",
       "description": "Determine why sampled paid listings fail the six-action floor using bounded read-only evidence; fix data selection or alert classification with tests. No purchases or billing changes.",
       "doc": "## Summary\n\nCorrect misleading premium-proof failure classification, paid cohort eligibility, and median selection without inventing results or lowering the publication floor.\n\n## Context\n\nRead-only audit found14 premium-tier listings:10comp,2subscription-backed,2unverified. Original12 sample:9comp,2subscription-backed,1unverified; 32views and zero recorded actions. Both subscription-backed listings were already sampled, totaling15views and zeroactions. Six-action floor correctly hides panel.\n\n## Scope\n\nBounded read-only production audit; pure candidate eligibility and median rules; expected insufficient-data diagnostics; regression tests.\n\n## Risks\n\nNo production writes, purchases, deployment or billing changes. Tier plus subscription reference is recorded entitlement evidence, not a new Stripe billing audit. Daily counts read after alert can include later events.\n\n## Verify Steps\n\nPASS: npm run type-check across four workspaces, npm test (757 tests), git diff --check. Independent reviewer found no blocking issues. Regression coverage includes eligibility, bounded sampling, UTC dates, unbiased median, insufficient data, malformed counters and database exceptions.\n\n## Rollback Plan\n\nRevert task implementation commit; no database records are modified.\n\n## Notes\n\nEvidence and limits in docs/audits/premium-proof-alert-2026-10-22.md. Insufficient data is logged, actual read failures still alert. No synthetic production events or database writes. Local-only fix; no deployment charges authorized for this new task."
+    },
+    {
+      "id": "202610221216-M93A6A",
+      "title": "Deploy premium proof correction and verify live release",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "commit": {
+        "hash": "a9351c3e9565554318cc537999d0c73fcd8d9d5d",
+        "message": "🧪 M93A6A verified: deploy premium proof correction with both workflows green | details: revision00368non serves all traffic; live diagnostic confirms2eligible and insufficient_activity; 757tests passed"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: pushed premium proof release7c2d6c8; monitor both workflows and verify production diagnostic behavior"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: deploy premium proof correction with both workflows green | details: revision00368non serves all traffic; live diagnostic confirms2eligible and insufficient_activity; 757tests passed"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-22T12:26:36+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Push premium-proof correction, verify Test and Lint plus Deploy Web App, confirm live revision and diagnostics. Approved up to USD1 deployment plus USD0.10 per GiB-month storage; no billing changes.",
+      "doc": "## Summary\n\nDeploy premium proof eligibility, median and insufficient-data classification corrections.\n\n## Context\n\nRelease7c2d6c85aa96d5a2e21be0298e5e224af8cf6980. Test and Lint39776980890 passed757tests; Deploy Web App39776980775 passed candidate smoke, promotion and live checks. Cloud Build e9bf98b7-d470-4cf6-b814-94f41f7d7877 succeeded in337seconds.\n\n## Scope\n\nPush7c2d6c8, verify both workflows, serving revision and public premium page plus structured diagnostics.\n\n## Risks\n\nApproved spending up to USD1 for this deployment plus image storage USD0.10 per GiB-month. Billing settings remain unchanged. No synthetic analytics events.\n\n## Verify Steps\n\nPASS: both workflows green; revision citybeat-web-00368-non serves100percent. Public /en/premium,/es/premium,/api/health,/api/health/payments=200; proof panel absent. New revision log at2026-10-22T12:25:58Z: insufficient_activity, scanned14, eligible2, sampled2, statsDays5, views15, actions0.\n\n## Rollback Plan\n\nExisting deployment workflow retains previous revision and rolls traffic back if live checks fail.\n\n## Notes\n\nNo billing settings changed. Build duration implies cents of metered build cost within approved USD1; provider final invoice not yet available. No synthetic analytics events. Closure records retained locally to avoid retriggering workflows for bookkeeping."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "79fb71727c291c30bb85ddaf16d105c516992a74abc5bbfd37010ee6c495674f"
+    "checksum": "db4941ca3f0a49925c4aa1bc79d003285a7a8e0c4decd4659d06cc9977be4a5f"
   }
 }

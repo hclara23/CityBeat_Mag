@@ -1,13 +1,15 @@
 ---
 id: "202610221216-M93A6A"
 title: "Deploy premium proof correction and verify live release"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "a9351c3e9565554318cc537999d0c73fcd8d9d5d", message: "🧪 M93A6A verified: deploy premium proof correction with both workflows green | details: revision00368non serves all traffic; live diagnostic confirms2eligible and insufficient_activity; 757tests passed" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: pushed premium proof release7c2d6c8; monitor both workflows and verify production diagnostic behavior" }
+  - { author: "ORCHESTRATOR", body: "verified: deploy premium proof correction with both workflows green | details: revision00368non serves all traffic; live diagnostic confirms2eligible and insufficient_activity; 757tests passed" }
 doc_version: 2
 doc_updated_at: "2026-10-22T12:26:36+00:00"
 doc_updated_by: "agentctl"
