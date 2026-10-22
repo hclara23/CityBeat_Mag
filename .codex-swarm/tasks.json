@@ -10950,12 +10950,40 @@
       "doc_updated_by": "agentctl",
       "description": "Push premium-proof correction, verify Test and Lint plus Deploy Web App, confirm live revision and diagnostics. Approved up to USD1 deployment plus USD0.10 per GiB-month storage; no billing changes.",
       "doc": "## Summary\n\nDeploy premium proof eligibility, median and insufficient-data classification corrections.\n\n## Context\n\nRelease7c2d6c85aa96d5a2e21be0298e5e224af8cf6980. Test and Lint39776980890 passed757tests; Deploy Web App39776980775 passed candidate smoke, promotion and live checks. Cloud Build e9bf98b7-d470-4cf6-b814-94f41f7d7877 succeeded in337seconds.\n\n## Scope\n\nPush7c2d6c8, verify both workflows, serving revision and public premium page plus structured diagnostics.\n\n## Risks\n\nApproved spending up to USD1 for this deployment plus image storage USD0.10 per GiB-month. Billing settings remain unchanged. No synthetic analytics events.\n\n## Verify Steps\n\nPASS: both workflows green; revision citybeat-web-00368-non serves100percent. Public /en/premium,/es/premium,/api/health,/api/health/payments=200; proof panel absent. New revision log at2026-10-22T12:25:58Z: insufficient_activity, scanned14, eligible2, sampled2, statsDays5, views15, actions0.\n\n## Rollback Plan\n\nExisting deployment workflow retains previous revision and rolls traffic back if live checks fail.\n\n## Notes\n\nNo billing settings changed. Build duration implies cents of metered build cost within approved USD1; provider final invoice not yet available. No synthetic analytics events. Closure records retained locally to avoid retriggering workflows for bookkeeping."
+    },
+    {
+      "id": "202610221253-QF37BA",
+      "title": "Verify and repair customer action tracking without synthetic traffic",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "commit": {
+        "hash": "c507094f9b34ae690503bf671a6e7eecfa5387e8",
+        "message": "🧪 QF37BA verified: repair customer action persistence and atomic lead counting | details: exclude internal traffic, prevent duplicate views, validate phone links and listing IDs; pass 775 tests and four package type checks; document read-only production evidence without synthetic analytics"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: verify customer action pipeline with mocked storage | details: fix silent tracking and detached lead writes without inflating stats"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: repair customer action persistence and atomic lead counting | details: exclude internal traffic, prevent duplicate views, validate phone links and listing IDs; pass 775 tests and four package type checks; document read-only production evidence without synthetic analytics"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-22T13:04:46+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit paid listing actions and read-only evidence; verify phone website directions and leads with isolated mocked persistence; repair bugs without production analytics inflation or purchases.",
+      "doc": "## Summary\n\nVerify first-party customer-action tracking and repair silent write failures, detached lead counters and duplicate views without synthetic production events.\n\n## Context\n\nRead-only audit found 15 total views and zero saved quote requests across two subscription-backed published listings. One has no website URL and another lacks owner_id. Historic clicks cannot be reconstructed because the old endpoint concealed failures. See docs/audits/customer-action-tracking-2026-10-22.md.\n\n## Scope\n\nRead-only production audit; mock-backed phone website directions and quote tests; observable tracking failures; atomic quote and lead stats persistence; stable page-view tracking.\n\n## Risks\n\nNo production writes, purchases, billing changes or deployment. Missing recorded actions cannot establish absence of real clicks because prior writes failed silently. Do not infer paid status solely from subscription references.\n\n## Verify Steps\n\nPassed npm run type-check in all four packages; npm test passed all 775 tests, including 18 new isolated tracking and quote-handler tests. git diff --check passed. Production audit used read-only Firestore, Cloud Run logs and raw HTML GETs without running view trackers.\n\n## Rollback Plan\n\nRevert implementation commit; no production data has changed.\n\n## Notes\n\nFixed observable click failures, atomic lead persistence, validated phone links, consistent ID validation and duplicate metadata-refresh views. No synthetic production events, historical backfill, purchases, billing changes or deployment. Missing ownership metadata remains for verified customer-data reconciliation."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "db4941ca3f0a49925c4aa1bc79d003285a7a8e0c4decd4659d06cc9977be4a5f"
+    "checksum": "32a1c210d821aee5443b0ea5cb4c53027b8e095df3f7833cdb6aa53eaddee52a"
   }
 }
