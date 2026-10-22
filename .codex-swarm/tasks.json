@@ -10100,6 +10100,130 @@
       "doc": "## Summary\n\nAdded four free official-data expansion templates for West Texas electrical contractors, beauty establishments, childcare operations, and hospitality businesses. Expanded the directory region filter to West Texas and southern New Mexico while keeping every new feed disabled and review-first.\n\n## Scope\n\nAdded TDLR, Texas HHS, and TABC templates backed by data.texas.gov. New templates import unpublished candidates only, retain regional filtering and consolidation, and never invoke Google Places or paid AI. Added West Texas and southern New Mexico cities and ZIP ranges to regional validation plus regression tests.\n\n## Risks\n\nOfficial datasets can contain stale, duplicate, closed, or incomplete records. Templates remain disabled and Publish=false so an operator must dry-run, review, deduplicate, and explicitly approve publication. No paid service or production mutation was triggered.\n\n## Verify Steps\n\nRun npm test from the repository root; run npm --prefix apps/web run type-check; run git diff --check. Confirm all four southwest expansion templates are disabled, contain no SEARCH_GOOGLE_PLACES node, use data.texas.gov, and deliver with Publish=false.\n\n## Rollback Plan\n\nRevert the implementation commit. This removes the four templates and restores the prior regional city and ZIP allowlist; no production data needs rollback because the templates were not enabled or run.\n\n## Notes\n\nVerified against live official Socrata schemas for TDLR dataset 7358-krk7, HHS dataset bc5r-88dy, and TABC dataset 7hf9-qc9f. Full suite: 630 web tests plus 20 package tests passed; TypeScript type-check passed."
     },
     {
+      "id": "202610162138-MW634J",
+      "title": "Set Super H Automotive cover image",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "production"
+      ],
+      "commit": {
+        "hash": "397e0dca8ab134a19c956148d37c97a5266ffc49",
+        "message": "✅ MW634J record verified Super H cover image update"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: upload the approved storefront image as Super H Automotive's cover and verify the public listing."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: the public Super H Automotive listing now uses the approved storefront photograph as its cover | details: the media object returns HTTP 200 and the live page renders the image. No other listing fields were changed."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T21:42:52+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Inspect and upload the user-approved storefront photo as the Super H Automotive listing cover, then verify the live public listing without altering ownership, subscription, or payment data.",
+      "doc": "## Summary\n\nSet the approved Super H Automotive storefront photograph as the live CityBeat directory cover image.\n\n## Context\n\nThe listing had no primary image. The user supplied Screenshot 2026-10-16 153457.png and approved publishing it as the cover.\n\n## Scope\n\nUpload the supplied image to the existing CityBeat media bucket, update only image_url and updated_at on directory listing TJmwyo55waiFiGYp2fmu, and verify the public page. Ownership, claim status, subscription, tier, payment, contact, hours, and gallery data remain unchanged.\n\n## Risks\n\nA wide cover crop may hide edge details on smaller screens. The source file is retained locally and the prior image_url was empty, so rollback is straightforward.\n\n## Verify Steps\n\n1. Confirm the public object URL returns HTTP 200 with image/png. 2. Reload https://citybeatmag.co/en/directory/TJmwyo55waiFiGYp2fmu. 3. Visually confirm the storefront photograph renders as the hero cover above Super H Automotive.\n\n## Rollback Plan\n\nSet directory_listings/TJmwyo55waiFiGYp2fmu image_url back to an empty string and optionally remove directory/TJmwyo55waiFiGYp2fmu/cover-20261016.png from the media bucket.\n\n## Notes\n\nVerified live on 2026-10-16: the public image returned HTTP 200 and the CityBeat listing displayed the Super H storefront as the cover. Edge file upload was unavailable because the ChatGPT extension lacked file-URL permission, so the approved image was uploaded through the authorized Google Cloud account and the listing field was updated directly."
+    },
+    {
+      "id": "202610162154-CT0T2Y",
+      "title": "Create Cardon Insurance half-page ad",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "design",
+        "advertising"
+      ],
+      "commit": {
+        "hash": "a65e59a633a4469a0ea1a8f79b542ea07e94e24f",
+        "message": "✨ CT0T2Y create Cardon Insurance half-page print ad"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: verify Cardon Insurance public details, create a 7.75 x 4.75 inch horizontal ad at 300 DPI, and visually validate the final deliverable."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: the Cardon Insurance ad is 2325 x 1425 pixels at 300 DPI, includes the supplied logo and exact Auto, Home, Flood, and Bonds labels, and uses website-verified phone, address, website, and since-1964 information. | details: Full-resolution visual review confirmed legibility, contrast, safe margins, and correct spelling."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T21:55:54+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Research verified public business details and create a high-resolution horizontal half-page print advertisement for Cardon Insurance featuring Auto, Home, Flood, and Bonds, using the supplied logo.",
+      "doc": "## Summary\n\nCreated a high-resolution horizontal half-page advertisement for Cardon Insurance Agency featuring Auto, Home, Flood, and Bonds.\n\n## Context\n\nThe user supplied the Cardon Insurance logo and requested a horizontal half-page ad. Public business details were verified against cardoninsuranceelpaso.com before composition.\n\n## Scope\n\nDeliver one 7.75 x 4.75 inch, 300-DPI PNG using the supplied logo, the four requested insurance types, verified phone, website, address, and since-1964 positioning.\n\n## Risks\n\nThe supplied logo source is 258 x 80 pixels, so it was carefully upscaled and sharpened; the final placed size was visually checked at full resolution. The ad is sRGB PNG rather than a printer-specific CMYK profile.\n\n## Verify Steps\n\n1. Confirm output dimensions are 2325 x 1425 pixels. 2. Confirm embedded density is 300 DPI. 3. Visually inspect logo, headline, Auto/Home/Flood/Bonds labels, phone, website, address, safe margins, contrast, and spelling. 4. Confirm verified business facts against the public website.\n\n## Rollback Plan\n\nRemove output/ads/cardon-insurance-half-page-2026.png if the creative is rejected; no production website or external account was modified.\n\n## Notes\n\nBuilt-in image generation produced the text-free commercial background using an ads-marketing prompt for an El Paso home, vehicle, subtle flood-protection water, and contractor bonding cue with navy negative space. The supplied logo and all copy were composited deterministically. Final: 2325 x 1425 pixels, 300 DPI, sRGB PNG, 3,890,741 bytes, SHA-256 09E3FF868147C4836FC4FEFB3B23B5CB722C25EAE54D1A25DA062B21275DD433."
+    },
+    {
+      "id": "202610162158-6QHB6N",
+      "title": "Create Cardon Insurance portrait ad with QR",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "design",
+        "advertising"
+      ],
+      "commit": {
+        "hash": "e5babdceaceda25e0634dc3640d6be49d446d6d9",
+        "message": "✨ 6QHB6N create portrait Cardon Insurance ad with verified QR"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: create a 1200 x 2850 portrait ad, preserve the horizontal version, generate a QR code for the official website, and verify the QR from the final artwork."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: the portrait Cardon Insurance ad is 1200 x 2850 pixels at 300 DPI, preserves the horizontal version, includes the supplied logo and all four required coverage labels, and the QR code cropped from the final artwork decodes exactly to https://www.cardoninsuranceelpaso.com/."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T22:00:57+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Create a separate 4 x 9.5 inch portrait Cardon Insurance print ad at 300 DPI, preserving verified business details and required coverage types, and add a tested QR code to the official website.",
+      "doc": "## Summary\n\nCreated a separate 4 x 9.5 inch portrait Cardon Insurance print ad with a scannable QR code to the official website.\n\n## Context\n\nThe user approved adapting the previously completed horizontal ad into a narrow portrait format while preserving the horizontal file and adding a QR code for https://www.cardoninsuranceelpaso.com/.\n\n## Scope\n\nDeliver a 1200 x 2850 pixel, 300-DPI portrait PNG using the supplied logo, Auto/Home/Flood/Bonds labels, verified business details, and a high-error-correction QR code with a protected white quiet zone. Include a standalone QR asset for reuse.\n\n## Risks\n\nThe supplied logo source is 258 x 80 pixels and was carefully upscaled and sharpened. The final ad is sRGB PNG rather than a printer-specific CMYK profile.\n\n## Verify Steps\n\n1. Confirm final dimensions are 1200 x 2850 pixels and density is 300 DPI. 2. Visually inspect logo, headline, four insurance types, phone, website, address, contrast, and safe margins. 3. Crop the QR region from the final composed ad and submit it to a QR decoder. 4. Confirm decoded data equals https://www.cardoninsuranceelpaso.com/ with no error.\n\n## Rollback Plan\n\nRemove the portrait PNG and standalone QR asset; the original horizontal ad remains unchanged and no production website or external account was modified.\n\n## Notes\n\nBuilt-in image generation produced the text-free portrait background with an ads-marketing prompt for an El Paso home, vehicle, flood-protection water, and contractor bonding cue with navy copy zones. Logo, typography, and QR were composited deterministically. QR error correction is level H with a four-module quiet zone. The finished-ad QR decoded exactly to https://www.cardoninsuranceelpaso.com/. Final SHA-256: 097D65612D7C1916E3596AAC254414914F73E299553629A01AF45442DE711C5C."
+    },
+    {
+      "id": "202610162218-BYCTXK",
+      "title": "Document free claimed versus Premium listing perks",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "product"
+      ],
+      "commit": {
+        "hash": "01d0b512c0a15b08d38eb49d085ec169896cb3bf",
+        "message": "📋 202610162218-BYCTXK document verified free and Premium listing benefits"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: inspect current listing entitlements and distinguish enforced free-claim benefits from paid Premium benefits and marketing-only language."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: current server entitlements, owner controls, lead delivery, analytics shaping, directory presentation, pricing, and SEO output were compared and caveats were documented."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T22:19:49+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit the current CityBeat directory entitlement, pricing, editing, analytics, lead, placement, and SEO code and provide an accurate side-by-side customer comparison.",
+      "doc": "## Summary\n\nAudited the currently enforced CityBeat directory behavior and documented the customer-facing differences between an approved claimed Basic listing and an active Premium listing.\n\n## Scope\n\nCompared server-side entitlements, owner editing controls, lead delivery and masking, analytics response shaping, directory presentation, pricing, and listing SEO/schema behavior. No product code or production data was changed.\n\n## Risks\n\nMarketing copy is broader than the current implementation in a few places. Premium does not include Featured-only guaranteed priority placement, category benchmarking, or multi-location tools. AI assistance is registered as an entitlement but has no current product surface. The per-listing leads module is marked coming soon, although the main dashboard lead inbox and Premium lead email delivery are live. Video is server-supported but has no owner-facing editor in the current CMS.\n\n## Verify Steps\n\nReviewed apps/web/src/lib/directory-entitlements.ts, apps/web/src/lib/pricing.ts, the owner CMS, lead capture/inbox routes and component, directory ordering/card presentation, analytics API, and server-rendered listing metadata/structured data.\n\n## Rollback Plan\n\nDocumentation-only analysis; no application rollback is required.\n\n## Notes\n\nCustomer-facing answer should distinguish shared SEO foundations from Premium content enrichment and should not claim guaranteed search rankings. An approved claim is required before owner access; successful payment is required before Premium entitlements activate."
+    },
+    {
       "id": "202610162227-RFJMJW",
       "title": "Clarify Basic versus Premium directory plans",
       "status": "DOING",
@@ -10127,6 +10251,158 @@
       "doc_updated_by": "agentctl",
       "description": "Make the Basic and Premium listing differences unmistakable across public directory browsing, claim and upgrade flows, and owner dashboard using bilingual, entitlement-accurate copy and resilient responsive UI.",
       "doc": "## Summary\n\nImplemented a bilingual, entitlement-accurate Basic-versus-Premium comparison across the public directory, listing claim and upgrade flow, and owner dashboard. Aligned automated customer communications and sales guidance to the same distinction.\n\n## Scope\n\nAdded a reusable responsive plan comparison component; labeled and explained Basic and Premium listing sections; clarified free claiming and Premium benefits; exposed the comparison in the dashboard; corrected Premium placement language in pricing, owner reports, sales follow-ups, staff guidance, and chat; added regression coverage preventing Premium from claiming Featured-only guaranteed placement.\n\n## Risks\n\nThe local directory API had no accessible listing data in the preview environment, so the shared comparison component was visually verified on the public directory in English and Spanish and its claim-page integration was type-checked and production-built. Deployment remains a separate external action and requires specific cost approval if Cloud Build charges apply.\n\n## Verify Steps\n\nPassed npm run type-check --workspace=@citybeat/web; passed npm run build --workspace=@citybeat/web; passed 29 targeted pricing, billing, and entitlement tests; passed git diff --check. Browser review verified desktop and 390px mobile layouts, English and Spanish copy, accessible comparison structure, and no horizontal overflow.\n\n## Rollback Plan\n\nRevert the implementation commit to remove the shared comparison component and restore prior directory, claim, dashboard, pricing, report, sales, and chat copy.\n\n## Notes\n\nPremium is described as a richer card displayed before Basic listings, while guaranteed top-of-category placement remains explicitly reserved for Featured. No payment, subscription, deployment, production data, or external customer communication was triggered."
+    },
+    {
+      "id": "202610162233-TW2MMC",
+      "title": "Deploy Basic versus Premium directory clarification",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "202610162227-RFJMJW"
+      ],
+      "tags": [
+        "deployment",
+        "production",
+        "directory"
+      ],
+      "verify": [
+        "npm run type-check --workspace=@citybeat/web"
+      ],
+      "commit": {
+        "hash": "2f4726127a69cf71bde63c27202244f1d86780b9",
+        "message": "✅ TW2MMC record verified production deployment"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: deploy the approved Basic-versus-Premium directory clarification within the user-approved one-time Google Cloud Build cap of one dollar."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: GitHub Actions run 38976495925 passed candidate smoke tests and payment guards, promoted citybeat-web-00324-mom to 100% production traffic, returned HTTP 200 on live health and directory routes, and served the localized comparison in English and Spanish."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T22:42:48+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Release commits c1a4822 and fd2f531 through the guarded Cloud Run pipeline, promote only after candidate smoke tests pass, and verify the public English and Spanish directory comparison.",
+      "doc": "## Summary\n\nDeploy the committed Basic-versus-Premium directory clarification to the production CityBeat Cloud Run service using the guarded candidate-first workflow.\n\n## Scope\n\nPush the committed release to main, allow GitHub Actions to build and deploy a no-traffic candidate, require automated smoke and security checks, promote to 100% only on success, and verify the public bilingual directory.\n\n## Risks\n\nCloud Build incurs an estimated one-time cost of approximately .03 under the user-approved  cap. The workflow protects customers with a no-traffic candidate and automatically rolls back if live verification fails.\n\n## Verify Steps\n\n1. GitHub Actions run 38976495925 completed successfully. 2. Install, type-check, and full test steps passed. 3. Candidate revision deployed without traffic and passed smoke and payment security guards. 4. Revision citybeat-web-00324-mom received 100% production traffic. 5. Live /en, /en/directory, and /api/health returned HTTP 200. 6. English and Spanish directory HTML contains the localized plan comparison.\n\n## Rollback Plan\n\nThe workflow automatically restores the previously serving Cloud Run revision if live verification fails. If a later issue appears, route 100% traffic back to the recorded prior revision.\n\n## Notes\n\nDeployment approved for one Google Cloud Build execution estimated at approximately .03 and capped at , with no recurring charge. Scoped production commit 52c721171cb7a63b84c4149b6989edbac05a6764 triggered GitHub Actions run 38976495925. Candidate smoke tests passed, including checkout input guards and unsigned webhook rejection; revision citybeat-web-00324-mom was promoted to 100% traffic from citybeat-web-00322-hiq. Live checks returned HTTP 200 for /en, /en/directory, and /api/health. Independent checks confirmed both /en/directory and /es/directory return 200 and contain their localized Basic-versus-Premium comparison headings."
+    },
+    {
+      "id": "202610162237-YXPESJ",
+      "title": "Audit CityBeat client appeal and zero-cost perks",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "product",
+        "directory",
+        "conversion"
+      ],
+      "commit": {
+        "hash": "a77fa55770bdbaac376635c1c5481d427342dee3",
+        "message": "✅ YXPESJ document CityBeat product attractiveness audit"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: audit the live customer journey and current product capabilities, then prioritize no-new-monthly-cost perks by client value, effort, and operational risk."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: product audit completed with prioritized proof-led conversion improvements and reusable zero-new-monthly-cost perks | details: documented cost caveats for AI, email, moderation, and generated files."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T22:39:29+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Evaluate CityBeat as a website, directory, and paid listing product; identify conversion and retention improvements plus additional customer perks that reuse existing capabilities without adding monthly operating expense.",
+      "doc": "## Summary\n\nAudit CityBeat's public website, business directory, listing detail experience, claim/upgrade path, and owner dashboard. Identify conversion and retention improvements, emphasizing perks that reuse existing data and components without adding a recurring vendor or infrastructure charge.\n\n## Scope\n\nReviewed the homepage commerce section, listing detail layouts, claim messaging, plan entitlements, owner/advertiser dashboards, leads, analytics, QR/review, badge, referral, content, and reporting capabilities. Deliver a prioritized product recommendation rather than modifying production code. Recommendations distinguish zero-new-monthly-cost reuse from items with possible marginal email, AI, moderation, or compute expense.\n\n## Risks\n\nDo not promise rankings, guaranteed leads, or unverifiable traffic. Keep Featured placement distinct from Premium card prominence. Avoid calling AI generation free because model usage can incur variable cost. Email reports, user notifications, PDFs, and human moderation can create marginal operating cost or labor even when no new subscription is required. Trust badges must reflect observable facts such as claimed ownership, freshness, response activity, or active offers.\n\n## Verify Steps\n\n1. Inspect the public homepage directory commerce section and listing detail actions. 2. Confirm existing Basic, Premium, and Featured entitlements in source. 3. Inspect owner dashboard components for analytics, leads, referrals, badges, AI assistance, deals, reviews, and reporting. 4. Rank recommendations by client value, implementation effort, and recurring-cost exposure. 5. Confirm every zero-cost recommendation can derive from existing first-party data or static templates.\n\n## Rollback Plan\n\nNo product code, billing configuration, customer records, or external services are changed by this audit. If a recommendation is rejected, remove it from the future roadmap; no operational rollback is required.\n\n## Notes\n\nKey finding: the product already contains strong value—bilingual SEO pages, tracked calls/web/directions, quote leads, reviews and owner replies, QR tools, offers/posts/events, analytics/export, referral tools, badges, and owner reports—but these are fragmented across surfaces and under-explained on the homepage. Highest-value no-new-monthly-cost opportunities are a customer-actions ROI card, verified/fresh/responsive trust signals, a template-generated share kit and review QR poster, an onboarding checklist, a proof-led sales page, and eligibility for organic deal/editorial rotation without guaranteed placement."
+    },
+    {
+      "id": "202610162251-DZJBW5",
+      "title": "Build and deploy CityBeat Premium Value System",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "directory",
+        "premium",
+        "conversion",
+        "retention",
+        "deployment"
+      ],
+      "verify": [
+        "npm run type-check --workspace=@citybeat/web",
+        "npm test",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "commit": {
+        "hash": "0b11e6954939d2fc6d271eed201c874ad49c1ed2",
+        "message": "✨ DZJBW5 build CityBeat Premium Value System"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: approved seven-phase implementation and one-time Google Cloud Build charge capped at ; no new recurring paid services."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: 657 automated tests, web type-check, production build, local bilingual UI review, no-traffic candidate security and payment smoke tests, 100 percent promotion of citybeat-web-00326-gik, and live HTTP 200 checks all passed."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T23:05:26+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Implement the approved owner ROI dashboard, onboarding and listing health, factual trust signals, marketing toolkit, proof-led Premium conversion surfaces, retention features, bilingual QA, and guarded production release. Reuse existing first-party data and services, add no new vendor subscription or AI API usage, preserve existing email frequency, and keep the one-time Google Cloud Build charge within the explicitly approved  cap.",
+      "doc": "## Summary\n\nBuild and deploy the approved CityBeat Premium Value System: unified owner ROI and lead workflow, guided listing quality, factual public trust signals, a reusable marketing toolkit, proof-led Premium conversion surfaces, retention tools, bilingual QA, and a guarded Cloud Run release.\n\n## Scope\n\nImplement the seven approved phases using existing first-party listing, analytics, lead, review, offer, report, QR, and billing data. Add English and Spanish UI; keep Featured guarantees distinct from Premium; use deterministic templates instead of AI APIs; preserve the existing report email schedule; add no vendor subscription. Deploy once through the existing no-traffic candidate pipeline within the explicitly approved  Google Cloud Build cap.\n\n## Risks\n\nThis is a broad customer-facing release touching authenticated owner workflows, public listing trust, analytics presentation, and conversion pages. Risks include authorization regressions, misleading badges, inflated ROI claims, cross-tier entitlement leakage, mobile overflow, localization drift, and increased email or compute usage. Mitigate with derived-only factual signals, server-side ownership checks, no ranking or traffic guarantees, unchanged email cadence, static templates, targeted tests, candidate smoke tests, and automatic rollback.\n\n## Verify Steps\n\nPassed npm run type-check --workspace=@citybeat/web. Passed npm test: 657 tests total (637 web and 20 shared-library tests). Passed npm run build --workspace=@citybeat/web. Reviewed the bilingual Premium page and mobile/desktop layout locally. GitHub Actions run 38978782893 deployed scoped production commit 96b0d9a34bfe9012bf6c02a051e07a9c052a3ab1 as Cloud Run revision citybeat-web-00326-gik. Candidate route, authorization, checkout guard, webhook signature, and payment-health smoke tests passed before promotion. Revision was promoted to 100 percent traffic. Independent checks returned HTTP 200 and expected release copy for /en/premium, /es/premium, /en, /en/directory, and /api/health.\n\n## Rollback Plan\n\nBefore promotion, the candidate receives no production traffic. If candidate checks fail, do not promote. If live checks fail, the workflow automatically restores the prior Cloud Run revision. Application changes remain reversible through the scoped implementation commit; no billing data, subscriptions, or existing customer entitlements will be migrated or deleted.\n\n## Notes\n\nImplemented owner ROI metrics, lead pipeline statuses, listing completeness guidance, derived factual trust signals, QR and social marketing tools, offer expiration and duplication controls, monthly report enhancements, a bilingual proof-led Premium comparison page, homepage conversion placement, and sitemap discovery. The release adds no new vendor subscription, AI API usage, or email cadence. Premium claims remain factual and do not promise ranking, placement, traffic, or leads. User approved the one-time Google Cloud Build execution up to $1; deployment completed successfully in 6 minutes 52 seconds. Local implementation commit: 0b11e69. Scoped production commit: 96b0d9a34bfe9012bf6c02a051e07a9c052a3ab1. GitHub Actions run: 38978782893."
+    },
+    {
+      "id": "202610162312-XC9HT8",
+      "title": "Repair analytics and add Premium conversion pixel",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [
+        "analytics",
+        "premium",
+        "privacy",
+        "frontend",
+        "backend",
+        "deployment"
+      ],
+      "verify": [
+        "npm run type-check --workspace=@citybeat/web",
+        "npm test",
+        "npm run build --workspace=@citybeat/web"
+      ],
+      "commit": {
+        "hash": "0649063c9d06d652a1185f4f44af486e2a4d6dae",
+        "message": "✨ 202610162312-XC9HT8 repair analytics and add Premium conversion pixel"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: user approved the analytics repair, privacy-preserving Premium conversion pixel, guarded deployment, and a one-time Google Cloud Build charge capped at $1."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Verified: 661 automated tests, web type-check, optimized production build, guarded candidate smoke tests, 100 percent promotion, correct live GA4 and Cloudflare tags, Premium pixel availability, access controls, and payment health all passed."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: analytics repair and Premium pixel are deployed on revision citybeat-web-00328-hil | details: local and production checks passed, and no recurring vendor expense was added."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-16T23:31:25+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Audit and repair production Google Analytics 4 and Cloudflare Web Analytics, add first-party listing interaction events, implement a privacy-preserving domain-restricted Premium business conversion pixel with owner diagnostics and reporting, document privacy behavior, test it, and deploy through the guarded Cloud Run pipeline. Add no recurring vendor expense and keep the explicitly approved one-time Google Cloud Build charge within $1.",
+      "doc": "## Summary\n\nRepair CityBeat analytics so the correct GA4 property receives traffic, verify Cloudflare coverage, strengthen first-party listing events, and add a zero-subscription-cost Premium conversion pixel with owner setup, diagnostics, privacy controls, and reporting.\n\n## Scope\n\nUse GA4 measurement ID G-C6PLK304L6; preserve first-party pageview analytics; add Cloudflare and GA diagnostics; emit meaningful listing actions to GA4; create a Premium/Featured-only pixel configuration and event ingestion API with public script, domain allowlist, rotating key, rate limits, bot filtering, aggregate-only storage, setup UI, connection test, and owner analytics. Update privacy/cookie disclosures. Deploy one guarded Cloud Run candidate within the approved one-time $1 build cap.\n\n## Risks\n\nRisks include measuring the wrong GA property, double-counted pageviews, forged or cross-domain pixel events, PII collection, unbounded Firestore writes, entitlement bypass, CSP failures, and analytics code affecting page reliability. Mitigate with one canonical GA ID, explicit SPA pageviews, aggregate-only events, strict event and domain validation, hashed public keys, no cookies or persistent visitor identifiers, rate limits, bot rejection, server-side entitlement and ownership checks, fail-open client tracking, tests, candidate smoke checks, and automatic rollback.\n\n## Verify Steps\n\nRun targeted unit tests, the web type-check, full test suite, and production build. Confirm generated HTML references G-C6PLK304L6 and loads the Google tag. Verify public pixel script behavior, authorized configuration endpoints, domain enforcement, aggregate counters, CSP compatibility, Cloudflare response headers/beacon state, bilingual owner UI, candidate route/security/payment smoke checks, and live production endpoints after promotion.\n\n## Rollback Plan\n\nDeploy without traffic and promote only after candidate checks. The workflow automatically restores the previous Cloud Run revision if live verification fails. Code changes are reversible through the scoped implementation commit. Pixel configuration is additive; disabling or rotating it invalidates future ingestion without deleting listings, subscriptions, or existing analytics.\n\n## Notes\n\nImplemented in local commit 0649063 and deployed as remote commit 023af59. GitHub Actions run 38981044496 succeeded through no-traffic candidate deployment, smoke tests, promotion, and public-domain verification. Cloud Run revision citybeat-web-00328-hil serves 100 percent of traffic. Live HTML contains GA4 measurement ID G-C6PLK304L6 and the Cloudflare Web Analytics beacon; the old GA ID is absent. The public conversion pixel loader returns JavaScript with cross-origin access, owner and admin APIs return 401 anonymously, and /api/health/payments returns 200. Cloudflare Web Analytics was configured in manual-snippet mode at no recurring vendor charge. Analytics dashboards may need normal ingestion time before showing visits."
     },
     {
       "id": "202610162338-5Y02T0",
@@ -10562,12 +10838,40 @@
       "doc_updated_by": "agentctl",
       "description": "Read-only inventory and source assessment approved October 20. Measure published inventory, duplicates, category and ZIP coverage, source provenance and completeness; recommend compliant expansion and search priorities. No imports, deployments, spending or subagents.",
       "doc": "## Summary\n\nAssess El Paso directory coverage and reusable sources without changing production.\n\n## Context\n\nUser approved inventory and source assessment only, with no subagents. Current directory includes regional records and consolidated branches; this is not a bulk-import or deployment authorization.\n\n## Scope\n\nInventory existing listings, quality, category and ZIP distribution; source terms and gaps; recommend next-stage work. No imports, paid services, deployment or subagents.\n\n## Risks\n\nInventory is not a count of all active businesses. Duplicates require location-aware review. Source licenses and database reads may constrain collection. No financial authorization assumed.\n\n## Verify Steps\n\nPassed node --test scripts/directory-coverage-audit.test.mjs (3 tests), node --check scripts/directory-source-assessment.mjs, and git diff --check. Production read-only projected scan: 9789 total, 8037 published, 1729 merged, 23 unpublished unmerged. All aggregate dimensions reconcile. Public Comptroller source ZIP totals reconcile to 18877.\n\n## Rollback Plan\n\nNo production mutation. Revert only assessment artifacts if required.\n\n## Notes\n\nReport: docs/audits/el-paso-coverage-source-assessment-2026-10-20.md. Aggregate evidence and two reproducible read-only scripts added. Critical legacy source review: 3812 Google-source URLs. Public Domain sales-tax and licensed Overture pilots recommended; no imports, production mutations or deployment. Broader UI/UX implementation remains unexecuted pending next-phase direction."
+    },
+    {
+      "id": "202610221149-AD860T",
+      "title": "Repair failed GitHub test and deployment workflows",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "commit": {
+        "hash": "12b81e2d5d6752054b798f433aff1027755acc8d",
+        "message": "🐛 AD860T verified: fix CI Node22 Firebase dependency loading | details: add bounded candidate readiness retries and skip absent reports; pass 751 tests, four type checks and fresh build on Node24"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: repair CI runtime mismatch and bounded deployment readiness checks | details: verify all local changes before handoff"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: fix CI Node22 Firebase dependency loading | details: add bounded candidate readiness retries and skip absent reports; pass 751 tests, four type checks and fresh build on Node24"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-22T11:54:09+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Investigate failed runs with read-only GitHub access, fix local causes, verify and commit. No purchases, billing changes, pushes or deployment.",
+      "doc": "## Summary\n\nRepair CI runtime mismatch and deployment smoke timeout handling based on GitHub run evidence.\n\n## Context\n\nRun 39739639223 failed type checking on Node20; firebase-admin14 and optional Firestore9 require Node22. Deployment run 39735491236 exited28 on its first candidate request; three later deploys succeeded. No evidence of billing failure.\n\n## Scope\n\nAlign test Node runtime with deployment, check required Firebase optional packages, guard absent test artifacts, and add bounded candidate readiness checks.\n\n## Risks\n\nNo remote writes or deployment authorized. Retry only read-only readiness requests and retain all existing smoke assertions.\n\n## Verify Steps\n\nPASS: npm test (751 tests across 107 files), npm run type-check (four workspaces), fresh npm run build -- --force (no cache), Firebase module load, workflow YAML parsing, git diff --check. Reviewed with no actionable findings. Local Node24; clean Node22 CI rerun not performed. Global task lint reports pre-existing unrelated task metadata/dependency errors.\n\n## Rollback Plan\n\nRevert the task implementation commit locally; no production state is changed.\n\n## Notes\n\nRead-only GitHub investigation only. Node22 matches existing deploy workflow. Candidate readiness retries GET /en at most six times with 30-second timeouts and five-second delays; original smoke assertions remain. Missing optional report artifacts are skipped."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "9820e58a4234967d1b0cc85faf262635925a30d655c9ff958f8cbfa2de443117"
+    "checksum": "d00e9da82d49693571e65acf674e0d0e048bca17af797fd14d9129bf648b18e5"
   }
 }
