@@ -35,46 +35,70 @@ Everything below is ordered by how much it moves that number or protects it.
 
 ## 1. Software performance
 
-### 1.1 The most-visited pages opt out of caching — and they are the slowest
+### 1.1 CORRECTED — this section was wrong
 
-18 pages declare `export const dynamic = 'force-dynamic'`, against 8 using ISR.
-The dynamic set includes the home page, `/stories`, `/directory`, `/events`,
-`/jobs`, `/deals` and `/best` — the entire public surface.
+**What I originally wrote here was a measurement error, and the recommendation
+that followed from it would have done nothing.** Leaving the original in place
+would be worse than deleting it, so here is what is actually true.
 
-Measured, live:
+**The home page is not slow.** I measured 1.104s TTFB and compared it to
+`/premium` at 0.202s, concluding that caching would give a 5x speedup. But
+`minScale = 0` on the Cloud Run service, so the first request after an idle
+period pays container startup. Four consecutive warm requests to `/en`:
 
-| Route | TTFB | HTML |
-|---|---|---|
-| `/en` (force-dynamic) | **1.104s** | 85 KB |
-| `/en/stories` (force-dynamic) | 0.749s | **276 KB** |
-| `/en/events` (force-dynamic) | 0.499s | 175 KB |
-| `/en/directory` (force-dynamic) | 0.355s | 100 KB |
-| `/en/premium` (cached) | **0.202s** | 57 KB |
+```
+0.328s   0.230s   0.237s   0.431s
+```
 
-The cached page is **5× faster to first byte** than the home page. That is the
-whole argument. `force-dynamic` means every single visit re-renders on the server
-and re-reads Firestore — and Firestore reads are this project's only variable
-cost, so the slowest pages are also the ones metering a bill.
+The home page renders in roughly a quarter of a second. I compared a cold start
+against a warm hit and called the difference a caching problem.
 
-**What I would do:** replace `force-dynamic` with `revalidate = 60` on the public
-content pages. A minute of staleness is invisible on a local news site, and it
-collapses a thousand visits into one render. I did **not** do this unilaterally —
-the home page's dynamic rendering was a deliberate past decision, and reversing a
-deliberate decision without knowing why it was made is how you reintroduce the
-bug it fixed. Tell me the reason and I will either work around it or implement
-the change.
+**And the pages cannot be cached anyway.** `apps/web/src/app/[locale]/layout.tsx`
+reads a per-request CSP nonce — `(await headers()).get('x-nonce')`, minted fresh
+per request by `middleware.ts`. In Next 14 a dynamic API in a layout renders the
+entire route tree dynamically, so `export const revalidate = 60` on any child
+page is inert. Middleware also sets `Cache-Control: private, no-store` on every
+HTML response (verified live), so nothing caches at Fastly either. Adding
+`revalidate` to 18 pages would have changed nothing measurable, and the
+"fix" that makes it take effect — removing the nonce read — would serve one
+visitor's single-use nonce to another. Under `strict-dynamic` that means **no
+script executes at all**: the page paints and never hydrates, taking the cart,
+the header's auth state, and the client-side analytics with it.
 
-**Effort:** S per page. **Impact:** large and compounding, on both latency and cost.
+Both the layout and `lib/articles.ts` already document this. The layout says
+*"Nonce-bearing HTML must be rendered per request... Public database reads use
+explicit unstable_cache independently of this HTML."* That is exactly the right
+architecture, and it is already implemented: articles are cached per process on a
+3-minute TTL with the read-cost arithmetic written out beside it, the SEO
+category combinations sit behind `unstable_cache` at 1 hour, and the sitemaps at
+1 hour. The data layer is cached. The HTML is deliberately not.
 
-### 1.2 `/stories` ships 276 KB of HTML
+**So the real finding is the opposite of what I wrote:** the rendering and
+caching architecture is in good shape and was reasoned about carefully by whoever
+built it. The one genuine latency issue is **cold starts**, and the fix is
+infrastructure, not code:
 
-That is 3× the home page and ~5× `/premium`, for what is structurally a list of
-links. It strongly suggests full article bodies are being serialized into the
-list payload. On a phone on El Paso mobile data — which is most of this audience
-— that is the difference between a page that feels instant and one that does not.
-**Worth a look before anything else on this list, because it is probably a
-one-line fix** (select fewer fields, or stop passing full content to the client
-component).
+```bash
+gcloud run services update citybeat-web --region us-central1 --project kerstenblueprint --min-instances=1
+```
+
+That keeps one instance warm so no visitor pays startup. It costs real money
+(an always-on instance at idle rates), so it is a cost/benefit call, not an
+obvious win — but it is the only thing on this page that would actually make the
+site feel faster.
+
+### 1.2 `/stories` ships 276 KB — but not for the reason I assumed
+
+I guessed full article bodies were being serialized into the list. Measured: no
+long prose runs in the HTML, no `content_es`, and 61 distinct story links at
+~4.5 KB each. Half the weight (140 KB) is Next's RSC flight payload, which is the
+framework duplicating card data for hydration.
+
+So it is not over-fetching — it is **61 cards on one page**, from an explicit
+`limit: 60`. Cutting it to 20 with a "load more" would take the page from 276 KB
+to roughly 90 KB on a market that is mostly on mobile data. That is a product
+decision about how much of the archive belongs on first paint, not a bug, so I
+have not changed it.
 
 ### 1.3 The social cron runs 144 times a day
 
@@ -147,12 +171,15 @@ product.
 ### 3.2 Cost structure
 
 Variable costs, in rough order: **Firestore reads** (the only one that scales
-with traffic — see §1.1), **Anthropic tokens** (newsroom 4×/day, account manager,
+with traffic, though the data layer is already cached — see §1.1), **Anthropic tokens** (newsroom 4×/day, account manager,
 ScrapeFlow extraction, translation fallback), **Resend**, **Cloud Run**. Fixed
 infrastructure is modest.
 
-The highest-leverage cost action is §1.1, because it reduces the one cost that
-grows with success.
+There is no large caching win left to take — §1.1 explains why, and the data
+layer is already cached with documented TTLs. The Firestore bill is therefore
+close to what this traffic actually requires. If it needs to come down further,
+the lever is the 144x/day social drain (§1.3) and the article list TTL, not page
+caching.
 
 ### 3.3 A gap worth closing *(unverified)*
 
@@ -225,7 +252,10 @@ These are the things I could not do, in priority order:
    gcloud scheduler jobs update http citybeat-ghost-reports --location us-central1 --project kerstenblueprint --schedule "0 10 * * 5"
    ```
 3. **Turn on `auto_approve_claims`** (§4), at `/admin/payouts`.
-4. **Tell me why the home page is `force-dynamic`** so §1.1 can proceed safely.
+4. **Decide whether to pay for `--min-instances=1`** (§1.1). It is the only
+   change that would make the site measurably faster, and it costs money rather
+   than effort. ~~Tell me why the home page is force-dynamic~~ — answered: the
+   per-request CSP nonce, documented in the layout. Nothing to change.
 5. **Check MRR and claim-conversion** (§3.3) — it determines whether §2 or §3 is
    the real priority.
 
@@ -238,6 +268,12 @@ Set `RESEND_WEBHOOK_SECRET`, then switch ghost-reports to weekly, then turn on
 claim-outreach cycle from 23 years to about 5, and removes the human step between
 a customer paying and getting what they paid for.
 
-The software work in §1 is real and I would do it next — but it makes a
-functioning business cheaper, and right now the funnel matters more than the
-margin.
+I originally closed this by saying the software work in §1 was real and worth
+doing next. Having measured it properly, that was wrong: the rendering
+architecture is already sound, the data layer is already cached, and the headline
+performance finding was a cold start I mistook for a caching problem. The only
+remaining lever is `--min-instances=1`, which is a cost decision.
+
+Which makes the conclusion simpler, not weaker: **there is no meaningful software
+performance work outstanding.** The constraint on this business is the funnel,
+not the margin, and not the code.
