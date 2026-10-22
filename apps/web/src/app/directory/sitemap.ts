@@ -2,7 +2,12 @@ import type { MetadataRoute } from 'next'
 import { FieldPath } from 'firebase-admin/firestore'
 import { unstable_cache } from 'next/cache'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { DIRECTORY_SITEMAP_PAGE_SIZE, getDirectorySitemapPageCount } from '@/lib/directory-sitemap'
+import {
+  DIRECTORY_SITEMAP_PAGE_SIZE,
+  getDirectorySitemapPageCount,
+  parseShardId,
+} from '@/lib/directory-sitemap'
+import { reportFailure } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +46,12 @@ async function buildDirectorySitemap(id: number): Promise<MetadataRoute.Sitemap>
         },
       }]
     })
-  } catch {
+  } catch (error) {
+    // NOT silent. An empty sitemap is indistinguishable from a working one to
+    // everybody except a search engine, which simply indexes nothing and never
+    // complains. A thrown query (a missing composite index, a permissions
+    // change) must page someone rather than publish a valid-looking empty file.
+    await reportFailure('directory-sitemap', error, { shard: id }).catch(() => {})
     return []
   }
 }
@@ -51,9 +61,15 @@ export async function generateSitemaps(): Promise<Array<{ id: number }>> {
   return Array.from({ length: pages }, (_, id) => ({ id }))
 }
 
-export default async function sitemap({ id }: { id: number }): Promise<MetadataRoute.Sitemap> {
-  if (!Number.isInteger(id) || id < 0) return []
-  return unstable_cache(() => buildDirectorySitemap(id), ['directory-sitemap-v1', String(id)], {
+export default async function sitemap({ id }: { id: number | string }): Promise<MetadataRoute.Sitemap> {
+  const shard = parseShardId(id)
+  if (shard === null) return []
+  // An out-of-range shard returns empty rather than querying at a huge offset —
+  // offset() bills a read per skipped document, so an probed /999.xml would cost
+  // real money for nothing.
+  const pages = await getDirectorySitemapPageCount().catch(() => 0)
+  if (pages > 0 && shard >= pages) return []
+  return unstable_cache(() => buildDirectorySitemap(shard), ['directory-sitemap-v2', String(shard)], {
     revalidate: 3600,
     tags: ['directory'],
   })()
