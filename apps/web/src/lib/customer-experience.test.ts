@@ -49,6 +49,33 @@ test('public UI guards: basic details, shared reviews, user-initiated chat and h
   assert.match(source('components/citybeat/QuoteForm.tsx'), /response is not guaranteed/)
 })
 
+test('the premium results panel shows measured figures, not invented ones', () => {
+  // It used to hardcode "14" customer actions split 6/4/3/1 behind an
+  // "Illustrative example" label. Honest about being fiction — but the page's
+  // argument is that Premium gives an owner REAL measurement, so illustrating
+  // that with made-up numbers undercut the product being sold, and a prospect
+  // who later compared it to their own dashboard would learn that CityBeat's
+  // published numbers mean nothing.
+  const page = source('app/[locale]/premium/page.tsx')
+  assert.match(page, /getPremiumProof/, 'the panel must read real listing_stats')
+  assert.doesNotMatch(page, /Illustrative example/i, 'the invented-figure disclaimer is obsolete')
+  assert.doesNotMatch(page, /Ejemplo ilustrativo/i)
+  // The panel must be conditional: no proof means no panel, never zeros.
+  assert.match(page, /proof && \(/, 'the panel has to be omitted when there is no proof')
+
+  // And the claim it carries must stay honest about variability.
+  assert.match(page, /Results vary by business and category|Los resultados var/)
+
+  // The reader must not be able to identify whose numbers these are. A paying
+  // customer did not agree to have their performance advertised.
+  assert.doesNotMatch(
+    source('lib/premium-proof-server.ts'),
+    /business_name/,
+    'the proof reader must never pull an identifying field'
+  )
+  assert.match(page, /sampleSize/, 'the panel must disclose it is a median across a sample')
+})
+
 test('the public plan comparison names every capability Premium actually grants', () => {
   // The drift this pins: /premium is the page a business reads before paying,
   // and its paid list is hand-written prose while the entitlements it describes
