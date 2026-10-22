@@ -1,11 +1,12 @@
 'use client'
 
 import { cleanListingText } from '@/lib/customer-experience'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
+import { sendListingAction, createListingViewRecorder } from '@/lib/listing-tracking-client'
 import { QuoteForm } from '@/components/citybeat/QuoteForm'
 import { useLocale } from '@/components/TranslationProvider'
 import BookmarkButton from '@/components/BookmarkButton'
@@ -551,25 +552,20 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
   // identity. The server excludes owner/manager/staff self-traffic.
   const track = useCallback(
     (type: Exclude<ListingEventType, 'lead'>) => {
-      trackAnalyticsEvent('directory_listing_action', {
+      sendListingAction(id, type, () => trackAnalyticsEvent('directory_listing_action', {
         listing_id: id,
         listing_name: listing?.name || '',
         listing_tier: listing?.tier || 'basic',
         action: type,
-      })
-      void fetch('/api/track/listing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId: id, type }),
-        keepalive: true,
-      }).catch(() => {})
+      }))
     },
     [id, listing?.name, listing?.tier]
   )
 
+  const recordView = useRef(createListingViewRecorder())
   useEffect(() => {
-    if (id) track('view')
-  }, [id, track])
+    recordView.current(id, listing?.id, () => track('view'))
+  }, [id, listing?.id, track])
 
   // Deep-link ?edit=1 (from the dashboard "Manage" link) opens edit mode once we
   // know the viewer is the approved owner or an editor.
@@ -1646,7 +1642,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                   {listing.phone && (
                     <div>
                       <p className="text-[10px] uppercase font-bold text-brand-neon">{t.phone}</p>
-                      <a href={`tel:${listing.phone.replace(/[^\d+]/g, '')}`} onClick={() => track('click_phone')} className="text-sm mt-1 text-white/80 hover:text-brand-neon">{listing.phone}</a>
+                      <a href={callHref || undefined} aria-disabled={!callHref} onClick={() => { if (callHref) track('click_phone') }} className="text-sm mt-1 text-white/80 hover:text-brand-neon">{listing.phone}</a>
                     </div>
                   )}
 
@@ -1763,7 +1759,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     {listing.phone && (
                       <div>
                         <h4 className="text-[10px] font-black uppercase tracking-wider text-brand-neon">{t.phone}</h4>
-                        <a href={`tel:${listing.phone.replace(/[^\d+]/g, '')}`} onClick={() => track('click_phone')} className="text-white/80 hover:text-brand-neon mt-1 text-sm block">{listing.phone}</a>
+                        <a href={callHref || undefined} aria-disabled={!callHref} onClick={() => { if (callHref) track('click_phone') }} className="text-white/80 hover:text-brand-neon mt-1 text-sm block">{listing.phone}</a>
                       </div>
                     )}
                     {listing.website && (

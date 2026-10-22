@@ -1,79 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { FieldValue } from 'firebase-admin/firestore'
-import { hasEditorAccess } from '@citybeat/lib/roles'
 import { checkRateLimit, getClientIp } from '@/lib/auth-security'
-import { dayKey, isValidListingEventType, statsDocId } from '@/lib/listing-analytics'
+import { trackListingRequest } from '@/lib/listing-tracking'
+import { recordListingAction } from '@/lib/listing-tracking-store'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const AGGREGATE_EVENT: Partial<Record<string, 'click_directions' | 'click_action'>> = {
-  click_directions_google: 'click_directions',
-  click_directions_apple: 'click_directions',
-  click_directions_location: 'click_directions',
-  click_action_booking: 'click_action',
-  click_action_order: 'click_action',
-  click_action_quote: 'click_action',
-  click_action_menu: 'click_action',
-  click_post_cta: 'click_action',
-}
-
-// Privacy-safe listing analytics: increments a per-listing per-day counter.
-// NO visitor identity is stored — no IP, no user id, no user agent. Owner and
-// staff self-traffic is excluded so the numbers reflect real customers.
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({}))
-  const listingId = typeof body.listingId === 'string' ? body.listingId.trim() : ''
-  const type = body.type
-  if (!listingId || listingId.length > 80 || !isValidListingEventType(type)) {
-    return NextResponse.json({ ok: false }, { status: 400 })
-  }
-  // `lead` is derived server-side by the quote route, never from the client.
-  if (type === 'lead') return NextResponse.json({ ok: false }, { status: 400 })
-
-  // Abuse guard: cap events per visitor per listing. Fails open on backend error.
-  const rl = await checkRateLimit(`listing-track:${listingId}:${getClientIp(request)}`, {
-    max: 60,
-    windowMs: 60 * 60 * 1000,
+  const result = await trackListingRequest(await request.json().catch(() => null), {
+    allowed: async listingId => (await checkRateLimit(`listing-track:${listingId}:${getClientIp(request)}`, {
+      max: 60, windowMs: 60 * 60 * 1000,
+    })).ok,
+    listing: async listingId => {
+      const doc = await adminDb.collection('directory_listings').doc(listingId).get()
+      return doc.exists ? doc.data()! : null
+    },
+    visitor: async () => {
+      const user = await getServerUser()
+      return user ? { id: user.id, profile: await getServerUserProfile(user.id) } : null
+    },
+    record: (listingId, type) => recordListingAction(adminDb, listingId, type),
+    // Do not log visitor identity or payloads, and do not send email per click.
+    failure: () => console.error('[listing-tracking] persistence_or_lookup_failed'),
   })
-  if (!rl.ok) return NextResponse.json({ ok: true }) // silently drop — never break the page
-
-  try {
-    const doc = await adminDb.collection('directory_listings').doc(listingId).get()
-    if (!doc.exists) return NextResponse.json({ ok: false }, { status: 404 })
-    const listing = doc.data() as Record<string, any>
-
-    // Exclude the owner, managers, and staff viewing their own listing.
-    const user = await getServerUser().catch(() => null)
-    if (user) {
-      if (listing.owner_id === user.id) return NextResponse.json({ ok: true, excluded: true })
-      if (Array.isArray(listing.manager_ids) && listing.manager_ids.includes(user.id)) {
-        return NextResponse.json({ ok: true, excluded: true })
-      }
-      const profile = await getServerUserProfile(user.id).catch(() => null)
-      if (hasEditorAccess(profile)) return NextResponse.json({ ok: true, excluded: true })
-    }
-
-    const day = dayKey(new Date())
-    const aggregate = AGGREGATE_EVENT[type]
-    await adminDb
-      .collection('listing_stats')
-      .doc(statsDocId(listingId, day))
-      .set(
-        {
-          listing_id: listingId,
-          day,
-          [type]: FieldValue.increment(1),
-          ...(aggregate ? { [aggregate]: FieldValue.increment(1) } : {}),
-          updated_at: new Date().toISOString(),
-        },
-        { merge: true }
-      )
-    return NextResponse.json({ ok: true })
-  } catch {
-    // Analytics must never surface errors to visitors.
-    return NextResponse.json({ ok: true })
-  }
+  return NextResponse.json(result.body, { status: result.status })
 }

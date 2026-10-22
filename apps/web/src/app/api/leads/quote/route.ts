@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
+import { internalListingVisitor, validTrackingListingId } from '@/lib/listing-tracking'
+import { recordQuoteWithStats } from '@/lib/listing-tracking-store'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
@@ -26,9 +29,9 @@ export async function POST(request: NextRequest) {
   const rl = await checkRateLimit(`quote:ip:${ip}`, { max: 15, windowMs: 60 * 60 * 1000 })
   if (!rl.ok) return NextResponse.json({ error: 'Too many requests. Try again later.' }, { status: 429 })
 
-  const body = await request.json().catch(() => ({}))
+  const body = (await request.json().catch(() => null)) || {}
   const str = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
-  const listingId = str(body.listingId, 80)
+  const listingId = typeof body?.listingId === 'string' ? body.listingId.trim() : ''
   const name = str(body.name)
   const contact = str(body.contact) // email or phone
   const message = str(body.message, 1500)
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
   // A valid Firestore listing id — rejecting '/' also avoids the odd-segment
   // throw when building the listing_stats doc id below. ':' must be allowed:
   // ScrapeFlow (sf:<hash>) and OSM (osm:node:<id>) listings use it in doc ids.
-  if (!/^[A-Za-z0-9:_-]{1,120}$/.test(listingId)) {
+  if (!validTrackingListingId(listingId)) {
     return NextResponse.json({ error: 'Invalid listing.' }, { status: 400 })
   }
 
@@ -72,9 +75,13 @@ export async function POST(request: NextRequest) {
   })
   const jevSpam = isJevSpam(jevGenuine)
 
+  const visitor = await getServerUser().catch(() => null)
+  const profile = visitor ? await getServerUserProfile(visitor.id).catch(() => null) : null
+  const excluded = internalListingVisitor(listing, visitor?.id, profile)
+
   let quoteId = ''
   try {
-    const quoteRef = await adminDb.collection('quote_requests').add({
+    quoteId = await recordQuoteWithStats(adminDb, listingId, {
       listing_id: listingId,
       business_name: listing?.name || null,
       owner_id: listing?.owner_id || null,
@@ -86,29 +93,16 @@ export async function POST(request: NextRequest) {
       gated,
       listing_tier_at_capture: listing?.tier || 'basic',
       created_at: FieldValue.serverTimestamp(),
-    })
-    quoteId = quoteRef.id
+      analytics_excluded: excluded,
+    }, !jevSpam && !excluded)
   } catch {
+    console.error('[listing-lead] atomic_persistence_failed')
     return NextResponse.json({ error: 'Could not submit request' }, { status: 500 })
   }
 
   // Same answer as a real submission, so a spammer learns nothing — but no lead
   // count, no owner notification, no email, no unclaimed relay.
   if (jevSpam) return NextResponse.json({ ok: true })
-
-  // Listing analytics: count the lead in the per-day aggregate (server-derived —
-  // never client-reported). Best effort.
-  {
-    const day = new Date().toISOString().slice(0, 10)
-    void adminDb
-      .collection('listing_stats')
-      .doc(`${listingId}_${day}`)
-      .set(
-        { listing_id: listingId, day, lead: FieldValue.increment(1), updated_at: new Date().toISOString() },
-        { merge: true }
-      )
-      .catch(() => {})
-  }
 
   let notificationStatus = 'not_configured'
   // First-party inbox record for the owner. The email below already delivers
