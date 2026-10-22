@@ -237,6 +237,109 @@ function LocationsPanel({
   )
 }
 
+/**
+ * The "Is this your business?" panel.
+ *
+ * EXTRACTED because it only existed inside the BASIC layout branch (the one
+ * commented "BASIC VIEW LAYOUT WITH CLAIM BANNER"), while the layout is chosen
+ * by `listing.tier === 'premium' || 'featured'`. An UNCLAIMED listing can carry
+ * tier 'premium' — a complimentary grant sets exactly that — so those listings
+ * rendered the premium layout, which had no claim call to action anywhere.
+ *
+ * That hit the worst possible cohort: the eleven businesses on free Premium
+ * whose grant expires 2026-12-30 are all `claim_status: 'unclaimed'` with
+ * `tier: 'premium'`. The prospects most likely to convert, on the deadline that
+ * forces the decision, were looking at a page with no button.
+ *
+ * Rendered from both layouts now. Still gated on isClaimable, so nothing shows
+ * to an owner or on a claimed listing.
+ */
+function ClaimPanel({
+  listing,
+  t,
+  locale,
+  publicStats,
+  isClaimable,
+}: {
+  listing: Listing
+  t: (typeof translations)['en']
+  locale: string
+  publicStats: { views: number; unanswered: number } | null
+  isClaimable: boolean
+}) {
+  return listing.claim_status === 'pending_approval' ? (
+      <div className="bg-brand-neon/10 border border-brand-neon/40 rounded-2xl p-6 text-center">
+        <span className="h-12 w-12 rounded-full bg-brand-neon text-black flex items-center justify-center text-2xl font-bold mx-auto mb-4 font-display">i</span>
+        <h3 className="font-display text-xl font-bold uppercase text-white">{t.pendingClaim}</h3>
+        <p className="text-xs text-white/70 mt-3 leading-relaxed">
+          {t.pendingClaimSub}
+        </p>
+      </div>
+    ) : isClaimable ? (
+      <div className="citybeat-panel rounded-2xl p-6 border border-brand-gold/30 bg-gradient-to-br from-brand-charcoal to-brand-dark shadow-[0_0_20px_rgba(255,215,0,0.04)] text-center">
+        <h3 className="font-display text-2xl font-black uppercase text-brand-gold">
+          {t.claimHeader}
+        </h3>
+        <p className="text-xs text-white/70 mt-2 leading-relaxed">
+          {t.claimSub}
+        </p>
+
+        {/* Real demand, shown to the owner ego-surfing their own page —
+            the single strongest claim trigger. Numbers only appear when
+            they impress (≥10 views) or demand action (unanswered Q). */}
+        {publicStats && (publicStats.views >= 10 || publicStats.unanswered > 0) && (
+          <div className="mt-4 rounded-lg border border-brand-neon/25 bg-brand-neon/5 px-4 py-3 text-left">
+            {publicStats.views >= 10 && (
+              <p className="text-sm font-bold text-white">
+                {locale === 'es'
+                  ? `${publicStats.views.toLocaleString('es-MX')} personas vieron esta página en los últimos 30 días.`
+                  : `${publicStats.views.toLocaleString('en-US')} people viewed this page in the last 30 days.`}
+              </p>
+            )}
+            {publicStats.unanswered > 0 && (
+              <p className="mt-1 text-xs font-bold text-amber-300">
+                {locale === 'es'
+                  ? `${publicStats.unanswered} pregunta${publicStats.unanswered > 1 ? 's' : ''} de clientes sin responder.`
+                  : `${publicStats.unanswered} customer question${publicStats.unanswered > 1 ? 's' : ''} waiting for an answer.`}
+              </p>
+            )}
+          </div>
+        )}
+
+        <ul className="text-left text-xs text-white/80 space-y-2.5 my-6 max-w-xs mx-auto">
+          <li className="flex items-center gap-2">
+            <span className="text-brand-neon font-black">✓</span>
+            {t.premiumFeature1}
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-brand-neon font-black">✓</span>
+            {t.premiumFeature2}
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-brand-neon font-black">✓</span>
+            {t.premiumFeature3}
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-brand-neon font-black">✓</span>
+            {t.premiumFeature4}
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-brand-neon font-black">✓</span>
+            {t.premiumFeature5}
+          </li>
+        </ul>
+
+        <Link
+          href={`/${locale}/directory/${listing.id}/claim`}
+          className="w-full text-center block rounded-md bg-brand-neon hover:bg-cyan-300 text-black font-black uppercase tracking-wider text-xs py-3.5 transition shadow-[0_4px_12px_rgba(0,240,255,0.25)]"
+        >
+          {t.claimBtn}
+        </Link>
+      </div>
+  ) : null
+}
+
+
 export default function ListingDetailPage({ initialListing = null }: { initialListing?: Listing | null }) {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -1582,6 +1685,14 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 {/* All locations (multi-location brands) */}
                 <LocationsPanel listing={listing} t={t} onDirectionsClick={() => track('click_directions_location')} />
 
+                <ClaimPanel
+                  listing={listing}
+                  t={t}
+                  locale={locale}
+                  publicStats={publicStats}
+                  isClaimable={isClaimable}
+                />
+
                 {/* Hours Schedule */}
                 {(listing.hours || (listing.special_hours?.length ?? 0) > 0) && (
                   <div className="citybeat-panel rounded-2xl p-6 border border-white/10">
@@ -1724,76 +1835,13 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 {/* All locations (multi-location brands) */}
                 <LocationsPanel listing={listing} t={t} onDirectionsClick={() => track('click_directions_location')} />
 
-                {listing.claim_status === 'pending_approval' ? (
-                  <div className="bg-brand-neon/10 border border-brand-neon/40 rounded-2xl p-6 text-center">
-                    <span className="h-12 w-12 rounded-full bg-brand-neon text-black flex items-center justify-center text-2xl font-bold mx-auto mb-4 font-display">i</span>
-                    <h3 className="font-display text-xl font-bold uppercase text-white">{t.pendingClaim}</h3>
-                    <p className="text-xs text-white/70 mt-3 leading-relaxed">
-                      {t.pendingClaimSub}
-                    </p>
-                  </div>
-                ) : isClaimable ? (
-                  <div className="citybeat-panel rounded-2xl p-6 border border-brand-gold/30 bg-gradient-to-br from-brand-charcoal to-brand-dark shadow-[0_0_20px_rgba(255,215,0,0.04)] text-center">
-                    <h3 className="font-display text-2xl font-black uppercase text-brand-gold">
-                      {t.claimHeader}
-                    </h3>
-                    <p className="text-xs text-white/70 mt-2 leading-relaxed">
-                      {t.claimSub}
-                    </p>
-
-                    {/* Real demand, shown to the owner ego-surfing their own page —
-                        the single strongest claim trigger. Numbers only appear when
-                        they impress (≥10 views) or demand action (unanswered Q). */}
-                    {publicStats && (publicStats.views >= 10 || publicStats.unanswered > 0) && (
-                      <div className="mt-4 rounded-lg border border-brand-neon/25 bg-brand-neon/5 px-4 py-3 text-left">
-                        {publicStats.views >= 10 && (
-                          <p className="text-sm font-bold text-white">
-                            {locale === 'es'
-                              ? `${publicStats.views.toLocaleString('es-MX')} personas vieron esta página en los últimos 30 días.`
-                              : `${publicStats.views.toLocaleString('en-US')} people viewed this page in the last 30 days.`}
-                          </p>
-                        )}
-                        {publicStats.unanswered > 0 && (
-                          <p className="mt-1 text-xs font-bold text-amber-300">
-                            {locale === 'es'
-                              ? `${publicStats.unanswered} pregunta${publicStats.unanswered > 1 ? 's' : ''} de clientes sin responder.`
-                              : `${publicStats.unanswered} customer question${publicStats.unanswered > 1 ? 's' : ''} waiting for an answer.`}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    <ul className="text-left text-xs text-white/80 space-y-2.5 my-6 max-w-xs mx-auto">
-                      <li className="flex items-center gap-2">
-                        <span className="text-brand-neon font-black">✓</span>
-                        {t.premiumFeature1}
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <span className="text-brand-neon font-black">✓</span>
-                        {t.premiumFeature2}
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <span className="text-brand-neon font-black">✓</span>
-                        {t.premiumFeature3}
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <span className="text-brand-neon font-black">✓</span>
-                        {t.premiumFeature4}
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <span className="text-brand-neon font-black">✓</span>
-                        {t.premiumFeature5}
-                      </li>
-                    </ul>
-
-                    <Link
-                      href={`/${locale}/directory/${listing.id}/claim`}
-                      className="w-full text-center block rounded-md bg-brand-neon hover:bg-cyan-300 text-black font-black uppercase tracking-wider text-xs py-3.5 transition shadow-[0_4px_12px_rgba(0,240,255,0.25)]"
-                    >
-                      {t.claimBtn}
-                    </Link>
-                  </div>
-                ) : null}
+                <ClaimPanel
+                  listing={listing}
+                  t={t}
+                  locale={locale}
+                  publicStats={publicStats}
+                  isClaimable={isClaimable}
+                />
 
                 {/* Press Clip Pin — CityBeat coverage that named this business.
                     Compounds with every future mention; owners share these. */}
