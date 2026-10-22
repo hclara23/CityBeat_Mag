@@ -18,6 +18,15 @@ run every verification gate, and update your row here. **Never `git push` in
 this repo — pushing `main` deploys production via GitHub Actions.** Leave
 pushing to the operator.
 
+## Reviews
+
+- **[OPTIMIZATION-REVIEW-2026-10-22.md](OPTIMIZATION-REVIEW-2026-10-22.md)** —
+  software performance, purpose (directory + magazine), profitability and
+  autonomy, measured against production. Headline: 8,000 listings of which ~7 in
+  8 are unclaimed and ~5 in 6 have no photo, and the claim-outreach tactic that
+  addresses it runs on a 23-year cycle. Four items are blocked on the operator,
+  listed in priority order at the end.
+
 ## Execution order & status
 
 | Plan | Title | Priority | Effort | Depends on | Status |
