@@ -2,6 +2,7 @@ import { unstable_cache } from 'next/cache'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { daysAgoKey, statsDocId } from './listing-analytics'
 import { pickRepresentativeProof, type PremiumProof, type ProofCandidate } from './premium-proof'
+import { reportFailure } from './alerts'
 
 // Reads the real 30-day numbers behind the /premium results panel.
 //
@@ -89,10 +90,33 @@ async function loadProof(): Promise<PremiumProof | null> {
       }
     }
 
-    return pickRepresentativeProof([...totals.values()], WINDOW_DAYS)
-  } catch {
-    // Deliberately swallowed: the page renders without the panel. A marketing
-    // illustration must never be able to take down the page that sells the plan.
+    const proof = pickRepresentativeProof([...totals.values()], WINDOW_DAYS)
+
+    if (!proof) {
+      // Thin data is a legitimate outcome, but it must not be INDISTINGUISHABLE
+      // from a broken read. Record which it was, because "no paid listing cleared
+      // six customer actions in a month" is a real and fairly alarming business
+      // signal about what paying customers are getting, while "the query failed"
+      // is a bug — and from outside the page both look like an absent panel.
+      await reportFailure(
+        'premium-proof',
+        new Error(
+          listingIds.length === 0
+            ? 'No paid listings matched, so /premium has no results panel'
+            : `No paid listing cleared the publish floor across ${listingIds.length} sampled listings in ${WINDOW_DAYS} days`
+        ),
+        { sampled: listingIds.length, windowDays: WINDOW_DAYS },
+        { skipHealth: true, alertKey: 'premium-proof-empty' }
+      ).catch(() => {})
+    }
+
+    return proof
+  } catch (error) {
+    // The page still renders without the panel — a marketing illustration must
+    // never be able to take down the page that sells the plan. But swallowing
+    // this silently would repeat the exact mistake the directory-ingest outage
+    // was made of: a failure logged nowhere anyone receives it.
+    await reportFailure('premium-proof', error, { windowDays: WINDOW_DAYS }, { skipHealth: true }).catch(() => {})
     return null
   }
 }
