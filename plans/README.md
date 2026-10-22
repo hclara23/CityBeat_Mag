@@ -24,8 +24,12 @@ pushing to the operator.
   software performance, purpose (directory + magazine), profitability and
   autonomy, measured against production. Headline: 8,000 listings of which ~7 in
   8 are unclaimed and ~5 in 6 have no photo, and the claim-outreach tactic that
-  addresses it runs on a 23-year cycle. Four items are blocked on the operator,
-  listed in priority order at the end.
+  addresses it runs on a 23-year cycle. **Section 1.1 carries two retractions** —
+  both of its performance recommendations were withdrawn after measurement (the
+  caching change would have been inert under the per-request CSP nonce, and the
+  cold-start fix buys nothing because an instance is already warm 97.9% of
+  hours). Conclusion: no meaningful software performance work is outstanding; the
+  constraint is the funnel.
 
 ## Execution order & status
 

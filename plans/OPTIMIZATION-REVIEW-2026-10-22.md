@@ -75,17 +75,49 @@ category combinations sit behind `unstable_cache` at 1 hour, and the sitemaps at
 
 **So the real finding is the opposite of what I wrote:** the rendering and
 caching architecture is in good shape and was reasoned about carefully by whoever
-built it. The one genuine latency issue is **cold starts**, and the fix is
-infrastructure, not code:
+built it.
 
-```bash
-gcloud run services update citybeat-web --region us-central1 --project kerstenblueprint --min-instances=1
+**And the cold-start fix is not worth buying either — second amendment.** I
+first wrote that cold starts were "the one genuine latency issue" and pointed at
+`--min-instances=1`. Then I measured how often the service is actually cold.
+
+Cloud Monitoring, `run.googleapis.com/container/instance_count`, last 7 days
+(194 hourly samples):
+
+| state | mean | max | hours at zero |
+|---|---|---|---|
+| active | 1.059 | 4.00 | **4 of 194** |
+| idle | 0.649 | 2.22 | 28 of 194 |
+
+**An active instance is already running in 190 of 194 hours — 97.9%.** The 22
+cron jobs plus real traffic keep it warm nearly continuously. The only gap is the
+quiet overnight window, which is precisely when I happened to take the 1.104s
+reading.
+
+Cost, for completeness, at 1 vCPU / 2 GiB and the idle rate, after the monthly
+free tier (240,000 vCPU-s, 450,000 GiB-s):
+
+```
+vCPU   2,628,000 s/mo → 2,388,000 billable → $5.97
+memory 5,256,000 s/mo → 4,806,000 billable → $12.02
+                                    ceiling  $17.98 / month
 ```
 
-That keeps one instance warm so no visitor pays startup. It costs real money
-(an always-on instance at idle rates), so it is a cost/benefit call, not an
-obvious win — but it is the only thing on this page that would actually make the
-site feel faster.
+`--min-instances=1` only bills during hours the service would otherwise sit at
+zero, so at a 2.1% duty cycle the marginal cost is roughly **$0.37/month**. That
+sounds like an easy yes until you see what it buys: it removes a ~0.9s delay for
+the handful of visitors who arrive during ~2% of hours, overnight. It is cheap
+because it is very nearly redundant.
+
+So: **do not do this.** Not on cost grounds — on the grounds that it fixes
+almost nothing. If you ever want it anyway, it is one reversible flag and the
+true figure appears on the next bill.
+
+Two caveats, since this is money. Published sources disagree on how idle
+minimum-instance time is billed (one gives the $0.0000025 per vCPU-s and per
+GiB-s rate used above, another says the default mode bills memory only), and
+Google's own pricing page appeared to be well over a year stale when checked. The
+ceiling above is the conservative reading.
 
 ### 1.2 `/stories` ships 276 KB — but not for the reason I assumed
 
@@ -252,12 +284,16 @@ These are the things I could not do, in priority order:
    gcloud scheduler jobs update http citybeat-ghost-reports --location us-central1 --project kerstenblueprint --schedule "0 10 * * 5"
    ```
 3. **Turn on `auto_approve_claims`** (§4), at `/admin/payouts`.
-4. **Decide whether to pay for `--min-instances=1`** (§1.1). It is the only
-   change that would make the site measurably faster, and it costs money rather
-   than effort. ~~Tell me why the home page is force-dynamic~~ — answered: the
-   per-request CSP nonce, documented in the layout. Nothing to change.
-5. **Check MRR and claim-conversion** (§3.3) — it determines whether §2 or §3 is
-   the real priority.
+4. **Check MRR and claim-conversion** (§3.3) — it determines whether §2 or §3 is
+   the real priority. This is now the only engineering-adjacent question left on
+   the list, and it is a question for your dashboards rather than the code.
+
+~~Tell me why the home page is force-dynamic~~ — answered: the per-request CSP
+nonce, documented in the layout itself. Nothing to change.
+
+~~Decide whether to pay for `--min-instances=1`~~ — answered by measurement: an
+instance is already warm 97.9% of hours, so it would cost about $0.37/month and
+buy almost nothing. Don't. See §1.1.
 
 ---
 
@@ -269,11 +305,19 @@ claim-outreach cycle from 23 years to about 5, and removes the human step betwee
 a customer paying and getting what they paid for.
 
 I originally closed this by saying the software work in §1 was real and worth
-doing next. Having measured it properly, that was wrong: the rendering
-architecture is already sound, the data layer is already cached, and the headline
-performance finding was a cold start I mistook for a caching problem. The only
-remaining lever is `--min-instances=1`, which is a cost decision.
+doing next. Measured properly, that was wrong twice over. The rendering
+architecture is already sound and the data layer is already cached, so the
+headline finding was a cold start I mistook for a caching problem — and when I
+then recommended buying away the cold start, the instance metrics showed the
+service is already warm 97.9% of the time, so that would have bought almost
+nothing either.
 
 Which makes the conclusion simpler, not weaker: **there is no meaningful software
-performance work outstanding.** The constraint on this business is the funnel,
-not the margin, and not the code.
+performance work outstanding, and nothing worth spending on to get more.** Both
+of this section's recommendations were retracted after measurement, which is the
+right outcome — the alternative was a week of work and a monthly bill for no
+change a reader would notice.
+
+The constraint on this business is the funnel: 8,000 listings, ~7 in 8
+unclaimed, and the tactic that addresses it running on a 23-year cycle. Not the
+margin, and not the code.
