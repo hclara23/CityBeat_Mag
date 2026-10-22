@@ -5,6 +5,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore'
 import { dayKey, daysAgoKey, totalsForRange, type DailyStatRow } from '@/lib/listing-analytics'
 import { sendEmail } from '@/lib/email'
 import { isSuppressed } from '@/lib/suppression'
+import { coldSendBudget, deliverabilityState } from '@/lib/email-deliverability'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { unsubHeaders } from '@/lib/unsub-headers'
 
@@ -113,7 +114,22 @@ export async function GET(request: NextRequest) {
   }
   const { searchParams } = new URL(request.url)
   const dryRun = searchParams.get('dryRun') === '1'
-  const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '25', 10) || 25, 1), 100)
+  const requestedLimit = Math.min(Math.max(parseInt(searchParams.get('limit') || '25', 10) || 25, 1), 100)
+
+  // This is cold outbound to businesses that never opted in, so it only scales
+  // while a bounce or a spam complaint can actually reach the suppression list.
+  // RESEND_WEBHOOK_SECRET unset means /api/webhooks/resend answers 503 and every
+  // such event is discarded — mailing more addresses on top of that is how the
+  // domain that also sends receipts and claim approvals gets blocked. The cap
+  // lifts by itself once the secret is set; no code change needed.
+  const deliverability = deliverabilityState()
+  const budget = coldSendBudget(requestedLimit, deliverability)
+  const limit = Math.max(1, budget.allowed)
+  if (budget.capped) {
+    await reportFailure('cron:ghost-reports', new Error(budget.why), { requestedLimit }, { skipHealth: true }).catch(
+      () => {}
+    )
+  }
 
   try {
     const now = new Date()
