@@ -1,12 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import {
-  RECOVERY_WINDOW_DAYS,
-  checkoutLinkState,
-  isRecoverable,
-  planRecovery,
-  recoveryEmail,
-} from './checkout-recovery'
+import { RECOVERY_WINDOW_DAYS, RECOVERY_WINDOW_MAX_DAYS, checkoutLinkState, isRecoverable, planRecovery, recoveryEmail, resolveRecoveryWindowDays } from './checkout-recovery'
 
 const NOW = '2026-08-27T18:00:00.000Z'
 
@@ -150,4 +144,95 @@ test('the nudge is bilingual, escapes user data, and never links a dead session'
   const nasty = recoveryEmail({ businessName: '<script>alert(1)</script>', productName: 'x', locale: 'en' })
   assert.equal(/<script>/.test(nasty.html), false)
   assert.match(nasty.html, /&lt;script&gt;/)
+})
+
+// --- The catch-up window ------------------------------------------------------
+//
+// Thirteen abandoned checkouts worth $219.88 piled up while recovery email was
+// switched off, and eleven aged past the 45-day window into being permanently
+// unreachable. ?days= exists to clear a known backlog once — not to loosen the
+// standing policy, and not to let anyone chase a year-old lead by accident.
+
+test('the standing policy is the default, not the maximum', () => {
+  assert.equal(resolveRecoveryWindowDays(undefined), RECOVERY_WINDOW_DAYS)
+  assert.equal(resolveRecoveryWindowDays(null), RECOVERY_WINDOW_DAYS)
+  assert.equal(resolveRecoveryWindowDays(''), RECOVERY_WINDOW_DAYS)
+})
+
+test('garbage falls back to the standing policy, never to the maximum', () => {
+  // The dangerous failure: "?days=abc" quietly meaning "chase everyone, forever".
+  for (const bad of ['abc', '-5', '0', 'NaN', {}, [], '1e999']) {
+    assert.equal(resolveRecoveryWindowDays(bad as any), RECOVERY_WINDOW_DAYS, `${JSON.stringify(bad)}`)
+  }
+})
+
+test('a requested window is honoured but clamped', () => {
+  assert.equal(resolveRecoveryWindowDays(120), 120)
+  assert.equal(resolveRecoveryWindowDays('120'), 120)
+  assert.equal(resolveRecoveryWindowDays(90.9), 90, 'floored, not rounded up')
+  assert.equal(resolveRecoveryWindowDays(99999), RECOVERY_WINDOW_MAX_DAYS)
+})
+
+test('a widened window reaches an order the default cannot', () => {
+  const now = new Date('2026-10-22T00:00:00.000Z')
+  const order = {
+    id: 'o1',
+    payment_status: 'pending',
+    contact_email: 'owner@example.com',
+    created_at: '2026-08-20T00:00:00.000Z',
+    checkout_expires_at: '2026-08-21T00:00:00.000Z',
+    checkout_url: 'https://checkout.stripe.com/c/pay/test',
+  }
+  assert.equal(isRecoverable(order, now), false, '62 days old: outside the 45-day default')
+  assert.equal(isRecoverable(order, now, 120), true, 'inside a deliberate 120-day catch-up')
+})
+
+test('widening the window does NOT bypass any other guard', () => {
+  // The whole risk of this feature: an operator clearing a backlog must not be
+  // able to re-nudge someone who declined, was dismissed by a rep, or paid.
+  const now = new Date('2026-10-22T00:00:00.000Z')
+  const base = {
+    id: 'o1',
+    payment_status: 'pending',
+    contact_email: 'owner@example.com',
+    created_at: '2026-08-20T00:00:00.000Z',
+    checkout_expires_at: '2026-08-21T00:00:00.000Z',
+    checkout_url: 'https://checkout.stripe.com/c/pay/test',
+  }
+  assert.equal(isRecoverable({ ...base, recovery_emailed_at: '2026-09-01' }, now, 365), false, 'already nudged')
+  assert.equal(isRecoverable({ ...base, recovery_dismissed: true }, now, 365), false, 'rep dismissed it')
+  assert.equal(isRecoverable({ ...base, payment_status: 'paid' }, now, 365), false, 'they paid')
+  assert.equal(isRecoverable({ ...base, contact_email: 'nope' }, now, 365), false, 'no usable address')
+})
+
+test('planRecovery still excludes a customer who paid on a sibling order, however wide the window', () => {
+  const now = new Date('2026-10-22T00:00:00.000Z')
+  const orders = [
+    {
+      id: 'old-unpaid',
+      payment_status: 'pending',
+      contact_email: 'same@example.com',
+      created_at: '2026-07-30T00:00:00.000Z',
+      checkout_expires_at: '2026-07-31T00:00:00.000Z',
+      checkout_url: 'https://checkout.stripe.com/c/pay/test',
+    },
+  ]
+  const wide = planRecovery(orders, now, { windowDays: 365, excludeEmails: ['same@example.com'] })
+  assert.deepEqual(wide.toEmail.map((o) => o.id), [], 'a converted contact is never nudged')
+})
+
+test('an order with no checkout link at all is never nudged, at any window', () => {
+  // There is nothing to recover: no link was ever minted, so "your payment link
+  // expired" would be a lie. Found by a fixture of mine that omitted the link
+  // and failed for this reason rather than the window one.
+  const now = new Date('2026-10-22T00:00:00.000Z')
+  const noLink = {
+    id: 'o-nolink',
+    payment_status: 'pending',
+    contact_email: 'owner@example.com',
+    created_at: '2026-08-20T00:00:00.000Z',
+    checkout_expires_at: '2026-08-21T00:00:00.000Z',
+  }
+  assert.equal(checkoutLinkState(noLink, now), 'none')
+  assert.equal(isRecoverable(noLink, now, 365), false)
 })

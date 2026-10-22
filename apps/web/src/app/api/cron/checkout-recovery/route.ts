@@ -3,7 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { sendEmail } from '@/lib/email'
 import { getSalesProduct } from '@/lib/sales-products'
-import { planRecovery, recoveryEmail } from '@/lib/checkout-recovery'
+import {
+  planRecovery,
+  recoveryEmail,
+  RECOVERY_WINDOW_DAYS,
+  resolveRecoveryWindowDays,
+} from '@/lib/checkout-recovery'
 import { FOUNDERS_PROMO, foundersOfferEmail, isFoundersPromoEligible } from '@/lib/promo'
 import { createSalesOrderAccess } from '@/lib/sales-orders'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
@@ -144,6 +149,12 @@ export async function GET(request: NextRequest) {
     !dryRun &&
     (searchParams.get('send') === '1' || process.env.CHECKOUT_RECOVERY_EMAILS === 'on')
   const limit = Math.max(1, Math.min(Number(searchParams.get('limit')) || 200, 500))
+  // ?days= widens the 45-day standing window for a deliberate backlog clear-out.
+  // It is clamped, it defaults to the standing policy, and every other guard —
+  // one nudge per customer ever, rep-dismissed, suppression list, and excluding
+  // anyone who paid on a sibling order — is untouched by it.
+  const windowDays = resolveRecoveryWindowDays(searchParams.get('days'))
+  const widened = windowDays !== RECOVERY_WINDOW_DAYS
 
   try {
     // Unpaid orders only. `payment_status` is 'pending' until the webhook
@@ -172,6 +183,7 @@ export async function GET(request: NextRequest) {
 
     const { toExpire, toEmail: recoverable } = planRecovery(orders, now, {
       excludeEmails: [...excludeEmails, ...excludeParam],
+      windowDays,
     })
     // Promo mode narrows to orders whose product matches the offer's terms.
     const candidates = promo ? recoverable.filter((o) => isFoundersPromoEligible(o)) : recoverable
@@ -204,6 +216,8 @@ export async function GET(request: NextRequest) {
         excluded_by_operator: excludeParam,
         excluded_unsubscribed: suppressedCount,
         promo: promo || null,
+        window_days: windowDays,
+        window_widened: widened,
         emails_enabled: Boolean(process.env.CHECKOUT_RECOVERY_EMAILS === 'on'),
         recipients: toEmail.map((o) => ({
           id: o.id,

@@ -56,9 +56,30 @@ export const RECOVERY_WINDOW_DAYS = 45
  * Should this order get a recovery nudge? One per order, ever — a customer who
  * declined once must not be emailed on every cron run.
  */
+/**
+ * The widest window a deliberate catch-up may ask for.
+ *
+ * The 45-day default is the standing policy and stays the default. But it is
+ * also a one-way door for anything older: thirteen abandoned checkouts worth
+ * $219.88 accumulated while recovery email was switched off, and eleven of them
+ * aged past 45 days and became permanently unreachable by this cron. An operator
+ * clearing a known backlog needs to reach them once; nobody needs to reach
+ * someone who abandoned over a year ago.
+ */
+export const RECOVERY_WINDOW_MAX_DAYS = 365
+
+/** Clamp a requested window to something defensible. Anything unparseable falls
+ *  back to the standing policy rather than to the maximum. */
+export function resolveRecoveryWindowDays(requested: unknown): number {
+  const n = Number(requested)
+  if (!Number.isFinite(n) || n <= 0) return RECOVERY_WINDOW_DAYS
+  return Math.min(Math.floor(n), RECOVERY_WINDOW_MAX_DAYS)
+}
+
 export function isRecoverable(
   order: Record<string, unknown>,
-  now: Date | string = new Date()
+  now: Date | string = new Date(),
+  windowDays: number = RECOVERY_WINDOW_DAYS
 ): boolean {
   // A rep explicitly "Removed" this lead from the Sales Desk board — treat that as
   // "stop pursuing," so the recovery cron never auto-nudges a dismissed customer.
@@ -70,7 +91,8 @@ export function isRecoverable(
   const nowMs = new Date(now).getTime()
   const reference = parseTime(order.checkout_expires_at) ?? parseTime(order.created_at)
   if (reference === null) return false
-  return nowMs - reference <= RECOVERY_WINDOW_DAYS * 86400000
+  // Widened only by an explicit operator request; the default is unchanged.
+  return nowMs - reference <= resolveRecoveryWindowDays(windowDays) * 86400000
 }
 
 const normalizeEmail = (value: unknown) => String(value ?? '').trim().toLowerCase()
@@ -91,7 +113,7 @@ const normalizeEmail = (value: unknown) => String(value ?? '').trim().toLowerCas
 export function planRecovery(
   orders: Array<{ id: string } & Record<string, unknown>>,
   now: Date | string = new Date(),
-  opts: { excludeEmails?: Iterable<string> } = {}
+  opts: { excludeEmails?: Iterable<string>; windowDays?: number } = {}
 ): {
   toExpire: string[]
   toEmail: Array<{ id: string } & Record<string, unknown>>
@@ -122,7 +144,7 @@ export function planRecovery(
     if (checkoutLinkState(order, now) !== 'expired') continue
     // Only rewrite rows still claiming to be live, so the marker is idempotent.
     if (order.checkout_status !== 'expired') toExpire.push(order.id)
-    if (!isRecoverable(order, now)) continue
+    if (!isRecoverable(order, now, opts.windowDays)) continue
     const email = normalizeEmail(order.contact_email)
     if (!email || excluded.has(email) || claimed.has(email)) continue
     claimed.add(email)
