@@ -14,8 +14,7 @@ dashboard before you act on it.
 
 ## The one number
 
-**8,000 listings. In a 24-listing public sample, 21 were unclaimed and only 4 had
-a photo.**
+**9,789 listings. 3 approved claims. 2 paying customers. $29.98 MRR.**
 
 If that sample holds, roughly 7 in 8 listings have no owner and 5 in 6 have no
 image. That single fact is simultaneously the software problem, the purpose
@@ -213,15 +212,61 @@ close to what this traffic actually requires. If it needs to come down further,
 the lever is the 144x/day social drain (§1.3) and the article list TTL, not page
 caching.
 
-### 3.3 A gap worth closing *(unverified)*
+### 3.3 ANSWERED — the numbers, measured 2026-10-22
 
-`/api/health/payments` confirms the platform can take money right now. What I
-could not check is whether anyone is: no Stripe read access from here. **Before
-optimizing anything else, look at actual MRR and claim-conversion rate** — if the
-conversion rate from claimed → paid is healthy and the problem really is
-outreach volume, then §2.1.2 is the only thing on this page that matters.
+This section previously said "I could not check whether anyone is paying" and
+marked it unverified. It is now verified, read directly from Firestore and the
+live Stripe account.
 
----
+| | |
+|---|---|
+| Active subscriptions | **2** |
+| MRR | **$29.98** |
+| ARR | **$359.76** |
+| Lifetime gross revenue | **$49.96** (4 charges, no refunds) |
+| One-time products ever sold (jobs, ads, stories, events) | **0** |
+| Directory listings | **9,789** (8,037 published) |
+| Approved claims | **3** |
+| Claims awaiting approval | 0 |
+| Comped Premium grants | **11**, expiring 2026-12-30 |
+
+Revenue by month: August $9.99, September $9.99, October $29.98. The two
+subscriptions are one Premium Monthly at $19.99 and one Founding Monthly at
+$9.99, and both were sold by the same sales rep.
+
+**This settles the §2-versus-§3 question, and not in the way the question
+assumed.** It is not that conversion is weak — it is that the business has
+barely started selling. Two customers against 9,789 listings is a conversion rate
+of 0.02%, and no one-time product has ever sold at all. Against roughly four
+months of operation that is an early-stage number rather than a failing one, but
+it does mean almost everything else in this review was premature. Tuning cost,
+caching, autonomy and cadence are all optimizations of a machine that has not yet
+been shown to sell anything.
+
+A methodological note, because it nearly went the other way: a Firestore
+aggregation counting listings with `stripe_subscription_id != null` returned
+**0**, which reads as "nobody is paying". That is a query artifact — Firestore's
+`!=` excludes documents where the field is absent entirely. Reading the 14
+premium-tier documents directly showed 2 real subscriptions, 11 comped grants and
+1 manually-set tier. Do not trust a `!=` count against optional fields.
+
+### 3.4 The nearest revenue opportunity is 11 businesses with a deadline
+
+Of the 14 premium-tier listings, **11 are complimentary grants that expire on
+2026-12-30**, all still `claim_status: unclaimed`. These are the warmest
+prospects in the system by a wide margin: they are already experiencing the
+Premium product, and they have a date on which it stops.
+
+The machinery to work them already exists and is running. `citybeat-comp-expiry`
+(06:15 daily) returns a lapsed listing to Basic and sends exactly one "your free
+Premium ends soon" email in the final 15 days — so those messages fire around
+2026-12-15. That is the conversion moment for a third of the premium inventory,
+and it arrives whether or not anyone prepares for it.
+
+Two things worth doing before then: confirm the "ends soon" email actually makes
+a specific offer rather than just a warning, and confirm it can send at all —
+which depends on the Resend bounce webhook in §5, because these 11 addresses are
+the ones that matter most.
 
 ## 4. Autonomy — the switches already exist
 
@@ -244,10 +289,11 @@ exceeds 48 hours — which tells you this has hurt before. Every hour in that qu
 is a paying customer who has given you money and received nothing, which is the
 highest-risk moment in the entire funnel for a refund or a chargeback.
 
-**Recommendation:** turn `auto_approve_claims` on. The safety guards are already
-in the code, it removes the one manual step that sits between payment and
-delivery, and it is reversible with one toggle. *(I could not read whether it is
-currently on — check `/admin/payouts`.)*
+**Status: ALREADY ON.** Read from `settings/platform` in Firestore — it was
+switched on 2026-07-31. The recommendation here was redundant, and the "0 claims
+awaiting approval" count in §3.3 is the evidence that it is working: nothing is
+sitting in the queue. Rep-sold claims still route to a human by design, which is
+why both paying customers show `sold_by_rep`.
 
 `newsroom_auto_publish` is a different call: it trades editorial control for
 volume, and the review queue is the editor's actual job. I would leave that one
@@ -257,7 +303,7 @@ off and instead reduce review *friction*, not review itself.
 
 | Step | Can it be automated? |
 |---|---|
-| Paid claim approval | **Yes, today** — `auto_approve_claims`, already guarded |
+| Paid claim approval | **Already automated** — `auto_approve_claims` on since 2026-07-31 |
 | Article review | Should stay human (it is the editorial product) |
 | Sponsored story / custom quote fulfillment | No — it is bespoke deliverable work |
 | Refund decisions | No, and should not be |
@@ -284,9 +330,14 @@ These are the things I could not do, in priority order:
    gcloud scheduler jobs update http citybeat-ghost-reports --location us-central1 --project kerstenblueprint --schedule "0 10 * * 5"
    ```
 3. **Turn on `auto_approve_claims`** (§4), at `/admin/payouts`.
-4. **Check MRR and claim-conversion** (§3.3) — it determines whether §2 or §3 is
-   the real priority. This is now the only engineering-adjacent question left on
-   the list, and it is a question for your dashboards rather than the code.
+~~Check MRR and claim-conversion~~ — answered, measured: $29.98 MRR, 2 customers,
+$49.96 lifetime, 0 one-time products ever sold. See §3.3. **Nothing on this list
+is blocked on engineering any more.**
+
+4. **Prepare the 2026-12-30 comp expiry** (§3.4). Eleven businesses are on free
+   Premium with a hard end date, and the "ends soon" emails fire around
+   2026-12-15. That is a third of the premium inventory reaching a decision point
+   on a known date — the nearest thing to a revenue event this business has.
 
 ~~Tell me why the home page is force-dynamic~~ — answered: the per-request CSP
 nonce, documented in the layout itself. Nothing to change.
@@ -318,6 +369,15 @@ of this section's recommendations were retracted after measurement, which is the
 right outcome — the alternative was a week of work and a monthly bill for no
 change a reader would notice.
 
-The constraint on this business is the funnel: 8,000 listings, ~7 in 8
-unclaimed, and the tactic that addresses it running on a 23-year cycle. Not the
-margin, and not the code.
+And with the revenue now measured, the conclusion sharpens. I wrote that the
+constraint was the funnel. It is more basic than that: **the business has two
+customers and has never sold a single one-time product.** 9,789 listings against
+$29.98 MRR is not a conversion problem to be tuned, it is a product that has not
+yet been sold to anybody at scale.
+
+That is an early-stage fact rather than a damning one — four months in, with the
+whole machine built and working. But it means the honest priority order is:
+sell something, then measure what selling teaches you, and only then optimize.
+Every engineering recommendation in this document was premature against that,
+including the two in §1.1 that I retracted and this one in §3.3 that answered
+itself.
