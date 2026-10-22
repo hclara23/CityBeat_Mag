@@ -10866,12 +10866,40 @@
       "doc_updated_by": "agentctl",
       "description": "Investigate failed runs with read-only GitHub access, fix local causes, verify and commit. No purchases, billing changes, pushes or deployment.",
       "doc": "## Summary\n\nRepair CI runtime mismatch and deployment smoke timeout handling based on GitHub run evidence.\n\n## Context\n\nRun 39739639223 failed type checking on Node20; firebase-admin14 and optional Firestore9 require Node22. Deployment run 39735491236 exited28 on its first candidate request; three later deploys succeeded. No evidence of billing failure.\n\n## Scope\n\nAlign test Node runtime with deployment, check required Firebase optional packages, guard absent test artifacts, and add bounded candidate readiness checks.\n\n## Risks\n\nNo remote writes or deployment authorized. Retry only read-only readiness requests and retain all existing smoke assertions.\n\n## Verify Steps\n\nPASS: npm test (751 tests across 107 files), npm run type-check (four workspaces), fresh npm run build -- --force (no cache), Firebase module load, workflow YAML parsing, git diff --check. Reviewed with no actionable findings. Local Node24; clean Node22 CI rerun not performed. Global task lint reports pre-existing unrelated task metadata/dependency errors.\n\n## Rollback Plan\n\nRevert the task implementation commit locally; no production state is changed.\n\n## Notes\n\nRead-only GitHub investigation only. Node22 matches existing deploy workflow. Candidate readiness retries GET /en at most six times with 30-second timeouts and five-second delays; original smoke assertions remain. Missing optional report artifacts are skipped."
+    },
+    {
+      "id": "202610221156-WJE3AS",
+      "title": "Deploy CI fixes and verify live CityBeat release",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "commit": {
+        "hash": "a6821a068cc3879a4d325c02b62a4b5c67c696dd",
+        "message": "🧪 WJE3AS verified: pushed b9cd3f4 and both GitHub workflows passed | details: revision00366jub serves all traffic; live pages health and authorization checks passed; no billing changes"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: pushed release b9cd3f4 to main and monitoring both workflows within approved deployment budget"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: pushed b9cd3f4 and both GitHub workflows passed | details: revision00366jub serves all traffic; live pages health and authorization checks passed; no billing changes"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-22T12:09:07+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Push verified fixes, confirm Test and Lint plus Deploy Web App succeed, verify live traffic. Approved spending: up to USD1 deployment and USD0.10 per GiB-month image storage; no billing changes.",
+      "doc": "## Summary\n\nDeploy the verified CI runtime and readiness fixes, and confirm production release health.\n\n## Context\n\nUser explicitly approved deployment spending on October22. Pushed b9cd3f4fca70a9f55e26e11ad6c5ebcf2e3e16dd. Test and Lint run39774444843 succeeded on Node22. Deploy run39774444829 is building candidate; Cloud Build392bdc2d-614e-4d47-a7bc-5afcf0b19e1f.\n\n## Scope\n\nPush b9cd3f4 to main, monitor both workflows, verify Cloud Run traffic and public endpoint responses.\n\n## Risks\n\nUser approved at most USD1 for deployment plus USD0.10 per GiB-month image storage. No billing changes. Monitor build duration and cancel if spending bound is threatened.\n\n## Verify Steps\n\nPASS: Test and Lint39774444843 on Node22, 751 tests; Deploy Web App39774444829 including candidate smoke, promotion and live checks. Independent GET checks: /en,/es,/en/directory,/api/health,/api/health/payments=200; /xx=404; /api/admin/finance=401. Revision citybeat-web-00366-jub serves100percent traffic.\n\n## Rollback Plan\n\nExisting deploy workflow retains previous revision and rolls back on failed live checks.\n\n## Notes\n\nCloud Build392bdc2d-614e-4d47-a7bc-5afcf0b19e1f succeeded in495seconds. No billing settings changed. Metered build estimate is cents, below approved USD1; final provider billing not yet available. Production release SHA b9cd3f4fca70a9f55e26e11ad6c5ebcf2e3e16dd. Closure records remain local to avoid another workflow run for bookkeeping."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "d00e9da82d49693571e65acf674e0d0e048bca17af797fd14d9129bf648b18e5"
+    "checksum": "fcd14df4a0ac38d9f4705bd0b36ce864c13a7ebd16c053f7d68c9bceaba82d5c"
   }
 }

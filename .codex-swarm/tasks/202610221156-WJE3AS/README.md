@@ -1,13 +1,15 @@
 ---
 id: "202610221156-WJE3AS"
 title: "Deploy CI fixes and verify live CityBeat release"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "a6821a068cc3879a4d325c02b62a4b5c67c696dd", message: "🧪 WJE3AS verified: pushed b9cd3f4 and both GitHub workflows passed | details: revision00366jub serves all traffic; live pages health and authorization checks passed; no billing changes" }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: pushed release b9cd3f4 to main and monitoring both workflows within approved deployment budget" }
+  - { author: "ORCHESTRATOR", body: "verified: pushed b9cd3f4 and both GitHub workflows passed | details: revision00366jub serves all traffic; live pages health and authorization checks passed; no billing changes" }
 doc_version: 2
 doc_updated_at: "2026-10-22T12:09:07+00:00"
 doc_updated_by: "agentctl"
