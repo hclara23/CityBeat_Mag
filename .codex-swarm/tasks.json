@@ -10978,12 +10978,34 @@
       "doc_updated_by": "agentctl",
       "description": "Audit paid listing actions and read-only evidence; verify phone website directions and leads with isolated mocked persistence; repair bugs without production analytics inflation or purchases.",
       "doc": "## Summary\n\nVerify first-party customer-action tracking and repair silent write failures, detached lead counters and duplicate views without synthetic production events.\n\n## Context\n\nRead-only audit found 15 total views and zero saved quote requests across two subscription-backed published listings. One has no website URL and another lacks owner_id. Historic clicks cannot be reconstructed because the old endpoint concealed failures. See docs/audits/customer-action-tracking-2026-10-22.md.\n\n## Scope\n\nRead-only production audit; mock-backed phone website directions and quote tests; observable tracking failures; atomic quote and lead stats persistence; stable page-view tracking.\n\n## Risks\n\nNo production writes, purchases, billing changes or deployment. Missing recorded actions cannot establish absence of real clicks because prior writes failed silently. Do not infer paid status solely from subscription references.\n\n## Verify Steps\n\nPassed npm run type-check in all four packages; npm test passed all 775 tests, including 18 new isolated tracking and quote-handler tests. git diff --check passed. Production audit used read-only Firestore, Cloud Run logs and raw HTML GETs without running view trackers.\n\n## Rollback Plan\n\nRevert implementation commit; no production data has changed.\n\n## Notes\n\nFixed observable click failures, atomic lead persistence, validated phone links, consistent ID validation and duplicate metadata-refresh views. No synthetic production events, historical backfill, purchases, billing changes or deployment. Missing ownership metadata remains for verified customer-data reconciliation."
+    },
+    {
+      "id": "202610221811-7956TA",
+      "title": "Deploy customer action tracking fixes and verify live revision",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "202610221253-QF37BA"
+      ],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: deploy approved tracking fixes | details: verify exact release workflows and live revision without customer events"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-22T18:11:16+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Push approved tracking fixes; verify Test and Lint and Deploy Web App for the release SHA; confirm live revision using non-counting read-only probes. Approved deployment cap USD1 and image storage USD0.10 per GiB monthly; no billing changes.",
+      "doc": "## Summary\n\nDeploy committed customer tracking repairs and verify both GitHub workflows plus the public production revision.\n\n## Scope\n\nPush main, observe existing deployment pipeline, inspect Cloud Run traffic and health, and check deployed tracking validation without generating customer events.\n\n## Risks\n\nUser approved up to USD1 deployment plus image storage at USD0.10/GiB/month. No billing changes or synthetic valid tracking/lead submissions. Existing pipeline uses candidate smoke checks before promotion.\n\n## Verify Steps\n\nConfirm Test and Lint and Deploy Web App succeed for pushed SHA. Check live health revision matches Cloud Run 100 percent traffic revision and source build. Use raw HTTP GET and rejected invalid tracking probes only.\n\n## Rollback Plan\n\nExisting deployment workflow retains previous revision and restores it if promoted live smoke checks fail."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "32a1c210d821aee5443b0ea5cb4c53027b8e095df3f7833cdb6aa53eaddee52a"
+    "checksum": "d13a82d7e2c2d2f30c3d1d8cb4f5f5ae56c2d3599c0d067412181f4519f80699"
   }
 }
