@@ -1,127 +1,49 @@
 import { unstable_cache } from 'next/cache'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { daysAgoKey, statsDocId } from './listing-analytics'
-import { pickRepresentativeProof, type PremiumProof, type ProofCandidate } from './premium-proof'
+import { statsDocId } from './listing-analytics'
+import { type PremiumProof } from './premium-proof'
+import { loadPremiumProof, PROOF_WINDOW_DAYS, type ProofStat } from './premium-proof-loader'
 import { reportFailure } from './alerts'
 
-// Reads the real 30-day numbers behind the /premium results panel.
-//
-// COST IS THE DESIGN CONSTRAINT HERE. Firestore reads are this project's only
-// variable cost, /premium is a public marketing page, and an uncached scan on a
-// page anyone can refresh is how a directory with 8,000 listings turns a landing
-// page into a bill. So:
-//
-//   - The candidate set is capped (SAMPLE_LISTINGS), not "all paid listings".
-//   - Stats are fetched by CONSTRUCTED document id via getAll, never by a range
-//     query over listing_stats — that collection has one doc per listing per
-//     day, so an unbounded scan is six figures of reads.
-//   - The whole thing sits behind unstable_cache for a day, so the cost is paid
-//     once per day across all traffic rather than once per visitor.
-//
-// Worst case per day: SAMPLE_LISTINGS + (SAMPLE_LISTINGS x WINDOW_DAYS) reads,
-// currently 12 + 360 = 372, against a 50,000/day free allowance.
-//
-// It also fails SILENTLY to null. A marketing panel is not worth a 500 on the
-// page that sells the product, and the page is written to render nothing when
-// there is no proof — which is also the honest behaviour when the data is thin.
-
-const SAMPLE_LISTINGS = 12
-const WINDOW_DAYS = 30
-
-/** A day of Firestore caching. The underlying numbers move slowly and nobody is
- *  served by recomputing a 30-day aggregate per page view. */
-const CACHE_SECONDS = 86_400
-
+// At most 100 candidate reads plus 12 x 30 daily stats reads per cached load.
+// Filter actual subscription entitlements before taking the 12-listing sample.
+// Cache for one day; read stats by constructed IDs, never scan listing_stats.
 async function loadProof(): Promise<PremiumProof | null> {
   try {
-    // Paid listings only. A free Basic listing's numbers are not evidence for
-    // what Premium does, which is the entire claim the panel supports.
-    const listingSnap = await adminDb
-      .collection('directory_listings')
-      .where('tier', 'in', ['premium', 'featured'])
-      .limit(SAMPLE_LISTINGS)
-      // Ids are all that is needed; this still bills a read per document but
-      // avoids pulling whole listing bodies across the wire.
-      .select()
-      .get()
-
-    const listingIds = listingSnap.docs.map((doc) => doc.id)
-    if (listingIds.length === 0) return null
-
-    const now = new Date()
-    const days = Array.from({ length: WINDOW_DAYS }, (_, offset) => daysAgoKey(now, offset))
-
-    const refs = listingIds.flatMap((listingId) =>
-      days.map((day) => adminDb.collection('listing_stats').doc(statsDocId(listingId, day)))
-    )
-
-    // Chunked to match the batching limit the directory ingest already uses.
-    const totals = new Map<string, ProofCandidate>()
-    for (const listingId of listingIds) {
-      totals.set(listingId, {
-        listingId,
-        view: 0,
-        click_website: 0,
-        click_directions: 0,
-        click_phone: 0,
-        click_action: 0,
-        lead: 0,
-      })
-    }
-
-    for (let index = 0; index < refs.length; index += 300) {
-      const chunk = refs.slice(index, index + 300)
-      const snaps = await adminDb.getAll(...chunk)
-      for (const snap of snaps) {
-        if (!snap.exists) continue
-        // The doc id is `${listingId}_${YYYY-MM-DD}`; the date is fixed width, so
-        // stripping the final 11 characters recovers the listing id even when the
-        // listing id itself contains underscores.
-        const listingId = snap.id.slice(0, -11)
-        const candidate = totals.get(listingId)
-        if (!candidate) continue
-        const data = snap.data() as Record<string, unknown>
-        candidate.view += Number(data.view) || 0
-        candidate.click_website += Number(data.click_website) || 0
-        candidate.click_directions += Number(data.click_directions) || 0
-        candidate.click_phone += Number(data.click_phone) || 0
-        candidate.click_action += Number(data.click_action) || 0
-        candidate.lead += Number(data.lead) || 0
-      }
-    }
-
-    const proof = pickRepresentativeProof([...totals.values()], WINDOW_DAYS)
-
-    if (!proof) {
-      // Thin data is a legitimate outcome, but it must not be INDISTINGUISHABLE
-      // from a broken read. Record which it was, because "no paid listing cleared
-      // six customer actions in a month" is a real and fairly alarming business
-      // signal about what paying customers are getting, while "the query failed"
-      // is a bug — and from outside the page both look like an absent panel.
-      await reportFailure(
-        'premium-proof',
-        new Error(
-          listingIds.length === 0
-            ? 'No paid listings matched, so /premium has no results panel'
-            : `No paid listing cleared the publish floor across ${listingIds.length} sampled listings in ${WINDOW_DAYS} days`
-        ),
-        { sampled: listingIds.length, windowDays: WINDOW_DAYS },
-        { skipHealth: true, alertKey: 'premium-proof-empty' }
-      ).catch(() => {})
-    }
-
-    return proof
+    const result = await loadPremiumProof({
+      listings: async (limit) => {
+        const snap = await adminDb.collection('directory_listings')
+          .where('tier', 'in', ['premium', 'featured'])
+          .limit(limit)
+          .select('tier', 'is_published', 'merged_into', 'stripe_subscription_id')
+          .get()
+        return snap.docs.map(doc => ({ ...doc.data(), listingId: doc.id }))
+      },
+      stats: async (ids, days) => {
+        const refs = ids.flatMap(id => days.map(day =>
+          adminDb.collection('listing_stats').doc(statsDocId(id, day))))
+        const rows: ProofStat[] = []
+        for (let index = 0; index < refs.length; index += 300) {
+          const snaps = await adminDb.getAll(...refs.slice(index, index + 300))
+          for (const snap of snaps) {
+            if (snap.exists) rows.push({ listingId: snap.id.slice(0, -11), counts: snap.data()! })
+          }
+        }
+        return rows
+      },
+    })
+    // A successful read with thin evidence is not an automation failure. Keep
+    // the business signal observable without sending a false failure email.
+    console.info('[premium-proof]', JSON.stringify(result.diagnostics))
+    return result.proof
   } catch (error) {
-    // The page still renders without the panel — a marketing illustration must
-    // never be able to take down the page that sells the plan. But swallowing
-    // this silently would repeat the exact mistake the directory-ingest outage
-    // was made of: a failure logged nowhere anyone receives it.
-    await reportFailure('premium-proof', error, { windowDays: WINDOW_DAYS }, { skipHealth: true }).catch(() => {})
+    // Actual read failures remain operational alerts; the page still fails soft.
+    await reportFailure('premium-proof', error, { windowDays: PROOF_WINDOW_DAYS }, { skipHealth: true }).catch(() => {})
     return null
   }
 }
 
-export const getPremiumProof = unstable_cache(loadProof, ['premium-proof-v1'], {
-  revalidate: CACHE_SECONDS,
+export const getPremiumProof = unstable_cache(loadProof, ['premium-proof-v2'], {
+  revalidate: 86_400,
   tags: ['premium-proof'],
 })

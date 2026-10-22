@@ -36,6 +36,23 @@ export type ProofCandidate = {
   lead: number
 }
 
+export type ProofListing = {
+  listingId: string
+  tier?: unknown
+  is_published?: unknown
+  merged_into?: unknown
+  stripe_subscription_id?: unknown
+}
+
+// Tier alone includes complimentary and seeded Premium grants. Use the stored
+// subscription entitlement, and never advertise hidden or merged listings.
+export function isPaidProofListing(listing: ProofListing): boolean {
+  return (listing.tier === 'premium' || listing.tier === 'featured') &&
+    listing.is_published === true && !listing.merged_into &&
+    typeof listing.stripe_subscription_id === 'string' &&
+    listing.stripe_subscription_id.trim().length > 0
+}
+
 /** What the page renders. Deliberately carries no identifier of any kind. */
 export type PremiumProof = {
   windowDays: number
@@ -87,24 +104,24 @@ export function medianIndex(count: number): number {
 /**
  * Choose the listing whose month the page will describe.
  *
- * Returns null when nothing clears the floor, which the page must treat as
+ * Returns null when the full sample's median is below the floor, which the page must treat as
  * "render no panel" rather than "render zeros".
  */
 export function pickRepresentativeProof(
   candidates: readonly ProofCandidate[],
   windowDays = 30
 ): PremiumProof | null {
-  const qualifying = candidates
-    .filter((candidate) => countActions(candidate) >= MIN_ACTIONS_TO_PUBLISH)
+  const ordered = [...candidates]
     // Ascending, with the listing id as a tie-break so the same input always
     // yields the same published figure rather than drifting with Firestore's
     // document order.
     .sort((a, b) => countActions(a) - countActions(b) || a.listingId.localeCompare(b.listingId))
 
-  const index = medianIndex(qualifying.length)
+  const index = medianIndex(ordered.length)
   if (index < 0) return null
 
-  const chosen = qualifying[index]
+  const chosen = ordered[index]
+  if (countActions(chosen) < MIN_ACTIONS_TO_PUBLISH) return null
   return {
     windowDays,
     actions: countActions(chosen),
@@ -113,7 +130,7 @@ export function pickRepresentativeProof(
     directions: Math.max(0, chosen.click_directions),
     calls: Math.max(0, chosen.click_phone),
     leads: Math.max(0, chosen.lead),
-    sampleSize: qualifying.length,
+    sampleSize: ordered.length,
   }
 }
 

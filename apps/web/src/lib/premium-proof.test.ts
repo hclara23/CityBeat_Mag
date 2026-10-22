@@ -151,6 +151,17 @@ test('an empty catalog is not an error', () => {
   assert.equal(pickRepresentativeProof([]), null)
 })
 
+test('low performers remain in the median instead of cherry-picking qualifying listings', () => {
+  assert.equal(pickRepresentativeProof([
+    candidate('a'), candidate('b'), candidate('c', { click_website: 100 }),
+  ]), null)
+  const proof = pickRepresentativeProof([
+    candidate('a'), candidate('b', { click_website: 6 }), candidate('c', { click_website: 100 }),
+  ])
+  assert.equal(proof?.actions, 6)
+  assert.equal(proof?.sampleSize, 3)
+})
+
 // --- Tiles ----------------------------------------------------------------------
 
 test('a zero tile is dropped rather than advertised', () => {
