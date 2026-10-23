@@ -1,11 +1,14 @@
 ---
 id: "202610230424-EEJ2W8"
 title: "Renew and send Varsity Roofing claim invitation"
-status: "TODO"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202610221253-QF37BA"]
 tags: []
+commit: { hash: "548439a2ce435fe687bb5326c9cb3e7d116cfb06", message: "🧪 EEJ2W8 verified: renew Varsity claim invitation and send via Gmail | details: record SENT receipt, preserve premium tier and blank Super H website without analytics or billing changes" }
+comments:
+  - { author: "ORCHESTRATOR", body: "verified: renew Varsity claim invitation and send via Gmail | details: record SENT receipt, preserve premium tier and blank Super H website without analytics or billing changes" }
 doc_version: 2
 doc_updated_at: "2026-10-23T04:26:15+00:00"
 doc_updated_by: "agentctl"
