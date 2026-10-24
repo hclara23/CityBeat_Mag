@@ -1,15 +1,17 @@
 ---
 id: "202610240118-91VJGH"
 title: "Release verified directory search improvements"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: ["202610240056-BZVEW5"]
 tags: []
+commit: { hash: "fc8fd0a64b0e7395de2e9a3280ee98d99c61425c", message: "🐛 91VJGH verified: deploy directory improvements at 100 percent traffic after local outage recovery and candidate checks | details: complete 30-minute observation, refreshed-index checks and clean ERROR sweeps with no imports or subagents." }
 comments:
   - { author: "ORCHESTRATOR", body: "start: record approved directory release checks, no-traffic candidate, USD1 cap and unchanged listing data." }
   - { author: "ORCHESTRATOR", body: "start: exclude local review artifacts from cloud packaging and add reproducible loopback-only outage injection | details: verify final build, full suite, emulator and successful browser Retry recovery." }
   - { author: "ORCHESTRATOR", body: "start: record successful immutable directory deployment, candidate and public smoke checks, cost evidence and protected import scope | details: add reusable production directory smoke verification." }
+  - { author: "ORCHESTRATOR", body: "verified: deploy directory improvements at 100 percent traffic after local outage recovery and candidate checks | details: complete 30-minute observation, refreshed-index checks and clean ERROR sweeps with no imports or subagents." }
 doc_version: 2
 doc_updated_at: "2026-10-24T01:58:49+00:00"
 doc_updated_by: "agentctl"
