@@ -1,13 +1,15 @@
 ---
 id: "202610240056-BZVEW5"
 title: "Build unified directory search and reviewed expansion preview"
-status: "TODO"
+status: "DOING"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+comments:
+  - { author: "ORCHESTRATOR", body: "Start: implement approved read-only review tools and local search improvements; verify all changes without deployment or subagents." }
 doc_version: 2
-doc_updated_at: "2026-10-24T00:57:11+00:00"
+doc_updated_at: "2026-10-24T01:00:58+00:00"
 doc_updated_by: "agentctl"
 description: "Approved local-only implementation: review legacy provenance without data changes; unified search and mobile filters; 100-record public-domain import preview with location and duplicate checks; full local verification. No publishing, deployment, subagents or paid services."
 ---
@@ -34,4 +36,8 @@ Unit/regression tests, TypeScript, production build, local UI and API verificati
 ## Rollback Plan
 
 No deployment or production mutations. Revert task-scoped local commits if required.
+
+## Notes
+
+Phase 1 prepared local-only manifests at .tmp/directory-review-2026-10-23: 100 candidates (91 new-review, 7 possible-match, 1 rejected, 1 batch duplicate). 3812 Google-source and 3857 missing-source records flagged; 14 protected. No automatic patches or production writes; 4 tests passed.
 
