@@ -17,6 +17,18 @@ export function getPath(obj: any, path: string): any {
 export function getMappedValue(row: any, template: string | undefined): string | null {
   if (!template) return null
   if (template.startsWith('=')) return template.slice(1)
+  // Fallback: 'dba_name|legal_name' means "the trade name if the row has one,
+  // otherwise the legal name". Needed because FMCSA populates dba_name on only
+  // 24% of carriers while legal_name is always present — and `+` would CONCAT
+  // them into "DBA LEGAL" for the quarter that have both. Alternation binds
+  // looser than concatenation, so each alternative may itself use `+`.
+  if (template.includes('|')) {
+    for (const alternative of template.split('|')) {
+      const value = getMappedValue(row, alternative.trim())
+      if (value !== null && String(value).trim() !== '') return value
+    }
+    return null
+  }
   if (template.includes('+')) {
     const parts = template
       .split('+')

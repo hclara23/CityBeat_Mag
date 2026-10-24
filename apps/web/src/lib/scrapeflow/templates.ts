@@ -598,6 +598,174 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
       ],
     },
   },
+  // --- Daily sources added 2026-10-24 -----------------------------------------
+  //
+  // WHY: the only 24h workflow (the El Paso Hispanic Chamber GrowthZone crawl)
+  // had to be disabled — that host now answers 403 from Cloudflare bot
+  // protection to a plain browser UA as well as ours, so the source has declined
+  // automated access. Everything still enabled runs at 168h or 720h, leaving
+  // directory growth weekly at best against 9,790 listings.
+  //
+  // All three below were verified by live fetch before being written: real HTTP
+  // 200, real El Paso record counts, robots.txt and terms checked. They are
+  // government open data, which exists to be consumed — not a crawl of someone's
+  // members area.
+  {
+    key: 'comptroller-el-paso-new-permits',
+    name: 'TX Comptroller — new sales-tax permits (El Paso County)',
+    description:
+      'Texas Comptroller Active Sales Tax Permit Holders (data.texas.gov jrea-zgmq, licenseId PUBLIC_DOMAIN, refreshed daily): every business location holding an active Texas sales-tax permit in El Paso County — 21,219 of them, each with a street address and a 799xx ZIP. This workflow deliberately takes only the NEWEST permits each run (order by outlet_permit_issue_date DESC, 400 rows) rather than the whole file. Roughly 17-29 genuinely new El Paso permits appear per weekday, so 400 is wide headroom. The full 21,219 back-catalogue is NOT loaded here: the directory sink runs a sequential name-match query per candidate, and 21k of those cannot finish inside the route 300s budget — load the backlog deliberately from /admin/scrapeflow instead. NAICS 454110 and 454390 (home-based online and direct sellers, ~1,800 rows) are excluded in the query because they are not storefronts. No phone or website in this dataset, so rows depend on citybeat-enrich-contacts. Publish is FALSE on purpose: a sales-tax permit proves a taxable entity, not a trade identity, so the first batches want an eye on them before going public.',
+    enabled: true,
+    interval_hours: 24,
+    definition: {
+      nodes: [
+        {
+          id: 'fetch',
+          type: TaskType.FETCH_JSON,
+          inputs: {
+            URL:
+              'https://data.texas.gov/resource/jrea-zgmq.json?$order=' +
+              encodeURIComponent('outlet_permit_issue_date DESC') +
+              '&$limit=400&$where=' +
+              encodeURIComponent(
+                "outlet_county_code='071' AND outlet_naics_code NOT IN ('454110','454390')"
+              ),
+            'Max items': '400',
+          },
+        },
+        {
+          id: 'map',
+          type: TaskType.MAP_JSON_TO_LISTINGS,
+          inputs: {
+            JSON: '{{fetch.JSON}}',
+            'Field map': JSON.stringify({
+              name: 'outlet_name',
+              address: 'outlet_address',
+              city: 'outlet_city',
+              state: 'outlet_state',
+              zip: 'outlet_zip_code',
+            }),
+            Category: 'Professional Services',
+            'Title case names': 'true',
+          },
+        },
+        {
+          id: 'deliver',
+          type: TaskType.DELIVER_TO_DIRECTORY,
+          inputs: {
+            Listings: '{{map.Listings}}',
+            'Default category': 'Professional Services',
+            'Region filter': 'true',
+            Publish: 'false',
+            Consolidate: 'true',
+          },
+        },
+      ],
+    },
+  },
+  {
+    key: 'fmcsa-border-carriers',
+    name: 'FMCSA — active motor carriers (El Paso + Dona Ana)',
+    description:
+      'FMCSA Company Census (data.transportation.gov az4n-8mr2, refreshed daily; that host robots.txt has zero Disallow rules): 5,822 active motor carriers across El Paso County and Dona Ana County — trucking, freight and customs logistics, a real border vertical given the ports of entry. Name maps dba_name|legal_name because only 24% of carriers file a DBA while legal_name is always present. This is the only verified daily source that covers the New Mexico side, which the Texas Comptroller file structurally cannot. Ordered by mcs150_date DESC so each run sees the most recently-filed carriers; because that date refreshes when a carrier files its biennial update, the window rotates through the set over time instead of re-reading a fixed head. 98% of rows carry a PHONE, so these listings are contactable the moment they land — which matters more than usual now that claim verification can text a code. Publish is FALSE: a large share of active carriers are sole proprietors filed under a personal name at what is frequently a home address, and publishing those as businesses is a different proposition from publishing an inspected storefront. Review a batch at /admin/scrapeflow before flipping it.',
+    enabled: true,
+    interval_hours: 24,
+    definition: {
+      nodes: [
+        {
+          id: 'fetch',
+          type: TaskType.FETCH_JSON,
+          inputs: {
+            URL:
+              'https://data.transportation.gov/resource/az4n-8mr2.json?$order=' +
+              encodeURIComponent('mcs150_date DESC') +
+              '&$limit=600&$where=' +
+              encodeURIComponent(
+                "status_code='A' AND upper(phy_city) in('EL PASO','SOCORRO','HORIZON CITY','VINTON','CLINT','SAN ELIZARIO','CANUTILLO','FABENS','TORNILLO','ANTHONY','LAS CRUCES','SANTA TERESA','SUNLAND PARK','MESILLA')"
+              ),
+            'Max items': '600',
+          },
+        },
+        {
+          id: 'map',
+          type: TaskType.MAP_JSON_TO_LISTINGS,
+          inputs: {
+            JSON: '{{fetch.JSON}}',
+            'Field map': JSON.stringify({
+              name: 'dba_name|legal_name',
+              address: 'phy_street',
+              city: 'phy_city',
+              state: 'phy_state',
+              zip: 'phy_zip',
+              phone: 'phone',
+            }),
+            Category: 'Logistics & Freight',
+            'Title case names': 'true',
+          },
+        },
+        {
+          id: 'deliver',
+          type: TaskType.DELIVER_TO_DIRECTORY,
+          inputs: {
+            Listings: '{{map.Listings}}',
+            'Default category': 'Logistics & Freight',
+            'Region filter': 'true',
+            Publish: 'false',
+            Consolidate: 'true',
+          },
+        },
+      ],
+    },
+  },
+  {
+    key: 'tabc-el-paso-hospitality',
+    name: 'TABC — active hospitality businesses (El Paso County)',
+    description:
+      'TABC License Information (data.texas.gov 7hf9-qc9f, refreshed daily): 1,892 active restaurant, bar and hospitality licences in El Paso County, each with a trade name and street address. The phone column is EMPTY for every El Paso row (verified across all 1,892), so it is not mapped and these rows depend on citybeat-enrich-contacts; trade_name is populated on 86%, and the mapper drops the remainder as invalid. The repo already carried this dataset as tabc-west-texas-hospitality — a 15-county, review-first expansion at interval_hours 168 with Publish false — whose own description called the source daily while polling it weekly. This is the El Paso-scoped daily counterpart, published like the other county-scoped licence sources (tdlr-electrical-contractors, tdlr-beauty-establishments): a TABC licence is a fixed, inspected premises, so the trade name is a real storefront. All 1,892 fit in one run, so this fully loads the source and thereafter costs only existence checks.',
+    enabled: true,
+    interval_hours: 24,
+    definition: {
+      nodes: [
+        {
+          id: 'fetch',
+          type: TaskType.FETCH_JSON,
+          inputs: {
+            URL:
+              'https://data.texas.gov/resource/7hf9-qc9f.json?$limit=2500&$where=' +
+              encodeURIComponent("primary_status='Active' AND upper(county)='EL PASO'"),
+            'Max items': '2500',
+          },
+        },
+        {
+          id: 'map',
+          type: TaskType.MAP_JSON_TO_LISTINGS,
+          inputs: {
+            JSON: '{{fetch.JSON}}',
+            'Field map': JSON.stringify({
+              name: 'trade_name',
+              address: 'address',
+              city: 'city',
+              state: 'state',
+              zip: 'zip',
+            }),
+            Category: 'Restaurant',
+            'Title case names': 'true',
+          },
+        },
+        {
+          id: 'deliver',
+          type: TaskType.DELIVER_TO_DIRECTORY,
+          inputs: {
+            Listings: '{{map.Listings}}',
+            'Default category': 'Restaurant',
+            'Region filter': 'true',
+            Publish: 'true',
+            Consolidate: 'true',
+          },
+        },
+      ],
+    },
+  },
 ]
 
 export function getTemplate(key: string): WorkflowTemplate | null {
