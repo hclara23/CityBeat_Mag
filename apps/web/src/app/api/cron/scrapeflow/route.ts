@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ensureSeeded, runDueWorkflows } from '@/lib/scrapeflow'
 import { consolidateListings } from '@/lib/directory-consolidate'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
+import { failureAffectsHealth, shouldStampLiveness } from '@/lib/cron-outcome'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -40,12 +41,22 @@ export async function GET(request: NextRequest) {
     await ensureSeeded()
     const result = await runDueWorkflows({ limit, dryRun })
     const failed = result.ran.filter((r) => r.status === 'FAILED')
+
+    // Liveness and content are separate questions. This route used to stamp
+    // success only in the else branch, so ONE failing workflow made a job that
+    // had just run look like a job that had stopped — the heartbeat paged
+    // "scrapeflow scraper has stopped running, last ran 39h ago" two hours after
+    // a normal run. See lib/cron-outcome.ts.
+    if (shouldStampLiveness(result.ran)) await reportSuccess('cron:scrapeflow')
     if (failed.length) {
-      await reportFailure('cron:scrapeflow', new Error(`${failed.length} workflow run(s) failed`), {
-        failed: failed.map((f) => ({ name: f.name, error: f.error })),
-      })
-    } else {
-      await reportSuccess('cron:scrapeflow')
+      await reportFailure(
+        'cron:scrapeflow',
+        new Error(`${failed.length} workflow run(s) failed`),
+        { failed: failed.map((f) => ({ name: f.name, error: f.error })) },
+        // Don't mark the source failing when the run was otherwise fine —
+        // that would overwrite the success stamp written a line above.
+        { skipHealth: !failureAffectsHealth(result.ran) }
+      )
     }
     return NextResponse.json({ ok: true, dryRun, ...result })
   } catch (error) {
