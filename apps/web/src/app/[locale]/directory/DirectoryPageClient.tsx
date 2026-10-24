@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -125,8 +125,10 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
 
   const [listings, setListings] = useState<Listing[]>([])
   const [page, setPage] = useState(0)
-  const [after, setAfter] = useState('')
-  const [pageInfo, setPageInfo] = useState({ total: 0, hasMore: false, nextWindow: null as string | null, searchLimited: false })
+  const [pageInfo, setPageInfo] = useState({ total: 0, hasMore: false, pageCount: 0, visibilityChanged: false })
+  const [location, setLocation] = useState('')
+  const [filtersReady, setFiltersReady] = useState(false)
+  const [retry, setRetry] = useState(0)
   const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -144,6 +146,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
     }
     const referralCode = searchParams.get('ref')?.trim().toUpperCase()
     if (value === 'saved' && referralCode && /^[A-F0-9]{12}$/.test(referralCode)) {
+      try {
       window.localStorage.setItem(
         'citybeat_directory_referral',
         JSON.stringify({
@@ -151,25 +154,48 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
           expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
         })
       )
+      } catch {
+        // Storage may be disabled; directory browsing must still initialize.
+      }
     }
     // Seed the search box from ?q= so Google's sitelinks search box (WebSite
     // SearchAction) and any deep link land on a real filtered result set.
-    const q = searchParams.get('q')?.trim()
-    if (q) setSearchQuery(q.slice(0, 80))
+    const readFilters = () => {
+      const params = new URLSearchParams(window.location.search)
+      setSearchQuery((params.get('q') || '').slice(0, 100))
+      const category = params.get('category') || 'All'
+      setSelectedCategory(CATEGORIES.includes(category as typeof CATEGORIES[number]) ? category : 'All')
+      setLocation((params.get('location') || '').slice(0, 80))
+      setPage(Math.max(0, Number.parseInt(params.get('page') || '0', 10) || 0))
+      setFiltersReady(true)
+    }
+    readFilters()
+    window.addEventListener('popstate', readFilters)
+    return () => window.removeEventListener('popstate', readFilters)
   }, [])
 
   useEffect(() => {
+    if (!filtersReady) return
     const controller = new AbortController()
+    setLoading(true)
     const fetchListings = async () => {
       try {
         setLoading(true)
         setLoadError(false)
         const categoryParam = selectedCategory === 'All' ? '' : selectedCategory
-        const response = await fetch(`/api/directory?query=${encodeURIComponent(searchQuery)}&category=${encodeURIComponent(categoryParam)}&page=${page}&after=${encodeURIComponent(after)}`, { signal: controller.signal })
+        const url = new URL(window.location.href)
+        for (const [key, value] of Object.entries({ q: searchQuery, category: categoryParam, location, page: page ? String(page) : '' })) {
+          if (value) url.searchParams.set(key, value); else url.searchParams.delete(key)
+        }
+        window.history.replaceState(window.history.state, '', url)
+        const params = new URLSearchParams({ query: searchQuery, category: categoryParam, location, page: String(page) })
+        const response = await fetch(`/api/directory?${params}`, { signal: controller.signal })
         if (response.ok) {
           const data = await response.json()
+          if (controller.signal.aborted) return
           setListings(data.listings || [])
-          setPageInfo({ total: data.total || 0, hasMore: !!data.hasMore, nextWindow: data.nextWindow || null, searchLimited: !!data.searchLimited })
+          setPageInfo({ total: data.total || 0, hasMore: !!data.hasMore, pageCount: data.pageCount || 0, visibilityChanged: !!data.visibilityChanged })
+          if (data.page !== page) setPage(data.page || 0)
         } else { setListings([]); setLoadError(true) }
       } catch (err) {
         if (!controller.signal.aborted) { setListings([]); setLoadError(true) }
@@ -183,7 +209,13 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
     }, 300)
 
     return () => { clearTimeout(timer); controller.abort() }
-  }, [searchQuery, selectedCategory, page, after])
+  }, [searchQuery, selectedCategory, location, page, retry, filtersReady])
+
+  const clearFilters = () => { setSearchQuery(''); setSelectedCategory('All'); setLocation(''); setPage(0) }
+  const changePage = (next: number) => {
+    setPage(next)
+    document.getElementById('directory-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   const renderStars = (rating: number | null) => {
     if (!rating) return null
@@ -207,13 +239,14 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
   // The grid shows at most 3 cards; any number of listings can be sponsored
   // at once, so once more than 3 qualify, a random 3 (in random order) show
   // per view — see selectSponsoredWindow.
-  const sponsoredListings = selectSponsoredWindow(listings.filter((l) => l.is_sponsored))
+  const sponsoredListings = useMemo(() => selectSponsoredWindow(listings.filter((l) => l.is_sponsored)), [listings])
+  const spotlightIds = new Set(sponsoredListings.map(l => l.id))
   // Featured and Premium both appear in the premium section; Featured ranks first.
   const premiumListings = listings
-    .filter((l) => (l.tier === 'premium' || l.tier === 'featured') && !l.is_sponsored)
+    .filter((l) => (l.tier === 'premium' || l.tier === 'featured') && !spotlightIds.has(l.id))
     .sort((a, b) => (a.tier === 'featured' ? -1 : 0) - (b.tier === 'featured' ? -1 : 0))
   const basicListings = listings.filter(
-    (l) => l.tier !== 'premium' && l.tier !== 'featured' && !l.is_sponsored
+    (l) => l.tier !== 'premium' && l.tier !== 'featured' && !spotlightIds.has(l.id)
   )
 
   return (
@@ -229,18 +262,19 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
           <div className="container-wide">
             <div className="overflow-hidden rounded-[1.75rem] border border-white/12 bg-white text-slate-950 shadow-[0_25px_80px_rgba(0,0,0,.32)]">
               <div className="grid lg:grid-cols-[.86fr_1.14fr]">
-                <div className="relative min-h-[350px] overflow-hidden bg-[#0a1723] p-7 text-white sm:p-10 lg:min-h-[510px] lg:p-12">
+                <div className="relative overflow-hidden bg-[#0a1723] p-5 text-white sm:p-10 lg:p-12">
                   <div className="absolute inset-0 opacity-30 citybeat-grid" />
                   <div className="absolute -right-16 -top-20 h-72 w-72 rounded-full bg-brand-neon/20 blur-3xl" />
                   <div className="relative z-10 flex h-full flex-col justify-between">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-neon">{locale === 'es' ? 'Compra local. Crece local.' : 'Shop local. Grow local.'}</p>
-                      <h1 className="mt-4 max-w-xl font-display text-5xl font-black uppercase leading-[.9] tracking-[-.05em] sm:text-6xl lg:text-7xl">
+                      <h1 className="mt-3 max-w-xl font-display text-3xl font-black uppercase leading-tight tracking-[-.03em] sm:text-5xl lg:text-6xl">
                         {locale === 'es' ? 'Directorio de negocios' : 'Business directory'}
                       </h1>
-                      <p className="mt-6 max-w-xl text-base leading-7 text-white/72 sm:text-lg">{t.subtitle}</p>
+                      <p className="mt-3 text-sm text-white/75 sm:hidden">{locale === 'es' ? 'Encuentra, compara y contacta negocios locales.' : 'Find, compare and contact local businesses.'}</p>
+                      <p className="mt-6 hidden max-w-xl text-base leading-7 text-white/72 sm:block">{t.subtitle}</p>
                     </div>
-                    <div className="mt-10 flex flex-wrap gap-3 text-xs font-black uppercase tracking-[0.15em]">
+                    <div className="mt-10 hidden flex-wrap gap-3 text-xs font-black uppercase tracking-[0.15em] sm:flex">
                       <span className="rounded-full border border-brand-neon/45 bg-brand-neon/10 px-4 py-2 text-brand-neon">El Paso</span>
                       <span className="rounded-full border border-white/20 px-4 py-2 text-white/75">Las Cruces</span>
                       <span className="rounded-full border border-white/20 px-4 py-2 text-white/75">Borderlands</span>
@@ -263,7 +297,8 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                       type="search"
                       placeholder={t.searchPlaceholder}
                       value={searchQuery}
-                      onChange={(e) => { setSearchQuery(e.target.value); setPage(0); setAfter('') }}
+                      maxLength={100}
+                      onChange={(e) => { setSearchQuery(e.target.value); setPage(0) }}
                       className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-4 text-base font-semibold text-slate-950 placeholder:text-slate-400 focus:border-cyan-600 focus:ring-cyan-600"
                     />
                     <svg className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -271,16 +306,20 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                     </svg>
                   </label>
 
-                  <div className="mt-6 grid gap-2 sm:grid-cols-2">
+                  <label className="mt-4 block text-sm font-bold text-slate-800">
+                    {locale === 'es' ? 'Ciudad o código postal' : 'City or ZIP code'}
+                    <input type="search" maxLength={80} value={location} onChange={e => { setLocation(e.target.value); setPage(0) }} placeholder={locale === 'es' ? 'Todas las zonas · p. ej. 79936' : 'All areas · e.g. El Paso or 79936'} className="mt-2 h-12 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base text-slate-950 focus:border-cyan-600 focus:ring-cyan-600" />
+                  </label>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     {DIRECTORY_SHORTCUTS.map((item) => {
                       const isActive = selectedCategory === item.category
                       return (
                         <button
                           type="button"
                           key={item.category}
-                          onClick={() => { setSelectedCategory(isActive ? 'All' : item.category); setPage(0); setAfter('') }}
+                          onClick={() => { setSelectedCategory(isActive ? 'All' : item.category); setPage(0) }}
                           aria-pressed={isActive}
-                          className={`flex min-h-[48px] items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm font-bold transition ${isActive ? 'border-cyan-600 bg-cyan-50 text-cyan-950' : 'border-slate-200 bg-white text-slate-800 hover:border-cyan-500 hover:bg-cyan-50/60'}`}
+                          className={`hidden min-h-[48px] items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm font-bold transition sm:flex ${isActive ? 'border-cyan-600 bg-cyan-50 text-cyan-950' : 'border-slate-200 bg-white text-slate-800 hover:border-cyan-500 hover:bg-cyan-50/60'}`}
                         >
                           <span aria-hidden="true" className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-black text-white ${item.tone}`}>{item.icon}</span>
                           <span>{categoryLabel(item.category, locale)}</span>
@@ -290,14 +329,14 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                     <label className="flex min-h-[48px] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800">
                       <span aria-hidden="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-300 text-slate-800">•••</span>
                       <span className="sr-only">{t.allCategories}</span>
-                      <select value={selectedCategory} onChange={(e) => { setSelectedCategory(e.target.value); setPage(0); setAfter('') }} className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-bold text-slate-800 focus:ring-0">
+                      <select value={selectedCategory} onChange={(e) => { setSelectedCategory(e.target.value); setPage(0) }} className="min-h-11 min-w-0 flex-1 border-0 bg-transparent p-0 text-base font-bold text-slate-800 focus:ring-cyan-600">
                         {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat === 'All' ? t.allCategories : categoryLabel(cat, locale)}</option>)}
                       </select>
                     </label>
                   </div>
 
-                  {(searchQuery || selectedCategory !== 'All') && (
-                    <button type="button" onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setPage(0); setAfter('') }} className="mt-5 text-xs font-black uppercase tracking-wider text-cyan-700 hover:text-cyan-900">
+                  {(searchQuery || location || selectedCategory !== 'All') && (
+                    <button type="button" onClick={clearFilters} className="mt-3 min-h-11 text-xs font-black uppercase tracking-wider text-cyan-700 hover:text-cyan-900">
                       {locale === 'es' ? 'Limpiar búsqueda' : 'Clear search'}
                     </button>
                   )}
@@ -308,16 +347,20 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
         </section>
 
         {/* Content Listings section */}
-        <section className="container-wide mt-6">
-          <p role="status" className="mb-4 text-sm text-white/75">{loading ? (locale === 'es' ? 'Buscando…' : 'Searching…') : loadError ? (locale === 'es' ? 'No se pudieron cargar los resultados. Inténtalo de nuevo.' : 'Results could not be loaded. Please try again.') : `${listings.length} ${locale === 'es' ? 'mostrados de' : 'shown of'} ${pageInfo.total}${pageInfo.searchLimited ? (locale === 'es' ? ' en este bloque; continúa para buscar más negocios.' : ' in this search window; continue to search more businesses.') : ''}`}</p>
+        <section id="directory-results" aria-busy={loading} className="container-wide mt-6 scroll-mt-24">
+          <p role="status" className="mb-4 text-sm text-white/75">{loading ? (locale === 'es' ? 'Buscando…' : 'Searching…') : loadError ? (locale === 'es' ? 'No se pudieron cargar los resultados.' : 'Results could not be loaded.') : `${listings.length ? page * 24 + 1 : 0}–${listings.length ? page * 24 + listings.length : 0} ${locale === 'es' ? 'de' : 'of'} ${pageInfo.total} ${locale === 'es' ? 'resultados' : 'results'}`}</p>
+          {!loading && !loadError && pageInfo.visibilityChanged && <p className="mb-3 text-sm text-white/60">{locale === 'es' ? 'Algunas fichas cambiaron desde la última actualización de búsqueda.' : 'Some listings changed since the last search-index update.'}</p>}
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-neon"></div>
-              <p className="text-white/60 mt-4 font-medium">Loading listings...</p>
+              <p className="text-white/60 mt-4 font-medium">{locale === 'es' ? 'Cargando negocios…' : 'Loading listings…'}</p>
             </div>
+          ) : loadError ? (
+            <div role="alert" className="citybeat-panel rounded-2xl p-6 text-center"><p>{locale === 'es' ? 'Intenta de nuevo en unos momentos.' : 'Please try again in a moment.'}</p><button onClick={() => setRetry(n => n + 1)} className="mt-4 min-h-11 rounded bg-brand-neon px-5 font-bold text-black">{locale === 'es' ? 'Reintentar' : 'Retry'}</button></div>
           ) : listings.length === 0 ? (
             <div className="citybeat-panel rounded-2xl p-12 text-center max-w-lg mx-auto">
               <p className="text-white/70 text-lg">{t.noResults}</p>
+              <button onClick={clearFilters} className="mt-4 min-h-11 rounded border border-brand-neon px-5 text-brand-neon">{locale === 'es' ? 'Quitar filtros' : 'Clear filters'}</button>
             </div>
           ) : (
             <div className="space-y-16">
@@ -565,9 +608,9 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
         </section>
 
         <nav aria-label={locale === 'es' ? 'Páginas de resultados' : 'Result pages'} className="container-wide my-6 flex flex-wrap gap-3">
-          {page > 0 && <button disabled={loading} onClick={() => setPage(page - 1)} className="min-h-11 rounded border border-white/30 px-5">{locale === 'es' ? 'Anterior' : 'Previous'}</button>}
-          {pageInfo.hasMore && <button disabled={loading} onClick={() => setPage(page + 1)} className="min-h-11 rounded bg-brand-neon px-5 font-bold text-black">{locale === 'es' ? 'Siguiente' : 'Next'}</button>}
-          {!pageInfo.hasMore && pageInfo.nextWindow && <button disabled={loading} onClick={() => { setAfter(pageInfo.nextWindow!); setPage(0) }} className="min-h-11 rounded bg-brand-neon px-5 font-bold text-black">{locale === 'es' ? 'Buscar en el siguiente bloque' : 'Search next inventory window'}</button>}
+          {!loadError && page > 0 && <button disabled={loading} onClick={() => changePage(page - 1)} className="min-h-11 rounded border border-white/30 px-5">{locale === 'es' ? 'Anterior' : 'Previous'}</button>}
+          {!loadError && pageInfo.pageCount > 0 && <span className="flex min-h-11 items-center text-sm text-white/70">{locale === 'es' ? 'Página' : 'Page'} {page + 1} / {pageInfo.pageCount}</span>}
+          {!loadError && pageInfo.hasMore && <button disabled={loading} onClick={() => changePage(page + 1)} className="min-h-11 rounded bg-brand-neon px-5 font-bold text-black">{locale === 'es' ? 'Siguiente' : 'Next'}</button>}
         </nav>
         {/* Server-rendered "browse by category & city" internal links (passed
             from the server page). In the initial SSR HTML — crawlable, keyword-
