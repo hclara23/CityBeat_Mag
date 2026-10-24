@@ -11103,6 +11103,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: record approved directory release checks, no-traffic candidate, USD1 cap and unchanged listing data."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: exclude local review artifacts from cloud packaging and add reproducible loopback-only outage injection | details: verify final build, full suite, emulator and successful browser Retry recovery."
         }
       ],
       "doc_version": 2,
@@ -11116,6 +11120,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "d202445d861bf36047fe253b9484c08e6facd7d184234ef6a3ea7aee3b6c17aa"
+    "checksum": "d7041793f38d6988075c6c5581d5ccfd6f247bccb54297c99f53512a5e5456f8"
   }
 }

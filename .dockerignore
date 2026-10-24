@@ -15,3 +15,5 @@ packages/*/.next
 build.log
 *.log
 graphify-out
+.tmp
+**/.tmp

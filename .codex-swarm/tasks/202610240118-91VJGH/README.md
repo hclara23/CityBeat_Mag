@@ -8,6 +8,7 @@ depends_on: ["202610240056-BZVEW5"]
 tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "start: record approved directory release checks, no-traffic candidate, USD1 cap and unchanged listing data." }
+  - { author: "ORCHESTRATOR", body: "start: exclude local review artifacts from cloud packaging and add reproducible loopback-only outage injection | details: verify final build, full suite, emulator and successful browser Retry recovery." }
 doc_version: 2
 doc_updated_at: "2026-10-24T01:18:25+00:00"
 doc_updated_by: "agentctl"
