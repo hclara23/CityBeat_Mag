@@ -22,6 +22,10 @@ type ClaimListing = {
   claim_status: string
   phone?: string | null
   email?: string | null
+  /** Rep-sold and scraped rows carry the address here rather than in `email`.
+   *  The claim hint already masks `email || contact_email`, so omitting it from
+   *  this type is what let the verifier refuse an address the owner was shown. */
+  contact_email?: string | null
 }
 
 type ClaimVerificationInput = {
@@ -81,7 +85,11 @@ export function resolveClaimVerification({
   }
 
   if (method === 'email') {
-    const trustedEmail = listing.email?.trim()
+    // Same precedence the claim hint and the unclaimed relay use
+    // (api/directory/[id]/route.ts maskClaimContact reads
+    // `data.email || data.contact_email`). Reading only `email` here showed an
+    // owner a masked address and then refused to send a code to it.
+    const trustedEmail = (listing.email || listing.contact_email)?.trim()
     if (!trustedEmail) {
       return {
         ok: false,

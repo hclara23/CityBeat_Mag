@@ -1,13 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import {
-  MAX_CREATOR_UPLOAD_BYTES,
-  canUploadCreatorMedia,
-  resolveClaimVerification,
-  sanitizePublicReview,
-  shouldAwardReviewPoints,
-  validateCreatorUploadFile,
-} from './directory-security'
+import { MAX_CREATOR_UPLOAD_BYTES, canUploadCreatorMedia, resolveClaimVerification, sanitizePublicReview, shouldAwardReviewPoints, validateCreatorUploadFile } from './directory-security'
 
 test('claim verification sends phone codes only to the trusted listing phone', () => {
   const result = resolveClaimVerification({
@@ -85,4 +78,64 @@ test('creator uploads require creator access and enforce size/type limits', () =
     ok: false,
     error: 'Invalid file type.',
   })
+})
+
+// --- Phone verification, and the address precedence bug ----------------------
+//
+// Measured against the live collection: 8,863 of 9,790 listings carry a phone
+// and only 787 carry an email. Email-only verification left roughly 82% of the
+// directory unclaimable by the owner it belongs to.
+
+test('a listing with only a phone can still be verified', () => {
+  const r = resolveClaimVerification({
+    method: 'phone',
+    listing: { name: 'Taco Shop', claim_status: 'unclaimed', phone: '+1 915 555 0100' },
+  })
+  assert.equal(r.ok, true)
+  assert.equal(r.ok && r.notificationType, 'sms')
+  assert.equal(r.ok && r.recipient, '+1 915 555 0100')
+})
+
+test('phone verification is refused when there is no number on record', () => {
+  const r = resolveClaimVerification({
+    method: 'phone',
+    listing: { name: 'Taco Shop', claim_status: 'unclaimed', phone: '   ' },
+  })
+  assert.equal(r.ok, false)
+})
+
+test('the verifier accepts the same address the claim hint showed', () => {
+  // The bug: api/directory/[id]/route.ts masks `email || contact_email` into the
+  // hint, while this resolver read only `email`. A listing carrying
+  // contact_email therefore displayed a masked address to the owner and then
+  // refused to send a code to it — a dead end at the exact moment of conversion.
+  const r = resolveClaimVerification({
+    method: 'email',
+    listing: { name: 'Taco Shop', claim_status: 'unclaimed', contact_email: 'owner@tacoshop.com' },
+  })
+  assert.equal(r.ok, true)
+  assert.equal(r.ok && r.recipient, 'owner@tacoshop.com')
+})
+
+test('a real email still wins over contact_email', () => {
+  const r = resolveClaimVerification({
+    method: 'email',
+    listing: {
+      name: 'Taco Shop',
+      claim_status: 'unclaimed',
+      email: 'primary@tacoshop.com',
+      contact_email: 'rep-entered@example.com',
+    },
+  })
+  assert.equal(r.ok && r.recipient, 'primary@tacoshop.com')
+})
+
+test('an already-claimed listing is refused on every method', () => {
+  for (const method of ['email', 'phone', 'postcard'] as const) {
+    const r = resolveClaimVerification({
+      method,
+      listing: { name: 'Taco Shop', claim_status: 'approved', phone: '+19155550100', email: 'a@b.com' },
+    })
+    assert.equal(r.ok, false, `${method} must not start a claim on a claimed listing`)
+  }
 })

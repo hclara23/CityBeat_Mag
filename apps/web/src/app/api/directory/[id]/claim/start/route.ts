@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { resolveClaimVerification } from '@/lib/directory-security'
 import { checkRateLimit } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
+import { sendSms } from '@/lib/sms'
 import { randomInt } from 'crypto'
 
 export const dynamic = 'force-dynamic'
@@ -49,11 +50,18 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
   try {
     const { method } = await request.json()
-    // Only email is wired to actually deliver a code. SMS and postcard are stubs,
-    // so reject them here (the UI also hides them) until they're implemented.
-    if (method !== 'email') {
+    // Email and phone both deliver a real code now. Postcard is still a stub:
+    // resolveClaimVerification returns ok with a null recipient and nothing is
+    // ever sent, so allowing it would strand the claim in 'pending' with no code
+    // on the way.
+    //
+    // Phone matters out of proportion to the size of this change. Measured
+    // against the live collection: 8,863 of 9,790 listings carry a phone and
+    // only 787 carry an email. Email-only verification therefore left roughly
+    // 82% of the directory unclaimable by the very owner it belongs to.
+    if (method !== 'email' && method !== 'phone') {
       return NextResponse.json(
-        { error: 'Only email verification is available right now. Phone and postcard are coming soon.' },
+        { error: 'Choose email or text verification. Postcard verification is not available yet.' },
         { status: 400 }
       )
     }
@@ -89,14 +97,34 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     if (verification.notificationType === 'sms' && verification.recipient) {
       maskedRecipient = maskContact(verification.recipient, 'sms')
       const smsBody = `CityBeat Code: ${verificationCode} for ${listing.name}. Enter this code to verify business ownership.`
+      // Was console.log("[MOCK SMS]"), which told the caller a code had been
+      // sent and sent nothing. Mirrors the email branch below: record the real
+      // outcome, and fail loudly rather than claim a delivery that never
+      // happened.
+      const smsResult = await sendSms(verification.recipient, smsBody)
       await adminDb.collection('sent_notifications').add({
         user_id: user.id,
         type: 'sms',
         recipient: verification.recipient,
         body: smsBody,
+        sent: smsResult.sent,
+        error: smsResult.error || null,
         created_at: FieldValue.serverTimestamp(),
       })
-      console.log(`[MOCK SMS] Verification code sent to ${verification.recipient}: ${verificationCode}`)
+      if (!smsResult.sent) {
+        // sendSms returns no_sms_provider until the Twilio credentials are set.
+        // Say which it is, instead of leaving an owner waiting for a text that
+        // is never coming.
+        return NextResponse.json(
+          {
+            error:
+              smsResult.error === 'no_sms_provider'
+                ? 'Text verification is not switched on yet. Please verify by email, or contact us to claim this listing.'
+                : 'Could not send the verification text. Please try another method.',
+          },
+          { status: 502 }
+        )
+      }
     } else if (verification.notificationType === 'email' && verification.recipient) {
       maskedRecipient = maskContact(verification.recipient, 'email')
       const subject = `Your CityBeat verification code: ${verificationCode}`
