@@ -11107,19 +11107,23 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: exclude local review artifacts from cloud packaging and add reproducible loopback-only outage injection | details: verify final build, full suite, emulator and successful browser Retry recovery."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: record successful immutable directory deployment, candidate and public smoke checks, cost evidence and protected import scope | details: add reusable production directory smoke verification."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-24T01:18:25+00:00",
+      "doc_updated_at": "2026-10-24T01:29:37+00:00",
       "doc_updated_by": "agentctl",
       "description": "Finish outage recovery and final build checks; deploy no-traffic Cloud Run candidate and promote after verification. One-time Google Cloud cap USD1; no imports or subagents.",
-      "doc": "## Summary\n\nRelease directory improvements with verified recovery and candidate promotion under a USD1 one-time Google Cloud cap.\n\n## Context\n\nUser approved deployment after remaining checks, up to USD1 one-time, no subagents.\n\n## Scope\n\nLocal outage/retry verification and final tests/build; no-traffic candidate; production smoke and observation. No listing imports, billing changes or subagents.\n\n## Risks\n\nMetered build/runtime costs; stale search cache up to 15 minutes; 25k corpus ceiling. Preserve service settings and rollback revision citybeat-web-00370-quv. Exclude local review data from upload.\n\n## Verify Steps\n\nFull test suite, TypeScript, final build, local outage/retry UI, candidate and public directory API/UI smoke, revision and error checks.\n\n## Rollback Plan\n\nIf candidate checks fail, do not promote. After promotion, restore traffic to citybeat-web-00370-quv if a verified release regression requires recovery; preserve original settings.\n\n## Notes\n\nRelease uses existing scripts/customer-experience-cloudbuild.yaml and Cloud Run image deployment. No npm/package release or PR workflow applies."
+      "doc": "## Summary\n\nRelease directory improvements with verified recovery and candidate promotion under a USD1 one-time Google Cloud cap.\n\n## Context\n\nUser approved deployment after remaining checks, up to USD1 one-time, no subagents.\n\n## Scope\n\nLocal outage/retry verification and final tests/build; no-traffic candidate; production smoke and observation. No listing imports, billing changes or subagents.\n\n## Risks\n\nMetered build/runtime costs; stale search cache up to 15 minutes; 25k corpus ceiling. Preserve service settings and rollback revision citybeat-web-00370-quv. Exclude local review data from upload.\n\n## Verify Steps\n\nFull test suite, TypeScript, final build, local outage/retry UI, candidate and public directory API/UI smoke, revision and error checks.\n\n## Rollback Plan\n\nIf candidate checks fail, do not promote. After promotion, restore traffic to citybeat-web-00370-quv if a verified release regression requires recovery; preserve original settings.\n\n## Notes\n\nLive revision citybeat-web-directory-f3d6972 at 100 percent traffic. Candidate and public directory suites plus 37 broader smoke checks passed. 8038 listings, 335 pages. Build c6d49a37 succeeded in 237.19 seconds, estimated compute USD0.06167. Initial ERROR query empty. Post-release observation started 2026-10-24 01:28:21 UTC; no imports or financial mutations. Receipt docs/audits/directory-release-2026-10-23.md."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "d7041793f38d6988075c6c5581d5ccfd6f247bccb54297c99f53512a5e5456f8"
+    "checksum": "49db8ccc51a7b84ab1fcf2e3368fbe182a3ab7a6d972c0f8c85a74eb27867f9e"
   }
 }

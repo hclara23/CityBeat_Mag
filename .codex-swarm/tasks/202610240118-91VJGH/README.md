@@ -9,8 +9,9 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "start: record approved directory release checks, no-traffic candidate, USD1 cap and unchanged listing data." }
   - { author: "ORCHESTRATOR", body: "start: exclude local review artifacts from cloud packaging and add reproducible loopback-only outage injection | details: verify final build, full suite, emulator and successful browser Retry recovery." }
+  - { author: "ORCHESTRATOR", body: "start: record successful immutable directory deployment, candidate and public smoke checks, cost evidence and protected import scope | details: add reusable production directory smoke verification." }
 doc_version: 2
-doc_updated_at: "2026-10-24T01:18:25+00:00"
+doc_updated_at: "2026-10-24T01:29:37+00:00"
 doc_updated_by: "agentctl"
 description: "Finish outage recovery and final build checks; deploy no-traffic Cloud Run candidate and promote after verification. One-time Google Cloud cap USD1; no imports or subagents."
 ---
@@ -40,5 +41,5 @@ If candidate checks fail, do not promote. After promotion, restore traffic to ci
 
 ## Notes
 
-Release uses existing scripts/customer-experience-cloudbuild.yaml and Cloud Run image deployment. No npm/package release or PR workflow applies.
+Live revision citybeat-web-directory-f3d6972 at 100 percent traffic. Candidate and public directory suites plus 37 broader smoke checks passed. 8038 listings, 335 pages. Build c6d49a37 succeeded in 237.19 seconds, estimated compute USD0.06167. Initial ERROR query empty. Post-release observation started 2026-10-24 01:28:21 UTC; no imports or financial mutations. Receipt docs/audits/directory-release-2026-10-23.md.
 
