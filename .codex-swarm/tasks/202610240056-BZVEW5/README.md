@@ -1,14 +1,16 @@
 ---
 id: "202610240056-BZVEW5"
 title: "Build unified directory search and reviewed expansion preview"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "b80cb0846b3f5f704f561df43d65e3a8f41dbfcd", message: "✨ BZVEW5 start: deliver unified full-corpus directory search, city and ZIP filters, mobile layout and recovery states | details: add emulator integration verification and local-only expansion report." }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implement approved read-only review tools and local search improvements; verify all changes without deployment or subagents." }
   - { author: "ORCHESTRATOR", body: "start: deliver unified full-corpus directory search, city and ZIP filters, mobile layout and recovery states | details: add emulator integration verification and local-only expansion report." }
+  - { author: "ORCHESTRATOR", body: "verified: local implementation passes full 111-file test suite, TypeScript, production build, emulator API checks with 8101 records, and desktop/mobile English/Spanish browser checks. Import preview and provenance manifest remain review-only | details: no production changes. Capacity and remaining release checks documented." }
 doc_version: 2
 doc_updated_at: "2026-10-24T01:16:24+00:00"
 doc_updated_by: "agentctl"

@@ -11060,11 +11060,15 @@
     {
       "id": "202610240056-BZVEW5",
       "title": "Build unified directory search and reviewed expansion preview",
-      "status": "DOING",
+      "status": "DONE",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
       "tags": [],
+      "commit": {
+        "hash": "b80cb0846b3f5f704f561df43d65e3a8f41dbfcd",
+        "message": "✨ BZVEW5 start: deliver unified full-corpus directory search, city and ZIP filters, mobile layout and recovery states | details: add emulator integration verification and local-only expansion report."
+      },
       "comments": [
         {
           "author": "ORCHESTRATOR",
@@ -11073,6 +11077,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: deliver unified full-corpus directory search, city and ZIP filters, mobile layout and recovery states | details: add emulator integration verification and local-only expansion report."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: local implementation passes full 111-file test suite, TypeScript, production build, emulator API checks with 8101 records, and desktop/mobile English/Spanish browser checks. Import preview and provenance manifest remain review-only | details: no production changes. Capacity and remaining release checks documented."
         }
       ],
       "doc_version": 2,
@@ -11086,6 +11094,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "1e98af69d7a8fa774e0174c17e961e559a91d8c66eb82b1eeea1532349885651"
+    "checksum": "275bb5e3d3c0371e5db059eb6d8df83e69dfbb3cf83aebde6ad766007cd80dd2"
   }
 }
