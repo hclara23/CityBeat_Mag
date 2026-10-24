@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isUnownedApprovedListing } from '@/lib/directory-security'
 import { getServerUser } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { directoryClaimPendingTier } from '@/lib/sales-directory'
@@ -55,7 +56,15 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     }
     if (!listingDoc.exists) return { status: 404, body: { error: 'Listing not found' } }
     const listing = listingDoc.data() as Record<string, unknown>
-    if (listing.owner_id || (listing.claim_status && listing.claim_status !== 'unclaimed' && listing.claim_status !== 'rejected')) {
+    // `approved` with no owner is the rep-sold trap: the sale completed, nobody
+    // attached an account, and both gates then refused — locking the paying
+    // business out of the listing it had bought. See isUnownedApprovedListing.
+    const reattachingOwner = isUnownedApprovedListing(listing)
+    if (
+      !reattachingOwner &&
+      (listing.owner_id ||
+        (listing.claim_status && listing.claim_status !== 'unclaimed' && listing.claim_status !== 'rejected'))
+    ) {
       return { status: 409, body: { error: 'This listing already has an owner or a pending claim.' } }
     }
     const now = new Date().toISOString()
@@ -90,8 +99,15 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     tx.set(listingRef,
       {
         owner_id: user.id,
-        claim_status: 'pending_approval',
-        pending_tier: pendingTier,
+        // Re-attaching an owner to an ALREADY-APPROVED listing must not send it
+        // back through review. That listing is live and paid for — demoting it
+        // to pending_approval would unpublish a paying customer's page and drop
+        // its tier, which is a far worse outcome than the lockout being fixed.
+        // Its tier is already correct and already billed, so pending_tier is
+        // left alone too.
+        ...(reattachingOwner
+          ? { claim_status: 'approved' }
+          : { claim_status: 'pending_approval', pending_tier: pendingTier }),
         ownership_verified: true,
         verification_method: claim.verification_method || 'unknown',
         verified_at: now,

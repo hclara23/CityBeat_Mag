@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { MAX_CREATOR_UPLOAD_BYTES, canUploadCreatorMedia, resolveClaimVerification, sanitizePublicReview, shouldAwardReviewPoints, validateCreatorUploadFile } from './directory-security'
+import { MAX_CREATOR_UPLOAD_BYTES, canUploadCreatorMedia, isListingClaimable, isUnownedApprovedListing, resolveClaimVerification, sanitizePublicReview, shouldAwardReviewPoints, validateCreatorUploadFile } from './directory-security'
 
 test('claim verification sends phone codes only to the trusted listing phone', () => {
   const result = resolveClaimVerification({
@@ -131,11 +131,82 @@ test('a real email still wins over contact_email', () => {
 })
 
 test('an already-claimed listing is refused on every method', () => {
+  // The fixture carries an owner_id deliberately. 'approved' alone is no longer
+  // sufficient to mean "claimed" — an approved listing with NO owner is the
+  // rep-sold lockout and must stay claimable (see the tests below). What makes
+  // a listing claimed is that somebody actually owns it.
   for (const method of ['email', 'phone', 'postcard'] as const) {
     const r = resolveClaimVerification({
       method,
-      listing: { name: 'Taco Shop', claim_status: 'approved', phone: '+19155550100', email: 'a@b.com' },
+      listing: {
+        name: 'Taco Shop',
+        claim_status: 'approved',
+        owner_id: 'owner-uid-123',
+        phone: '+19155550100',
+        email: 'a@b.com',
+      } as never,
     })
     assert.equal(r.ok, false, `${method} must not start a claim on a claimed listing`)
   }
+})
+
+// --- The rep-sold lockout -----------------------------------------------------
+//
+// Varsity Roofing: claim_status 'approved', is_published true, founding_member
+// true, active subscription sub_1U72lp…, owner_id null, ownership_verified
+// false. A paying customer who could not sign in, manage their page, or see a
+// lead — and no self-serve route back, because BOTH claim gates only accepted
+// 'unclaimed'. The sale completed and nobody ever attached an account.
+
+test('an approved listing with no owner is still claimable', () => {
+  // The lockout, in one assertion.
+  assert.equal(isUnownedApprovedListing({ claim_status: 'approved', owner_id: null }), true)
+  assert.equal(isListingClaimable({ claim_status: 'approved', owner_id: null }), true)
+  const r = resolveClaimVerification({
+    method: 'email',
+    listing: {
+      name: 'Varsity Roofing',
+      claim_status: 'approved',
+      email: 'thomas@example.com',
+      phone: '19152026730',
+    },
+  })
+  assert.equal(r.ok, true, 'the paying owner must be able to start a claim')
+})
+
+test('an approved listing WITH an owner is not claimable by someone else', () => {
+  // The security boundary this must not cross. Super H Automotive is approved
+  // with a real owner_id; a stranger must not be able to claim it.
+  assert.equal(isUnownedApprovedListing({ claim_status: 'approved', owner_id: 'N1iU8iaRDR' }), false)
+  assert.equal(isListingClaimable({ claim_status: 'approved', owner_id: 'N1iU8iaRDR' }), false)
+  const r = resolveClaimVerification({
+    method: 'email',
+    listing: { name: 'Super H', claim_status: 'approved', owner_id: 'N1iU8iaRDR', email: 'a@b.com' } as never,
+  })
+  assert.equal(r.ok, false)
+})
+
+test('a blank or whitespace owner_id counts as no owner', () => {
+  // Firestore rows written by different paths use '' and null interchangeably;
+  // a truthiness check on '' would leave those owners locked out too.
+  for (const owner of ['', '   ', null, undefined]) {
+    assert.equal(
+      isUnownedApprovedListing({ claim_status: 'approved', owner_id: owner }),
+      true,
+      `owner_id ${JSON.stringify(owner)} must read as unowned`
+    )
+  }
+})
+
+test('pending_approval and rejected are NOT re-openable by this rule', () => {
+  // Only 'approved' qualifies. A pending claim belongs to whoever started it,
+  // and widening this to pending_approval would let a second person hijack an
+  // in-flight claim.
+  assert.equal(isUnownedApprovedListing({ claim_status: 'pending_approval', owner_id: null }), false)
+  assert.equal(isUnownedApprovedListing({ claim_status: 'rejected', owner_id: null }), false)
+  assert.equal(isListingClaimable({ claim_status: 'pending_approval', owner_id: null }), false)
+})
+
+test('an unclaimed listing is still claimable, as before', () => {
+  assert.equal(isListingClaimable({ claim_status: 'unclaimed', owner_id: null }), true)
 })
