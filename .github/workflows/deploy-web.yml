@@ -64,8 +64,26 @@ jobs:
       - name: Type check
         run: npm run type-check --workspace=apps/web
 
+      # Scoped to the workspace this job actually SHIPS. `--omit=dev` alone does
+      # not exclude a WORKSPACE's devDependencies in an npm workspaces monorepo,
+      # so three undici advisories reaching the tree through
+      # services/worker -> wrangler -> miniflare (wrangler is a devDependency and
+      # a CLI; miniflare is its local dev server, and neither is in the container)
+      # failed this gate and blocked every deploy from 2026-10-22 onward. That is
+      # why production spent two days on hand-named revisions: the pipeline could
+      # not promote, so releases went out by hand and bypassed the canary.
+      #
+      # This is a scope correction, not a weakened gate — the step's own name
+      # already said "production dependencies", and apps/web is what the
+      # container is built from. A vulnerability in anything the site actually
+      # serves still fails the deploy at --audit-level=low.
+      #
+      # The wrangler advisories are real and still open: there is no forward fix
+      # (every current 4.x is in range; `npm audit fix --force` DOWNGRADES to
+      # 4.35.0). It only affects the worker's local dev server, so it is tracked
+      # rather than shipped. Revisit when wrangler publishes a patched miniflare.
       - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=low
+        run: npm audit --omit=dev --audit-level=low --workspace=apps/web
 
       # Gate the deploy on the test suite. Until now tests ran only in a separate
       # workflow that could not block a release, so a red suite still shipped to
