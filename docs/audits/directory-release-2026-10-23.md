@@ -29,7 +29,11 @@ Revision citybeat-web-directory-f3d6972 deployed with zero public traffic, then 
 
 Candidate and public checks both passed: 8,038 published listings, 335 pages, disjoint first/second pages, correct last-page clamping, empty results, Super H plus ZIP search and private-field stripping. The broader 37-check smoke suite passed on both origins (English/Spanish directory and listing pages, login, premium pages, payment health, access control, sitemap, invalid payment/webhook rejection). No payment or payout was created.
 
-Live 390px mobile interface verified in English and Spanish. Screenshot: `.tmp/directory-release-2026-10-23/live-mobile.png`. Initial revision ERROR log query returned no entries. Observation starts at 01:28:21 UTC and remains in progress until final checks.
+Live 390px mobile interface verified in English and Spanish. Screenshot: `.tmp/directory-release-2026-10-23/live-mobile.png`. Observation completed from 01:28:21 through 01:58:21 UTC on 2026-10-24. Eleven scheduled health/search samples passed, with repeated ERROR-log sweeps returning no entries. Local sample evidence: `.tmp/directory-release-2026-10-23/observation.json`.
+
+The search index refreshed from 01:27:47 to 01:43:45 UTC. The full post-expiry directory suite passed: first request 2.812 seconds, subsequent requests 0.18–0.27 seconds. The final post-observation suite also passed (0.18–0.44 seconds), with 8,038 listings and the intended revision still receiving 100% of public traffic. Final 40-minute revision ERROR query returned no entries. No actionable release regression was observed.
+
+Task complete: deployment and verification only. The 100 import candidates remain review-only. No subagents were used. Estimated build compute is not a final invoice; no additional paid service or subscription was created.
 
 ## Known limits
 
