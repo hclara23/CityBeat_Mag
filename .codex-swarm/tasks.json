@@ -11088,12 +11088,34 @@
       "doc_updated_by": "agentctl",
       "description": "Approved local-only implementation: review legacy provenance without data changes; unified search and mobile filters; 100-record public-domain import preview with location and duplicate checks; full local verification. No publishing, deployment, subagents or paid services.",
       "doc": "## Summary\n\nImplement the approved local-only directory improvement phase.\n\n## Context\n\nApproved October 23, 2026. No subagents. Assess before publishing or deployment.\n\n## Scope\n\nPrepare legacy provenance correction manifest without changing records; implement unified search and mobile filters; prepare 100 public-domain outlet candidates with duplicate/location checks; local tests and build.\n\n## Risks\n\nNo owner content, claims, payment state, production data or hosting writes. Full search must fail explicitly rather than silently truncate. Pilot addresses require review before publication.\n\n## Verify Steps\n\nUnit/regression tests, TypeScript, production build, local UI and API verification using safe fixtures, manifest count and privacy checks.\n\n## Rollback Plan\n\nNo deployment or production mutations. Revert task-scoped local commits if required.\n\n## Notes\n\nPhase one committed 3c20d28. Implemented shared search and responsive filters. Full suite (111 files), TypeScript, production build and emulator API checks passed with 8,101 synthetic listings. Desktop and 390px mobile browser checks include English/Spanish search, empty state and clear-filter recovery. Preview: 91 new-review, 7 possible matches, 1 reject, 1 duplicate; zero publication-ready. No production writes or deployment. Detailed evidence and release limits: docs/audits/directory-expansion-local-2026-10-23.md."
+    },
+    {
+      "id": "202610240118-91VJGH",
+      "title": "Release verified directory search improvements",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "202610240056-BZVEW5"
+      ],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: record approved directory release checks, no-traffic candidate, USD1 cap and unchanged listing data."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-24T01:18:25+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Finish outage recovery and final build checks; deploy no-traffic Cloud Run candidate and promote after verification. One-time Google Cloud cap USD1; no imports or subagents.",
+      "doc": "## Summary\n\nRelease directory improvements with verified recovery and candidate promotion under a USD1 one-time Google Cloud cap.\n\n## Context\n\nUser approved deployment after remaining checks, up to USD1 one-time, no subagents.\n\n## Scope\n\nLocal outage/retry verification and final tests/build; no-traffic candidate; production smoke and observation. No listing imports, billing changes or subagents.\n\n## Risks\n\nMetered build/runtime costs; stale search cache up to 15 minutes; 25k corpus ceiling. Preserve service settings and rollback revision citybeat-web-00370-quv. Exclude local review data from upload.\n\n## Verify Steps\n\nFull test suite, TypeScript, final build, local outage/retry UI, candidate and public directory API/UI smoke, revision and error checks.\n\n## Rollback Plan\n\nIf candidate checks fail, do not promote. After promotion, restore traffic to citybeat-web-00370-quv if a verified release regression requires recovery; preserve original settings.\n\n## Notes\n\nRelease uses existing scripts/customer-experience-cloudbuild.yaml and Cloud Run image deployment. No npm/package release or PR workflow applies."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "275bb5e3d3c0371e5db059eb6d8df83e69dfbb3cf83aebde6ad766007cd80dd2"
+    "checksum": "d202445d861bf36047fe253b9484c08e6facd7d184234ef6a3ea7aee3b6c17aa"
   }
 }
