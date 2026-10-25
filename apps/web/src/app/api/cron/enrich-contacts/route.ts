@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runContactEnrichment } from '@/lib/enrich-contacts'
+import { enrichLimit, runContactEnrichment } from '@/lib/enrich-contacts'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { searchParams } = new URL(request.url)
-  const limit = Number(searchParams.get('limit')) || 25
+  // Clamped by the shared rule rather than a second default here — the old
+  // literal 25 was a timeout guard, and the wall-clock budget inside
+  // runContactEnrichment is what guards the 300s route now.
+  const limit = enrichLimit(searchParams.get('limit'))
   // ?categories=Real Estate,Attorneys targets a specific vertical.
   const categories = (searchParams.get('categories') || '').split(',').map((c) => c.trim()).filter(Boolean)
   try {

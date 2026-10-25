@@ -166,8 +166,62 @@ async function scrapeEmail(website: string): Promise<string | null> {
 
 const RETRY_AFTER_MS = 30 * 86400000 // don't re-grind a failed doc for 30 days
 
-export async function runContactEnrichment(opts: { limit?: number; categories?: string[] } = {}) {
-  const limit = Math.max(1, Math.min(opts.limit ?? 25, 100))
+/** Each page fetch is bounded by this; scrapeEmail makes up to FETCHES_PER_LISTING of them. */
+const FETCH_TIMEOUT_MS = 8000
+/** homepage + /contact + /contact-us + /about */
+const FETCHES_PER_LISTING = 4
+/** The longest one listing can take before the pool gives up on starting more. */
+export const ENRICH_WORST_CASE_PER_LISTING_MS = FETCH_TIMEOUT_MS * FETCHES_PER_LISTING
+
+/**
+ * Wall-clock budget for the fetching, against the route's maxDuration of 300s.
+ * Leaves headroom for the Firestore traversal that precedes it, the per-doc
+ * writes and the response — the same reasoning as the directory-ingest budget.
+ */
+export const ENRICH_BUDGET_MS = 230_000
+
+/**
+ * How many listings are enriched at once.
+ *
+ * Safe here in a way it was not for the Overpass ingest: every listing has its
+ * own website, so this is one request each to many different hosts rather than a
+ * queue against a single donated service.
+ */
+export const ENRICH_CONCURRENCY = 6
+
+/** The limit is no longer the timeout guard, so it can express real intent. */
+export const ENRICH_MAX_LIMIT = 1000
+export const ENRICH_DEFAULT_LIMIT = 150
+
+/** Clamp a requested limit. Junk falls back to the default, never the maximum. */
+export function enrichLimit(requested: unknown): number {
+  const n = Number(requested)
+  if (!Number.isFinite(n) || n < 1) return ENRICH_DEFAULT_LIMIT
+  return Math.min(Math.floor(n), ENRICH_MAX_LIMIT)
+}
+
+/**
+ * May the pool begin another listing?
+ *
+ * Always yes for the first one: a run that fetches nothing and reports success
+ * is the silent-nothing failure this codebase keeps having to fix.
+ */
+export function canStartEnrichment(
+  elapsedMs: number,
+  startedCount: number,
+  budgetMs: number = ENRICH_BUDGET_MS,
+  perListingMs: number = ENRICH_WORST_CASE_PER_LISTING_MS
+): boolean {
+  if (startedCount === 0) return true
+  return budgetMs - Math.max(0, elapsedMs) >= perListingMs
+}
+
+export async function runContactEnrichment(
+  opts: { limit?: number; categories?: string[]; now?: () => number } = {}
+) {
+  const limit = enrichLimit(opts.limit)
+  const now = opts.now ?? (() => Date.now())
+  let budgetExhausted = false
   const catFilter = opts.categories && opts.categories.length ? new Set(opts.categories) : null
   // `places_filled` is deliberately gone from this shape: the Places lookup it
   // counted is gone, and a stat that is always 0 reads like a broken job.
@@ -239,8 +293,49 @@ export async function runContactEnrichment(opts: { limit?: number; categories?: 
   }
   await setCronCursor(cursorName, reachedEnd ? null : nextCursor)
 
-  for (const doc of candidates) {
-    if (stats.updated >= limit) break
+  // Worked CONCURRENTLY, with a wall-clock budget.
+  //
+  // This loop used to be strictly sequential, and scrapeEmail makes up to four
+  // fetches per listing at an 8-second timeout each — so one listing can take 32
+  // seconds and the default 25 could want 800 against a 300-second route. It
+  // only ever finished because most sites answer or refuse quickly; the ceiling
+  // of 100 was protecting a timeout rather than expressing a real capacity.
+  //
+  // Concurrency is safe here in a way it was NOT for the Overpass ingest: every
+  // listing has its OWN website, so these are requests to hundreds of different
+  // hosts rather than a queue against one. Six at a time is polite per host (one
+  // request each) while cutting wall-clock by roughly the same factor.
+  //
+  // The budget, not the limit, is now the real governor — so `limit` can be
+  // raised to something useful without risking the 300s cutoff.
+  const startedAt = now()
+  let cursorIndex = 0
+  const worker = async () => {
+    for (;;) {
+      // A worker already in flight may push `updated` past the limit; overshoot
+      // is bounded by the pool size and is preferable to dropping work already
+      // paid for in fetches.
+      if (stats.updated >= limit) return
+      if (!canStartEnrichment(now() - startedAt, stats.scanned)) {
+        budgetExhausted = true
+        return
+      }
+      const doc = candidates[cursorIndex++]
+      if (!doc) return
+      await enrichOne(doc, stats)
+    }
+  }
+  await Promise.all(Array.from({ length: ENRICH_CONCURRENCY }, () => worker()))
+
+  return { ...stats, budget_exhausted: budgetExhausted, considered: candidates.length }
+}
+
+/** One listing's enrichment, extracted so a pool of workers can share it. */
+async function enrichOne(
+  doc: FirebaseFirestore.QueryDocumentSnapshot,
+  stats: { scanned: number; no_website: number; emails_found: number; updated: number }
+): Promise<void> {
+  {
     const l = doc.data() as any
     stats.scanned++
 
@@ -271,6 +366,4 @@ export async function runContactEnrichment(opts: { limit?: number; categories?: 
     }
     await doc.ref.set(updates, { merge: true })
   }
-
-  return stats
 }
