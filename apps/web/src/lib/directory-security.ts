@@ -1,4 +1,5 @@
 import { hasWriterAccess, type PlatformProfile } from '@citybeat/lib/roles'
+import { toE164 } from './sms'
 
 export const MAX_CREATOR_UPLOAD_BYTES = 8 * 1024 * 1024
 
@@ -146,11 +147,28 @@ export function resolveClaimVerification({
     }
   }
 
+  // Decide sendability BEFORE the caller writes a claim row. Stored numbers are
+  // not in the form Twilio accepts — most carry no country code, and a few are
+  // mistyped past repair — so without this a listing whose number can never
+  // receive a text still produced a `directory_claims` row in `code_sent` with
+  // a code nobody could ever be told. The owner then sat on a verification
+  // screen waiting for a message that was never dispatched.
+  const sendablePhone = toE164(trustedPhone)
+  if (!sendablePhone) {
+    return {
+      ok: false,
+      statusCode: 400,
+      error: 'The phone number on file for this business cannot receive text messages. Please verify by email instead, or contact us to claim this listing.',
+    }
+  }
+
+  // The normalised number, so the stored claim record and the message that was
+  // actually sent agree on where the code went.
   return {
     ok: true,
     status: 'code_sent',
     notificationType: 'sms',
-    recipient: trustedPhone,
+    recipient: sendablePhone,
   }
 }
 

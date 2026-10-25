@@ -13,12 +13,30 @@ test('claim verification sends phone codes only to the trusted listing phone', (
     },
   })
 
+  // The caller-supplied +1 999 999 9999 is ignored — that is what this test
+  // exists to pin. The recipient is the LISTING's number, normalised to the
+  // E.164 Twilio requires, so the stored claim record and the message that was
+  // actually dispatched name the same destination.
   assert.deepEqual(result, {
     ok: true,
     status: 'code_sent',
     notificationType: 'sms',
-    recipient: '(915) 555-0100',
+    recipient: '+19155550100',
   })
+})
+
+test('a stored number Twilio could never reach is refused before a claim row exists', () => {
+  // Real shape from the live collection. Area code 195 is forbidden by the
+  // NANP — a mistyped 915 number. Guessing a repair would text a stranger;
+  // accepting it would strand the owner on a verification screen waiting for a
+  // code that was never dispatched.
+  const result = resolveClaimVerification({
+    method: 'phone',
+    listing: { name: 'Mistyped Number Co', claim_status: 'unclaimed', phone: '1952611098' },
+  })
+  assert.equal(result.ok, false)
+  assert.equal(!result.ok && result.statusCode, 400)
+  assert.match(!result.ok ? result.error : '', /cannot receive text messages/)
 })
 
 test('claim verification rejects email when the listing has no trusted email field', () => {
@@ -93,7 +111,7 @@ test('a listing with only a phone can still be verified', () => {
   })
   assert.equal(r.ok, true)
   assert.equal(r.ok && r.notificationType, 'sms')
-  assert.equal(r.ok && r.recipient, '+1 915 555 0100')
+  assert.equal(r.ok && r.recipient, '+19155550100')
 })
 
 test('phone verification is refused when there is no number on record', () => {

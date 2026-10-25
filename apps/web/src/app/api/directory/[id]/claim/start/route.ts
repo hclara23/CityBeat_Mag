@@ -6,6 +6,7 @@ import { resolveClaimVerification } from '@/lib/directory-security'
 import { checkRateLimit } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
 import { sendSms } from '@/lib/sms'
+import { reportFailure } from '@/lib/alerts'
 import { randomInt } from 'crypto'
 
 export const dynamic = 'force-dynamic'
@@ -112,9 +113,20 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         created_at: FieldValue.serverTimestamp(),
       })
       if (!smsResult.sent) {
-        // sendSms returns no_sms_provider until the Twilio credentials are set.
-        // Say which it is, instead of leaving an owner waiting for a text that
-        // is never coming.
+        // Distinguish the three real failures instead of leaving an owner
+        // waiting for a text that is never coming:
+        //   no_sms_provider — the Twilio credentials aren't set on the service.
+        //   invalid_from    — TWILIO_FROM isn't a sendable number (a value that
+        //                     fails here breaks texting for EVERY recipient, so
+        //                     it is reported to ops, not just to this caller).
+        // Anything else is Twilio refusing this particular send; its own error
+        // code rides along in smsResult.error (e.g. twilio_400_30034, the
+        // A2P 10DLC registration block that hits new accounts first).
+        if (smsResult.error === 'invalid_from') {
+          await reportFailure('directory:claim:sms', new Error('TWILIO_FROM is not a sendable E.164 number'), {
+            listing_id: listingId,
+          })
+        }
         return NextResponse.json(
           {
             error:
