@@ -133,7 +133,14 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
   const name = listing.name || 'Local Business'
   const url = `${BASE}/${locale}/directory/${listing.id}`
 
-  const title = `${name} — ${cat} in ${city} | CityBeat`
+  // The ES page read "Chick-fil-A — Restaurante in El Paso": the category was
+  // localised but the preposition joining it was not, so every Spanish listing
+  // title in Google carried a broken sentence. The description below and every
+  // /best page already branch on locale; this title was the one that did not.
+  const title =
+    locale === 'es'
+      ? `${name} — ${cat} en ${city} | CityBeat`
+      : `${name} — ${cat} in ${city} | CityBeat`
   // Prefer real Spanish copy on the ES page (El Paso is ~90% Spanish-speaking).
   const rawDesc = locale === 'es' ? listing.description_es || listing.description : listing.description
   const description =
