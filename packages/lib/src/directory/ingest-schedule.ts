@@ -185,3 +185,32 @@ export function fullSweepRuns(
   if (categoryCount <= 0) return 0
   return Math.ceil(categoryCount / guaranteedCategoriesPerRun(budgetMs, categoryMs))
 }
+
+/**
+ * Did a run reach its sources successfully and still come back with nothing?
+ *
+ * This is the one ingest failure that reports itself as success. A category whose
+ * Overpass request answers HTTP 200 with an empty element list is recorded as
+ * `swept`, not `failed` — so `swept.length > 0` is true, no category failure is
+ * alerted, liveness is stamped, and the route answers 200. A permanently dead
+ * ingest therefore looks indistinguishable from a healthy one that happened to
+ * find no NEW businesses.
+ *
+ * It is not hypothetical. Probing mirrors for the at-capacity primary endpoint
+ * turned up https://overpass.osm.ch/api/interpreter, which answers in about a
+ * second with HTTP 200 and is scoped to Switzerland: 1,151 restaurants inside a
+ * Zurich bbox, ZERO for El Paso County. Repointing at it — or OSM retiring a tag,
+ * or a bad bbox edit — would have silently zeroed directory growth behind a green
+ * cron forever.
+ *
+ * `inserted === 0` is NOT this condition and must never alarm: the ingest is
+ * insert-only, so a night that finds every business already present is the normal,
+ * healthy steady state. The signal is `candidates === 0` — nothing was returned at
+ * all, which no real county of 870,000 people produces across live categories.
+ */
+export function sweptButFoundNothing(outcome: {
+  swept: readonly string[]
+  candidates: readonly unknown[]
+}): boolean {
+  return outcome.swept.length > 0 && outcome.candidates.length === 0
+}

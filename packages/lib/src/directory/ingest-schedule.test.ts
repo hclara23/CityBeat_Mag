@@ -12,6 +12,7 @@ import {
   summarizeSweep,
   sweepOffsetForRun,
   sweepOrder,
+  sweptButFoundNothing,
   worstCaseCategoryMs,
 } from './ingest-schedule'
 
@@ -233,4 +234,26 @@ test('an empty sweep summarizes to empty lists rather than throwing', () => {
     skipped: [],
     failed: [],
   })
+})
+
+// ---------------------------------------------------------------------------
+// The success-shaped failure. A source that answers HTTP 200 with an empty body
+// is recorded as swept, so every other signal in the route reads as healthy.
+// ---------------------------------------------------------------------------
+
+test('reaching every source and finding nothing is a failure, not a quiet success', () => {
+  assert.equal(sweptButFoundNothing({ swept: ['Real Estate', 'Attorneys'], candidates: [] }), true)
+})
+
+test('finding nothing NEW is the healthy steady state and must not alarm', () => {
+  // The ingest is insert-only. A night where every business is already on file
+  // returns candidates and inserts none of them — the common case once a source
+  // is fully loaded, and alarming on it would train the operator to ignore this.
+  assert.equal(sweptButFoundNothing({ swept: ['Real Estate'], candidates: [{}, {}, {}] }), false)
+})
+
+test('a run that reached nothing is already reported as failed, so this stays quiet', () => {
+  // swept is empty when every category errored; the route answers 500 on that
+  // path already. Firing here too would double-alert one cause.
+  assert.equal(sweptButFoundNothing({ swept: [], candidates: [] }), false)
 })

@@ -12,6 +12,11 @@ import {
   sweepOrder,
 } from './ingest-schedule'
 
+// Re-exported so a caller that already has runDirectoryIngest can judge its
+// result without a second import path: the predicate describes this function's
+// own return shape and belongs beside it.
+export { sweptButFoundNothing } from './ingest-schedule'
+
 type OsmElementType = 'node' | 'way' | 'relation'
 
 interface OverpassElement {

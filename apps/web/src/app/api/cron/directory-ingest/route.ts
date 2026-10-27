@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runDirectoryIngest } from '@citybeat/lib/directory/ingest'
+import { runDirectoryIngest, sweptButFoundNothing } from '@citybeat/lib/directory/ingest'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
@@ -56,6 +56,18 @@ export async function GET(request: NextRequest) {
       write: true,
       limit,
       categories,
+      // Repointable WITHOUT a deploy, because the failure mode is upstream and
+      // not ours to fix: https://overpass-api.de/api/status currently answers
+      // "502 Gateway Timeout — This Overpass API server is currently at capacity.
+      // All query workers are busy", which is why this job has failed on every
+      // attempt for three days. When the free public instance is saturated the
+      // only remedy is a different instance, and that must not require a release.
+      //
+      // Deliberately has no fallback mirror baked in: see sweptButFoundNothing
+      // for the Switzerland-scoped mirror that answers 200 with zero results and
+      // would have silently zeroed directory growth. Any replacement endpoint
+      // must be verified global before it goes in here.
+      overpassUrl: process.env.OVERPASS_URL || undefined,
     })
 
     // Liveness is about whether the job RAN, which it did. Content problems are
@@ -75,8 +87,27 @@ export async function GET(request: NextRequest) {
       ).catch(() => {})
     }
 
+    // Reached every source and came back empty-handed. This is the one ingest
+    // failure that otherwise reports itself as a success: an HTTP 200 with no
+    // elements counts as `swept`, so no category failure fires, liveness is
+    // stamped and the response is 200 OK. Without this the ingest could add
+    // nothing forever behind a green cron.
+    if (sweptButFoundNothing(result)) {
+      await reportFailure(
+        'cron:directory-ingest',
+        new Error(
+          `Swept ${result.swept.length} categor${result.swept.length === 1 ? 'y' : 'ies'} successfully ` +
+            `and found zero businesses: ${result.swept.join(', ')}. The endpoint answered but returned ` +
+            `nothing — check OVERPASS_URL points at a GLOBAL instance (a region-scoped one answers 200 ` +
+            `with no results), and that the bbox and tag selectors are still valid.`
+        ),
+        { swept: result.swept, limit, endpoint_overridden: Boolean(process.env.OVERPASS_URL) },
+        { skipHealth: true }
+      ).catch(() => {})
+    }
+
     const body = {
-      ok: result.swept.length > 0,
+      ok: result.swept.length > 0 && !sweptButFoundNothing(result),
       requested: categories,
       swept: result.swept,
       skipped: result.skipped,
