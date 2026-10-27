@@ -24,6 +24,7 @@ import type { ListingEventType } from '@/lib/listing-analytics'
 import { ListingTrustSignals } from '@/components/citybeat/ListingTrustSignals'
 import { trackAnalyticsEvent } from '@/components/Analytics'
 import { dayHoursLabel, resolveHours, type DayName } from '@/lib/directory-hours'
+import { isListingClaimable } from '@/lib/directory-claimability'
 
 interface Listing {
   print_recognition?: unknown
@@ -125,6 +126,7 @@ const translations = {
     socialTw: 'Twitter URL',
     claimSuccess: 'Claim submitted successfully!',
     claimSuccessSub: 'Your request has been submitted for review. An editor will approve it shortly.',
+    claimCancelledTitle: 'Claim Cancelled',
     claimCancelled: 'Checkout was cancelled. You can continue managing the claim anytime.',
     mapsBtn: 'Open in Google Maps',
     appleMapsBtn: 'Open in Apple Maps',
@@ -175,6 +177,7 @@ const translations = {
     socialTw: 'Enlace de Twitter',
     claimSuccess: '¡Solicitud de reclamación enviada!',
     claimSuccessSub: 'Su solicitud ha sido enviada para revisión. Un editor la aprobará en breve.',
+    claimCancelledTitle: 'Reclamación cancelada',
     claimCancelled: 'El pago fue cancelado. Puede continuar con la reclamación en cualquier momento.',
     mapsBtn: 'Abrir en Google Maps',
     appleMapsBtn: 'Abrir en Apple Maps',
@@ -796,7 +799,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
 
   const isOwner = Boolean(userProfile?.id && listing.owner_id === userProfile.id && listing.claim_status === 'approved')
   const showEditButton = isOwner || isEditor
-  const isClaimable = listing.claim_status === 'unclaimed' && !isOwner
+  const isClaimable = isListingClaimable(listing) && !isOwner
   const visitorPhotos = reviews.flatMap((rev) => rev.photo_urls || []).filter(Boolean)
 
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.name + ' ' + (listing.address || ''))}`
@@ -1171,7 +1174,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
             <div className="bg-white/5 border border-white/10 p-6 rounded-2xl flex items-start gap-4">
               <span className="h-10 w-10 rounded-full bg-white/10 text-white flex items-center justify-center text-xl font-bold flex-shrink-0">!</span>
               <div>
-                <h3 className="font-display text-lg font-bold text-white uppercase tracking-wide">Claim Cancelled</h3>
+                <h3 className="font-display text-lg font-bold text-white uppercase tracking-wide">{t.claimCancelledTitle}</h3>
                 <p className="text-sm text-white/70 mt-1">{t.claimCancelled}</p>
               </div>
             </div>

@@ -9,6 +9,7 @@ import { useLocale } from '@/components/TranslationProvider'
 import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
 import { RecurringTerms } from '@/components/citybeat/RecurringTerms'
 import { DirectoryPlanComparison } from '@/components/citybeat/DirectoryPlanComparison'
+import { isListingClaimable } from '@/lib/directory-claimability'
 
 interface Listing {
   id: string
@@ -140,10 +141,10 @@ const translations = {
     emailHint: (address: string) =>
       `We'll email a verification code to the address on file for this business: ${address}. You must have access to that inbox to verify ownership.`,
     noEmailOnFile:
-      'No email is on file for this business yet, and SMS & postcard verification are coming soon. In the meantime, open the chat in the bottom-right corner and our team will verify your ownership directly.',
+      'No email is on file for this business. If a phone number is listed, choose text verification above. Otherwise open the chat in the bottom-right corner and our team will verify your ownership directly.',
     phoneHint: (phone: string) =>
       `We'll text a verification code to the number on file for this business: ${phone}. You must have access to that line to verify ownership.`,
-    noPhoneOnFile: 'No phone number is on file for this business. Please use postcard verification instead.',
+    noPhoneOnFile: 'No textable phone number is on file for this business. Use email verification above, or open the chat in the bottom-right corner and our team will verify your ownership directly.',
     postcardHint: (address: string) =>
       `A postcard with a verification code will be mailed to: ${address}. Enter the code once it arrives (5-7 days).`,
     listedAddressFallback: 'Listed Business Address',
@@ -198,7 +199,7 @@ const translations = {
     emailHint: (address: string) =>
       `Enviaremos un código de verificación al correo registrado de este negocio: ${address}. Necesitas acceso a esa bandeja de entrada para comprobar la propiedad.`,
     noEmailOnFile:
-      'Este negocio aún no tiene un correo registrado, y la verificación por SMS y por tarjeta postal está por llegar. Mientras tanto, abre el chat en la esquina inferior derecha y nuestro equipo verificará tu propiedad directamente.',
+      'Este negocio no tiene un correo registrado. Si hay un teléfono en la lista, elija la verificación por mensaje de texto arriba. Si no, abra el chat en la esquina inferior derecha y nuestro equipo verificará su propiedad directamente.',
     phoneHint: (phone: string) =>
       `Enviaremos un código de verificación por mensaje al número registrado de este negocio: ${phone}. Necesitas acceso a esa línea para comprobar la propiedad.`,
     noPhoneOnFile:
@@ -252,7 +253,18 @@ function ClaimPageInner() {
         const l = dataListing.listing as Listing
         setListing(l)
 
-        if (l.claim_status !== 'unclaimed') {
+        // Default to whichever verification method can ACTUALLY deliver. Email
+        // was hard-coded, so an owner of any listing without an email address
+        // landed on a permanently disabled button: 8,551 of 9,433 unclaimed
+        // published listings, 6,404 of which carry a textable phone.
+        if (!l.claim_contact_email_hint && l.claim_contact_phone_hint) {
+          setClaimMethod('phone')
+        }
+
+        // Shared predicate, not a hand-written status test. An approved listing
+        // with no owner is claimable — that is the paying-customer lockout — and
+        // this gate refusing it is why the server-side fix never reached anyone.
+        if (!isListingClaimable(l)) {
           setError(t.unclaimedStatusError)
         }
 
@@ -690,9 +702,20 @@ function ClaimPageInner() {
                                       />
                                       <span>📧 {t.methodEmail}</span>
                                     </label>
-                                    <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 text-xs opacity-40 cursor-not-allowed">
-                                      <input type="radio" name="claim_method" disabled className="accent-brand-neon" />
-                                      <span>💬 {t.methodSms} <em className="text-white/40">{t.comingSoon}</em></span>
+                                    <label
+                                      className={`flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 text-xs ${
+                                        listing?.claim_contact_phone_hint ? 'cursor-pointer' : 'opacity-40 cursor-not-allowed'
+                                      }`}
+                                    >
+                                      <input
+                                        type="radio"
+                                        name="claim_method"
+                                        checked={claimMethod === 'phone'}
+                                        disabled={!listing?.claim_contact_phone_hint}
+                                        onChange={() => { setClaimMethod('phone'); setClaimErrorMsg('') }}
+                                        className="accent-brand-neon"
+                                      />
+                                      <span>💬 {t.methodSms}</span>
                                     </label>
                                     <label className="flex items-center gap-2 p-2.5 rounded border border-white/10 bg-white/5 text-xs opacity-40 cursor-not-allowed">
                                       <input type="radio" name="claim_method" disabled className="accent-brand-neon" />
@@ -767,7 +790,11 @@ function ClaimPageInner() {
                               {claimStep === 'select_method' ? (
                                 <button
                                   onClick={handleStartClaim}
-                                  disabled={verifying || (claimMethod === 'email' && !listing?.claim_contact_email_hint)}
+                                  disabled={
+                                    verifying ||
+                                    (claimMethod === 'email' && !listing?.claim_contact_email_hint) ||
+                                    (claimMethod === 'phone' && !listing?.claim_contact_phone_hint)
+                                  }
                                   className="w-full text-center rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-3 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   {verifying ? t.requesting : t.requestCode}

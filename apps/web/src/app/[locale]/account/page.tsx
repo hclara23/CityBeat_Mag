@@ -42,6 +42,27 @@ interface ConnectedAccount {
 export default function AccountPage() {
   const router = useRouter()
   const locale = useLocale()
+
+  // Businesses this user owns or is mid-claim on.
+  //
+  // dashboardPathFor sends a signed-in user to /account unless their profile
+  // carries is_advertiser, and that flag is set ONLY on claim approval. So
+  // between verifying ownership and being approved — which for a free Basic
+  // claim nobody is paged about — an owner had no route anywhere near their own
+  // business: /account linked to the directory nowhere, and MyListingsBoost,
+  // the only "Manage my listing" surface and the only self-serve upgrade path,
+  // lives on /dashboard. api/directory/mine already returns their listing
+  // regardless of claim_status, so the data was there and the page worked; they
+  // were simply never sent to it.
+  const [myListings, setMyListings] = useState<Array<{ id: string; name?: string; claim_status?: string }>>([])
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/directory/mine')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d) setMyListings(Array.isArray(d.listings) ? d.listings : []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -190,6 +211,36 @@ export default function AccountPage() {
 
       <div className="max-w-3xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">Account Settings</h1>
+
+        {myListings.length > 0 && (
+          <div className="mb-8 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+            <h2 className="text-lg font-bold mb-1">
+              {locale === 'es' ? 'Mis negocios' : 'My businesses'}
+            </h2>
+            <p className="text-sm text-gray-600 mb-3">
+              {locale === 'es'
+                ? 'Administre su ficha, responda reseñas y vea sus clientes potenciales.'
+                : 'Manage your listing, reply to reviews and see your leads.'}
+            </p>
+            <ul className="mb-3 space-y-1 text-sm">
+              {myListings.slice(0, 5).map((l) => (
+                <li key={l.id}>
+                  <Link href={withLocale(locale, `/dashboard/listings/${encodeURIComponent(l.id)}`)} className="text-blue-600 hover:text-blue-700 font-medium">
+                    {l.name || l.id}
+                  </Link>
+                  {l.claim_status === 'pending_approval' && (
+                    <span className="ml-2 text-xs text-gray-500">
+                      {locale === 'es' ? '(en revisión)' : '(under review)'}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <Link href={withLocale(locale, '/dashboard')} className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+              {locale === 'es' ? 'Ir a mi panel →' : 'Go to my dashboard →'}
+            </Link>
+          </div>
+        )}
 
         <PremierPromotion locale={locale} />
 

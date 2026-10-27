@@ -34,6 +34,8 @@ function toIso(v: any): string | null {
   return typeof v === 'string' ? v : null
 }
 
+import { toE164 } from '@/lib/sms'
+
 function maskClaimContact(value: unknown, type: 'email' | 'phone'): string | null {
   const normalized = typeof value === 'string' ? value.trim() : ''
   if (!normalized) return null
@@ -54,7 +56,12 @@ function serializeListing(id: string, data: any) {
     updated_at: toIso(data.updated_at),
     sales_created_listing: isSalesCreatedDirectoryListing(data),
     claim_contact_email_hint: maskClaimContact(data.email || data.contact_email, 'email'),
-    claim_contact_phone_hint: maskClaimContact(data.phone, 'phone'),
+    // Masked from the NORMALISED number, so the hint exists only when a code can
+    // actually be delivered. toE164 refuses malformed numbers and bare Chihuahua
+    // ones; without this the claim page would offer text verification, enable its
+    // button and then 502 — Varsity Roofing's stored '1952611098' is exactly such
+    // a number.
+    claim_contact_phone_hint: maskClaimContact(toE164(data.phone), 'phone'),
     // Only currently-active posts are public — scheduled/expired offers stay
     // private until they go live.
     posts: activePosts(data.posts, elPasoDayKey(new Date())),

@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { MAX_CREATOR_UPLOAD_BYTES, canUploadCreatorMedia, isListingClaimable, isUnownedApprovedListing, resolveClaimVerification, sanitizePublicReview, shouldAwardReviewPoints, validateCreatorUploadFile } from './directory-security'
@@ -227,4 +230,20 @@ test('pending_approval and rejected are NOT re-openable by this rule', () => {
 
 test('an unclaimed listing is still claimable, as before', () => {
   assert.equal(isListingClaimable({ claim_status: 'unclaimed', owner_id: null }), true)
+})
+
+test('directory-claimability stays import-free so the browser can use it too', () => {
+  // The invariant that file's header states, enforced. The claimability rules
+  // must be identical on the server and in the client, and they diverged once
+  // already: the server fix landed in directory-security.ts, which reaches
+  // Node-only code (lib/sms.ts uses Buffer), so no client component could import
+  // it and all three UI gates went on hand-testing `claim_status === 'unclaimed'`.
+  // A paying customer, Varsity Roofing, was locked out of the listing they bought
+  // for exactly as long as that lasted. One import here brings it all back.
+  const source = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), 'directory-claimability.ts'),
+    'utf8'
+  )
+  const imports = source.split('\n').filter((line) => /^\s*import\s/.test(line))
+  assert.deepEqual(imports, [], `directory-claimability.ts must import nothing, found:\n  ${imports.join('\n  ')}`)
 })

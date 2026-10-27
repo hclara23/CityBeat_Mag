@@ -81,7 +81,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       return NextResponse.json({ error: verification.error }, { status: verification.statusCode })
     }
 
-    await adminDb.collection('directory_claims').add({
+    const claimRef = await adminDb.collection('directory_claims').add({
       listing_id: listingId,
       user_id: user.id,
       verification_method: method,
@@ -122,6 +122,15 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         // Anything else is Twilio refusing this particular send; its own error
         // code rides along in smsResult.error (e.g. twilio_400_30034, the
         // A2P 10DLC registration block that hits new accounts first).
+        // Delete the claim row we just wrote. It says status 'code_sent' for a
+        // code that was never sent, and lib/sales-agent.ts queries exactly that
+        // status and, two days later, emails the owner "You started claiming
+        // <name> but the code expired." Nobody started anything — we failed to
+        // send. Today EVERY phone claim takes this path because TWILIO_* is
+        // unset; once the credentials land it is still the path for Twilio
+        // 30034, the A2P block a new account hits first. Each retry would add
+        // another orphan row and another false accusation.
+        await claimRef.delete().catch(() => {})
         if (smsResult.error === 'invalid_from') {
           await reportFailure('directory:claim:sms', new Error('TWILIO_FROM is not a sendable E.164 number'), {
             listing_id: listingId,
@@ -158,6 +167,8 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         created_at: FieldValue.serverTimestamp(),
       })
       if (!result.sent) {
+        // The same orphan as the SMS branch above.
+        await claimRef.delete().catch(() => {})
         return NextResponse.json(
           { error: 'Could not send the verification email. Please try another method.' },
           { status: 502 }

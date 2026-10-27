@@ -117,11 +117,19 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       { merge: true }
     )
 
+    // The response must describe what was actually written. A re-attaching owner
+    // is set straight to 'approved' above, and telling them to wait for a review
+    // that will never happen is the worst possible answer for the one customer
+    // this path exists for: someone who already paid and was locked out. They
+    // would sit waiting instead of going to their dashboard, and the next move
+    // after "nobody answered" is a card dispute.
     return { status: 200, body: {
       success: true,
-      status: 'pending_approval',
-      pending_tier: pendingTier,
-      message: 'Ownership verified! Your claim is now pending review by our team and will be approved shortly.',
+      status: reattachingOwner ? 'approved' : 'pending_approval',
+      ...(reattachingOwner ? {} : { pending_tier: pendingTier }),
+      message: reattachingOwner
+        ? 'Ownership verified! This listing is already active and is now linked to your account — open your dashboard to manage it.'
+        : 'Ownership verified! Your claim is now pending review by our team and will be approved shortly.',
     } }
     })
     return NextResponse.json(result.body, { status: result.status })
