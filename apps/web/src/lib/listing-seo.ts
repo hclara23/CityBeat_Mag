@@ -1,3 +1,5 @@
+import { resolveHours } from './directory-hours'
+
 const DAY = { Monday: 'Mo', Tuesday: 'Tu', Wednesday: 'We', Thursday: 'Th', Friday: 'Fr', Saturday: 'Sa', Sunday: 'Su' } as const
 
 export function parsePostalAddress(value: string) {
@@ -29,9 +31,18 @@ function to24Hour(value: string): string | null {
   return `${String(hour).padStart(2, '0')}:${minute}`
 }
 
-export function schemaOpeningHours(hours: Record<string, string> | null | undefined): string[] {
-  if (!hours) return []
-  return Object.entries(hours).flatMap(([day, value]) => {
+export function schemaOpeningHours(hours: unknown): string[] {
+  // Read through resolveHours so the OSM `{ opening_hours: 'Mo-Fr 08:00-17:00' }`
+  // shape reaches Google too. 138 listings in a 4,000-row sample of the live
+  // collection store their real hours that way, and this function only ever
+  // looked for per-day keys — so those businesses published no
+  // openingHoursSpecification at all, which is exactly the rich-result field a
+  // local directory exists to win. Anything resolveHours cannot read with
+  // certainty comes back null and is omitted, as before: an empty map already
+  // yielded [] here, so no listing has ever been described to Google as closed.
+  const resolved = resolveHours(hours)
+  if (!resolved) return []
+  return Object.entries(resolved).flatMap(([day, value]) => {
     const code = DAY[day as keyof typeof DAY]
     if (!code || !value || /closed/i.test(value)) return []
     const match = value.match(/^\s*(.+?)\s*(?:-|–|—|to)\s*(.+?)\s*$/i)
