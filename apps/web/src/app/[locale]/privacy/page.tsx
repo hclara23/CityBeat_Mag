@@ -85,7 +85,17 @@ const copy: Record<'en' | 'es', PolicyCopy> = {
         ],
       },
       {
-        heading: '8. Who we share information with',
+        heading: '8. Text messages (SMS)',
+        list: [
+          'We text you only in situations you start. There are exactly two: a one-time code when you ask to verify that you own a directory listing, and a payment or listing link that you asked a CityBeat representative to send to a number you gave them.',
+          'We do not send marketing, promotional or recurring text messages. Each message is a one-time reply to a request you made, and a verification code expires 15 minutes after it is sent.',
+          'Reply STOP to any message to stop receiving texts, or HELP for help. Message and data rates may apply.',
+          'Your mobile number and your consent to be texted are never sold, and are never shared with anyone for their own marketing. To deliver a message you asked for we pass your number to our messaging provider (Twilio) and the mobile carriers, and to nobody else.',
+          'A verification code goes only to the phone number already published on that business listing — never to a number supplied by whoever is requesting the code. That is what makes the code proof of ownership.',
+        ],
+      },
+      {
+        heading: '9. Who we share information with',
         text: 'We do not sell personal information and we do not share it for anyone else’s advertising. We use these service providers to run the site, and they receive only what their job requires:',
         list: [
           'Stripe — payments, subscriptions, invoices, and payouts.',
@@ -100,11 +110,11 @@ const copy: Record<'en' | 'es', PolicyCopy> = {
         ],
       },
       {
-        heading: '9. Your choices: access, correction, and deletion',
+        heading: '10. Your choices: access, correction, and deletion',
         text: 'Use the contact page at /contact and choose "My data" — that reaches a person directly and starts the clock immediately. You can also write to contact@citybeatmag.co with "Privacy request" in the subject line. Tell us what you want: a copy of what we hold about you, a correction, deletion of your personal information, or removal of a business listing that names you. Requests are handled by a person — there is no automated self-service portal — and we aim to respond within 30 days. We may ask you to confirm that you control the email address, phone number, or listing in question, so that we do not act on someone else’s behalf by mistake. You can also unsubscribe from any marketing email using the link in that email. Some records must be kept even after a deletion request, including the payment and tax records Stripe and the law require us to retain.',
       },
       {
-        heading: '10. How long we keep information',
+        heading: '11. How long we keep information',
         list: [
           'Chat assistant conversations: 180 days.',
           'AI prompt-and-output audit records: 180 days.',
@@ -115,23 +125,23 @@ const copy: Record<'en' | 'es', PolicyCopy> = {
         ],
       },
       {
-        heading: '11. Security',
+        heading: '12. Security',
         text: 'Access to the administrative systems requires a verified account, and staff accounts require two-factor authentication. Payment card data is handled by Stripe and never touches our servers. No system is perfectly secure and we do not claim otherwise; if a breach affects your information we will notify you as the law requires.',
       },
       {
-        heading: '12. Children',
+        heading: '13. Children',
         text: 'CityBeat is a general-audience local news service, is not directed to children under 13, and we do not knowingly collect their personal information. If you believe a child has given us information, write to contact@citybeatmag.co and we will delete it.',
       },
       {
-        heading: '13. Changes to this policy',
+        heading: '14. Changes to this policy',
         text: 'When what we collect or share changes, this page changes with it and the date below is updated. Material changes will be announced on the site.',
       },
       {
-        heading: '14. Contact us',
+        heading: '15. Contact us',
         text: 'Questions about this policy, or a privacy request: contact@citybeatmag.co — CityBeat Media Group, El Paso, Texas, USA.',
       },
     ],
-    updated: 'Last updated: October 8, 2026',
+    updated: 'Last updated: October 27, 2026',
   },
   es: {
     title: 'Política de Privacidad',
@@ -189,7 +199,17 @@ const copy: Record<'en' | 'es', PolicyCopy> = {
         ],
       },
       {
-        heading: '8. Con quién compartimos la información',
+        heading: '8. Mensajes de texto (SMS)',
+        list: [
+          'Le enviamos mensajes de texto únicamente en situaciones que usted inicia. Son exactamente dos: un código de un solo uso cuando usted pide verificar que es dueño de un perfil del directorio, y un enlace de pago o de perfil que usted pidió a un representante de CityBeat que enviara a un número que usted proporcionó.',
+          'No enviamos mensajes de texto publicitarios, promocionales ni recurrentes. Cada mensaje es una respuesta única a una solicitud suya, y un código de verificación vence 15 minutos después de enviarse.',
+          'Responda STOP a cualquier mensaje para dejar de recibir textos, o HELP (AYUDA) para obtener ayuda. Pueden aplicar tarifas de mensajes y datos.',
+          'Su número de celular y su consentimiento para recibir mensajes nunca se venden, y nunca se comparten con terceros para la publicidad de ellos. Para entregar un mensaje que usted solicitó, pasamos su número a nuestro proveedor de mensajería (Twilio) y a las operadoras de telefonía, y a nadie más.',
+          'Un código de verificación se envía solo al número de teléfono ya publicado en ese perfil de negocio, nunca a un número proporcionado por quien solicita el código. Eso es lo que hace que el código sirva como prueba de propiedad.',
+        ],
+      },
+      {
+        heading: '9. Con quién compartimos la información',
         text: 'No vendemos información personal ni la compartimos para la publicidad de terceros. Usamos estos proveedores para operar el sitio y solo reciben lo que su función requiere:',
         list: [
           'Stripe: pagos, suscripciones, facturas y transferencias.',
@@ -204,11 +224,11 @@ const copy: Record<'en' | 'es', PolicyCopy> = {
         ],
       },
       {
-        heading: '9. Sus opciones: acceso, corrección y eliminación',
+        heading: '10. Sus opciones: acceso, corrección y eliminación',
         text: 'Escríbanos a contact@citybeatmag.co con "Solicitud de privacidad" en el asunto e indíquenos qué desea: una copia de lo que tenemos sobre usted, una corrección, la eliminación de su información personal o la eliminación de una ficha de negocio que lo nombra. Las solicitudes las atiende una persona —no hay un portal automático de autoservicio— y procuramos responder dentro de 30 días. Es posible que le pidamos confirmar que controla el correo, el teléfono o la ficha en cuestión, para no actuar por error en nombre de otra persona. También puede cancelar la suscripción a cualquier correo de marketing con el enlace incluido en ese correo. Algunos registros deben conservarse incluso después de una solicitud de eliminación, incluidos los registros de pago y fiscales que Stripe y la ley nos obligan a mantener.',
       },
       {
-        heading: '10. Cuánto tiempo conservamos la información',
+        heading: '11. Cuánto tiempo conservamos la información',
         list: [
           'Conversaciones del asistente de chat: 180 días.',
           'Registros de auditoría de instrucciones y respuestas de IA: 180 días.',
@@ -219,23 +239,23 @@ const copy: Record<'en' | 'es', PolicyCopy> = {
         ],
       },
       {
-        heading: '11. Seguridad',
+        heading: '12. Seguridad',
         text: 'El acceso a los sistemas administrativos requiere una cuenta verificada, y las cuentas del personal requieren verificación en dos pasos. Los datos de tarjetas los maneja Stripe y nunca pasan por nuestros servidores. Ningún sistema es perfectamente seguro y no afirmamos lo contrario; si una brecha afecta su información, se lo notificaremos conforme lo exige la ley.',
       },
       {
-        heading: '12. Menores',
+        heading: '13. Menores',
         text: 'CityBeat es un servicio de noticias locales para público general, no está dirigido a menores de 13 años y no recopilamos a sabiendas su información personal. Si cree que un menor nos dio información, escriba a contact@citybeatmag.co y la eliminaremos.',
       },
       {
-        heading: '13. Cambios a esta política',
+        heading: '14. Cambios a esta política',
         text: 'Cuando cambie lo que recopilamos o compartimos, esta página cambia con ello y se actualiza la fecha de abajo. Los cambios importantes se anunciarán en el sitio.',
       },
       {
-        heading: '14. Contáctenos',
+        heading: '15. Contáctenos',
         text: 'Preguntas sobre esta política o una solicitud de privacidad: contact@citybeatmag.co — CityBeat Media Group, El Paso, Texas, EE. UU.',
       },
     ],
-    updated: 'Última actualización: 8 de octubre de 2026',
+    updated: 'Última actualización: 27 de octubre de 2026',
   },
 }
 
