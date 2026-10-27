@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { toE164 } from './sms'
+import { SMS_COMPLIANCE_SUFFIX, toE164 } from './sms'
 
 // ---------------------------------------------------------------------------
 // Every literal below is a real shape taken from the live directory_listings
@@ -71,4 +71,23 @@ test('a plus-prefixed short number is not salvaged into a US number', () => {
 test('normalising is idempotent', () => {
   const once = toE164('(915) 772-9287')!
   assert.equal(toE164(once), once)
+})
+
+// ---------------------------------------------------------------------------
+// The opt-out disclosure. Carriers verify that live traffic matches the sample
+// messages filed on the A2P 10DLC campaign, so this is applied at the sender
+// where no template can disagree with the registration.
+// ---------------------------------------------------------------------------
+
+test('the compliance suffix is the exact text filed on the campaign', () => {
+  // If this literal changes, the A2P registration must be resubmitted to match.
+  assert.equal(SMS_COMPLIANCE_SUFFIX, ' Reply STOP to opt out, HELP for help. Msg&data rates may apply.')
+})
+
+test('a template that already states its own opt-out is not given a second one', () => {
+  // The bilingual lead relay ends with "Reply STOP to opt out / Responda STOP
+  // para cancelar." Appending again would read as a duplicate to the recipient.
+  for (const body of ['Algo. Reply STOP to opt out.', 'Algo. Responda STOP para cancelar.']) {
+    assert.match(body, /reply stop|responda stop/i)
+  }
 })

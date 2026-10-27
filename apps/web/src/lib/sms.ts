@@ -3,6 +3,17 @@ import { fetchWithTimeout, FETCH_TIMEOUT_FAST } from './http'
 // and TWILIO_FROM are set on the service — so features can call it and simply get
 // {sent:false} when texting isn't configured yet.
 
+/**
+ * Appended to every outbound message. Carriers check that a campaign's traffic
+ * carries an opt-out disclosure, and the A2P 10DLC sample messages registered
+ * with them must match what we actually send — so this lives in one constant
+ * rather than in each template, where it would drift out of agreement with the
+ * registration and quietly invalidate it.
+ *
+ * Keep it identical to the sample messages filed on the campaign.
+ */
+export const SMS_COMPLIANCE_SUFFIX = ' Reply STOP to opt out, HELP for help. Msg&data rates may apply.'
+
 export function smsConfigured(): boolean {
   return Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM)
 }
@@ -50,7 +61,15 @@ export async function sendSms(to: string, body: string): Promise<{ sent: boolean
   const dest = toE164(to)
   if (!dest) return { sent: false, error: 'invalid_phone' }
   try {
-    const params = new URLSearchParams({ From: sender, To: dest, Body: body.slice(0, 480) })
+    // Applied here rather than per-template: a caller that forgot it would send
+    // traffic that does not match the registered campaign. Appended only when the
+    // body does not already carry it, so a bilingual template that states its own
+    // opt-out is not given two.
+    const trimmed = body.trim()
+    const withNotice = /reply stop|responda stop/i.test(trimmed)
+      ? trimmed
+      : trimmed + SMS_COMPLIANCE_SUFFIX
+    const params = new URLSearchParams({ From: sender, To: dest, Body: withNotice.slice(0, 480) })
     const res = await fetchWithTimeout(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
       method: 'POST',
       headers: {
