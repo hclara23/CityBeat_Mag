@@ -220,3 +220,45 @@ test('every liveness-monitored cron route is actually a scheduled job', () => {
     )
   }
 })
+
+test('every scheduled job is liveness-monitored by at least one expectation', () => {
+  // The missing direction. The two tests above walk expectation→route and
+  // expectation→job; nothing walked job→expectation, so a cron could leave the
+  // heartbeat entirely and every signal stayed green: add a route and a
+  // scheduler job and forget the CRON_EXPECTATIONS row, or rename a source
+  // string on one side only, and the job simply stops being watched.
+  //
+  // The only backstop was `compared >= 15` in the test above, which currently
+  // sits at 27 — twelve monitored pairs would have to vanish before it tripped.
+  // cron:claims-aging, which exists because a business paid and is waiting on a
+  // human, is one of the rows that could have been deleted today without
+  // failing anything.
+  const byRoute = sourcesByRoute()
+  const monitored = new Set(CRON_EXPECTATIONS.map((e) => e.source))
+
+  const unmonitored: string[] = []
+  for (const job of readManifestJobs()) {
+    const route = cronRouteFromUri(job.uri)
+    if (!route) {
+      unmonitored.push(`${job.name}: its uri ${job.uri} does not resolve to a cron route`)
+      continue
+    }
+    const sources = byRoute.get(route) ?? []
+    if (sources.length === 0) {
+      unmonitored.push(`${job.name}: route ${route} calls reportSuccess for nothing, so no run is ever recorded`)
+      continue
+    }
+    if (!sources.some((s) => monitored.has(s))) {
+      unmonitored.push(
+        `${job.name}: route ${route} stamps ${sources.join(', ')} — none of which has a CRON_EXPECTATIONS row, ` +
+          `so this job can stop running and nothing will say so`
+      )
+    }
+  }
+
+  assert.deepEqual(
+    unmonitored,
+    [],
+    `scheduled job(s) not covered by the heartbeat:\n  ${unmonitored.join('\n  ')}`
+  )
+})

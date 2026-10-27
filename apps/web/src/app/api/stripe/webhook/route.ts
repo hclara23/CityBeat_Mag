@@ -1574,7 +1574,16 @@ export async function POST(req: NextRequest) {
           `Stripe delivered an event and we rejected its signature (${String(err?.message || 'invalid')}). STRIPE_WEBHOOK_SECRET almost certainly does not match the endpoint's signing secret — until it does, NO payment is being fulfilled.`
         ),
         { user_agent: 'Stripe' },
-        { alertKey: 'stripe-webhook-signature' }
+        // skipHealth because nothing in the codebase ever calls reportSuccess
+        // for this source, and reportSuccess is the only writer that can set a
+        // row back to 'ok'. Without it this was a write-only health row: live
+        // Firestore has system_health/stripe-webhook-signature stuck at
+        // 'failing' since 2026-09-29 with no recovered_at, while the webhook has
+        // been fulfilling events throughout. A row that is already red cannot
+        // report the next real signature rejection — the one that silently stops
+        // all fulfilment. The alert itself still fires; only the permanent
+        // health row goes away.
+        { alertKey: 'stripe-webhook-signature', skipHealth: true }
       ).catch(() => {})
     }
     return NextResponse.json({ error: err.message }, { status: 400 })

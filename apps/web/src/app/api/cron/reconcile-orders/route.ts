@@ -149,6 +149,19 @@ export async function GET(request: NextRequest) {
     // 4. Tell a human. An unprocessed PAID event is a customer who paid and got
     // nothing — that is an incident, not a statistic.
     const stillMissing = unprocessed.length - replayed
+    // Liveness first, unconditionally: the job RAN. Previously the stamp was
+    // written ONLY when the run found nothing, so both a run that discovered an
+    // unfulfilled payment and a run that successfully replayed one left the
+    // clock unstamped. Since the detection window is 72h, one unhealed event
+    // suppressed the stamp for three consecutive daily runs and the heartbeat
+    // then paged "reconcile-orders has stopped running" on top of the real
+    // incident — two contradictory alerts during the exact event where the
+    // operator most needs a clear one, with the false one pointing them at
+    // Cloud Scheduler instead of at the unfulfilled charge.
+    //
+    // claims-aging/route.ts already does it this way, for the same stated
+    // reason; this was the remaining offender, and it is the one guarding money.
+    if (!dryRun) await reportSuccess('reconcile-orders')
     if (!dryRun && stillMissing > 0) {
       await reportFailure(
         'reconcile-orders',
@@ -159,10 +172,11 @@ export async function GET(request: NextRequest) {
           replayed,
           replay_failed: replayFailed,
           sample: unprocessed.slice(0, 5).map((u) => `${u.type}:${u.id}`),
-        }
+        },
+        // The incident must not also mark the SOURCE unhealthy — that is what
+        // produced the contradictory pair. reportSuccess above owns liveness.
+        { skipHealth: true }
       ).catch(() => {})
-    } else if (!dryRun && unprocessed.length === 0) {
-      await reportSuccess('reconcile-orders')
     }
 
     return NextResponse.json({

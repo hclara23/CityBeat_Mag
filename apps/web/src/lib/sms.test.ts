@@ -91,3 +91,37 @@ test('a template that already states its own opt-out is not given a second one',
     assert.match(body, /reply stop|responda stop/i)
   }
 })
+
+// ---------------------------------------------------------------------------
+// Ciudad Juárez. Every literal below is a real stored value: 98 listings in a
+// 5,000-row page of the live collection are bare ten-digit Chihuahua numbers,
+// and the first version of this function rewrote all of them as reachable US
+// numbers. The ownership code for a Juárez business would have gone to a
+// stranger in Florida or Ohio.
+// ---------------------------------------------------------------------------
+
+test('a bare ten-digit Juarez number is refused, not dialled as a US number', () => {
+  assert.equal(toE164('656 687 8727'), null)
+  assert.equal(toE164('656 304 5797'), null)
+  assert.equal(toE164('6567890546'), null)
+  assert.equal(toE164('656 684 0505'), null)
+})
+
+test('bare Chihuahua City numbers are refused too', () => {
+  // 614 is also Columbus, Ohio in the NANP. Refusing costs one owner an email
+  // verification; accepting costs a stranger a text they never asked for.
+  assert.equal(toE164('614 439 9000'), null)
+})
+
+test('an explicit country code is always honoured, in either direction', () => {
+  // The storer said what country it is, so we believe them.
+  assert.equal(toE164('+52 656 687 8727'), '+526566878727')
+  assert.equal(toE164('+1 656 687 8727'), '+16566878727')
+})
+
+test('El Paso and Dona Ana numbers are unaffected', () => {
+  // The refusal must not catch the numbers the directory is actually made of.
+  assert.equal(toE164('(915) 772-9287'), '+19157729287')
+  assert.equal(toE164('575-521-6247'), '+15755216247')
+  assert.equal(toE164('505 242 1234'), '+15052421234')
+})

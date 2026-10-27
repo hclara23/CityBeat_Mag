@@ -147,6 +147,12 @@ export async function GET(request: NextRequest) {
     .slice(0, 6)
 
   if (recent.length === 0) {
+    // Stamp liveness first: the job RAN, it simply had nothing to do. Without
+    // this the heartbeat pages "scheduled job(s) have stopped running" every six
+    // hours, forever, about a job Cloud Scheduler is invoking perfectly — the
+    // precise alert-fatigue failure the heartbeat exists to prevent.
+    // lib/cron-outcome.ts states the rule: liveness is about whether it ran.
+    await reportSuccess('cron:newsletter-digest')
     return NextResponse.json({ ok: true, skipped: 'no_recent_stories' })
   }
 

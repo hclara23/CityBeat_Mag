@@ -82,6 +82,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   if (!newsroomConfigured()) {
+    // Stamp liveness first: the job RAN, it simply had nothing to do. Without
+    // this the heartbeat pages "scheduled job(s) have stopped running" every six
+    // hours, forever, about a job Cloud Scheduler is invoking perfectly — the
+    // precise alert-fatigue failure the heartbeat exists to prevent.
+    // lib/cron-outcome.ts states the rule: liveness is about whether it ran.
+    await reportSuccess('cron:auto-articles')
     return NextResponse.json({ ok: true, configured: false, skipped: 'no_anthropic_key' })
   }
 

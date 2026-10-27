@@ -62,14 +62,31 @@ const live = JSON.parse(raw).map((j) => {
     attemptDeadline: j.attemptDeadline,
     retryConfig: j.retryConfig,
     state: j.state,
+    // Outcome of the LAST scheduled run. These come free in the same `jobs list`
+    // response and used to be discarded, which is why this check could report
+    // "No drift" about a job that had failed on every run it ever made. They are
+    // deliberately kept OUT of the manifest below: a run outcome is not declared
+    // intent, and capturing it would make today's failure tomorrow's expected
+    // state — the same trap that let a wrong schedule become the declared one.
+    lastAttemptTime: j.lastAttemptTime,
+    lastStatusCode: (j.status || {}).code,
+    lastStatusMessage: (j.status || {}).message,
   }
 })
+
+// Fields describing a job's CONFIGURATION, and so the only ones captured.
+const MANIFEST_FIELDS = [
+  'name', 'schedule', 'timeZone', 'uri', 'httpMethod',
+  'requiresCronSecret', 'attemptDeadline', 'retryConfig', 'state',
+]
+const configOnly = (job) =>
+  Object.fromEntries(MANIFEST_FIELDS.filter((f) => job[f] !== undefined).map((f) => [f, job[f]]))
 
 if (process.argv.includes('--capture')) {
   live.sort((a, b) => a.name.localeCompare(b.name))
   writeFileSync(
     MANIFEST,
-    JSON.stringify({ ...manifest, jobs: live }, null, 2) + '\n',
+    JSON.stringify({ ...manifest, jobs: live.map(configOnly) }, null, 2) + '\n',
     'utf8'
   )
   console.log(`Captured ${live.length} jobs into infra/scheduler/jobs.json`)
@@ -81,7 +98,10 @@ const expected = byName(manifest.jobs)
 const actual = byName(live)
 
 const problems = []
-const FIELDS = ['schedule', 'timeZone', 'uri', 'httpMethod', 'requiresCronSecret', 'attemptDeadline', 'state']
+// retryConfig is compared now, not merely checked for a non-zero count: a retry
+// policy weakened in the console — backoff stretched past the attempt deadline,
+// maxDoublings dropped — previously left no trace here at all.
+const FIELDS = ['schedule', 'timeZone', 'uri', 'httpMethod', 'requiresCronSecret', 'attemptDeadline', 'state', 'retryConfig']
 
 for (const [name, want] of expected) {
   const got = actual.get(name)
@@ -107,6 +127,30 @@ for (const name of actual.keys()) {
 
 const paused = live.filter((j) => j.state && j.state !== 'ENABLED')
 for (const j of paused) problems.push(`PAUSED    ${j.name} — state is ${j.state}, so it is not running`)
+
+// The question the manifest structurally CANNOT answer: did the last run work?
+// CLAUDE.md's rule "verify a job by its OWN recorded outcome, not by calling it
+// by hand" exists because citybeat-reconcile-orders returned 500 on every
+// scheduled run since creation while a hand-run dry-run looked fine. That rule
+// was documented as a manual gcloud incantation and implemented nowhere. This is
+// it. A non-empty status.code means the last attempt FAILED (13 = INTERNAL).
+for (const j of live) {
+  if (j.lastStatusCode === undefined || j.lastStatusCode === null) continue
+  const when = j.lastAttemptTime ? ` at ${j.lastAttemptTime}` : ''
+  const why = j.lastStatusMessage ? ` — ${String(j.lastStatusMessage).slice(0, 140)}` : ''
+  problems.push(
+    `LAST RUN FAILED ${j.name} — status.code ${j.lastStatusCode}${when}${why}. ` +
+      `The schedule is right and the job IS running; its target answered with an error.`
+  )
+}
+
+// Not drift, but the state a newly created job sits in when its schedule is
+// wrong or its target has 404'd since the day it was made.
+for (const j of live) {
+  if (j.state === 'ENABLED' && !j.lastAttemptTime) {
+    problems.push(`NEVER RAN ${j.name} — enabled, but has no lastAttemptTime. Nothing has invoked it.`)
+  }
+}
 
 console.log(`Manifest: ${expected.size} jobs | Live: ${actual.size} jobs`)
 if (problems.length === 0) {

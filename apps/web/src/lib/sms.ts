@@ -34,6 +34,39 @@ export function smsConfigured(): boolean {
  * one live listing stores '1952611098', whose area code 195 is forbidden by the
  * NANP and is almost certainly a mistyped 915 number.
  */
+/**
+ * Area codes in Chihuahua, across the bridge from El Paso. A bare ten-digit
+ * number beginning with one of these, stored in THIS directory, is a Mexican
+ * number that lost its +52 — not a NANP number.
+ *
+ * Measured against a 5,000-listing page of the live collection: 98 stored phones
+ * are bare ten-digit numbers with a Chihuahua area code — 96 on 656 (Ciudad
+ * Juárez) and 2 on 614 — and the earlier version of this function accepted every
+ * one of them and rewrote it as '+1'. '656 687 8727' became '+16566878727',
+ * which is a real, reachable US number belonging to a stranger. The ownership
+ * verification code for a Juárez business would have gone to them.
+ *
+ * The listing's own address cannot be used to decide this: those same rows store
+ * 'El Paso, TX' as their address while carrying a Juárez phone, and `state` and
+ * `country` are empty on every row in the collection. The area code is the only
+ * honest signal available.
+ *
+ * Several of these are also assigned in the NANP (614 is Columbus, Ohio; 656 is a
+ * Florida overlay), so this refuses a genuine US number in those area codes. That
+ * trade is deliberate and one-sided: this is a directory of El Paso County and
+ * Doña Ana County, where real local numbers are 915, 575 and 505. The cost of a
+ * rare false refusal is that one owner verifies by email instead. The cost of the
+ * alternative is texting an ownership code, or a rep's Stripe payment link, to
+ * someone who never asked for it.
+ *
+ * A number stored WITH an explicit country code is unaffected either way: '+52...'
+ * is honoured as Mexican, and '+1 656...' is honoured as the US number whoever
+ * stored it said it was.
+ */
+const CHIHUAHUA_AREA_CODES = new Set([
+  '614', '621', '625', '627', '628', '629', '635', '636', '639', '648', '649', '652', '656', '659',
+])
+
 export function toE164(raw: string | null | undefined): string | null {
   const trimmed = String(raw ?? '').trim()
   if (!trimmed) return null
@@ -48,6 +81,10 @@ export function toE164(raw: string | null | undefined): string | null {
   const national = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits
   // NANP: area code and exchange code both begin 2-9.
   if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(national)) return null
+  // A bare national number carrying a Chihuahua area code is a Mexican number
+  // that lost its +52. Refuse it rather than dial a stranger in the NANP. An
+  // explicit country code was handled above and is always honoured.
+  if (!hadPlus && CHIHUAHUA_AREA_CODES.has(national.slice(0, 3))) return null
   return `+1${national}`
 }
 

@@ -49,6 +49,12 @@ export async function GET(request: NextRequest) {
     // 3) Upsert fresh events. Without a TICKETMASTER_API_KEY this is a clean
     //    no-op (config state, not a failure — no alert spam).
     if (!process.env.TICKETMASTER_API_KEY) {
+      // "No alert spam" was the intent, but withholding the liveness stamp
+      // produced the opposite: past the 36h budget the heartbeat pages every six
+      // hours that this job has stopped running, while Cloud Scheduler is in fact
+      // invoking it perfectly. Liveness is about whether it RAN — see
+      // lib/cron-outcome.ts — and the purge above did real work on this path.
+      await reportSuccess('cron:sync-events')
       return NextResponse.json({
         ok: true,
         skipped: 'no_ticketmaster_key',

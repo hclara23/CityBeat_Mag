@@ -41,6 +41,28 @@ export async function GET(request: NextRequest) {
   const force = searchParams.get('force') === '1'
 
   if (!dryRun && !force && !isPayoutCycleDay(new Date())) {
+    // Stamp liveness on the way out. The job RAN — it simply had nothing due,
+    // which is the distinction lib/cron-outcome.ts exists to draw.
+    //
+    // Without this the stamp was withheld on every run that was not a cycle day,
+    // and the live schedule no longer agrees with this gate: Cloud Scheduler
+    // fires `0 9 1,15 * *` while isPayoutCycleDay is true only on the 15th and
+    // the final calendar day. The 1st therefore skipped silently, the real
+    // interval between stamps became 15th-to-15th (28-31 days) against the
+    // 17-day budget at ops-health.ts, and the heartbeat would have paged every
+    // six hours from about the 1st to the 15th of every month — about the one
+    // source ops-health singles out as "the one whose silence costs a rep their
+    // commission". A recurring false alarm on that channel is worse than no
+    // alarm, because it is the same channel a genuinely dead job must surface
+    // through.
+    //
+    // The mismatch dates from 2026-10-15: the gate was moved to month-end, the
+    // matching scheduler change could not be applied for want of IAM, and
+    // month-end payouts were routed through citybeat-reconcile-payouts instead
+    // (reconcile-payouts/route.ts calls runPayoutCycle on any cycle day, daily).
+    // So money is unaffected either way, and the honest fix is to make liveness
+    // mean what it says rather than to chase the abandoned schedule change.
+    await reportSuccess('cron:payout-cycle')
     return NextResponse.json({
       skipped: 'not_a_payout_cycle_day',
       note: 'Commission pays on the 15th and the final calendar day. Use ?force=1 for a deliberate catch-up run.',

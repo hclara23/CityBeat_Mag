@@ -26,7 +26,15 @@ export const dynamic = 'force-dynamic'
 //     --resource-type=uptime-url --resource-labels=host=citybeatmag.co \
 //     --path=/api/health/payments --period=15
 export async function GET() {
-  const stripe = await checkStripe().catch(() => ({ ok: true, error: 'probe_failed', checked: false }))
+  // A probe that threw has NOT established that we can take money, so it must
+  // not answer that we can. checkStripe already swallows reachability problems
+  // and returns ok:true for them, so anything reaching this catch is a fault in
+  // the check itself — which is the same blind spot as a missing key.
+  const stripe = await checkStripe().catch((error: any) => ({
+    ok: false,
+    error: `probe_failed:${String(error?.message || 'unknown').slice(0, 120)}`,
+    checked: false,
+  }))
 
   return NextResponse.json(
     {
@@ -38,11 +46,17 @@ export async function GET() {
       detail: stripe.error,
       revision: process.env.K_REVISION || null,
       timestamp: new Date().toISOString(),
+      // The remediation must name the right failure: "the key is being rejected"
+      // sends an operator to roll a key that is not there at all, and rolling it
+      // would not put it back on the service.
       ...(stripe.ok
         ? {}
         : {
-            remediation:
-              'The Stripe secret key on Cloud Run is being rejected. Roll a new one in the Stripe dashboard, then: gcloud run services update citybeat-web --region us-central1 --project kerstenblueprint --update-env-vars STRIPE_SECRET_KEY=<new key>',
+            remediation: String(stripe.error || '').startsWith('missing_key')
+              ? 'STRIPE_SECRET_KEY is not set on the Cloud Run service, so no card can be charged. Set it: gcloud run services update citybeat-web --region us-central1 --project kerstenblueprint --update-env-vars STRIPE_SECRET_KEY=<key>'
+              : String(stripe.error || '').startsWith('probe_failed')
+                ? 'The payments health probe itself failed, so whether we can take money is UNKNOWN. Check the service logs for this revision before assuming either answer.'
+                : 'The Stripe secret key on Cloud Run is being rejected. Roll a new one in the Stripe dashboard, then: gcloud run services update citybeat-web --region us-central1 --project kerstenblueprint --update-env-vars STRIPE_SECRET_KEY=<new key>',
           }),
     },
     { status: stripe.ok ? 200 : 503 }

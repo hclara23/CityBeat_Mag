@@ -29,7 +29,13 @@ export async function GET(request: NextRequest) {
     await reportCronAuthRejected('cron:social', request.headers.get('authorization'))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  if (!socialConfigured()) return NextResponse.json({ ok: true, configured: false, skipped: 'no_social_credentials' })
+  if (!socialConfigured()) {
+    // Stamp liveness: the job ran, the credentials are simply absent. Pulling
+    // FB_PAGE_ACCESS_TOKEN while a Facebook account issue is sorted out would
+    // otherwise start paging about this job 36 hours later.
+    await reportSuccess('cron:social')
+    return NextResponse.json({ ok: true, configured: false, skipped: 'no_social_credentials' })
+  }
 
   const { searchParams } = new URL(request.url)
   // Reuse the existing scheduler. Keep article/roundup posts daily.

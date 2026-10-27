@@ -37,7 +37,18 @@ function isStripeAuthFailure(error: any): boolean {
 
 export async function checkStripe(): Promise<{ ok: boolean; error: string | null; checked: boolean }> {
   const key = process.env.STRIPE_SECRET_KEY
-  if (!key) return { ok: true, error: null, checked: false } // not configured is not "broken"
+  if (!key) {
+    // An absent key IS broken, and it is the single most likely way this breaks.
+    // This probe exists because the live key was rejected for two days while
+    // every other surface stayed green; a key deleted, renamed or dropped by a
+    // console edit has exactly the same consequence — no card can be charged —
+    // and used to be reported here as perfectly healthy, with detail: null and
+    // no remediation. The alert literally named "CityBeat CANNOT TAKE PAYMENTS"
+    // could not fire for the one case an operator is most able to fix.
+    //
+    // `checked` stays false: nothing was asked of Stripe. Only `ok` changes.
+    return { ok: false, error: 'missing_key:STRIPE_SECRET_KEY is not set on this service', checked: false }
+  }
 
   const now = Date.now()
   if (now - stripeCache.at < STRIPE_CHECK_INTERVAL_MS) {
