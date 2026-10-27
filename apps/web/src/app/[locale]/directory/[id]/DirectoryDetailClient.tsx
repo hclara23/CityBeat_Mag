@@ -1,7 +1,7 @@
 'use client'
 
 import { cleanListingText } from '@/lib/customer-experience'
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -23,6 +23,7 @@ import { attributedListingUrl, listingPhoneHref } from '@/lib/listing-outbound'
 import type { ListingEventType } from '@/lib/listing-analytics'
 import { ListingTrustSignals } from '@/components/citybeat/ListingTrustSignals'
 import { trackAnalyticsEvent } from '@/components/Analytics'
+import { dayHoursLabel, resolveHours, type DayName } from '@/lib/directory-hours'
 
 interface Listing {
   print_recognition?: unknown
@@ -100,6 +101,7 @@ const translations = {
     locationsCount: 'locations',
     directions: 'Directions',
     hoursTitle: 'Opening Hours',
+    hoursNotListed: 'Not listed',
     claimHeader: 'Is this your business?',
     claimSub: 'Verify ownership for free to manage this listing. Premium upgrades are optional.',
     premiumFeature1: 'High-resolution banner cover image',
@@ -149,6 +151,7 @@ const translations = {
     locationsCount: 'ubicaciones',
     directions: 'Cómo llegar',
     hoursTitle: 'Horario de Atención',
+    hoursNotListed: 'No indicado',
     claimHeader: '¿Es este su negocio?',
     claimSub: 'Verifique la propiedad gratis para administrar este perfil. Las mejoras Premium son opcionales.',
     premiumFeature1: 'Imagen de portada de alta resolución',
@@ -357,6 +360,10 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
   const [loading, setLoading] = useState(!initialListing)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Resolved once per listing rather than per day row: both hours panels and
+  // all seven rows in each consult it, and resolveHours parses an OSM spec.
+  const resolvedHours = useMemo(() => resolveHours(listing?.hours), [listing?.hours])
 
   // Edit fields state
   const [description, setDescription] = useState('')
@@ -1690,10 +1697,10 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 />
 
                 {/* Hours Schedule */}
-                {(listing.hours || (listing.special_hours?.length ?? 0) > 0) && (
+                {(Boolean(resolvedHours) || (listing.special_hours?.length ?? 0) > 0) && (
                   <div className="citybeat-panel rounded-2xl p-6 border border-white/10">
                     <h3 className="font-display text-xl font-bold uppercase border-b border-white/5 pb-3 mb-4">{t.hoursTitle}</h3>
-                    {listing.hours && (
+                    {Boolean(resolvedHours) && (
                       <div className="space-y-2">
                         {DAYS_OF_WEEK.map((day) => (
                           <div key={day} className="flex justify-between text-xs py-1 border-b border-white/5">
@@ -1701,7 +1708,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                               {locale === 'es' ? DIAS_SEMANA[day as keyof typeof DIAS_SEMANA] : day}
                             </span>
                             <span className="text-white/90 font-medium">
-                              {(locale === 'es' && /^(closed|open 24 hours)$/i.test(listing.hours?.[day] || '') ? (/closed/i.test(listing.hours?.[day] || '') ? 'Cerrado' : 'Abierto las 24 horas') : listing.hours?.[day]) || (locale === 'es' ? 'Cerrado' : 'Closed')}
+                              {dayHoursLabel(resolvedHours, day as DayName, locale) ?? t.hoursNotListed}
                             </span>
                           </div>
                         ))}
@@ -1806,17 +1813,17 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                 {communityContent}
 
                 {/* Hours (core, all tiers) */}
-                {(listing.hours || (listing.special_hours?.length ?? 0) > 0) && (
+                {(Boolean(resolvedHours) || (listing.special_hours?.length ?? 0) > 0) && (
                   <div className="citybeat-panel rounded-2xl p-6 border border-white/10">
                     <h3 className="font-display text-xl font-bold uppercase border-b border-white/5 pb-3 mb-4">{t.hoursTitle}</h3>
-                    {listing.hours && (
+                    {Boolean(resolvedHours) && (
                       <div className="space-y-2">
                         {DAYS_OF_WEEK.map((day) => (
                           <div key={day} className="flex justify-between text-xs py-1 border-b border-white/5">
                             <span className="font-bold text-white/70">
                               {locale === 'es' ? DIAS_SEMANA[day as keyof typeof DIAS_SEMANA] : day}
                             </span>
-                            <span className="text-white/90 font-medium">{(locale === 'es' && /^(closed|open 24 hours)$/i.test(listing.hours?.[day] || '') ? (/closed/i.test(listing.hours?.[day] || '') ? 'Cerrado' : 'Abierto las 24 horas') : listing.hours?.[day]) || (locale === 'es' ? 'Cerrado' : 'Closed')}</span>
+                            <span className="text-white/90 font-medium">{dayHoursLabel(resolvedHours, day as DayName, locale) ?? t.hoursNotListed}</span>
                           </div>
                         ))}
                       </div>
