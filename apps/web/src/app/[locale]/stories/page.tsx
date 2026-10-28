@@ -2,16 +2,17 @@ import Link from 'next/link'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { ArticleVisual } from '@/components/citybeat/ArticleVisual'
 import { withLocale, type Locale } from '@/components/citybeat/content'
-import { getPublishedArticles, CATEGORY_IDS } from '@/lib/articles'
+import { getPublishedArticlePage, CATEGORY_IDS } from '@/lib/articles'
 import type { Metadata } from 'next'
 import { localeAlternates } from '@/lib/seo'
 import { MachelleStoryCard } from '@/components/citybeat/MachelleStoryCard'
+import { StoryPagination } from '@/components/citybeat/StoryPagination'
 
 export const dynamic = 'force-dynamic'
 
 type Props = {
   params: Promise<{ locale: string }>
-  searchParams: Promise<{ category?: string }>
+  searchParams: Promise<{ category?: string; page?: string }>
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
@@ -53,7 +54,17 @@ export default async function StoriesPage(props: Props) {
       ? searchParams.category
       : undefined
 
-  const articles = await getPublishedArticles({ category: selected, limit: 60 })
+  // Paged, not a bare newest-60. 91 of 258 published stories were reachable
+  // from no page on the site — all of them `news` — because this took the
+  // newest 60 and offered no second page, no archive and no related links.
+  // Paging costs no extra Firestore read: the projected list is already cached
+  // whole in memory, so this is a slice.
+  const pageParam = Number.parseInt(searchParams.page || '1', 10)
+  const { articles, page, pageCount, total } = await getPublishedArticlePage({
+    category: selected,
+    page: Number.isFinite(pageParam) ? pageParam : 1,
+    pageSize: 30,
+  })
   const tabs = ['all', ...CATEGORY_IDS]
   const showIssueProfile = !selected || selected === 'culture'
 
@@ -125,6 +136,15 @@ export default async function StoriesPage(props: Props) {
             ))}
           </div>
         )}
+
+        <StoryPagination
+          basePath={`/${locale}/stories`}
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          locale={locale}
+          params={{ category: selected }}
+        />
       </section>
     </CityBeatShell>
   )

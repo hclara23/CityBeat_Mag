@@ -310,12 +310,18 @@ async function loadPublishedList(): Promise<Article[]> {
  */
 export function selectArticles(
   all: Article[],
-  opts: { category?: string; limit?: number } = {}
+  opts: { category?: string; limit?: number; offset?: number } = {}
 ): Article[] {
   const filtered =
     opts.category && opts.category !== 'all' ? all.filter((a) => a.category === opts.category) : all
-  const limited = opts.limit ? filtered.slice(0, opts.limit) : filtered
-  return limited.map((a) => ({ ...a }))
+  const offset = Math.max(0, Math.floor(opts.offset || 0))
+  const sliced = opts.limit ? filtered.slice(offset, offset + opts.limit) : filtered.slice(offset)
+  return sliced.map((a) => ({ ...a }))
+}
+
+/** How many published stories exist, in total or within one category. */
+export function countArticles(all: Article[], category?: string): number {
+  return category && category !== 'all' ? all.filter((a) => a.category === category).length : all.length
 }
 
 // A projected list row has no body, so an article whose `excerpt` field is empty
@@ -352,11 +358,41 @@ async function backfillExcerpts(rows: Article[]): Promise<Article[]> {
 }
 
 export async function getPublishedArticles(
-  opts: { category?: string; limit?: number } = {}
+  opts: { category?: string; limit?: number; offset?: number } = {}
 ): Promise<Article[]> {
   const all = await loadPublishedList()
   // selectArticles hands back copies, so mutating them here cannot touch the cache.
   return backfillExcerpts(selectArticles(all, opts))
+}
+
+/**
+ * One page of published stories, with the totals needed to render pagination.
+ *
+ * /stories and every topic page took the newest 60 and offered no second page,
+ * no archive, and no related links. Measured against the live collection: 258
+ * published stories, of which 167 were reachable (newest 60 overall UNION newest
+ * 60 per category) and 91 were reachable from NO page on the site — all of them
+ * `news`, the newest orphan published 2026-09-04. Their only trace anywhere was
+ * a sitemap entry, which is the weakest discovery signal Google has. At roughly
+ * four briefs a day that set grew by three or four stories daily.
+ *
+ * Paging is free here: loadPublishedList already caches the whole projected
+ * list in memory, so this is a slice, not another Firestore read.
+ */
+export async function getPublishedArticlePage(
+  opts: { category?: string; page?: number; pageSize?: number } = {}
+): Promise<{ articles: Article[]; total: number; page: number; pageCount: number; pageSize: number }> {
+  const all = await loadPublishedList()
+  const pageSize = Math.max(1, Math.floor(opts.pageSize || 30))
+  const total = countArticles(all, opts.category)
+  const pageCount = Math.max(1, Math.ceil(total / pageSize))
+  // Clamped, so a hand-typed ?page=999 shows the last real page instead of an
+  // empty one that looks like the archive has been deleted.
+  const page = Math.min(Math.max(1, Math.floor(opts.page || 1)), pageCount)
+  const articles = await backfillExcerpts(
+    selectArticles(all, { category: opts.category, limit: pageSize, offset: (page - 1) * pageSize })
+  )
+  return { articles, total, page, pageCount, pageSize }
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {

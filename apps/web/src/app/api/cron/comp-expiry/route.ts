@@ -91,7 +91,15 @@ export async function GET(request: NextRequest) {
         businessName: String(listing.name || 'Your business'),
         listingUrl: `${APP_URL}/${locale}/directory/${doc.id}`,
         claimUrl: `${APP_URL}/${locale}/directory/${doc.id}/claim`,
-        upgradeUrl: claimed ? `${APP_URL}/${locale}/dashboard` : `${APP_URL}/${locale}/directory/${doc.id}/claim`,
+        // ?plan= so the page lands with the quoted plan already selected and its
+        // Subscribe button live. Without it the recipient was promised a rate and
+        // then shown a disabled button reading "Choose an optional paid plan".
+        // The plan MUST agree with the copy: foundingAvailable is what decides
+        // which price the email quotes, so a link offering $9.99 that checks out
+        // at $19.99 would be worse than no link at all.
+        upgradeUrl: claimed
+          ? `${APP_URL}/${locale}/dashboard`
+          : `${APP_URL}/${locale}/directory/${doc.id}/claim?plan=${foundingAvailable ? 'founding' : 'premium_monthly'}`,
         until: String(listing.comp_until),
         unsubUrl: `${APP_URL}/api/newsletter/unsubscribe?u=${encodeURIComponent(mintUnsubToken(normalizeNewsletterEmail(to)))}`,
         postalAddress: ADDRESS,

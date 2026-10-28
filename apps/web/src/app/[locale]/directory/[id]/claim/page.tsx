@@ -292,7 +292,16 @@ function ClaimPageInner() {
     const plan = searchParams.get('plan')
     return plan && Object.prototype.hasOwnProperty.call(DIRECTORY_PLANS, plan) ? plan as PlanId : 'founding'
   })
-  const [upgradeChosen, setUpgradeChosen] = useState(false)
+  // An explicit ?plan= in the URL IS the choice. It previously pre-filled
+  // selectedPlan only and left upgradeChosen false, so the Subscribe button
+  // stayed disabled reading "Choose an optional paid plan" - on a page reached
+  // from an email that had just quoted a specific price. The nine businesses
+  // running on free Premium until 2026-12-30 are the warmest paid-conversion
+  // prospects in the system, and that link is the only one most of them get.
+  const [upgradeChosen, setUpgradeChosen] = useState(() => {
+    const plan = searchParams.get('plan')
+    return Boolean(plan && Object.prototype.hasOwnProperty.call(DIRECTORY_PLANS, plan))
+  })
   const [claimStep, setClaimStep] = useState<'select_method' | 'enter_code' | 'verified'>('select_method')
   const [verificationCode, setVerificationCode] = useState('')
   const [verifying, setVerifying] = useState(false)

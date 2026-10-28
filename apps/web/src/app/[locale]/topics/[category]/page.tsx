@@ -3,14 +3,16 @@ import { notFound } from 'next/navigation'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
 import { ArticleVisual } from '@/components/citybeat/ArticleVisual'
 import { withLocale, type Locale } from '@/components/citybeat/content'
-import { getPublishedArticles, CATEGORY_IDS } from '@/lib/articles'
+import { getPublishedArticlePage, CATEGORY_IDS } from '@/lib/articles'
 import type { Metadata } from 'next'
 import { localeAlternates } from '@/lib/seo'
+import { StoryPagination } from '@/components/citybeat/StoryPagination'
 
 export const dynamic = 'force-dynamic'
 
 type Props = {
   params: Promise<{ locale: string; category: string }>
+  searchParams: Promise<{ page?: string }>
 }
 
 const categoryLabels: Record<string, { en: string; es: string }> = {
@@ -52,7 +54,15 @@ export default async function TopicPage(props: Props) {
     notFound()
   }
 
-  const articles = await getPublishedArticles({ category, limit: 60 })
+  // Same orphaning as /stories: the newest 60 with no second page. `news` alone
+  // holds 151 published stories, so 91 of them were reachable from nowhere.
+  const searchParams = await props.searchParams
+  const pageParam = Number.parseInt(searchParams?.page || '1', 10)
+  const { articles, page, pageCount, total } = await getPublishedArticlePage({
+    category,
+    page: Number.isFinite(pageParam) ? pageParam : 1,
+    pageSize: 30,
+  })
 
   return (
     <CityBeatShell locale={locale}>
@@ -107,6 +117,14 @@ export default async function TopicPage(props: Props) {
             ))}
           </div>
         )}
+
+        <StoryPagination
+          basePath={`/${locale}/topics/${category}`}
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          locale={locale}
+        />
       </section>
     </CityBeatShell>
   )

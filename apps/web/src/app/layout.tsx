@@ -23,6 +23,17 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     images: ['/api/og'],
   },
+  // Feed autodiscovery. Without this the feed exists but nothing finds it:
+  // readers, aggregators and browser extensions all look for this link tag, and
+  // a feed nobody can discover is no distribution at all.
+  alternates: {
+    types: {
+      'application/rss+xml': [
+        { url: '/feed.xml', title: 'CityBeat — El Paso News' },
+        { url: '/feed.xml?lang=es', title: 'CityBeat — Noticias de El Paso' },
+      ],
+    },
+  },
 }
 
 export const viewport: Viewport = {
