@@ -18,6 +18,7 @@ import {
 import { parseCsv } from './csv'
 import { deliverToDirectory } from './directory-sink'
 import { getMappedValue, isDateOnOrAfter, matchesRowFilter } from './mapping'
+import { naicsCategory } from './naics'
 import { titleCaseName } from './normalize'
 import { searchPlacesAsListings } from './places'
 import { TaskType, type ExtractedListing, type LogLevel, type RunSummary } from './types'
@@ -424,6 +425,13 @@ const mapJsonToListings: ExecutorFn = async (env) => {
     }
   }
   const category = env.getInput('Category') || null
+  // Per-row categorisation from the feed's own industry code. Without it a
+  // whole feed shares one category: the Comptroller source put 19,286 El Paso
+  // businesses — donut shops, a golf course, a wireless dealer — into
+  // "Professional Services", because `Category` applies to every row and the
+  // `outlet_naics_code` the dataset already carried went unread.
+  const naicsField = env.getInput('NAICS field').trim()
+  let naicsResolved = 0
   const minimumDateField = env.getInput('Minimum date field').trim()
   const minimumDate = env.getInput('Minimum date').trim()
   const titleCase = bool(env.getInput('Title case names'), true)
@@ -456,9 +464,14 @@ const mapJsonToListings: ExecutorFn = async (env) => {
       } else city = city || csz
     }
     const addrRaw = get('address')
+    // NAICS first (specific to THIS row), then the blanket Category, then the
+    // field map. naicsCategory returns null rather than guessing, so an
+    // unmapped code falls through to the same default as before.
+    const naicsCat = naicsField ? naicsCategory(getMappedValue(row, naicsField)) : null
+    if (naicsCat) naicsResolved++
     listings.push({
       name,
-      category: category || get('category'),
+      category: naicsCat || category || get('category'),
       address: addrRaw ? (titleCase ? titleCaseName(addrRaw) : addrRaw) : null,
       city,
       state,
@@ -473,7 +486,15 @@ const mapJsonToListings: ExecutorFn = async (env) => {
     })
   }
   env.setOutput('Listings', JSON.stringify(listings))
-  env.log.info(`Mapped ${listings.length} of ${rows.length} rows to listings${rowFilter ? ` (${filteredOut} excluded by Row filter)` : ''}`)
+  env.log.info(
+    `Mapped ${listings.length} of ${rows.length} rows to listings${rowFilter ? ` (${filteredOut} excluded by Row filter)` : ''}` +
+      // Logged because silent partial categorisation is the thing that hid the
+      // original bug: a run that categorised nothing looked identical to one
+      // that categorised everything.
+      (naicsField
+        ? `; ${naicsResolved} categorised from ${naicsField}, ${listings.length - naicsResolved} kept the default`
+        : '')
+  )
   return listings.length > 0
 }
 

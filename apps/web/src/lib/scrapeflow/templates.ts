@@ -655,6 +655,12 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
               state: 'outlet_state',
               zip: 'outlet_zip_code',
             }),
+            // Per-row category from the dataset's own federal industry code.
+            // Measured against the live El Paso distribution 2026-10-28: 810
+            // distinct codes, 99.8% mapped, 45 rows (NAICS 551 holding
+            // companies and 92 public administration) keeping the default.
+            // Before this, all 19,286 shared the single Category below.
+            'NAICS field': 'outlet_naics_code',
             Category: 'Professional Services',
             'Title case names': 'true',
           },

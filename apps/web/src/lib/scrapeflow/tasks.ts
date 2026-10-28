@@ -177,7 +177,13 @@ export const TaskRegistry: Record<TaskType, WorkflowTask> = {
       },
       { name: 'Minimum date field', type: 'STRING', helperText: 'Optional source path containing MM/DD/YYYY or ISO date values, such as license_expiration_date_mmddccyy' },
       { name: 'Minimum date', type: 'STRING', helperText: 'Use "today" to discard expired rows at run time, or provide an ISO date' },
-      { name: 'Category', type: 'STRING', helperText: 'Category for every row (overrides map)' },
+      { name: 'Category', type: 'STRING', helperText: 'Fallback category for every row (overrides the field map, but NAICS field wins where it resolves)' },
+      {
+        name: 'NAICS field',
+        type: 'STRING',
+        helperText:
+          'Optional source path holding a NAICS industry code, e.g. outlet_naics_code. Each row is categorised from its own code (lib/scrapeflow/naics.ts); rows whose code has no confident mapping keep Category. Without this, every row in a feed shares one category.',
+      },
       { name: 'Title case names', type: 'BOOLEAN', defaultValue: 'true', helperText: 'Fix ALL-CAPS government data; "LAST, FIRST" → "First Last"' },
     ],
     outputs: [{ name: 'Listings', type: 'JSON' }],
