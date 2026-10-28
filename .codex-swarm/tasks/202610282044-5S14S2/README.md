@@ -12,6 +12,7 @@ comments:
   - { author: "CODER", body: "Add explicit bilingual SMS claim consent | details: require affirmative current-version consent before sending and record disclosure evidence; match verification SMS copy and publish public consent instructions and SMS terms; local type check and consent tests pass; deployment and campaign submission remain pending" }
   - { author: "ORCHESTRATOR", body: "Twilio campaign draft rewritten for CityBeat and parent business Elevate El Paso. Automated check found missing public SMS consent disclosures; fixed locally in 6a17a3a. Actual Twilio opt-in, opt-out and help responses saved and advanced opt-out enabled. Awaiting user approval for up to 1 USD Google Cloud deployment usage before publishing and rechecking. Twilio 15 USD vetting and 10 USD monthly fees approved; no submission charge triggered yet." }
   - { author: "CODER", body: "verified: published SMS consent safeguards and passed production checks | details: submitted CityBeat campaign with public consent evidence; Twilio confirmed successful submission and pending review" }
+  - { author: "CODER", body: "verified: archive final task export for deployed consent fix and submitted CityBeat campaign | details: external carrier review remains pending" }
 doc_version: 2
 doc_updated_at: "2026-10-28T21:01:16+00:00"
 doc_updated_by: "agentctl"
