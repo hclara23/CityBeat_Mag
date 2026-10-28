@@ -9,7 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: Repair email aliases and paid intake recovery; verify ownership against owner_id and preserve customer entitlements." }
 doc_version: 2
-doc_updated_at: "2026-10-28T02:54:35+00:00"
+doc_updated_at: "2026-10-28T03:05:00+00:00"
 doc_updated_by: "agentctl"
 description: "Verify and repair published support addresses, paid directory ownership and intake recovery, and bounce feedback. No subagents; test locally before any deployment; no new spending authorized."
 ---
@@ -19,11 +19,11 @@ Repair CityBeat customer email continuity and paid-order recovery. Live support/
 
 ## Scope
 
-Staff-assisted 30-day intake recovery endpoint and bilingual fulfillment UI; independent recovery token preserves original token; unfinished paid orders recur in existing weekly ops digest. No deployment or customer email sent. No ownership reassignment.
+Released staff-assisted 30-day intake recovery and bilingual fulfillment controls; original links retain their independent expiry. Existing weekly operator digest lists unfinished paid intakes; this does not automatically chase customers. Varsity advertiser owner account created and linked using owner_id, with no password set and no email auto-verification. Explicitly approved setup email delivered to thomas@varsityroofing.com. No payment changes.
 
 ## Risks
 
-Recovery links grant private order access and must go only to verified customers. Endpoint requires sales access and MFA. Resend browser account is unrelated and needs owner sign-in. Varsity has no owner_id or matching contact-email profile. Super H has owner_id already; owner_user_id was the wrong field.
+Private recovery links must go only to verified customers. Recovery creation requires sales access and MFA. Thomas must complete email verification and password setup himself. Actual provider bounce/complaint delivery and end-to-end MXroute forwarding remain unobserved; signed synthetic webhook checks passed. Directory-ingest last run failed code13; scheduler manifest has no drift.
 
 ## Verify Steps
 
@@ -31,9 +31,9 @@ PASS npm test; PASS npm run type-check in apps/web; PASS npm run build --workspa
 
 ## Rollback Plan
 
-Revert task code commit before deployment. Remove only support and contact aliases to undo this task's email routing; retain previously approved hello forwarding. Super H description prior value empty; backup is .tmp/super-h-description-before.json. Never revert owner_id or payment data.
+Route citybeat-web traffic to citybeat-web-00415-can if release regressions arise; it retains the live Resend webhook secret. Never undo customer ownership, authentication, payment or subscription data as a code rollback. Preserve hello forwarding and support/contact aliases. Private setup links remain excluded from git.
 
 ## Notes
 
-Resend account identified: elevatelepaso (confirmed browser). Webhook 5de26cdc-3552-455b-b0bf-7069e640fb73 enabled for email.bounced/email.complained. Signing secret configured without exposing it. Configuration-only same-image revision citybeat-web-00415-can promoted to 100 percent; prior revision citybeat-web-00413-xuv remains rollback. Signed synthetic events returned 200 and stored correct bounce/complaint suppressions; unsigned request 401. Reserved example.invalid test recipients only, no customer emails. Pending: real provider-delivered event observation; Varsity verified owner registration; forwarding end-to-end check; code recovery release still local at 57a27e3 and awaits build spending approval.
+2026-10-28 UTC release: Cloud Build 4dd2838a-32c9-413b-b804-c131a4192ff9 succeeded in 255 seconds, explicit 720-second cap. Estimated build compute about USD0.067 under user USD1 one-time approval; final invoice not available. Image sha256:cbfbdf1b50d559caa2276d6dd40223dce627eaefd74cfeb4092ec7f54eff672e, revision citybeat-web-00417-gir now 100 percent. Candidate and public 37-check smoke suites pass; candidate recovery unauthenticated401, unsigned Resend401, required email env retained. npm test and web type-check passed before build. Includes Claude ebc6b70 and Codex57a27e3/c1659bc. Resend elevatelepaso webhook5de26cdc-3552-455b-b0bf-7069e640fb73 remains enabled. Varsity setup email01a18072-c835-7c95-b6f2-fad5373e56a9 confirmed delivered. Alignment: worker operator fallback already correct; zero missed submitted briefs; support/contact aliases fixed; SuperH owner_id existed and description repaired; Varsity owner_id now linked. No further Claude deploy requested. Shared receipt here supersedes earlier pending-release notes. Remaining: customer activation, forwarding delivery observation, real provider webhook observation, existing directory-ingest failure. Broader historical audit items require separate verification; not claimed resolved.
 
