@@ -11142,15 +11142,36 @@
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-28T02:40:23+00:00",
+      "doc_updated_at": "2026-10-28T03:05:00+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Verify and repair published support addresses, paid directory ownership and intake recovery, and bounce feedback. No subagents; test locally before any deployment; no new spending authorized."
+      "description": "Verify and repair published support addresses, paid directory ownership and intake recovery, and bounce feedback. No subagents; test locally before any deployment; no new spending authorized.",
+      "doc": "## Summary\n\nRepair CityBeat customer email continuity and paid-order recovery. Live support/contact aliases now route to hello, which forwards to the approved operator Gmail. Super H blank description repaired with existing verified facts.\n\n## Scope\n\nReleased staff-assisted 30-day intake recovery and bilingual fulfillment controls; original links retain their independent expiry. Existing weekly operator digest lists unfinished paid intakes; this does not automatically chase customers. Varsity advertiser owner account created and linked using owner_id, with no password set and no email auto-verification. Explicitly approved setup email delivered to thomas@varsityroofing.com. No payment changes.\n\n## Risks\n\nPrivate recovery links must go only to verified customers. Recovery creation requires sales access and MFA. Thomas must complete email verification and password setup himself. Actual provider bounce/complaint delivery and end-to-end MXroute forwarding remain unobserved; signed synthetic webhook checks passed. Directory-ingest last run failed code13; scheduler manifest has no drift.\n\n## Verify Steps\n\nPASS npm test; PASS npm run type-check in apps/web; PASS npm run build --workspace=@citybeat/web. Recovery tests cover independent token expiries, original link preservation, invalid tokens, unpaid/refunded/canceled/submitted/fulfilled orders. Live alias rules confirmed in mxpanel. Super H description write used update-time precondition and owner preserved.\n\n## Rollback Plan\n\nRoute citybeat-web traffic to citybeat-web-00415-can if release regressions arise; it retains the live Resend webhook secret. Never undo customer ownership, authentication, payment or subscription data as a code rollback. Preserve hello forwarding and support/contact aliases. Private setup links remain excluded from git.\n\n## Notes\n\n2026-10-28 UTC release: Cloud Build 4dd2838a-32c9-413b-b804-c131a4192ff9 succeeded in 255 seconds, explicit 720-second cap. Estimated build compute about USD0.067 under user USD1 one-time approval; final invoice not available. Image sha256:cbfbdf1b50d559caa2276d6dd40223dce627eaefd74cfeb4092ec7f54eff672e, revision citybeat-web-00417-gir now 100 percent. Candidate and public 37-check smoke suites pass; candidate recovery unauthenticated401, unsigned Resend401, required email env retained. npm test and web type-check passed before build. Includes Claude ebc6b70 and Codex57a27e3/c1659bc. Resend elevatelepaso webhook5de26cdc-3552-455b-b0bf-7069e640fb73 remains enabled. Varsity setup email01a18072-c835-7c95-b6f2-fad5373e56a9 confirmed delivered. Alignment: worker operator fallback already correct; zero missed submitted briefs; support/contact aliases fixed; SuperH owner_id existed and description repaired; Varsity owner_id now linked. No further Claude deploy requested. Shared receipt here supersedes earlier pending-release notes. Remaining: customer activation, forwarding delivery observation, real provider webhook observation, existing directory-ingest failure. Broader historical audit items require separate verification; not claimed resolved."
+    },
+    {
+      "id": "202610280306-YASBZ4",
+      "title": "Restore directory ingestion and verify email delivery feedback",
+      "status": "BLOCKED",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Blocked: Email routing and provider feedback verified end to end. Directory import still fails because current public source and tested free global mirror time out or return429; rejected candidate and removed override. Production preserved."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-28T03:16:39+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved follow-up: diagnose and repair import failure; verify MXroute forwarding and provider bounce/complaint suppression end to end. No subagents or new paid commitments.",
+      "doc": "## Summary\n\nRestore the directory source and verify customer email routing and provider feedback. User authorized follow-up work without subagents; no new paid services or builds authorized.\n\n## Scope\n\nRead live import failures, validate a free global Overpass endpoint, test a configuration-only candidate before promotion, and check scheduler success. Send only labeled verification emails to existing CityBeat aliases and Resend documented test recipients.\n\n## Risks\n\nPublic Overpass endpoints have no uptime guarantee. A source returning zero local records is not a validated replacement. Preserve original listing owners and subscriptions. Do not create a paid API or cloud build. No credentials or private customer links enter this record.\n\n## Verify Steps\n\nEmail PASS: hello/support/contact test messages delivered and all three found in morningstarelp Gmail INBOX, with matching retained Roundcube hello inbox UIDs59/60/61. Resend documented bounced+citybeat-yasbz4@resend.dev and complained+citybeat-yasbz4@resend.dev last_event bounced/complained; corresponding Firestore suppressions created with source bounce/complaint at2026-10-28T03:07:33Z. Import validation in progress.\n\n## Rollback Plan\n\nKeep production traffic on citybeat-web-00417-gir until the configuration candidate returns valid El Paso businesses. Roll back traffic there if source change fails; remove only OVERPASS_URL override when reverting runtime template. Do not undo verified email routing or suppressions.\n\n## Notes\n\n2026-10-27 Mountain verification: Resend email IDs 01a1807a-2682-7bfd-8b1a-8cc01e8361b9 bounced, 01a1807a-276b-7a7d-8eb9-adc39beebf14 complained, 01a1807a-28a3-7d57-b132-e339c1ebaf9a hello delivered, 01a1807a-2971-73b4-a615-49707df06842 support delivered, 01a1807a-2ab5-7e91-a88b-6b3f4bc83c12 contact delivered. Gmail matching messages1a1807a497284521,1a1807a4970034e2,1a1807a4940214cb are in operator inbox; Roundcube retains all three. Real provider test events persisted both correct suppression records. References: https://resend.com/docs/dashboard/emails/send-test-emails and https://overpass.private.coffee/ . Directory default endpoint produced429/timeouts in live logs. Verified global mirror private.coffee also timed out locally and in candidate00419-rag; candidate authenticated import returned500, swept[],prepared0,inserted0. Additional small probes of kumi and maps.mail.ru timed out. No source passed validation; no production switch made. Removed OVERPASS_URL override and ingest-review tag after failed test. Production remains00417-gir100 percent and image cbfbdf1b50d559caa2276d6dd40223dce627eaefd74cfeb4092ec7f54eff672e. No build, purchase or new paid service. Import needs an available global upstream or separately planned extract-based source; do not claim fixed."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "6739a12a3c868727d808806427f941e142ca2438952b43cd16c3685dca27283f"
+    "checksum": "eaa8267b84cbcdcd184de3117127c48fef22203c96911de5299599e32492a81b"
   }
 }
