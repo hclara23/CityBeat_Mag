@@ -125,8 +125,19 @@ for (const name of actual.keys()) {
   }
 }
 
+// A pause is only a problem when NOBODY DECLARED IT. This file exists because
+// "a job deleted or paused by accident is silently gone forever"; a pause the
+// manifest also records is the opposite of an accident, it is written-down
+// intent. Flagging it anyway left a permanently-red check, which is the same
+// trap as a permanently-red alert — it teaches whoever reads this output to
+// skim past it. A declared/live state MISMATCH is still caught, because
+// 'state' is one of the FIELDS compared for drift above.
 const paused = live.filter((j) => j.state && j.state !== 'ENABLED')
-for (const j of paused) problems.push(`PAUSED    ${j.name} — state is ${j.state}, so it is not running`)
+for (const j of paused) {
+  const declared = expected.get(j.name)
+  if (declared && declared.state && declared.state !== 'ENABLED') continue // deliberate, and recorded
+  problems.push(`PAUSED    ${j.name} — state is ${j.state}, so it is not running`)
+}
 
 // The question the manifest structurally CANNOT answer: did the last run work?
 // CLAUDE.md's rule "verify a job by its OWN recorded outcome, not by calling it
@@ -136,6 +147,11 @@ for (const j of paused) problems.push(`PAUSED    ${j.name} — state is ${j.stat
 // it. A non-empty status.code means the last attempt FAILED (13 = INTERNAL).
 for (const j of live) {
   if (j.lastStatusCode === undefined || j.lastStatusCode === null) continue
+  // A paused job keeps the status.code of the run that made someone pause it,
+  // so reporting it forever would re-raise an incident that has been closed
+  // and recorded. Only a job that is still SCHEDULED to run can have a
+  // meaningfully failing last run.
+  if (j.state && j.state !== 'ENABLED') continue
   const when = j.lastAttemptTime ? ` at ${j.lastAttemptTime}` : ''
   const why = j.lastStatusMessage ? ` — ${String(j.lastStatusMessage).slice(0, 140)}` : ''
   problems.push(
@@ -154,7 +170,13 @@ for (const j of live) {
 
 console.log(`Manifest: ${expected.size} jobs | Live: ${actual.size} jobs`)
 if (problems.length === 0) {
-  console.log('No drift. Every declared job exists, matches, and is enabled.')
+  const declaredPaused = [...expected.values()].filter((j) => j.state && j.state !== 'ENABLED').map((j) => j.name)
+  console.log(
+    'No drift. Every declared job exists and matches' +
+      (declaredPaused.length
+        ? `, and the ${declaredPaused.length} deliberately paused (${declaredPaused.join(', ')}) ${declaredPaused.length === 1 ? 'is' : 'are'} paused as declared.`
+        : ', and every one is enabled.')
+  )
   process.exit(0)
 }
 console.error(`\n${problems.length} problem(s):`)

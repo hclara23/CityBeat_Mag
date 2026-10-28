@@ -129,7 +129,7 @@ test('the route name is recovered from the job target, and only from a cron targ
 // compared them. It reads both real files, so it fails when they disagree.
 // ---------------------------------------------------------------------------
 
-function readManifestJobs(): Array<{ name: string; schedule: string; uri: string }> {
+function readManifestJobs(): Array<{ name: string; schedule: string; uri: string; state?: string; pausedReason?: string }> {
   const path = fileURLToPath(new URL('../../../../infra/scheduler/jobs.json', import.meta.url))
   const parsed = JSON.parse(readFileSync(path, 'utf8'))
   const jobs = Array.isArray(parsed) ? parsed : parsed.jobs
@@ -238,6 +238,20 @@ test('every scheduled job is liveness-monitored by at least one expectation', ()
 
   const unmonitored: string[] = []
   for (const job of readManifestJobs()) {
+    // A job the manifest DECLARES as paused must not require a liveness budget:
+    // a budget for a job nobody expects to run pages every six hours forever,
+    // which is the permanently-red alert CRON_EXPECTATIONS exists to prevent.
+    // The declaration is what makes this safe — an UNDECLARED pause is still
+    // caught by scheduler:check against live state, and re-enabling the job
+    // means setting state back to ENABLED here, which re-arms this assertion
+    // and fails until the CRON_EXPECTATIONS row comes back with it.
+    if (job.state && job.state !== 'ENABLED') {
+      assert.ok(
+        String(job.pausedReason || '').trim().length >= 40,
+        `${job.name} is declared ${job.state} but carries no pausedReason explaining why — a paused job with no recorded reason is indistinguishable from one paused by accident`
+      )
+      continue
+    }
     const route = cronRouteFromUri(job.uri)
     if (!route) {
       unmonitored.push(`${job.name}: its uri ${job.uri} does not resolve to a cron route`)

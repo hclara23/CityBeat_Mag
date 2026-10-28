@@ -90,6 +90,7 @@
     },
     {
       "name": "citybeat-directory-ingest",
+      "pausedReason": "Overpass refuses connections from this service's GCP egress: the recorded failures are `fetch failed` for all 7 categories and a single-category call returns 500 in 3.9s, which is two instant connection failures plus the backoff, not the 2x45s a timeout would take. The IPv6 theory was tested and refuted (api.resend.com, api.anthropic.com, kvia.com and firestore.googleapis.com all carry AAAA and all work from the same container). No env var fixes a refusal at the far end, and the only IPv4-only mirrors are a dead Japanese host and a Russian one. Paused 2026-10-28 after failing every night since 2026-10-15. The route is unchanged and OVERPASS_URL is still the no-deploy escape hatch, so re-enabling is: unpause, restore state ENABLED here, and restore the cron:directory-ingest entry in CRON_EXPECTATIONS. Directory growth now comes from the Socrata feeds, which reach us fine.",
       "schedule": "0 2 * * *",
       "timeZone": "America/Chihuahua",
       "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/directory-ingest",
@@ -103,7 +104,7 @@
         "minBackoffDuration": "30s",
         "retryCount": 3
       },
-      "state": "ENABLED"
+      "state": "PAUSED"
     },
     {
       "name": "citybeat-enrich-contacts",

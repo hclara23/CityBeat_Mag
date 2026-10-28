@@ -75,7 +75,13 @@ export type CronExpectation = {
 export const CRON_EXPECTATIONS: CronExpectation[] = [
   // Daily jobs (schedules per CLAUDE.md, America/Chihuahua).
   { source: 'cron:referrals', label: 'referral rewards', maxAgeHours: 36 },
-  { source: 'cron:directory-ingest', label: 'directory ingest', maxAgeHours: 36 },
+  // cron:directory-ingest is deliberately ABSENT. Its scheduler job is paused
+  // (infra/scheduler/jobs.json carries the reason) because Overpass refuses
+  // connections from this service's egress, so a liveness budget here would
+  // page every six hours forever about a job nobody expects to run — the
+  // permanently-red alert this table exists to avoid. Restore this line when
+  // the job is unpaused; the route still calls reportSuccess('cron:directory-ingest'),
+  // so nothing else needs changing.
   { source: 'cron:enrich-contacts', label: 'contact enrichment', maxAgeHours: 36 },
   { source: 'cron:sync-events', label: 'event sync', maxAgeHours: 36 },
   { source: 'cron:translate-listings', label: 'listing translation (ES)', maxAgeHours: 36 },
