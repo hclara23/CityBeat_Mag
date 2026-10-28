@@ -225,7 +225,7 @@ export async function runContactEnrichment(
   const catFilter = opts.categories && opts.categories.length ? new Set(opts.categories) : null
   // `places_filled` is deliberately gone from this shape: the Places lookup it
   // counted is gone, and a stat that is always 0 reads like a broken job.
-  const stats = { scanned: 0, no_website: 0, emails_found: 0, updated: 0 }
+  const stats = { scanned: 0, no_website: 0, emails_found: 0, updated: 0, passed_over_no_website: 0 }
 
   // Page through unclaimed listings collecting ones we haven't attempted
   // recently. Without the attempted-marker skip, every run re-scanned the same
@@ -255,7 +255,13 @@ export async function runContactEnrichment(
   const candidates: FirebaseFirestore.QueryDocumentSnapshot[] = []
   let nextCursor: string | null = null
   let reachedEnd = false
-  const maxPages = catFilter ? 30 : 8 // scan deeper when hunting a specific vertical
+  // Paging stops as soon as `limit * 3` candidates are collected, so in steady
+  // state this exits after a page or two and the ceiling only matters while the
+  // cursor is crossing a stretch of unenrichable rows. 8 pages (4,000 docs)
+  // would take roughly five runs to cross the Comptroller back catalogue's
+  // ~19,000 website-less rows; 20 crosses it in two, at a few thousand reads
+  // that cost well under a cent.
+  const maxPages = catFilter ? 30 : 20 // scan deeper when hunting a specific vertical
   for (let page = 0; page < maxPages && candidates.length < limit * 3; page++) {
     let q = listings
       .where('claim_status', '==', 'unclaimed')
@@ -281,6 +287,20 @@ export async function runContactEnrichment(
       const l = d.data() as any
       if (catFilter && !catFilter.has(l.category)) continue
       if (l.email) continue // already contactable
+      // A listing with no website is UNENRICHABLE, not merely unenriched: the
+      // only source this job may read is the business's own site, and the
+      // Places lookup that once filled in a missing one was the licence breach.
+      // Taking them as candidates spent the whole run stamping rows it could
+      // never act on — after the Comptroller back-catalogue load, nine
+      // consecutive passes returned 360 scanned / 360 no_website / 0 found,
+      // because ~19,000 permit rows carry an address and nothing else. Passing
+      // over them here lets the same budget page deeper and reach the rows that
+      // do have a site. The cursor still advances across them, so nothing is
+      // re-scanned in a loop, and they cost a read rather than a read + a write.
+      if (typeof l.website !== 'string' || !l.website.trim()) {
+        stats.passed_over_no_website++
+        continue
+      }
       const attempted = typeof l.enrich_attempted_at === 'string' ? Date.parse(l.enrich_attempted_at) : 0
       if (attempted && Date.now() - attempted < RETRY_AFTER_MS) continue
       candidates.push(d)
