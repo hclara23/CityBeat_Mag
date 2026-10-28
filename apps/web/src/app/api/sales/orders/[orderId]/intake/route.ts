@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email'
+import { sendOperatorEmail } from '@/lib/alerts'
 import {
   authorizePaidSalesOrder,
   publicSalesOrder,
@@ -199,8 +200,13 @@ export async function POST(request: NextRequest, props: { params: Promise<{ orde
       // collections NOTHING in the repo reads, so those customers paid, filled
       // in their brief, and no one was ever informed the order existed. One
       // email closes the gap for all seven product types at once.
-      await sendEmail(
-        process.env.ALERT_EMAIL || '',
+      // Was `sendEmail(process.env.ALERT_EMAIL || '', …)`. ALERT_EMAIL is unset
+      // on the live service, so `to` was the empty string and this notification
+      // — by the comment above, the only push signal that paid work is waiting —
+      // could never have been delivered since it shipped. sendOperatorEmail
+      // resolves the recipient list the same way every alert does, falls back to
+      // the ops default rather than to '', and logs when every address fails.
+      await sendOperatorEmail(
         `CityBeat: paid brief submitted — ${result.order.product_name || result.order.product_id || 'order'}`,
         `<div style="font-family:Arial,sans-serif;max-width:560px;color:#111">
           <h1 style="font-size:20px">A paid customer just submitted their brief</h1>

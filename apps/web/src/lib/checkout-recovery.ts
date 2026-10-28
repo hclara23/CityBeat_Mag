@@ -190,13 +190,26 @@ export function recoveryEmail(input: {
     ? 'Si todavía te interesa, responde a este correo y te enviamos un enlace nuevo hoy mismo. Si ya no, respóndenos igual y no te volvemos a escribir sobre esto.'
     : 'If you are still interested, just reply to this email and we will send a fresh link today. If not, reply anyway and we will stop bringing it up.'
   const signoff = isEs ? 'Gracias,<br>CityBeat El Paso' : 'Thanks,<br>CityBeat El Paso'
+  // Localized like every other string above. It was not, and the omission was
+  // invisible for as long as it stayed unrendered: `replyTo` came from
+  // ALERT_EMAIL, which was never set, so the line simply never appeared. The
+  // moment the address resolves to something — which is now always, because
+  // publicReplyAddress() falls back to the From mailbox — an English sentence
+  // would have closed every Spanish nudge, on the one line carrying the address
+  // the reader is being asked to write to, in a market CLAUDE.md puts at ~90%
+  // Spanish-speaking.
+  const replyLine = !replyTo
+    ? ''
+    : isEs
+      ? `Responde directamente a este mensaje o escríbenos a ${esc(replyTo)}.`
+      : `Reply directly to this message or write to ${esc(replyTo)}.`
 
   const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;max-width:520px">
 <p>${greeting}</p>
 <p>${body}</p>
 <p>${ask}</p>
 <p style="margin-top:22px">${signoff}</p>
-${replyTo ? `<p style="color:#777;font-size:13px">Reply directly to this message or write to ${esc(replyTo)}.</p>` : ''}
+${replyLine ? `<p style="color:#777;font-size:13px">${replyLine}</p>` : ''}
 </div>`
 
   return { subject, html }

@@ -27,6 +27,20 @@ function alertRecipients(): string[] {
 // Fan an alert out to every recipient. One bad address must not swallow the
 // alert to the others, so each send is independent and "sent" means at least
 // one landed.
+//
+// EXPORTED because three other routes needed exactly this and each wrote its
+// own version of it instead, two of them wrongly: the paid-brief notification
+// sent `to: process.env.ALERT_EMAIL || ''` and so could never be delivered at
+// all while the variable was unset, and the review-abuse report duplicated the
+// hardcoded fallback address as its own module-level literal. Both also treat
+// ALERT_EMAIL as a single address, so the documented way to add a co-responder
+// — a comma-separated list, editable from a phone — would have handed the mail
+// provider one malformed recipient and silently stopped those notifications.
+// Operator notifications belong on this one path.
+export async function sendOperatorEmail(subject: string, html: string) {
+  return sendAlertEmail(subject, html)
+}
+
 async function sendAlertEmail(subject: string, html: string) {
   const recipients = alertRecipients()
   const results = await Promise.all(

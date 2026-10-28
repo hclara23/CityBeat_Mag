@@ -263,8 +263,19 @@ INGEST_SECRET   # auths POSTs to the web app's /api/ingest/brief, AND auths the
 RESEND_API_KEY
 NEWS_API_KEY
 DEEPL_API_KEY   # REQUIRED. The worker is where the DeepL key lives.
+ALERT_EMAIL     # SEPARATE from the web app's. See the note below.
 # (Stripe and Sanity secrets were removed from the worker on 2026-08-28.)
 ```
+
+> **`ALERT_EMAIL` is two variables, not one.** The worker reads its own wrangler
+> binding (`services/worker/src/handlers/automation.ts`), so setting
+> `ALERT_EMAIL` on Cloud Run does nothing for it and it keeps falling back to
+> the single hardcoded address. That fallback covers the one case the binding
+> exists for: brief automation failed AND could not reach
+> `/api/cron/heartbeat` — the path that exists precisely because silence and
+> success look identical. If you add a co-responder on Cloud Run, add them to
+> the worker too (`wrangler secret put` / a `vars` entry), and keep it a SINGLE
+> address there: nothing in the worker splits a list.
 
 > **DeepL is NOT gone from the worker** — an earlier revision of this file said it
 > was, and that was wrong in a way that would bite whoever acted on it. The worker
@@ -284,7 +295,20 @@ NEXT_PUBLIC_APP_URL
 ANALYTICS_EXCLUDED_IPS   # Optional, comma-separated IPs excluded from first-party page-view counts (signed-in staff are auto-excluded)
 ```
 
-See `apps/web/.env.example` for the full list of environment variables.
+**`infra/cloud-run/env.json` is the authoritative inventory** — every variable
+name, what breaks without it, and whether absence fails loudly or quietly.
+`npm run env:check` diffs it against the live service in both directions, and
+`scripts/check-env.mjs` scans `apps/web/src` and `packages/lib/src` for
+`process.env.*`, so a variable the code reads but the manifest omits is
+reported.
+
+> Do NOT follow `apps/web/.env.example` for this. It is a stale Sanity-era file
+> — it still lists `NEXT_PUBLIC_SANITY_PROJECT_ID`, `SANITY_API_TOKEN` and
+> `NEXT_PUBLIC_STUDIO_URL` for a CMS removed in June 2026 — and it omits
+> variables that are actually load-bearing, `ALERT_EMAIL` and
+> `SALES_FROM_EMAIL` among them. Nothing reads it: `check-env.mjs` never opens
+> it, so adding a name there satisfies no check. These two lines used to call it
+> "the full list of environment variables".
 
 ## Key Development Patterns
 
@@ -334,7 +358,7 @@ The canonical (and only) webhook is the **web app** `apps/web/src/app/api/stripe
 
 ### Pre-Deployment Checklist
 
-1. Verify all environment variables set (see `apps/web/.env.example`)
+1. Verify all environment variables set — `npm run env:check` against `infra/cloud-run/env.json` (NOT `.env.example`, which is stale; see above)
 2. Run `npm run build && npm run type-check` to ensure clean build
 3. Test automation pipeline in staging
 4. Review brief content in the /admin review queue before first production run

@@ -22,19 +22,31 @@ The application uses Docker to build a standalone Next.js image. You must deploy
 
 Ensure you have the `gcloud` CLI installed and authenticated.
 
+**You do not deploy by hand.** Push to `main` and
+`.github/workflows/deploy-web.yml` builds, deploys as an untrafficked candidate,
+smoke-tests it, promotes it and rolls back automatically if the promotion fails.
+A hand deploy skips every one of those steps.
+
+If you must (the pipeline itself is broken), copy the flags the workflow uses —
+in particular `--update-env-vars`:
+
 ```bash
-# 1. Build and deploy the main web app
-gcloud run deploy citybeat-mag-web \
+gcloud run deploy citybeat-web \
   --source . \
-  --platform managed \
   --region us-central1 \
-  --allow-unauthenticated \
   --project kerstenblueprint \
-  --set-env-vars="NEXT_PUBLIC_FIREBASE_PROJECT_ID=kerstenblueprint"
+  --update-env-vars="NEXT_PUBLIC_FIREBASE_PROJECT_ID=kerstenblueprint"
 ```
 
-> Normally you don't run this by hand — push to `main` auto-deploys `citybeat-web`
-> via `.github/workflows/deploy-web.yml`.
+> **Never `--set-env-vars` on this service.** It REPLACES the entire
+> environment, so a command naming one variable deletes every other one —
+> `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CRON_SECRET`, `RESEND_API_KEY`
+> and the rest — leaving a site that serves pages, cannot take a payment, and
+> fails every scheduled job. `--update-env-vars` sets the named variable and
+> leaves the others alone. This block previously used `--set-env-vars` against
+> the service name `citybeat-mag-web`, which does not exist: it was harmless
+> only because it created a separate unused service, and would have become
+> destructive the moment someone corrected the name.
 
 > Note: Ensure your Stripe and Firebase Admin secrets are securely stored in Google Cloud Secret Manager.
 

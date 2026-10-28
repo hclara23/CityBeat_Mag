@@ -6,6 +6,7 @@ import { fetchElPasoHeadlines, rewriteAsArticle, findArticleImage, newsroomConfi
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 import { notify, NOTIFY_WORKFLOWS } from '@/lib/notify'
+import { parseAlertRecipients, DEFAULT_ALERT_EMAIL } from '@/lib/ops-health'
 import {
   nextRetryRecord,
   shouldAttemptProcessedNews,
@@ -237,7 +238,16 @@ export async function GET(request: NextRequest) {
     if (!dryRun && !publish && created.length > 0) {
       await notify({
         workflowId: NOTIFY_WORKFLOWS.articleReview,
-        to: { subscriberId: 'editors', email: process.env.ALERT_EMAIL },
+        // Same resolution the Stripe webhook already uses for its own Novu
+        // subscriber, and for the same reason: raw ALERT_EMAIL was undefined on
+        // the live service, and notify() swallows every error, so this ping
+        // failed silently and indistinguishably from "no drafts were written".
+        // Taking [0] also means a comma-separated ALERT_EMAIL yields one valid
+        // subscriber address instead of one Novu rejects.
+        to: {
+          subscriberId: 'editors',
+          email: parseAlertRecipients(process.env.ALERT_EMAIL, DEFAULT_ALERT_EMAIL)[0],
+        },
         payload: { count: created.length },
       })
     }

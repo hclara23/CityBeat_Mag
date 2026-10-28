@@ -101,14 +101,58 @@ test('the ops alert address can never leak in, however ALERT_EMAIL is set', () =
   }
 })
 
-test('the recovery copy names the resolved address verbatim', async () => {
+test('the recovery copy names the resolved address verbatim, in both languages', async () => {
   // Ties the resolver to the sentence a customer actually reads, so a future
   // change to either side cannot silently decouple them.
   const { recoveryEmail } = await import('./checkout-recovery')
   const address = publicReplyAddress({ from: 'CityBeat <hello@citybeatmag.co>' })
-  const { html } = recoveryEmail({ businessName: 'Dos Lunas BBQ', productName: 'Premium', replyTo: address })
-  assert.ok(html.includes(address), 'the printed address must be the resolved one')
-  // And the ask it is answering is still present, in both languages.
+
+  for (const locale of ['en', 'es'] as const) {
+    const { html } = recoveryEmail({
+      businessName: 'Dos Lunas BBQ',
+      productName: 'Premium',
+      locale,
+      replyTo: address,
+    })
+    assert.ok(html.includes(address), `${locale}: the printed address must be the resolved one`)
+  }
+
+  // And the ask it answers is still present, in each language's own words.
   assert.match(recoveryEmail({ replyTo: address }).html, /reply to this email/i)
   assert.match(recoveryEmail({ locale: 'es', replyTo: address }).html, /responde a este correo/i)
+})
+
+test('the Spanish nudge contains no English, now that the reply line always renders', async () => {
+  // The regression this exists to stop. The reply line was hardcoded English
+  // and only began rendering once the address stopped being unset — so making
+  // the address resolve reliably is exactly what would have shipped an English
+  // sentence to every Spanish-locale recipient. A test that merely asserted
+  // the Spanish ask phrase was present stayed green through it, because the
+  // English was APPENDED rather than substituted.
+  const { recoveryEmail } = await import('./checkout-recovery')
+  const address = publicReplyAddress({ from: 'CityBeat <hello@citybeatmag.co>' })
+  const { subject, html } = recoveryEmail({
+    businessName: 'Dos Lunas BBQ',
+    productName: 'Premium',
+    locale: 'es',
+    replyTo: address,
+  })
+
+  // The Spanish reply line is there and names the address.
+  assert.match(html, /Responde directamente a este mensaje o escríbenos a/)
+  assert.ok(html.includes(address))
+
+  // And no English fragment from this template survives anywhere in it.
+  for (const english of [
+    /Reply directly to this message/i,
+    /write to/i,
+    /just reply to this email/i,
+    /we set up a payment link/i,
+    /still want to move forward/i,
+    /\bThanks,/,
+    /^Hi,$/m,
+  ]) {
+    assert.doesNotMatch(html, english, `Spanish body must not contain ${english}`)
+    assert.doesNotMatch(subject, english, `Spanish subject must not contain ${english}`)
+  }
 })

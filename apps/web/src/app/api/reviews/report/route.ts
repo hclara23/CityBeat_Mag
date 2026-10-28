@@ -2,11 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
-import { sendEmail } from '@/lib/email'
+import { sendOperatorEmail } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
 
-const ALERT_EMAIL = process.env.ALERT_EMAIL || 'morningstarelp@gmail.com'
+// This route used to hold `const ALERT_EMAIL = process.env.ALERT_EMAIL || '<a
+// personal address>'` at module scope. Three problems, all fixed by routing
+// through sendOperatorEmail: the fallback address was a second copy of
+// ops-health's DEFAULT_ALERT_EMAIL and free to drift from it; reading env at
+// module load meant a recipient change needed a redeploy rather than the
+// env-var edit alerting is designed around; and a comma-separated ALERT_EMAIL —
+// the documented way to add a co-responder — became one malformed recipient, so
+// the alert that exists to catch defamation and spam in PUBLIC reviews would
+// have stopped arriving with nothing to indicate it.
 
 // Public "report this review" — the moderation pressure valve for defamation /
 // spam in user reviews. Stores the report and emails the operator with the
@@ -35,8 +43,7 @@ export async function POST(request: NextRequest) {
   })
 
   const esc = (s: string) => String(s || '').replace(/</g, '&lt;')
-  await sendEmail(
-    ALERT_EMAIL,
+  await sendOperatorEmail(
     `[CityBeat] Review reported on listing ${rev.listing_id || '?'}`,
     `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#111">
       <h2 style="font-weight:900">Review reported</h2>
