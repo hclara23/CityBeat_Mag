@@ -50,6 +50,36 @@ test('longest prefix wins, so a specific code beats its own sector', () => {
   assert.equal(naicsCategory('541211'), 'Financial')
 })
 
+test('NAICS 531 splits three audiences instead of calling them all Real Estate', () => {
+  // Measured in El Paso County: 9 agent/broker offices against 30 residential
+  // lessors and 57 self-storage operators. One category made the Real Estate
+  // page read as an apartment list.
+  assert.equal(naicsCategory('531210'), 'Real Estate', 'agents and brokers')
+  assert.equal(naicsCategory('531311'), 'Real Estate', 'property managers')
+  assert.equal(naicsCategory('531320'), 'Real Estate', 'appraisers')
+  assert.equal(naicsCategory('531110'), 'Apartments & Rentals', 'residential lessors')
+  assert.equal(naicsCategory('531130'), 'Self Storage', 'miniwarehouses')
+  // Commercial and land leasing stays Real Estate: that IS what a business
+  // searching for premises means by it.
+  assert.equal(naicsCategory('531120'), 'Real Estate', 'nonresidential lessors')
+  assert.equal(naicsCategory('531190'), 'Real Estate', 'other real estate lessors')
+  // The sector default must not be dragged along by the new specifics.
+  assert.equal(naicsCategory('531'), 'Real Estate')
+  assert.equal(naicsCategory('53'), 'Real Estate')
+})
+
+test('title insurance carriers reach Title & Notary, not Insurance', () => {
+  // Sierra Title, Weststar Title and Chicago Title all carry 524127 and were
+  // filed under Insurance by the 5241 prefix.
+  assert.equal(naicsCategory('524127'), 'Title & Notary')
+  assert.equal(naicsCategory('524128'), 'Title & Notary')
+  // Real insurance is untouched.
+  assert.equal(naicsCategory('524210'), 'Insurance', 'agencies and brokerages')
+  assert.equal(naicsCategory('524113'), 'Insurance', 'direct life carriers')
+  assert.equal(naicsCategory('524126'), 'Insurance', 'direct property carriers')
+  assert.equal(naicsCategory('524291'), 'Insurance', 'claims adjusters')
+})
+
 test('an unmapped code returns null rather than a guess', () => {
   // These are the real fall-throughs. They must NOT be invented into a
   // category: a wrong category is invisible because it looks categorised,

@@ -116,11 +116,28 @@ const NAICS_CATEGORY: Record<string, string> = {
   '524210': 'Insurance',
   '5241': 'Insurance', // carriers
   '524': 'Insurance',
+  // Title insurance carriers are inside the insurance subsector, so the 5241
+  // prefix filed Sierra Title, Weststar Title and Chicago Title under
+  // Insurance — while the directory has a dedicated Title & Notary vertical
+  // that closing-related searches actually use. 9 rows in El Paso County.
+  '524127': 'Title & Notary', // direct title insurance carriers
+  '524128': 'Title & Notary', // other direct title-adjacent carriers
 
   // ─── 53 Real estate and rental ───────────────────────────────────────────
   '53': 'Real Estate',
   '531': 'Real Estate',
-  '531210': 'Real Estate',
+  // 531 is three unrelated audiences, and mapping it wholesale filed all of
+  // them as Real Estate: El Paso County holds 9 agent/broker offices (531210)
+  // against 30 residential lessors (531110) and 57 self-storage operators
+  // (531130). "Chimneys Apartments Limited Partnership" and "My Storage" are
+  // real businesses people search for, but they are not what a reader or a
+  // sales rep means by Real Estate, and at 10:1 they drowned out the offices.
+  // Commercial and land lessors (531120/531190) stay — leasing premises IS
+  // what a business looks for under Real Estate — as do managers and
+  // appraisers.
+  '531110': 'Apartments & Rentals', // lessors of residential buildings
+  '531130': 'Self Storage', // miniwarehouses and self-storage units
+  '531210': 'Real Estate', // offices of real estate agents and brokers
   '531311': 'Real Estate',
   '532': 'Event Services', // rental and leasing — party/equipment rental
   '532283': 'Home Services',

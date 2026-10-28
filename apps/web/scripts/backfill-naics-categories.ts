@@ -41,8 +41,19 @@ import type { ExtractedListing } from '../src/lib/scrapeflow/types'
 
 const PROJECT = 'kerstenblueprint'
 const DB = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`
-const WORKFLOW_ID = '2BObA6FMKHSS4NUc9WXr' // TX Comptroller — new sales-tax permits
+// Both Comptroller workflows: the daily newest-permits feed and the one-off
+// back-catalogue load. Resolved by template_key rather than hardcoded id, so a
+// reseed cannot silently leave half the inventory out of a backfill.
+const TEMPLATE_KEYS = ['comptroller-el-paso-new-permits', 'comptroller-el-paso-BACKLOG']
 const BLANKET_CATEGORY = 'Professional Services'
+
+// --recategorize re-derives the category even when one is already set, which is
+// what a change to the NAICS TABLE requires: splitting 531 into Real
+// Estate / Apartments & Rentals / Self Storage, and routing 524127 title
+// carriers to Title & Notary, has to reach rows that were already categorised
+// (and already published) under the old mapping. Without the flag the script
+// only fills in rows still sitting on the blanket default.
+const RECATEGORIZE = process.argv.includes('--recategorize')
 const SOCRATA = 'https://data.texas.gov/resource/jrea-zgmq.json'
 const WHERE =
   "outlet_county_code='071' AND outlet_permit_issue_date IS NOT NULL" +
@@ -83,8 +94,14 @@ function protectedReason(f: any): string | null {
   for (const k of ['stripe_subscription_id', 'subscription_status', 'comp_tier', 'sold_by_rep', 'pending_tier']) {
     if (val(f, k)) return `has ${k}`
   }
+  // A consolidation sibling is invisible (unpublished, merged_into a canonical
+  // that carries the displayed category), so re-labelling it would be a write
+  // with no effect.
+  if (val(f, 'merged_into')) return 'consolidation sibling (merged_into)'
   const current = val(f, 'category')
-  if (current !== BLANKET_CATEGORY) return `category already ${current} (human-curated or already backfilled)`
+  if (!RECATEGORIZE && current !== BLANKET_CATEGORY) {
+    return `category already ${current} (human-curated or already backfilled)`
+  }
   return null
 }
 
@@ -134,35 +151,68 @@ function categoryByDocId(rows: Array<Record<string, string>>) {
   return { byId, unmapped }
 }
 
-async function comptrollerListings() {
-  const docs: Array<{ id: string; fields: any }> = []
-  let pageToken: string | undefined
-  do {
-    const body = {
-      structuredQuery: {
-        from: [{ collectionId: 'directory_listings' }],
-        where: {
-          fieldFilter: {
-            field: { fieldPath: 'scrapeflow_workflow_id' },
-            op: 'EQUAL',
-            value: { stringValue: WORKFLOW_ID },
-          },
-        },
-        limit: 1000,
-        ...(pageToken ? { offset: docs.length } : {}),
-      },
-    }
+async function workflowIds(): Promise<string[]> {
+  const ids: string[] = []
+  for (const key of TEMPLATE_KEYS) {
     const res = await fetch(`${DB}:runQuery`, {
       method: 'POST',
       headers: { ...auth, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'scrapeflow_workflows' }],
+          where: { fieldFilter: { field: { fieldPath: 'template_key' }, op: 'EQUAL', value: { stringValue: key } } },
+          limit: 1,
+        },
+      }),
     })
     const out = await res.json()
-    if (!res.ok) throw new Error(`runQuery failed: ${JSON.stringify(out).slice(0, 300)}`)
-    const batch = (out as any[]).filter((d) => d.document)
-    for (const d of batch) docs.push({ id: d.document.name.split('/').pop(), fields: d.document.fields })
-    pageToken = batch.length === 1000 ? 'more' : undefined
-  } while (pageToken)
+    const doc = (Array.isArray(out) ? out : []).find((d: any) => d.document)?.document
+    if (doc) ids.push(doc.name.split('/').pop())
+    else console.log(`  (no workflow for template_key ${key})`)
+  }
+  return ids
+}
+
+async function comptrollerListings() {
+  const docs: Array<{ id: string; fields: any }> = []
+  for (const workflowId of await workflowIds()) {
+    // Paged on __name__ rather than `offset`, which Firestore bills as reads of
+    // every skipped document and which drifts if a write lands mid-scan.
+    let after: string | null = null
+    for (;;) {
+      const body: any = {
+        structuredQuery: {
+          from: [{ collectionId: 'directory_listings' }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'scrapeflow_workflow_id' },
+              op: 'EQUAL',
+              value: { stringValue: workflowId },
+            },
+          },
+          orderBy: [{ field: { fieldPath: '__name__' }, direction: 'ASCENDING' }],
+          limit: 1000,
+        },
+      }
+      if (after) {
+        body.structuredQuery.startAt = {
+          values: [{ referenceValue: `projects/${PROJECT}/databases/(default)/documents/directory_listings/${after}` }],
+          before: false,
+        }
+      }
+      const res = await fetch(`${DB}:runQuery`, {
+        method: 'POST',
+        headers: { ...auth, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const out = await res.json()
+      if (!res.ok) throw new Error(`runQuery failed: ${JSON.stringify(out).slice(0, 300)}`)
+      const batch = (out as any[]).filter((d) => d.document)
+      for (const d of batch) docs.push({ id: d.document.name.split('/').pop(), fields: d.document.fields })
+      if (batch.length < 1000) break
+      after = docs[docs.length - 1].id
+    }
+  }
   return docs
 }
 
@@ -182,9 +232,9 @@ async function main() {
   const { byId, unmapped } = categoryByDocId(rows)
   console.log(`  ${rows.length} source rows, ${byId.size} recomputed ids, ${unmapped} with no confident NAICS mapping`)
 
-  console.log('Reading the listings this workflow created…')
+  console.log(`Reading Comptroller-sourced listings${RECATEGORIZE ? ' (RECATEGORIZE: existing categories may change)' : ''}…`)
   const listings = await comptrollerListings()
-  console.log(`  ${listings.length} listings carry scrapeflow_workflow_id=${WORKFLOW_ID}`)
+  console.log(`  ${listings.length} listings from ${TEMPLATE_KEYS.length} Comptroller workflow(s)`)
 
   const planned: Array<{ id: string; name: string; from: string; to: string; naics: string }> = []
   const skipped = new Map<string, number>()
@@ -201,8 +251,9 @@ async function main() {
       unmatched++
       continue
     }
-    if (hit.category === BLANKET_CATEGORY) continue // NAICS agrees with the default
-    planned.push({ id: doc.id, name: val(doc.fields, 'name') || hit.name, from: BLANKET_CATEGORY, to: hit.category, naics: hit.naics })
+    const current = val(doc.fields, 'category') || BLANKET_CATEGORY
+    if (hit.category === current) continue // already correct — no write
+    planned.push({ id: doc.id, name: val(doc.fields, 'name') || hit.name, from: current, to: hit.category, naics: hit.naics })
   }
 
   const byTarget = new Map<string, number>()

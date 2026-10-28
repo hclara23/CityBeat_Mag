@@ -19,6 +19,14 @@ export const DIRECTORY_CATEGORIES = [
   'Arts & Culture',
   'Professional Services',
   'Real Estate',
+  // Split out of 'Real Estate' on 2026-10-28. NAICS 531 lumps three unrelated
+  // audiences together: in El Paso County it is 9 agent/broker offices against
+  // 30 residential lessors and 57 self-storage operators, so a single category
+  // made the Real Estate page read as an apartment list and buried the agents
+  // the sales pitch targets. Renters and people moving house search for these
+  // directly, so they are their own destinations rather than a sub-filter.
+  'Apartments & Rentals',
+  'Self Storage',
   'Attorneys',
   'Title & Notary',
   'Insurance',
@@ -49,6 +57,8 @@ const ES_LABELS: Record<string, string> = {
   'Arts & Culture': 'Arte y Cultura',
   'Professional Services': 'Servicios Profesionales',
   'Real Estate': 'Bienes Raíces',
+  'Apartments & Rentals': 'Apartamentos y Alquileres',
+  'Self Storage': 'Bodegas de Almacenamiento',
   Attorneys: 'Abogados',
   'Title & Notary': 'Títulos y Notaría',
   Insurance: 'Seguros',
