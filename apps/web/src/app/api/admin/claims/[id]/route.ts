@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { bumpDirectoryIndexVersion } from '@/lib/directory-index-version'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasAdminAccess } from '@citybeat/lib/roles'
@@ -114,6 +115,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     }
 
     await ref.set(updates, { merge: true })
+    await bumpDirectoryIndexVersion(`claim:${action}`)
 
     // On approval, mark the owner as an advertiser so their dashboards unlock,
     // and tell them their listing is live (first-party inbox + email).

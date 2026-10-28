@@ -7,6 +7,7 @@
 // deletes. A group is skipped if more than one member is claimed.
 
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { bumpDirectoryIndexVersion } from '@/lib/directory-index-version'
 
 export function normBrandName(n: string | null | undefined): string {
   let s = String(n || '').toLowerCase()
@@ -120,5 +121,6 @@ export async function consolidateListings(opts: ConsolidateOptions): Promise<Con
     result.groups_merged++
     result.siblings_unpublished += siblings.length
   }
+  if (opts.apply && result.groups_merged > 0) await bumpDirectoryIndexVersion('consolidate')
   return result
 }

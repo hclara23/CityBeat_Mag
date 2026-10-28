@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { bumpDirectoryIndexVersion } from '@/lib/directory-index-version'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasAdminAccess } from '@citybeat/lib/roles'
@@ -76,6 +77,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
         body_es: 'Consulta las apariciones en la revista registradas en el perfil de tu negocio.',
         link: `/directory/${encodeURIComponent(id)}` }).catch(() => {})
     }
+    await bumpDirectoryIndexVersion('admin:edit')
     const doc = await ref.get()
     return NextResponse.json({
       listing: { id: doc.id, ...doc.data(), created_at: toIso(doc.data()?.created_at), updated_at: toIso(doc.data()?.updated_at) },
@@ -94,6 +96,7 @@ export async function DELETE(_request: NextRequest, props: { params: Promise<{ i
 
   try {
     await adminDb.collection('directory_listings').doc(id).delete()
+    await bumpDirectoryIndexVersion('admin:delete')
     return NextResponse.json({ success: true })
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'Internal Server Error' }, { status: 500 })

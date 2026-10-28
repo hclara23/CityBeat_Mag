@@ -10,6 +10,7 @@
 // and resells them.
 
 import { adminDb } from '@citybeat/lib/firebase/admin'
+import { bumpDirectoryIndexVersion } from '@/lib/directory-index-version'
 import type { ExtractedListing, RunSummary } from './types'
 import { isGoogleMapsContent } from './google-content'
 import { inRegion, looksLikeSameBusiness, toCandidate, type DirectoryCandidate } from './normalize'
@@ -128,6 +129,7 @@ export async function deliverToDirectory(
     }
   }
   if (ops > 0) await batch.commit()
+  if (summary.inserted > 0) await bumpDirectoryIndexVersion('scrapeflow:insert')
   log('info', `Inserted ${summary.inserted} listings (${summary.skipped_existing} existed, ${summary.skipped_invalid} out of region/invalid).`)
 
   if (opts.consolidate !== false && toInsert.length) {

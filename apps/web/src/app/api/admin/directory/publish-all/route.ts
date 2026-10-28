@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { bumpDirectoryIndexVersion } from '@/lib/directory-index-version'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { hasAdminAccess } from '@citybeat/lib/roles'
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
       }
     }
     if (inBatch > 0) await batch.commit()
+    await bumpDirectoryIndexVersion('publish-all')
 
     return NextResponse.json({
       published: count,

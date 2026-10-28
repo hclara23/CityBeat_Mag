@@ -6,7 +6,8 @@ import { activePosts, elPasoDayKey } from '@/lib/listing-content'
 import { sponsorshipExpired } from '@/lib/sponsored-rotation'
 import { cleanListingText } from '@/lib/customer-experience'
 import { getClientIp, checkRateLimit } from '@/lib/auth-security'
-import { createDirectoryIndexCache, searchDirectory, type SearchRow } from '@/lib/directory-search'
+import { createDirectoryIndexCache, searchDirectory, SEARCH_MAX_RECORDS, type SearchRow } from '@/lib/directory-search'
+import { readDirectoryIndexVersion } from '@/lib/directory-index-version'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +21,7 @@ const getIndex = createDirectoryIndexCache(async (after, limit) => {
   if(after) query=query.startAfter(after)
   const snapshot=await query.limit(limit).get()
   return snapshot.docs.map(d=>stripInternalListingFields({...d.data(),id:d.id}) as SearchRow)
-})
+}, Date.now, SEARCH_MAX_RECORDS, readDirectoryIndexVersion)
 
 export async function GET(request: NextRequest) {
   const params=request.nextUrl.searchParams

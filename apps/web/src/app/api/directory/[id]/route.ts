@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { bumpDirectoryIndexVersion } from '@/lib/directory-index-version'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { translateTexts } from '@/lib/translate'
@@ -221,6 +222,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
 
   try {
     await ref.set(allowedUpdates, { merge: true })
+    await bumpDirectoryIndexVersion('listing:edit')
 
     // Accountability: record staff (editor/developer) overrides — an edit to a
     // listing the actor does not own, or a paid field written past the tier gate.

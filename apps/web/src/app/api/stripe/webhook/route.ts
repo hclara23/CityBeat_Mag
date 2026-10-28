@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { bumpDirectoryIndexVersion } from '@/lib/directory-index-version'
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
@@ -1779,6 +1780,12 @@ export async function POST(req: NextRequest) {
         break
       default:
         break
+    }
+    // Tier, sponsorship and visibility all feed directory search ranking, and the
+    // index is cached for hours (lib/directory-search.ts). Best-effort: a failed
+    // bump only delays freshness, it can never fail the event.
+    if (/^(checkout\.|customer\.subscription\.|charge\.|invoice\.)/.test(event.type)) {
+      await bumpDirectoryIndexVersion(`stripe:${event.type}`)
     }
   } catch (e: any) {
     console.error(`Failed to process ${event.type}:`, e)

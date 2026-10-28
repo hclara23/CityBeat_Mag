@@ -5,7 +5,17 @@ export const SEARCH_PAGE_SIZE = 24
 // Safety ceiling, NOT a partial-results window. Larger inventories fail closed
 // until capacity is deliberately increased/replaced after cost/memory review.
 export const SEARCH_MAX_RECORDS = 25_000
-export const SEARCH_TTL_MS = 15 * 60 * 1000
+// Every rebuild re-reads every published row (~11k metered reads today), so these
+// three numbers ARE the Firestore bill. At the old 15-minute clock that was ~96
+// rebuilds/day (~1M reads, ~$19/month: about four-fifths of measured Firestore
+// spend in October 2026) for a directory whose rows change a few times a day.
+// Safe to lengthen because results are re-hydrated from live documents before
+// they are returned (app/api/directory/route.ts): a stale index can only mis-match
+// or mis-rank, never mis-display or serve an unpublished row. Writers that change
+// matching/ranking bump a version marker, which pulls a rebuild forward.
+export const SEARCH_TTL_MS = 6 * 60 * 60 * 1000
+export const SEARCH_MIN_REBUILD_MS = 15 * 60 * 1000
+export const SEARCH_PROBE_EVERY_MS = 60 * 1000
 export const normalizeSearch = (value: unknown): string => String(value || '').normalize('NFKD')
   .replace(/[\u0300-\u036f\uE000-\uF8FF]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 const aliases: Record<string, string> = {
@@ -61,14 +71,44 @@ export function searchDirectory(index:SearchEntry[],options:{query?:string;categ
   const page=Math.min(requested,Math.max(0,pageCount-1))
   return {ids:found.slice(page*SEARCH_PAGE_SIZE,(page+1)*SEARCH_PAGE_SIZE).map(e=>e.row.id),total,page,pageCount,hasMore:page+1<pageCount}
 }
-/** Single-flight, shared cache. Internal pages are not user-facing windows. */
-export function createDirectoryIndexCache(loadPage:(after:string|null,limit:number)=>Promise<SearchRow[]>,now=Date.now,max=SEARCH_MAX_RECORDS) {
-  let cached:{index:SearchEntry[];at:number}|undefined
-  let pending:Promise<{index:SearchEntry[];at:number}>|undefined
+/** Single-flight, shared cache. Internal pages are not user-facing windows.
+ *
+ *  Freshness has three layers, cheapest first:
+ *   - SEARCH_TTL_MS      the hard ceiling: nothing older than this is ever served.
+ *   - the version probe  `probe()` returns a marker that writers bump when search
+ *                        data changes (lib/directory-index-version.ts). Once the
+ *                        index is SEARCH_MIN_REBUILD_MS old, a changed marker
+ *                        rebuilds early. Probed at most once per
+ *                        SEARCH_PROBE_EVERY_MS, so it costs ~1 read a minute
+ *                        against ~11k for a rebuild.
+ *   - the rebuild floor  a bump cannot trigger a rebuild sooner than the floor,
+ *                        so a burst of writes (an ingest, a bulk publish) costs
+ *                        one rebuild, not one per write.
+ *  A probe that fails keeps serving what it has: "could not check" is not "changed". */
+export function createDirectoryIndexCache(loadPage:(after:string|null,limit:number)=>Promise<SearchRow[]>,now=Date.now,max=SEARCH_MAX_RECORDS,probe?:()=>Promise<string>) {
+  type Cached={index:SearchEntry[];at:number;version:string|null}
+  let cached:Cached|undefined
+  let pending:Promise<Cached>|undefined
+  let probedAt=-Infinity
+  const readVersion=async():Promise<string|null|undefined>=>{
+    if(!probe) return null
+    try{return await probe()}catch{return undefined}
+  }
   return async()=>{
-    if(cached && now()-cached.at<SEARCH_TTL_MS) return cached
+    if(cached) {
+      const age=now()-cached.at
+      if(age<SEARCH_TTL_MS) {
+        if(!probe || age<SEARCH_MIN_REBUILD_MS || now()-probedAt<SEARCH_PROBE_EVERY_MS) return cached
+        probedAt=now()
+        const v=await readVersion()
+        if(v===undefined || v===cached.version) return cached
+      }
+    }
     if(pending) return pending
     pending=(async()=>{
+      // Read the marker BEFORE loading: a bump that lands mid-load then reads as
+      // newer than this build on the next probe, instead of being absorbed by it.
+      const version=(await readVersion()) ?? null
       const rows:SearchRow[]=[];let after:string|null=null
       for(;;) {
         const limit=Math.min(1000,max-rows.length+1),batch=await loadPage(after,limit)
@@ -78,7 +118,7 @@ export function createDirectoryIndexCache(loadPage:(after:string|null,limit:numb
         if(batch.length<limit) break
         after=batch[batch.length-1].id
       }
-      cached={index:buildSearchIndex(rows),at:now()};return cached
+      cached={index:buildSearchIndex(rows),at:now(),version};return cached
     })()
     try{return await pending}finally{pending=undefined}
   }

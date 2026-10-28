@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildSearchIndex, searchDirectory, createDirectoryIndexCache, SEARCH_TTL_MS, type SearchRow } from './directory-search'
+import { buildSearchIndex, searchDirectory, createDirectoryIndexCache, SEARCH_TTL_MS, SEARCH_MIN_REBUILD_MS, SEARCH_PROBE_EVERY_MS, type SearchRow } from './directory-search'
 const row=(id:string,extra:Partial<SearchRow>={}):SearchRow=>({id,name:`Business ${id}`,is_published:true,tier:'basic',category:'Auto Repair',address:'12345 Main St, El Paso, TX 79904',...extra})
 test('one search reaches records beyond the old 8000 window and ranks paid records globally',()=>{
   const rows=Array.from({length:8100},(_,i)=>row(String(i).padStart(5,'0')))
@@ -76,4 +76,54 @@ test('the ZIP+4 tail is never mistaken for a ZIP of its own',()=>{
   for(const wrong of ['67634','93676','36763','79937']){
     assert.deepEqual(searchDirectory(index,{location:wrong}).ids,[],`${wrong} must not match a 79936 listing`)
   }
+})
+
+// ---------------------------------------------------------------------------
+// Rebuild cadence. A rebuild re-reads every published row, so the cadence is the
+// Firestore bill: the old fixed 15-minute clock was ~96 full reads a day. The
+// clock is now hours, and a version marker pulls a rebuild forward when search
+// data actually changed -- but never faster than the rebuild floor.
+// ---------------------------------------------------------------------------
+
+test('the index lives for hours, not minutes',()=>{
+  assert.ok(SEARCH_TTL_MS>=3*60*60*1000,'a short TTL is what made rebuilds ~80% of the Firestore bill')
+  assert.ok(SEARCH_MIN_REBUILD_MS<SEARCH_TTL_MS)
+})
+
+test('a version bump pulls a rebuild forward, but never faster than the floor; an unchanged or unreadable marker keeps the cache',async()=>{
+  let calls=0,clock=0,version='1',probeDown=false,probes=0
+  const get=createDirectoryIndexCache(async()=>{calls++;return [row('a')]},()=>clock,undefined,async()=>{probes++;if(probeDown) throw Error('down');return version})
+  await get();assert.equal(calls,1);assert.equal(probes,1,'the build reads the marker once, before loading')
+
+  version='2';clock=SEARCH_MIN_REBUILD_MS-1
+  await get();assert.equal(calls,1,'inside the floor: a bump must not rebuild')
+  assert.equal(probes,1,'inside the floor: the marker is not even read')
+
+  clock=SEARCH_MIN_REBUILD_MS
+  await get();assert.equal(calls,2,'at the floor, a moved marker rebuilds')
+  await get();assert.equal(calls,2,'a fresh build is served as-is')
+
+  clock+=SEARCH_MIN_REBUILD_MS+SEARCH_PROBE_EVERY_MS;version='3';probeDown=true
+  await get();assert.equal(calls,2,'a marker that cannot be read is not evidence of change')
+
+  probeDown=false;clock+=SEARCH_PROBE_EVERY_MS
+  await get();assert.equal(calls,3,'readable again and moved: rebuild')
+
+  clock+=SEARCH_MIN_REBUILD_MS+SEARCH_PROBE_EVERY_MS
+  const before=probes
+  await get();assert.equal(calls,3,'unchanged marker: no rebuild')
+  assert.equal(probes,before+1)
+  await get();assert.equal(probes,before+1,'the marker is probed at most once per probe interval')
+
+  clock+=SEARCH_TTL_MS
+  await get();assert.equal(calls,4,'the TTL is a hard ceiling regardless of the marker')
+})
+
+test('a bump that lands while a rebuild is loading is not absorbed by that rebuild',async()=>{
+  let clock=0,version='1',calls=0
+  const get=createDirectoryIndexCache(async()=>{calls++;version='2';return [row('a')]},()=>clock,undefined,async()=>version)
+  await get()
+  clock=SEARCH_MIN_REBUILD_MS
+  await get()
+  assert.equal(calls,2,'the marker was read before the load, so the mid-load bump still reads as newer')
 })

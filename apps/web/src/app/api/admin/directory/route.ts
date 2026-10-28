@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { bumpDirectoryIndexVersion } from '@/lib/directory-index-version'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
@@ -107,6 +108,7 @@ export async function POST(request: NextRequest) {
       created_at: FieldValue.serverTimestamp(),
       updated_at: FieldValue.serverTimestamp(),
     })
+    await bumpDirectoryIndexVersion('admin:create')
     const doc = await docRef.get()
     return NextResponse.json(
       { listing: { id: doc.id, ...doc.data(), created_at: toIso(doc.data()?.created_at), updated_at: toIso(doc.data()?.updated_at) } },
