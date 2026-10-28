@@ -46,3 +46,34 @@ test('cache reads every internal page and refuses over-capacity inventories',asy
   await assert.rejects(createDirectoryIndexCache(load,Date.now,1001)(),/capacity/)
   await assert.rejects(createDirectoryIndexCache(async()=>[row('a'),row('a')])(),/cursor/)
 })
+
+// ---------------------------------------------------------------------------
+// Glued ZIP+4. TABC publishes ZIP+4 with no separator, so 983 imported rows —
+// 603 of them published, all restaurants and bars — were stored as
+// "El Paso, TX 799367634" and could not be found by the directory's own search
+// box, which is labelled "City or ZIP code".
+// ---------------------------------------------------------------------------
+
+test('a stored glued ZIP+4 is still found by its five-digit ZIP',()=>{
+  // The real stored value from a live TABC-sourced listing.
+  const index=buildSearchIndex([
+    row('glued',{name:'Glued Zip Cafe',category:'Restaurant',address:'1475 George Dieter Dr Ste E, El Paso, TX 799367634'}),
+    row('hyphen',{name:'Hyphen Zip Freight',category:'Logistics & Freight',address:'100 Main St, El Paso, TX 79928-6569'}),
+    row('plain',{name:'Plain Zip Bar',category:'Restaurant',address:'525 S Stanton St, El Paso, TX 79901'}),
+  ])
+  const ids=(zip:string)=>searchDirectory(index,{location:zip}).ids.sort()
+  assert.deepEqual(ids('79936'),['glued'])
+  assert.deepEqual(ids('79928'),['hyphen'])
+  assert.deepEqual(ids('79901'),['plain'])
+})
+
+test('the ZIP+4 tail is never mistaken for a ZIP of its own',()=>{
+  // '799367634' must match 79936 and nothing else — in particular not 67634 or
+  // 93676, which a looser pattern would happily pick out of the same digits.
+  const index=buildSearchIndex([
+    row('glued',{name:'Glued Zip Cafe',category:'Restaurant',address:'1475 George Dieter Dr Ste E, El Paso, TX 799367634'}),
+  ])
+  for(const wrong of ['67634','93676','36763','79937']){
+    assert.deepEqual(searchDirectory(index,{location:wrong}).ids,[],`${wrong} must not match a 79936 listing`)
+  }
+})

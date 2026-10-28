@@ -83,7 +83,27 @@ function envNamesReferencedInCode(dir, out = new Set()) {
   }
   return out
 }
-const referenced = envNamesReferencedInCode(join(ROOT, 'apps/web/src'))
+// Every tree whose code runs in the deployed container. The scan covered only
+// apps/web/src and still printed "every variable the code reads is documented",
+// so FIREBASE_SERVICE_ACCOUNT_KEY — read by packages/lib/src/firebase/admin.ts,
+// imported by the web app, and declared nowhere in infra/cloud-run/env.json —
+// was invisible to the only guard that exists for env drift. The container is
+// built from the repo root, so the workspace boundary was never a real one.
+// Exactly the trees that run INSIDE the Cloud Run container this manifest
+// describes. `scripts/` is local one-off tooling (GOOGLE_OAUTH_ACCESS_TOKEN is
+// an ephemeral credential a human exports to run an admin script) and
+// services/worker is a Cloudflare Worker with its own wrangler secrets — vars
+// from either would be false positives against a Cloud Run manifest.
+const SCANNED_TREES = ['apps/web/src', 'packages/lib/src']
+const referenced = new Set(
+  SCANNED_TREES.flatMap((tree) => {
+    try {
+      return [...envNamesReferencedInCode(join(ROOT, tree))]
+    } catch {
+      return [] // a tree that is not present in this checkout is not a finding
+    }
+  })
+)
 const undeclaredInCode = [...referenced].filter((n) => !known.has(n)).sort()
 
 const missingRequired = required.filter((n) => !live.has(n))

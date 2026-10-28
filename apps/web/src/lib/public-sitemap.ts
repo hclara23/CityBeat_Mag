@@ -31,6 +31,25 @@ function toDate(v: any): Date | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d
 }
 
+/**
+ * A lastmod can never be in the future: a page cannot have been modified at a
+ * time that has not happened. A future value is the standard trigger for a
+ * crawler distrusting the field across the WHOLE file — which would cost the
+ * honest story lastmods below the trust they were added to earn.
+ *
+ * Production was publishing 100 of them: every Ticketmaster event URL carried
+ * its event's START DATE as its last-modified date, the newest being
+ * 2026-12-11. That is 28% of the sitemap's 355 lastmod values, refreshed
+ * unattended four times a day by citybeat-sync-events, with nothing checking it.
+ */
+export function lastModified(candidates: unknown[], now: Date = new Date()): Date | undefined {
+  for (const candidate of candidates) {
+    const parsed = toDate(candidate)
+    if (parsed && parsed.getTime() <= now.getTime()) return parsed
+  }
+  return undefined
+}
+
 async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
     '', '/stories', '/directory', '/best', '/events', '/this-weekend', '/deals', '/jobs', '/ads', '/contribute', '/privacy', '/cookies', '/terms',
@@ -42,7 +61,12 @@ async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   // Upcoming events (Event-structured detail pages).
   try {
     const events = await getUpcomingEvents(200)
-    events.forEach((e) => urls.push(entry(`/events/${e.id}`, toDate(e.start_date))))
+    // When the record was last TOUCHED, never when the event begins. Falls back
+    // through updated_at -> created_at and omits lastmod entirely rather than
+    // publishing a date that has not happened yet.
+    events.forEach((e: any) =>
+      urls.push(entry(`/events/${e.id}`, lastModified([e.updated_at, e.created_at])))
+    )
   } catch {
     /* ignore */
   }
@@ -56,7 +80,7 @@ async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
     snap.forEach((d) => {
       const data = d.data() as any
       if (!data.expires_at || data.expires_at > now) {
-        urls.push(entry(`/jobs/${d.id}`, toDate(data.updated_at || data.created_at)))
+        urls.push(entry(`/jobs/${d.id}`, lastModified([data.updated_at, data.created_at])))
       }
     })
   } catch {
@@ -74,12 +98,14 @@ async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   // Published stories (Firestore articles + bundled seed content). Track each
   // slug's real modified date for an honest lastmod (news freshness signal).
   const slugDates = new Map<string, Date | undefined>()
-  localArticles.forEach((a) => slugDates.set(a.slug, toDate((a as any).publishedAt)))
+  localArticles.forEach((a) => slugDates.set(a.slug, lastModified([(a as any).publishedAt])))
   try {
     const snap = await adminDb.collection('articles').where('status', '==', 'published').get()
     snap.forEach((d) => {
       const data = d.data() as any
-      if (data.slug) slugDates.set(data.slug, toDate(data.updatedAt || data.updated_at || data.published_at || data.publishedAt))
+      // A SCHEDULED post carries a publishedAt in the future; lastModified skips it
+      // and falls through rather than publishing a date that has not happened.
+      if (data.slug) slugDates.set(data.slug, lastModified([data.updatedAt, data.updated_at, data.published_at, data.publishedAt]))
     })
   } catch {
     /* ignore — still emit static + seed */

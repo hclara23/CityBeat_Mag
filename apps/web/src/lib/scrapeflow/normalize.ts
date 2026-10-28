@@ -161,11 +161,26 @@ export function inRegion(listing: Pick<ExtractedListing, 'address' | 'city' | 's
   return digits.length === 10 && /^(915|575)/.test(digits)
 }
 
+/**
+ * ZIP+4 with no separator is a ZIP+4, not a nine-digit ZIP. TABC stores it that
+ * way; FMCSA stores the hyphenated form. Anything that is not exactly 5 or 9
+ * digits is passed through untouched rather than guessed at.
+ */
+export function normalizeZip(zip: string): string {
+  const digits = zip.replace(/\D/g, '')
+  if (digits.length === 9 && !zip.includes('-')) return `${digits.slice(0, 5)}-${digits.slice(5)}`
+  return zip
+}
+
 export function formatAddress(listing: ExtractedListing): string | null {
   const street = (listing.address || '').trim()
   const city = (listing.city || '').trim()
   const state = (listing.state || '').trim().toUpperCase()
-  const zip = (listing.zip || '').trim()
+  // TABC publishes ZIP+4 with no separator, so this produced addresses like
+  // "El Paso, TX 799367634" — a wrong address on 603 published listings, and one
+  // the directory's own "City or ZIP code" search can never match. Split it back
+  // into the standard hyphenated form.
+  const zip = normalizeZip((listing.zip || '').trim())
   // If `address` already carries the city/state, don't double up.
   const streetHasCity = city && street.toLowerCase().includes(city.toLowerCase())
   const locality = streetHasCity ? '' : [city, [state, zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')

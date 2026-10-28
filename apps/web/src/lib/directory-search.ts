@@ -34,7 +34,13 @@ export function buildSearchIndex(rows:SearchRow[]):SearchEntry[] {
   })
 }
 function matchesLocation(address:string,location:string):boolean {
-  if(/^\d{5}$/.test(location)) return address.match(/\b(?:TX|Texas|NM|New Mexico)\s*,?\s*(\d{5})(?:-\d{4})?\b/i)?.[1]===location
+  // `(?:-?\d{4})?` rather than `(?:-\d{4})?`: 603 published listings are already
+  // stored with a glued ZIP+4 ("El Paso, TX 799367634") from the TABC import.
+  // formatAddress no longer produces that form, but tolerating it here makes
+  // every existing row findable immediately instead of after a data backfill —
+  // and these are restaurants and bars, the highest-intent category, which a
+  // search box labelled "City or ZIP code" simply could not find.
+  if(/^\d{5}$/.test(location)) return address.match(/\b(?:TX|Texas|NM|New Mexico)\s*,?\s*(\d{5})(?:-?\d{4})?\b/i)?.[1]===location
   // Locality after the first comma, not a street named El Paso.
   const locality=normalizeSearch(address.includes(',')?address.slice(address.indexOf(',')+1):address)
   return (` ${locality} `).includes(` ${location} `)

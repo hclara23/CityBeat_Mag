@@ -311,17 +311,64 @@ export async function runWorkflow(
   return { id: runRef.id, ...finished }
 }
 
-/** Cron entry: run enabled workflows whose interval has elapsed, oldest first. */
+/**
+ * Slack on the "has its interval elapsed?" test. Generous on purpose: the cost
+ * of running a workflow slightly early is one extra fetch, and the cost of
+ * running it slightly late is losing an entire day of a daily source.
+ */
+export const DUE_TOLERANCE_MS = 60 * 60 * 1000
+
+/**
+ * How many of its own intervals a workflow is overdue by. 1.0 means "due now",
+ * 2.0 means "a full cycle has already been missed", Infinity means "never run".
+ *
+ * This is the ordering key for the nightly queue, and the reason is worth
+ * stating. Sorting by `last_run_at` ascending — oldest first — sounds fair and
+ * is not: it ranks a WEEKLY workflow that has only just come due above a DAILY
+ * one that has already missed a cycle, because the weekly one's timestamp is
+ * older by construction. That is how comptroller-el-paso-new-permits, the only
+ * source that supplies genuinely new El Paso businesses each weekday, came
+ * fourth behind a weekly dentist roster and was cut by the three-slot limit.
+ *
+ * Measuring lateness against each workflow's own interval makes the comparison
+ * meaningful, and it self-balances: daily sources sit near 1.0 and win while
+ * they are behind, and a weekly source that slips to 1.3 outranks them again.
+ */
+export function overdueRatio(
+  workflow: { last_run_at?: string | null; interval_hours: number },
+  now: number
+): number {
+  if (!workflow.last_run_at) return Infinity
+  const last = Date.parse(workflow.last_run_at)
+  if (Number.isNaN(last)) return Infinity
+  return (now - last) / Math.max(1, workflow.interval_hours * 3_600_000)
+}
+
+/** Cron entry: run enabled workflows whose interval has elapsed, most overdue first. */
 export async function runDueWorkflows(opts: { limit?: number; dryRun?: boolean; totalBudgetMs?: number } = {}) {
   const limit = Math.max(1, opts.limit || 3)
   const deadline = Date.now() + (opts.totalBudgetMs || 270_000)
   const now = Date.now()
-  const due = (await listWorkflows())
+  const eligible = (await listWorkflows())
     .filter((w) => w.enabled && w.definition.nodes.length > 0)
-    .filter((w) => !w.last_run_at || now - Date.parse(w.last_run_at) >= w.interval_hours * 3_600_000 - 60_000)
+    // DUE_TOLERANCE_MS, not 60s. last_run_at is stamped at the run's START, so a
+    // workflow that began 13 seconds into yesterday's batch was 13 seconds short
+    // of its 24h interval today and was filtered out for a WHOLE DAY. That is
+    // exactly what happened to comptroller-el-paso-new-permits: it ran
+    // 2026-10-25T08:31:13, needed 86,340s by 2026-10-26T08:30:00 and had 86,327.
+    // A daily cron's own jitter must never cost a day's work.
+    .filter((w) => !w.last_run_at || now - Date.parse(w.last_run_at) >= w.interval_hours * 3_600_000 - DUE_TOLERANCE_MS)
     .filter((w) => w.last_run_status !== 'RUNNING' || !w.last_run_at || now - Date.parse(w.last_run_at) > 3_600_000)
-    .sort((a, b) => (a.last_run_at || '').localeCompare(b.last_run_at || ''))
-    .slice(0, limit)
+  // Most overdue RELATIVE TO ITS OWN INTERVAL first, not simply oldest. Sorting
+  // by last_run_at put a weekly workflow that had only just come due ahead of a
+  // daily one that had already missed a cycle — which is how the Comptroller
+  // feed, the only source that supplies genuinely new businesses each weekday,
+  // came 4th behind a weekly dentist roster and got cut by the limit.
+  const due = [...eligible].sort((a, b) => overdueRatio(b, now) - overdueRatio(a, now)).slice(0, limit)
+  // Eight enabled workflows share `limit` slots once a day. The route reported
+  // {due, ran} and never said due > ran, so a starved queue was invisible and
+  // every run still reported COMPLETED.
+  const starved = eligible.length - due.length
 
   const results: Array<{ workflow_id: string; name: string; run_id: string; status: WorkflowRunStatus; inserted: number; error: string | null }> = []
   for (const wf of due) {
@@ -330,7 +377,10 @@ export async function runDueWorkflows(opts: { limit?: number; dryRun?: boolean; 
     const run = await runWorkflow(wf, { trigger: 'cron', dryRun: opts.dryRun, timeBudgetMs: Math.min(DEFAULT_TIME_BUDGET_MS, remaining - 10_000) })
     results.push({ workflow_id: wf.id, name: wf.name, run_id: run.id, status: run.status, inserted: run.summary.inserted, error: run.error })
   }
-  return { due: due.length, ran: results }
+  // `starved` is the number of workflows that were due and did not get a slot.
+  // It is the only way an operator can see the queue is over-subscribed: before
+  // this the response said due:3 ran:3 on a night when 5 sources were waiting.
+  return { due: due.length, ran: results, eligible: eligible.length, starved }
 }
 
 /** Seed the bundled templates once (idempotent by template_key). */

@@ -41,7 +41,13 @@ function findTests(dir, out = []) {
     if (SKIP.has(entry.name)) continue
     const full = join(dir, entry.name)
     if (entry.isDirectory()) findTests(full, out)
-    else if (entry.name.endsWith('.test.ts') || entry.name.endsWith('.test.tsx')) out.push(full)
+    // .mjs included: scripts/directory-coverage-audit.test.mjs holds 3 real
+    // assertions and had NEVER run in the gate. That is the identical failure
+    // this runner's header was written to eliminate — the extension filter had
+    // quietly become the list it promised not to keep. There is no technical
+    // reason to exclude it; scripts/wait-for-candidate.test.ts already imports a
+    // .mjs module.
+    else if (/\.test\.(ts|tsx|mjs)$/.test(entry.name)) out.push(full)
   }
   return out
 }
