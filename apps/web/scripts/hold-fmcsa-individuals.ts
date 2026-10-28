@@ -33,7 +33,7 @@
  */
 import { toCandidate, titleCaseName } from '../src/lib/scrapeflow/normalize'
 import type { ExtractedListing } from '../src/lib/scrapeflow/types'
-import { officerIsEntity } from '../src/lib/fmcsa-registrant'
+import { holdSignal, HOLD_REVIEWED_NOT_INDIVIDUAL } from '../src/lib/fmcsa-registrant'
 
 const PROJECT = 'kerstenblueprint'
 const DB = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`
@@ -175,6 +175,7 @@ async function main() {
   const skipped = new Map<string, number>()
   let unmatched = 0
   let alreadyHeld = 0
+  let reviewedKept = 0
   let notPublic = 0
   const registryOnly: Array<{ id: string; name: string }> = []
 
@@ -186,9 +187,21 @@ async function main() {
     if (l.fields.is_published?.booleanValue !== true) { notPublic++; continue }
     const src = byId.get(l.id)
     if (!src) { unmatched++; continue }
-    const byOfficer = officerIsEntity(src.company_officer_1, src.legal_name)
-    const byRegistry = src.business_org_desc === 'INDIVIDUAL'
-    if (!byOfficer && !byRegistry) continue
+    // A recorded review outranks both signals (see holdSignal): a row restored
+    // by name stays restored, instead of being re-held by the very rule the
+    // restore was correcting.
+    const signal = holdSignal({
+      officer: src.company_officer_1,
+      legalName: src.legal_name,
+      businessOrgDesc: src.business_org_desc,
+      reviewed: sv(l.fields, 'hold_review'),
+    })
+    if (!signal) {
+      if (sv(l.fields, 'hold_review') === HOLD_REVIEWED_NOT_INDIVIDUAL) reviewedKept++
+      continue
+    }
+    const byOfficer = signal === 'officer' || signal === 'both'
+    const byRegistry = signal === 'registry' || signal === 'both'
     const why = protectedReason(l.fields)
     if (why) { skipped.set(why, (skipped.get(why) || 0) + 1); continue }
     if (!byOfficer) {
@@ -202,7 +215,7 @@ async function main() {
     })
   }
 
-  console.log(`FMCSA listings ${all.length}: ${notPublic} not public, ${alreadyHeld} already held, ${unmatched} unmatched to source`)
+  console.log(`FMCSA listings ${all.length}: ${notPublic} not public, ${alreadyHeld} already held, ${reviewedKept} reviewed as not-individual (left public), ${unmatched} unmatched to source`)
   for (const [why, n] of skipped) console.log(`protected — skipped (${why}): ${n}`)
   console.log(`\nwould take off the public directory: ${targets.length}`)
   console.log(`  of which the registry itself says INDIVIDUAL: ${targets.filter((t) => t.basis.includes('registry')).length}`)
@@ -265,10 +278,24 @@ async function restore(all: Array<{ id: string; fields: any }>) {
   }
   const now = new Date().toISOString()
   const writes = chosen.map((l) => ({
-    update: { name: docName(l.id), fields: { is_published: { booleanValue: true }, updated_at: { stringValue: now } } },
+    update: {
+      name: docName(l.id),
+      fields: {
+        is_published: { booleanValue: true },
+        updated_at: { stringValue: now },
+        // Only a NAMED restore (--only) is a person ruling on specific rows. A
+        // restore-everything is an undo of this script, not a review, so it
+        // records nothing and a later hold run may legitimately hold them again.
+        ...(ONLY
+          ? { hold_review: { stringValue: HOLD_REVIEWED_NOT_INDIVIDUAL }, hold_review_at: { stringValue: now } }
+          : {}),
+      },
+    },
     // publication_hold / publication_hold_at are in the mask but absent from
     // `fields`, which deletes them — so a restored row is not left half-held.
-    updateMask: { fieldPaths: ['is_published', 'updated_at', 'publication_hold', 'publication_hold_at'] },
+    updateMask: {
+      fieldPaths: ['is_published', 'updated_at', 'publication_hold', 'publication_hold_at', ...(ONLY ? ['hold_review', 'hold_review_at'] : [])],
+    },
     currentDocument: { exists: true },
   }))
   for (let i = 0; i < writes.length; i += 200) await commit(writes.slice(i, i + 200))

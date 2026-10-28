@@ -58,3 +58,37 @@ test('the known false positive is recorded rather than hidden', () => {
   assert.equal(officerIsEntity('J & E TRUCK', 'J & E TRUCK'), true)
   assert.equal(officerIsEntity('SIE TRUCKING AND SITE SOLUTIONS', 'SIE TRUCKING AND SITE SOLUTIONS'), true)
 })
+
+import { holdSignal, HOLD_REVIEWED_NOT_INDIVIDUAL } from './fmcsa-registrant'
+
+test('each signal is reported on its own, and together as "both"', () => {
+  const base = { officer: 'JOHN SMITH', legalName: 'ACME FREIGHT LLC', businessOrgDesc: '', reviewed: undefined }
+  assert.equal(holdSignal(base), null, 'a company run by a named person')
+  assert.equal(holdSignal({ ...base, officer: 'JASON MORALES', legalName: 'JASON MORALES TRUCKING' }), 'officer')
+  assert.equal(holdSignal({ ...base, businessOrgDesc: 'INDIVIDUAL' }), 'registry', 'registry alone, officer differs')
+  assert.equal(
+    holdSignal({ ...base, officer: 'JASON MORALES', legalName: 'JASON MORALES', businessOrgDesc: 'INDIVIDUAL' }),
+    'both'
+  )
+})
+
+test('a recorded review outranks BOTH signals, so a restore is not undone by the next run', () => {
+  // The regression this pins: restoring "J & E Truck" put it back, but the
+  // officer rule still matched it, so re-running the hold script would have
+  // re-held it and silently reversed the owner's decision.
+  const company = { officer: 'J & E TRUCK', legalName: 'J & E TRUCK', businessOrgDesc: '' }
+  assert.equal(holdSignal({ ...company, reviewed: undefined }), 'officer', 'unreviewed: still caught')
+  assert.equal(holdSignal({ ...company, reviewed: HOLD_REVIEWED_NOT_INDIVIDUAL }), null, 'reviewed: left alone')
+  // Even a registry-declared INDIVIDUAL yields to a person's explicit ruling.
+  assert.equal(
+    holdSignal({ officer: 'X Y', legalName: 'Z W', businessOrgDesc: 'INDIVIDUAL', reviewed: HOLD_REVIEWED_NOT_INDIVIDUAL }),
+    null
+  )
+})
+
+test('only the exact review marker counts', () => {
+  const company = { officer: 'J & E TRUCK', legalName: 'J & E TRUCK', businessOrgDesc: '' }
+  for (const reviewed of ['', 'yes', 'true', 'NOT_INDIVIDUAL', null, undefined, 1, true]) {
+    assert.equal(holdSignal({ ...company, reviewed }), 'officer', `reviewed=${String(reviewed)} must not suppress the hold`)
+  }
+})

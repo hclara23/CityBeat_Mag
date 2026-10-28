@@ -42,3 +42,39 @@ export function officerIsEntity(officer: unknown, legalName: unknown): boolean {
   const [small, big] = a.size <= b.size ? [a, b] : [b, a]
   return small.size >= 2 && [...small].every((token) => big.has(token))
 }
+
+/**
+ * The value written to a listing once a person has looked at it and decided it
+ * is NOT an individual. Stored as `hold_review` on the listing.
+ */
+export const HOLD_REVIEWED_NOT_INDIVIDUAL = 'not_individual'
+
+/**
+ * Which signal, if any, says this carrier should be held — with a human's
+ * decision outranking both.
+ *
+ * WHY THE REVIEW OUTRANKS THE RULE. The officer rule is noisy: it matches
+ * "J & E Truck" with itself because the filer typed the company name into the
+ * officer field. Restoring such a row is a human correcting the rule, but the
+ * rule still matches it. Without a durable "reviewed" marker, the next run of
+ * the hold script would re-hold every restored row and silently undo that
+ * decision — the same failure as an unpublish that a bulk-publish reverses,
+ * in the other direction.
+ *
+ * Returns the signal that fired ('both' when the officer rule and the registry
+ * agree), or null when there is nothing to hold or a person has already ruled.
+ */
+export function holdSignal(input: {
+  officer: unknown
+  legalName: unknown
+  businessOrgDesc: unknown
+  reviewed: unknown
+}): 'officer' | 'registry' | 'both' | null {
+  if (input.reviewed === HOLD_REVIEWED_NOT_INDIVIDUAL) return null
+  const byOfficer = officerIsEntity(input.officer, input.legalName)
+  const byRegistry = input.businessOrgDesc === 'INDIVIDUAL'
+  if (byOfficer && byRegistry) return 'both'
+  if (byOfficer) return 'officer'
+  if (byRegistry) return 'registry'
+  return null
+}
