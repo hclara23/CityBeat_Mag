@@ -5,6 +5,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { jsonLdSafe } from '@/lib/jsonld'
 import { breadcrumbJsonLd } from '@/lib/seo'
 import { stripInternalListingFields } from '@/lib/listing-fields'
+import { decodeListingId } from '@/lib/directory-listing-id'
 import { activePosts, elPasoDayKey } from '@/lib/listing-content'
 import DirectoryDetailClient from './DirectoryDetailClient'
 import { categoryLabel } from '@/lib/categories'
@@ -23,11 +24,29 @@ type Params = { locale: string; id: string }
 // cache() dedupes the read across generateMetadata + the component within one
 // request, so each business page hits Firestore once instead of twice.
 const getCachedListing = unstable_cache(async (id: string): Promise<any | null> => {
-  const doc = await adminDb.collection('directory_listings').doc(id).get()
+  let snap: any = await adminDb.collection('directory_listings').doc(id).get()
+  if (!snap.exists) {
+    // Every scraped listing is keyed `sf:<sha1>`, and the colon did not survive
+    // the route segment intact on this statically-rendered page: `doc(id)` was
+    // handed a form that matched nothing, so EVERY scraped business — 8,280
+    // published ones, going back to 2026-08-22 — answered "Business not found"
+    // on its own public page, while /api/directory/[id] (force-dynamic)
+    // resolved the identical id correctly. The decode above is the fix; this
+    // query is the backstop, because a candidate stores its own doc id in
+    // `google_place_id`, so the row stays findable however the segment arrives.
+    // It only runs on a miss, which after the decode means a genuine 404.
+    const byField = await adminDb
+      .collection('directory_listings')
+      .where('google_place_id', '==', id)
+      .limit(1)
+      .get()
+    if (!byField.empty) snap = byField.docs[0]
+  }
   // Keep billing state server-side until the final public serialization. Stripping
   // twice can incorrectly downgrade a paid listing whose complimentary trial ended.
-  return doc.exists && doc.data()?.is_published !== false ? toPlain({ id: doc.id, ...(doc.data() as any) }) : null
+  return snap.exists && snap.data()?.is_published !== false ? toPlain({ id: snap.id, ...(snap.data() as any) }) : null
 }, ['public-listing-v1'], { revalidate: 900 })
+
 
 const getListing = cache(async (id: string): Promise<any | null> => {
   try {
@@ -124,7 +143,7 @@ function cityFromAddress(address?: string | null): string | null {
 
 export async function generateMetadata(props: { params: Promise<Params> }): Promise<Metadata> {
   const params = await props.params;
-  const listing = await getListing(params.id)
+  const listing = await getListing(decodeListingId(params.id))
   if (!listing) return { title: 'Business not found · CityBeat', robots: { index: false, follow: false } }
 
   const locale = params.locale === 'es' ? 'es' : 'en'
@@ -270,11 +289,15 @@ function buildSchema(
 
 export default async function DirectoryDetailPage(props: { params: Promise<Params> }) {
   const params = await props.params;
-  const listing = await getListing(params.id)
+  // Decoded once and reused: reviews and Q&A are keyed by the same id, so an
+  // encoded segment would have silently emptied both even on a page that
+  // rendered.
+  const listingId = decodeListingId(params.id)
+  const listing = await getListing(listingId)
   const locale = params.locale === 'es' ? 'es' : 'en'
   const indexable = listing && listing.is_published !== false && !listing.merged_into
   const [reviewData, faq] = indexable
-    ? await Promise.all([getFirstPartyReviews(params.id), getAnsweredQuestions(params.id)])
+    ? await Promise.all([getFirstPartyReviews(listingId), getAnsweredQuestions(listingId)])
     : [{ reviews: [], count: 0, average: 0 }, [] as Array<{ q: string; a: string }>]
 
   const breadcrumb = listing
