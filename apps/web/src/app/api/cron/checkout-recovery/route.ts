@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { sendEmail } from '@/lib/email'
+import { sendEmail, publicReplyAddress } from '@/lib/email'
 import { getSalesProduct } from '@/lib/sales-products'
 import {
   planRecovery,
@@ -233,6 +233,10 @@ export async function GET(request: NextRequest) {
         // Which switch — so "is recovery email on?" is answerable without
         // reading the scheduler job and the Cloud Run env side by side.
         emails_enabled_by: sendRequested ? 'send=1' : envEnabled ? 'CHECKOUT_RECOVERY_EMAILS' : null,
+        // The address the nudge will print and set as Reply-To. The whole ask
+        // of this email is "just reply to this", so which mailbox that reaches
+        // should be visible from the dry run rather than inferred from env.
+        reply_address: publicReplyAddress(),
         // The scheduled job carries its own query string. A dry run called
         // without `send=1` says nothing about what the 07:30 run does; check
         // `gcloud scheduler jobs describe citybeat-checkout-recovery`.
@@ -261,6 +265,9 @@ export async function GET(request: NextRequest) {
     let emailed = 0
     let failed = 0
     if (sendEmails) {
+      // Resolved once: the same string is printed in the body and set as the
+      // Reply-To header on every message in this batch.
+      const replyAddress = publicReplyAddress()
       for (const order of toEmail) {
         const contactEmail = String(order.contact_email)
         // Persist the opt-out record BEFORE sending. If this write fails the
@@ -300,7 +307,13 @@ export async function GET(request: NextRequest) {
             businessName: order.business_name,
             productName: product?.name || order.product_id,
             locale: order.locale,
-            replyTo: process.env.ALERT_EMAIL,
+            // Was `process.env.ALERT_EMAIL` — the OPERATOR's alert destination,
+            // which lib/ops-health.ts treats as a comma-separated list and
+            // defaults to a personal gmail. Unset, it printed nothing, so the
+            // one email whose entire ask is "just reply to this" named no
+            // address; set, it would have published a personal inbox (or a
+            // literal "a@x.com, b@y.com") to every local business we contact.
+            replyTo: replyAddress,
           })
           subject = plain.subject
           html = plain.html
@@ -311,6 +324,9 @@ export async function GET(request: NextRequest) {
         const body = html + complianceFooter({ unsubToken, email: contactEmail, locale: order.locale })
         const result = await sendEmail(contactEmail, subject, body, undefined, {
           headers: unsubHeaders(contactEmail, order.locale),
+          // Same resolver that printed the address in the body, so Reply and
+          // "write to …" cannot reach two different mailboxes.
+          replyTo: replyAddress,
         })
         // Stamp only on a real send, so a provider outage doesn't silently burn
         // the single nudge this customer is allowed.
@@ -332,6 +348,7 @@ export async function GET(request: NextRequest) {
       scanned: orders.length,
       marked_expired: toExpire.length,
       emails_enabled: sendEmails,
+      reply_address: publicReplyAddress(),
       promo: promo || null,
       eligible_for_email: toEmail.length,
       excluded_unsubscribed: suppressedCount,
