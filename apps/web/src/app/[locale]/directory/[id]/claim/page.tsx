@@ -9,6 +9,7 @@ import { useLocale } from '@/components/TranslationProvider'
 import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
 import { RecurringTerms } from '@/components/citybeat/RecurringTerms'
 import { DirectoryPlanComparison } from '@/components/citybeat/DirectoryPlanComparison'
+import { CLAIM_SMS_CONSENT, CLAIM_SMS_CONSENT_VERSION } from '@/lib/claim-sms-consent'
 import { isListingClaimable } from '@/lib/directory-claimability'
 
 interface Listing {
@@ -311,6 +312,8 @@ function ClaimPageInner() {
     }
   }, [id, t.unclaimedStatusError, t.listingNotFound, t.loadError])
 
+  const [smsConsent, setSmsConsent] = useState(false)
+  useEffect(() => { setSmsConsent(false) }, [id, locale])
   const [claimMethod, setClaimMethod] = useState<'email' | 'phone' | 'postcard'>('email')
   const [selectedPlan, setSelectedPlan] = useState<PlanId>(() => {
     const plan = searchParams.get('plan')
@@ -391,6 +394,7 @@ function ClaimPageInner() {
   }
 
   const handleStartClaim = async () => {
+    if (claimMethod === 'phone' && !smsConsent) return
     setVerifying(true)
     setClaimErrorMsg('')
     try {
@@ -400,7 +404,7 @@ function ClaimPageInner() {
       const res = await fetch(`/api/directory/${id}/claim/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ method: claimMethod }),
+        body: JSON.stringify({ method: claimMethod, smsConsent: claimMethod === 'phone' && smsConsent, smsConsentVersion: CLAIM_SMS_CONSENT_VERSION, locale }),
       })
 
       const data = await res.json()
@@ -676,6 +680,14 @@ function ClaimPageInner() {
                 )}
 
                 <p className="mt-5 rounded-lg border border-brand-neon/30 p-4 text-sm text-white">{locale === 'es' ? 'Reclamar Básico es gratis. Inicia sesión y verifica tu relación con el negocio. No se necesita tarjeta. Premium es opcional.' : 'Claiming Basic is free. Sign in and verify your relationship to the business. No card is required. Premium is optional.'}</p>
+                {!userProfile && (
+                  <section className="mt-5 rounded-lg border border-white/10 p-4 text-sm text-white/70" aria-label={locale === 'es' ? 'Consentimiento SMS' : 'SMS consent'}>
+                    <h2 className="font-bold text-white">{locale === 'es' ? 'Cómo solicitar un código por SMS' : 'How to request an SMS code'}</h2>
+                    <p className="mt-2">{locale === 'es' ? 'Inicie sesión o cree una cuenta con el botón de abajo. Seleccione SMS / Mensaje de texto, marque la casilla con este consentimiento y seleccione Solicitar Código de Verificación. El código se envía solo al número del negocio que ya figura en la ficha.' : 'Sign in or create an account using the button below. Select SMS / Text Message, check the box with the following consent, and select Request Verification Code. The code is sent only to the business phone already on the listing.'}</p>
+                    <p className="mt-2">{CLAIM_SMS_CONSENT[locale]}</p>
+                    <p className="mt-2"><Link className="underline" href={withLocale(locale, '/privacy')}>{locale === 'es' ? 'Política de privacidad' : 'Privacy Policy'}</Link>{' · '}<Link className="underline" href={withLocale(locale, '/terms')}>{locale === 'es' ? 'Términos de SMS y servicio' : 'SMS and Service Terms'}</Link></p>
+                  </section>
+                )}
                 {/* Authentication Check */}
                 <div className="mt-10 pt-8 border-t border-white/10">
                   {!userProfile ? (
@@ -774,6 +786,19 @@ function ClaimPageInner() {
                                     ) : (
                                       <span className="text-brand-gold">{t.noPhoneOnFile}</span>
                                     )}
+                                    {listing?.claim_contact_phone_hint && (
+                                      <div className="mt-3 space-y-2">
+                                        <label className="flex items-start gap-2 cursor-pointer">
+                                          <input type="checkbox" checked={smsConsent} onChange={(e) => setSmsConsent(e.target.checked)} className="mt-0.5 accent-brand-neon" />
+                                          <span>{CLAIM_SMS_CONSENT[locale]}</span>
+                                        </label>
+                                        <p>
+                                          <Link className="underline" href={withLocale(locale, '/privacy')}>{locale === 'es' ? 'Política de privacidad' : 'Privacy Policy'}</Link>
+                                          {' · '}
+                                          <Link className="underline" href={withLocale(locale, '/terms')}>{locale === 'es' ? 'Términos de SMS y servicio' : 'SMS and Service Terms'}</Link>
+                                        </p>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
 
@@ -826,7 +851,7 @@ function ClaimPageInner() {
                                   disabled={
                                     verifying ||
                                     (claimMethod === 'email' && !listing?.claim_contact_email_hint) ||
-                                    (claimMethod === 'phone' && !listing?.claim_contact_phone_hint)
+                                    (claimMethod === 'phone' && (!listing?.claim_contact_phone_hint || !smsConsent))
                                   }
                                   className="w-full text-center rounded bg-white/10 hover:bg-white/15 text-white font-bold uppercase tracking-wider text-xs py-3 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                 >

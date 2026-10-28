@@ -8,6 +8,7 @@ import { sendEmail } from '@/lib/email'
 import { sendSms } from '@/lib/sms'
 import { reportFailure } from '@/lib/alerts'
 import { recordClaimEvent } from '@/lib/claim-funnel'
+import { acceptsClaimSmsConsent, CLAIM_SMS_CONSENT, CLAIM_SMS_CONSENT_VERSION } from '@/lib/claim-sms-consent'
 import { randomInt } from 'crypto'
 
 export const dynamic = 'force-dynamic'
@@ -63,7 +64,12 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
   }
 
   try {
-    const { method } = await request.json()
+    const { method, smsConsent, smsConsentVersion, locale } = await request.json()
+    if (method === 'phone' && !acceptsClaimSmsConsent(smsConsent, smsConsentVersion)) {
+      await track('sms_consent_required', method)
+      return NextResponse.json({ error: 'Please agree to the SMS verification disclosure before requesting a code.' }, { status: 400 })
+    }
+    const consentLocale = locale === 'es' ? 'es' : 'en'
     // Email and phone both deliver a real code now. Postcard is still a stub:
     // resolveClaimVerification returns ok with a null recipient and nothing is
     // ever sent, so allowing it would strand the claim in 'pending' with no code
@@ -100,6 +106,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       listing_id: listingId,
       user_id: user.id,
       verification_method: method,
+      ...(method === 'phone' ? { sms_consent: { accepted: true, version: CLAIM_SMS_CONSENT_VERSION, disclosure: CLAIM_SMS_CONSENT[consentLocale], locale: consentLocale, source: 'directory_claim_checkbox', recorded_at: FieldValue.serverTimestamp() } } : {}),
       verification_code: verificationCode,
       status: verification.status,
       email_address: verification.notificationType === 'email' ? verification.recipient : null,
@@ -112,7 +119,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     if (verification.notificationType === 'sms' && verification.recipient) {
       maskedRecipient = maskContact(verification.recipient, 'sms')
-      const smsBody = `CityBeat Code: ${verificationCode} for ${listing.name}. Enter this code to verify business ownership.`
+      const smsBody = `CityBeat Magazine: Your requested business listing verification code is ${verificationCode}. It expires in 15 minutes. Do not share this code. Reply STOP to opt out, HELP for help. Msg & data rates may apply.`
       // Was console.log("[MOCK SMS]"), which told the caller a code had been
       // sent and sent nothing. Mirrors the email branch below: record the real
       // outcome, and fail loudly rather than claim a delivery that never

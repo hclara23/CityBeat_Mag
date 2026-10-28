@@ -71,8 +71,12 @@ const copy = {
         heading: '14. Governing Law',
         text: 'These terms and conditions are governed by and construed in accordance with the laws of Texas, and you irrevocably submit to the exclusive jurisdiction of the courts in that location.',
       },
+      {
+        heading: '15. Text Messages (SMS)',
+        text: 'CityBeat Magazine, operated by Elevate El Paso, sends only one-time text messages you request: a business-listing ownership verification code, or a listing or payment link requested from a CityBeat representative. For verification, select SMS on your listing claim page, check the consent box and select Request Verification Code. One message is sent per request; codes expire in 15 minutes. No marketing or recurring texts. Msg & data rates may apply. Reply STOP to opt out or HELP for help; contact hello@citybeatmag.co for assistance or another way to verify. Consent is not a condition of purchase. Mobile numbers and SMS consent are not sold or shared for third-party marketing. See our Privacy Policy at /en/privacy. Carriers are not liable for delayed or undelivered messages.',
+      },
     ],
-    updated: 'Last updated: October 8, 2026',
+    updated: 'Last updated: October 28, 2026',
   },
   es: {
     title: 'Términos de Servicio',
@@ -140,8 +144,12 @@ const copy = {
         heading: '14. Ley Aplicable',
         text: 'Estos términos y condiciones se rigen e interpretan de acuerdo con las leyes de Texas, y usted se somete irrevocablemente a la jurisdicción exclusiva de los tribunales en esa ubicación.',
       },
+      {
+        heading: '15. Mensajes de Texto (SMS)',
+        text: 'CityBeat Magazine, operada por Elevate El Paso, envía únicamente mensajes de texto individuales que usted solicita: un código de verificación de propiedad de una ficha comercial, o un enlace a una ficha o pago solicitado a un representante de CityBeat. Para verificar, seleccione SMS en la página de reclamación de su ficha, marque la casilla de consentimiento y seleccione Solicitar Código de Verificación. Un mensaje por solicitud; los códigos vencen en 15 minutos. Sin mensajes promocionales ni recurrentes. Pueden aplicar tarifas de mensajes y datos. Responda STOP para cancelar o HELP para ayuda; escriba a hello@citybeatmag.co para asistencia u otra forma de verificar. El consentimiento no es condición de compra. Los números móviles y el consentimiento SMS no se venden ni comparten para marketing de terceros. Consulte la Política de privacidad en /es/privacy. Los operadores no son responsables de mensajes retrasados o no entregados.',
+      },
     ],
-    updated: 'Última actualización: 8 de octubre de 2026',
+    updated: 'Última actualización: 28 de octubre de 2026',
   },
 }
 
