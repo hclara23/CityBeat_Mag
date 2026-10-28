@@ -3,6 +3,7 @@ import { adminDb } from '@citybeat/lib/firebase/admin'
 import { collectedCents, purchaseRowCounts } from '@/lib/finance-rollup'
 import { purchaseCollectedCents, purchaseStatusIsCollected } from '@/lib/purchase-revenue'
 import { scanCollection } from '@/lib/firestore-scan'
+import { intakeRecoveryError } from '@/lib/intake-recovery'
 
 // ad_purchases created_at is a Firestore Timestamp (serverTimestamp), unlike
 // payments' ISO strings — normalize before the window check.
@@ -94,6 +95,7 @@ export async function GET(request: NextRequest) {
     let lastPaidMs = 0
     const weekAlerts: any[] = []
     const questions: string[] = []
+    const unfinishedOrders: string[] = []
     const baselineSince = now - 30 * 86400000
 
     // Feeds the same revenue rules the daily heartbeat runs, so the digest and
@@ -117,6 +119,10 @@ export async function GET(request: NextRequest) {
       })
 
     await Promise.all([
+      scanCollection(adminDb.collection('sales_orders'), (d) => {
+        const order = d.data()
+        if (!intakeRecoveryError(order)) unfinishedOrders.push(String(order.business_name || d.id))
+      }),
       trackRevenueScan(
         scanCollection(adminDb.collection('payments'), (d) => {
           const p = d.data() as any
@@ -266,6 +272,7 @@ export async function GET(request: NextRequest) {
     const html = `<div style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:600px;margin:0 auto;color:#111">
   <h1 style="font-weight:900;font-size:24px;margin:0 0 4px">city<span style="color:#0891b2;font-style:italic">BEat</span> · ops digest</h1>
   <p style="color:#666;font-size:13px;margin:0 0 20px">What your machine did in the last 7 days</p>
+  ${unfinishedOrders.length ? `<div style="padding:12px;border:1px solid #f59e0b;margin-bottom:18px"><strong>${unfinishedOrders.length} paid orders still need customer details</strong><p>${unfinishedOrders.slice(0, 20).map(esc).join(', ')}</p><a href="${esc(APP_URL)}/en/admin/fulfillment">Follow up and create a fresh private intake link</a></div>` : ''}
   ${degraded ? `<div style="background:#fee2e2;border-left:4px solid #dc2626;padding:12px 14px;margin:0 0 18px;font-size:13px;color:#7f1d1d">
     <strong style="display:block;margin-bottom:4px">Needs attention</strong>
     ${revenueVerdict.alert ? `<div>Revenue ${esc(revenueVerdict.status)}: ${esc(revenueVerdict.reason)}</div>` : ''}

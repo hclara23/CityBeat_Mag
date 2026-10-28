@@ -84,6 +84,25 @@ export default function FulfillmentQueuePage() {
   const [awaiting, setAwaiting] = useState<AwaitingIntake[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthorized, setIsAuthorized] = useState(false)
+  const [recoveryLinks, setRecoveryLinks] = useState<Record<string, string>>({})
+  const [recovering, setRecovering] = useState<string | null>(null)
+  const [recoveryError, setRecoveryError] = useState('')
+
+  const recover = async (orderId: string) => {
+    setRecovering(orderId)
+    setRecoveryError('')
+    try {
+      const res = await fetch('/api/admin/fulfillment/recovery', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Recovery failed')
+      setRecoveryLinks((prior) => ({ ...prior, [orderId]: data.url }))
+    } catch {
+      setRecoveryError(isEs ? 'No se pudo crear el enlace. Inténtalo de nuevo.' : 'Could not create the link. Please try again.')
+    } finally { setRecovering(null) }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -162,6 +181,7 @@ export default function FulfillmentQueuePage() {
 
         {awaiting.length > 0 && (
           <section className="mb-10">
+            {recoveryError && <p role="alert" className="mb-3 text-red-400">{recoveryError}</p>}
             <h2 className="mb-1 font-display text-xl font-black uppercase tracking-tight text-amber-300">
               {isEs ? 'Pagado, sin brief' : 'Paid, no brief yet'}
             </h2>
@@ -198,6 +218,17 @@ export default function FulfillmentQueuePage() {
                       {isEs ? 'Contactar' : 'Email them'}
                     </a>
                   )}
+                  <button type="button" disabled={recovering !== null || Boolean(recoveryLinks[o.id])}
+                    onClick={() => recover(o.id)}
+                    className="rounded border border-brand-neon/40 px-3 py-2 text-xs font-bold text-brand-neon disabled:opacity-50">
+                    {recovering === o.id ? (isEs ? 'Creando…' : 'Creating…') : (isEs ? 'Crear enlace de recuperación' : 'Create recovery link')}
+                  </button>
+                  {recoveryLinks[o.id] && <div className="w-full">
+                    <label className="text-xs text-white/70">{isEs ? 'Enlace privado: compártelo solo con el cliente verificado. Válido por 30 días.' : 'Private link: share only with the verified customer. Valid for 30 days.'}
+                      <input readOnly value={recoveryLinks[o.id]} onFocus={(e) => e.target.select()}
+                        className="mt-2 w-full rounded border border-white/20 bg-brand-dark p-2 text-sm text-white" />
+                    </label>
+                  </div>}
                 </div>
               ))}
             </div>

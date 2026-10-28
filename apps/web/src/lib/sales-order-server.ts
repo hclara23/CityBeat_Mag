@@ -1,6 +1,7 @@
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { salesOrderAccessExpired, salesOrderTokenMatches } from './sales-orders'
+import { validIntakeAccess } from './intake-recovery'
 
 export class SalesOrderAccessError extends Error {
   constructor(message: string, public status: number, public code: string) {
@@ -92,10 +93,11 @@ export async function authorizePaidSalesOrder(input: {
   if (!snapshot.exists) throw new SalesOrderAccessError('Order not found.', 404, 'order_not_found')
   let order = snapshot.data() as Record<string, any>
 
-  if (!salesOrderTokenMatches(input.accessToken, order.intake_token_hash)) {
+  if (!salesOrderTokenMatches(input.accessToken, order.intake_token_hash) &&
+      !salesOrderTokenMatches(input.accessToken, order.intake_recovery_token_hash)) {
     throw new SalesOrderAccessError('This order link is not valid.', 403, 'invalid_access')
   }
-  if (salesOrderAccessExpired(order.intake_expires_at)) {
+  if (!validIntakeAccess(order, input.accessToken)) {
     throw new SalesOrderAccessError('This order link has expired. Contact CityBeat for a new link.', 410, 'access_expired')
   }
 
