@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
@@ -238,6 +238,11 @@ function ClaimPageInner() {
   const [loading, setLoading] = useState(true)
   const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState('')
+  // Read by the load effect below without making it depend on them: the address
+  // bar is rewritten after load (OutreachVerify strips ?cb_o=), which changes
+  // searchParams and would otherwise re-run the whole fetch.
+  const funnelCtx = useRef({ locale, plan: searchParams.get('plan') })
+  funnelCtx.current = { locale, plan: searchParams.get('plan') }
 
   useEffect(() => {
     const loadClaimData = async () => {
@@ -273,6 +278,25 @@ function ClaimPageInner() {
         if (resProfile.ok) {
           const dataProfile = await resProfile.json()
           setUserProfile(dataProfile.profile as UserProfile)
+        }
+
+        // Tell the funnel this page rendered (lib/claim-funnel.ts). Whether the
+        // visitor is signed in is decided on the server from the session, so a
+        // signed-out visitor stopped at "create an account first" is visible as
+        // such. Once per tab session per listing: a reload is not another visit.
+        try {
+          const seen = 'cb_claim_view_' + id
+          if (!sessionStorage.getItem(seen)) {
+            sessionStorage.setItem(seen, '1')
+            void fetch('/api/track/claim-step', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ step: 'view', listing_id: id, locale: funnelCtx.current.locale, plan: funnelCtx.current.plan || undefined }),
+              keepalive: true,
+            }).catch(() => {})
+          }
+        } catch {
+          /* storage blocked or offline: an uncounted view, never a broken page */
         }
       } catch (err) {
         console.error(err)

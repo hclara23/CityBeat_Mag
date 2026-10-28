@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { describeClaimFunnel, summarizeClaimFunnel, type ClaimFunnelRow } from '@/lib/claim-funnel'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { collectedCents, purchaseRowCounts } from '@/lib/finance-rollup'
 import { purchaseCollectedCents, purchaseStatusIsCollected } from '@/lib/purchase-revenue'
@@ -78,6 +79,13 @@ export async function GET(request: NextRequest) {
     let outreachSent = 0
     let outreachOpened = 0
     let outreachClicked = 0
+    // The Spanish-vs-English first-touch test (lib/sales-agent.ts outreachLocale).
+    // Rows written before it carry no locale and were all English.
+    const byLocale = {
+      en: { sent: 0, opened: 0, clicked: 0 },
+      es: { sent: 0, opened: 0, clicked: 0 },
+    }
+    const claimEvents: ClaimFunnelRow[] = []
     let converted = 0
     let recoverySent = 0
     let claimsStarted = 0
@@ -139,8 +147,18 @@ export async function GET(request: NextRequest) {
           outreachSent++
           if ((x.opens || 0) > 0) outreachOpened++
           if ((x.clicks || 0) > 0) outreachClicked++
+          const lang = byLocale[x.locale === 'es' ? 'es' : 'en']
+          lang.sent++
+          if ((x.opens || 0) > 0) lang.opened++
+          if ((x.clicks || 0) > 0) lang.clicked++
         }
         if (x.status === 'converted' && inWindow(x.converted_at)) converted++
+      }).catch(() => null),
+
+      // Where the self-serve claim flow stalls (lib/claim-funnel.ts).
+      scanCollection(adminDb.collection('claim_funnel_events'), (d) => {
+        const x = d.data() as any
+        if (inWindow(x.created_at)) claimEvents.push(x)
       }).catch(() => null),
 
       scanCollection(adminDb.collection('recovery_outreach'), (d) => {
@@ -265,6 +283,8 @@ export async function GET(request: NextRequest) {
         ? `${revenueCents >= revenuePrior ? '▲' : '▼'} vs $${(revenuePrior / 100).toFixed(2)} last week`
         : 'no revenue recorded last week'
 
+    const claimFunnel = summarizeClaimFunnel(claimEvents)
+
     const row = (label: string, value: string | number, hint = '') =>
       `<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;color:#555">${label}${hint ? `<br/><span style="font-size:11px;color:#aaa">${hint}</span>` : ''}</td>
        <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-size:20px;font-weight:800">${value}</td></tr>`
@@ -285,6 +305,8 @@ export async function GET(request: NextRequest) {
     ${row('Outreach conversions', converted, 'listings that paid after outreach')}
     ${row('Recovery nudges sent', recoverySent, 'abandoned claims + basic upsells')}
     ${row('Claims started / verified', `${claimsStarted} / ${claimsVerified}`)}
+    ${row('Claim funnel', `${claimFunnel.codes_sent} codes sent`, esc(describeClaimFunnel(claimFunnel)))}
+    ${row('Spanish vs English outreach', `${byLocale.es.sent} ES / ${byLocale.en.sent} EN`, `opened / clicked: ES ${byLocale.es.opened} / ${byLocale.es.clicked} · EN ${byLocale.en.opened} / ${byLocale.en.clicked}`)}
     ${row('Claims awaiting your approval', pendingApproval, pendingApproval > 0 ? `review at ${APP_URL}/en/admin/claims` : '')}
     ${row(
       'Stories published',
@@ -376,6 +398,8 @@ export async function GET(request: NextRequest) {
         recovery_sent: recoverySent,
         claims_started: claimsStarted,
         claims_verified: claimsVerified,
+        claim_funnel: claimFunnel,
+        outreach_by_locale: byLocale,
         pending_approval: pendingApproval,
         new_listings: newListings,
         leads: weekLeads,

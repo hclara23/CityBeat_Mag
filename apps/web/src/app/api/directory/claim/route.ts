@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { recordClaimEvent } from '@/lib/claim-funnel'
 import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/server'
 import { hasSalesAccess } from '@citybeat/lib/roles'
 import { adminDb } from '@citybeat/lib/firebase/admin'
@@ -218,6 +219,7 @@ export async function POST(request: NextRequest) {
       subscription_data: { metadata: checkoutMetadata },
     })
 
+    await recordClaimEvent({ step: 'checkout_started', listing_id: listing.id, user_id: user.id, plan: plan.id })
     return NextResponse.json({ url: session.url })
   } catch (error: any) {
     console.error('Error creating claim checkout session:', error)

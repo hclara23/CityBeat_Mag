@@ -7,6 +7,7 @@ import { checkRateLimit } from '@/lib/auth-security'
 import { sendEmail } from '@/lib/email'
 import { sendSms } from '@/lib/sms'
 import { reportFailure } from '@/lib/alerts'
+import { recordClaimEvent } from '@/lib/claim-funnel'
 import { randomInt } from 'crypto'
 
 export const dynamic = 'force-dynamic'
@@ -36,6 +37,17 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Unauthorized. Please sign in to claim a business.' }, { status: 401 })
   }
 
+  // Every outcome of this request is recorded (lib/claim-funnel.ts): the failures
+  // used to leave no trace at all, so "why does nobody finish claiming?" had no answer.
+  const track = (outcome: string, method?: unknown) =>
+    recordClaimEvent({
+      step: 'code_requested',
+      listing_id: listingId,
+      user_id: user.id,
+      outcome,
+      method: typeof method === 'string' ? method : null,
+    })
+
   // Throttle code sends — each request emails the business's on-record address,
   // so an unthrottled caller could harass a business's inbox with codes.
   const [perListing, perUser] = await Promise.all([
@@ -43,6 +55,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     checkRateLimit(`claimstart:${user.id}`, { max: 10, windowMs: 60 * 60 * 1000 }),
   ])
   if (!perListing.ok || !perUser.ok) {
+    await track('rate_limited')
     return NextResponse.json(
       { error: 'Too many verification requests. Please try again later.' },
       { status: 429 }
@@ -61,6 +74,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     // only 787 carry an email. Email-only verification therefore left roughly
     // 82% of the directory unclaimable by the very owner it belongs to.
     if (method !== 'email' && method !== 'phone') {
+      await track('bad_method', method)
       return NextResponse.json(
         { error: 'Choose email or text verification. Postcard verification is not available yet.' },
         { status: 400 }
@@ -78,6 +92,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     const verification = resolveClaimVerification({ method, listing })
     if (!verification.ok) {
+      await track('unavailable', method)
       return NextResponse.json({ error: verification.error }, { status: verification.statusCode })
     }
 
@@ -131,6 +146,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         // 30034, the A2P block a new account hits first. Each retry would add
         // another orphan row and another false accusation.
         await claimRef.delete().catch(() => {})
+        await track(smsResult.error === 'no_sms_provider' ? 'sms_not_enabled' : 'sms_failed', method)
         if (smsResult.error === 'invalid_from') {
           await reportFailure('directory:claim:sms', new Error('TWILIO_FROM is not a sendable E.164 number'), {
             listing_id: listingId,
@@ -169,6 +185,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       if (!result.sent) {
         // The same orphan as the SMS branch above.
         await claimRef.delete().catch(() => {})
+        await track('email_failed', method)
         return NextResponse.json(
           { error: 'Could not send the verification email. Please try another method.' },
           { status: 502 }
@@ -178,6 +195,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       console.log(`[POSTCARD REQUESTED] Verification code generated for postcard: ${verificationCode}`)
     }
 
+    await track('sent', method)
     return NextResponse.json({
       status: verification.status,
       method: verification.notificationType,
@@ -186,6 +204,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
     })
   } catch (error: any) {
     console.error('Error starting verification:', error)
+    await track('error')
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 })
   }
 }

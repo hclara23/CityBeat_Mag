@@ -18,6 +18,7 @@ interface Row {
   verified?: boolean
   // Set when the listing holds a free Premium grant (lib/directory-comp.ts).
   comp_until?: string | null
+  phone?: string | null
 }
 
 type Hidden = { scanner: number; unconfirmed: number; bad_contact: number; unsubscribed: number; dismissed: number; duplicate: number }
@@ -161,6 +162,15 @@ export function EngagementBoard() {
                       <span className="font-bold text-white">{r.business}</span>
                     )}
                     {r.email && <span className="block text-[11px] text-white/40">{r.email}</span>}
+                    {r.phone && (
+                      <a
+                        href={`tel:${r.phone.replace(/[^+\d]/g, '')}`}
+                        className="mt-0.5 inline-block text-xs font-bold text-brand-neon hover:underline"
+                        title={locale === 'es' ? 'Llamar a este negocio' : 'Call this business'}
+                      >
+                        📞 {r.phone}
+                      </a>
+                    )}
                     {r.comp_until && (
                       <span
                         className="mt-1 inline-block rounded bg-brand-neon/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-brand-neon"

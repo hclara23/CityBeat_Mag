@@ -49,6 +49,9 @@ export async function GET() {
     // already have. One batched read of just the listings on screen.
     const listingIds = [...new Set(shown.map((r) => r.listing_id).filter(Boolean) as string[])]
     const compUntil = new Map<string, string>()
+    // The number to ring. A call list without one is a list of email addresses:
+    // the board named the warm leads but a rep had to go and look each phone up.
+    const phones = new Map<string, string>()
     if (listingIds.length) {
       const listings = await adminDb
         .getAll(...listingIds.map((id) => adminDb.collection('directory_listings').doc(id)))
@@ -57,10 +60,15 @@ export async function GET() {
         const data = l.exists ? (l.data() as any) : null
         const tier = data ? activeCompTier(data) : null
         if (tier) compUntil.set(l.id, String(data.comp_until))
+        if (data && typeof data.phone === 'string' && data.phone.trim()) phones.set(l.id, data.phone.trim())
       }
     }
     return NextResponse.json({
-      rows: shown.map((r) => ({ ...r, comp_until: (r.listing_id && compUntil.get(r.listing_id)) || null })),
+      rows: shown.map((r) => ({
+        ...r,
+        comp_until: (r.listing_id && compUntil.get(r.listing_id)) || null,
+        phone: (r.listing_id && phones.get(r.listing_id)) || null,
+      })),
       summary,
     })
   } catch {

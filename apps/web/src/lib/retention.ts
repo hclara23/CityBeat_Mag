@@ -35,6 +35,10 @@ export const STRIPE_EVENT_RETENTION_DAYS = 400
  *  extra day is slack for clock skew and for reading a retryAfter. */
 export const RATE_LIMIT_GRACE_MS = 24 * 60 * 60 * 1000
 
+/** Claim-funnel step events. A diagnostic for where self-serve claims stall, not
+ *  a record anyone is owed; half a year covers several outreach cycles. */
+export const CLAIM_FUNNEL_RETENTION_DAYS = 180
+
 export function expiresInDays(days: number, now: number = Date.now()): Date {
   return new Date(now + days * 86400000)
 }

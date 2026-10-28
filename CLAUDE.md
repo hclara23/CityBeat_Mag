@@ -72,7 +72,7 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 | `citybeat-directory-ingest` | **PAUSED 2026-10-28** (was 02:00) | `/api/cron/directory-ingest` | crawl/seed local businesses from OSM/Overpass (sales inventory) — 10 verticals, El Paso + Doña Ana counties; insert-only (never touches claimed/paid listings). **Overpass refuses connections from our GCP egress**, so this failed every night from 2026-10-15: the recorded reason is `fetch failed` for all 7 categories, and a one-category call returns 500 in 3.9s — two instant connection failures plus the backoff, not the 2×45s a timeout needs. The IPv6 theory was tested and REFUTED (`api.resend.com`, `api.anthropic.com`, `kvia.com` and `firestore.googleapis.com` all carry AAAA and all work from the same container), and the only IPv4-only mirrors are a dead Japanese host and a Russian one. No env var fixes a refusal at the far end. The route is unchanged and `OVERPASS_URL` is still the no-deploy escape hatch. To re-enable: unpause the job, set `state` back to `ENABLED` in `infra/scheduler/jobs.json`, and restore the `cron:directory-ingest` row in `CRON_EXPECTATIONS` — `cron-cadence.test.ts` fails until you do. Growth now comes from the Socrata feeds, which reach us in under 3s. |
 | `citybeat-enrich-contacts` | 03:00 | `/api/cron/enrich-contacts` | find emails/phones for listings |
 | `citybeat-sync-events` | 04:00 | `/api/cron/sync-events` | real Ticketmaster events (`TICKETMASTER_API_KEY` set on Cloud Run 2026-07-02); never touches community/featured events |
-| `citybeat-sales-agent` | 09:00 | `/api/cron/sales-agent?limit=20` | Claude-written bilingual outbound drip (A/B-tested first-touch subjects) + mid-funnel recovery (abandoned claims, basic→Premium) |
+| `citybeat-sales-agent` | 09:00 | `/api/cron/sales-agent?limit=20` | Claude-written bilingual outbound drip (A/B-tested first-touch subjects) + mid-funnel recovery (abandoned claims, basic→Premium). **Who it mails** is a direct query for listings that HAVE an email, filtered by `planNewContacts()` (published, unclaimed, not merged/held, one pitch per inbox, own-domain inbox) and ordered by `outreachPriority()` (customer-like trades and B2B first, restaurants/cafes last). It used to page ALL listings 80 at a time and skip the ~96% without an email; the cursor fell behind the enriched rows and nothing was sent from 2026-10-16 to 2026-10-28 while the cron reported "ok". **Language** is a hash-assigned 50/50 Spanish/English test (`outreachLocale()`; `locale` + `locale_source` stored on each outreach row; follow-ups keep the first touch's language). Scheduler URI switches, no deploy: `&spanish=0` is English-only, `&spanish=1` all Spanish, `&locale=en\|es` forces one language, `limit=` is the daily new-contact volume. The weekly ops digest prints the ES-vs-EN open/click split. |
 | `citybeat-newsletter-digest` | Fri 08:00 | `/api/cron/newsletter-digest` | weekly story digest to subscribers; "Sponsored by" slot from `ad_banners` placement=`newsletter`; dry-run with `?dryRun=1` |
 | `citybeat-owner-reports` | monthly 1st 09:00 | `/api/cron/owner-reports` | ROI report (views/leads/reviews) emailed to every claimed-listing owner; basic tier gets Premium upsell |
 | `citybeat-upsell` | Tue 10:00 | `/api/cron/upsell?limit=20` | Premium→Featured upsell emails (one per listing) |
@@ -110,6 +110,29 @@ triggered by **Google Cloud Scheduler** jobs (project `kerstenblueprint`, region
 | `citybeat-heartbeat` | every 6h | `/api/cron/heartbeat` | **notices a scheduled job that has stopped running.** Until this existed, a cron could simply die and the only symptom was that its work quietly stopped happening. Compares every source in `CRON_EXPECTATIONS` (`lib/ops-health.ts`) against its last `reportSuccess` stamp in `system_health`. A `tracking_since` marker stops the first deploy paging about jobs that merely have not run yet. **A source only counts as live if a route actually calls `reportSuccess('<source>')`** — `ops-health.test.ts` reads the cron routes and fails if the expectation table and the code disagree in either direction. |
 
 Manage with `gcloud scheduler jobs list/run/pause --location us-central1`.
+
+> **The directory search index is the Firestore bill.** `/api/directory` keeps a
+> process-local index (`lib/directory-search.ts`) rebuilt by re-reading every
+> published listing (~11k reads). At the old fixed 15-minute TTL that was ~96
+> rebuilds/day, about 80% of measured Firestore spend (~$19 of ~$24/month,
+> October 2026). The TTL is now 6 hours; `SEARCH_MIN_REBUILD_MS` (15 min) is the
+> floor, and writers that change matching or ranking (Stripe webhook events, claim
+> decisions, listing edits, bulk publish, ScrapeFlow inserts, consolidation) call
+> `bumpDirectoryIndexVersion()` (`lib/directory-index-version.ts`), which pulls a
+> rebuild forward — but never faster than the floor. Results are re-hydrated from
+> live documents, so a stale index can only mis-match or mis-rank, never serve an
+> unpublished row. A NEW write path that changes tier, visibility, name, category
+> or address should bump the marker too; forgetting costs at most one TTL.
+> `consolidateListings` still re-reads the whole collection per ScrapeFlow run with
+> inserts — the next cost to look at.
+>
+> **The claim funnel is instrumented** (`lib/claim-funnel.ts`, collection
+> `claim_funnel_events`, 180-day TTL on `expires_at`): the claim page view
+> (`/api/track/claim-step`, signed-in state read server-side), every verification
+> code request with its outcome (`sent`, `sms_not_enabled`, `unavailable`, …), and
+> checkout start. Those three left no trace before. The weekly ops digest prints
+> the funnel line. Enable the TTL policy once with `gcloud firestore fields ttls
+> update expires_at --collection-group=claim_funnel_events --enable-ttl`.
 
 **The 22 jobs are declared in `infra/scheduler/jobs.json`.** Run `npm run
 scheduler:check` to diff live against that manifest — it reports missing jobs,
