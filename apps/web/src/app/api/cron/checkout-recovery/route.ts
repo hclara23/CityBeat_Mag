@@ -145,9 +145,20 @@ export async function GET(request: NextRequest) {
     .split(',')
     .map((e) => e.trim().toLowerCase())
     .filter((e) => e.includes('@'))
-  const sendEmails =
-    !dryRun &&
-    (searchParams.get('send') === '1' || process.env.CHECKOUT_RECOVERY_EMAILS === 'on')
+  // Two independent switches, and a dry run must answer for BOTH.
+  //
+  // Reporting only the env var was a trap waiting to spring: sends were turned
+  // on 2026-10-27 by putting `send=1` on the Cloud Scheduler job's own URI (no
+  // redeploy, instantly revocable), while CHECKOUT_RECOVERY_EMAILS stayed
+  // unset. A `?dryRun=1` called without that flag would then have answered
+  // `emails_enabled: false` — "recovery email is off" — about a job that mails
+  // customers every morning. The dry run now reports the effective state for
+  // the flags it was called with, and names which switch is doing it, so the
+  // answer can be wrong only if you ask a different question than the
+  // scheduler does.
+  const sendRequested = searchParams.get('send') === '1'
+  const envEnabled = process.env.CHECKOUT_RECOVERY_EMAILS === 'on'
+  const sendEmails = !dryRun && (sendRequested || envEnabled)
   const limit = Math.max(1, Math.min(Number(searchParams.get('limit')) || 200, 500))
   // ?days= widens the 45-day standing window for a deliberate backlog clear-out.
   // It is clamped, it defaults to the standing policy, and every other guard —
@@ -218,7 +229,14 @@ export async function GET(request: NextRequest) {
         promo: promo || null,
         window_days: windowDays,
         window_widened: widened,
-        emails_enabled: Boolean(process.env.CHECKOUT_RECOVERY_EMAILS === 'on'),
+        emails_enabled: sendRequested || envEnabled,
+        // Which switch — so "is recovery email on?" is answerable without
+        // reading the scheduler job and the Cloud Run env side by side.
+        emails_enabled_by: sendRequested ? 'send=1' : envEnabled ? 'CHECKOUT_RECOVERY_EMAILS' : null,
+        // The scheduled job carries its own query string. A dry run called
+        // without `send=1` says nothing about what the 07:30 run does; check
+        // `gcloud scheduler jobs describe citybeat-checkout-recovery`.
+        scheduled_run_may_differ: !sendRequested && !envEnabled,
         recipients: toEmail.map((o) => ({
           id: o.id,
           business: o.business_name || null,

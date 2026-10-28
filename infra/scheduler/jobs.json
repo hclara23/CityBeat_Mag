@@ -41,7 +41,7 @@
       "name": "citybeat-checkout-recovery",
       "schedule": "30 7 * * *",
       "timeZone": "America/Chihuahua",
-      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/checkout-recovery?limit=200",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/checkout-recovery?limit=200&send=1",
       "httpMethod": "GET",
       "requiresCronSecret": true,
       "attemptDeadline": "300s",
