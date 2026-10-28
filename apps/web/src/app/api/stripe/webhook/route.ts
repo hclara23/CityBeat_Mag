@@ -1296,6 +1296,126 @@ async function handleChargeDisputeCreated(dispute: any) {
   )
 }
 
+/**
+ * A dispute has been decided. Nothing in this system ever learned the outcome.
+ *
+ * `charge.dispute.created` synthesises a FULL refund and runs the entire refund
+ * path: the listing drops to Basic with its Sponsored slot cleared, the payments
+ * row is written `refunded`, ad campaigns and their banner mirror are
+ * deactivated, the pending referral is disqualified, and commission is clawed
+ * back (held -> reversed, or paid -> clawback_owed). That is the right response
+ * to a dispute being OPENED.
+ *
+ * Disputes are frequently won. When one was, the customer's subscription was
+ * still live and still billing them while their listing sat on Basic, their
+ * placement was off, finance had permanently written the invoice off
+ * (finance-rollup drops a 'refunded' row), and the rep's commission was either
+ * destroyed or carrying a debt that only a manual conversation can settle. The
+ * only artefact was an alert saying "respond to the dispute in Stripe".
+ *
+ * What this does and does not do, deliberately:
+ *
+ *   - The payments ledger IS restored on a win. The money is genuinely ours
+ *     again, 'refunded' is now simply false, and leaving it would understate
+ *     revenue permanently in every finance rollup.
+ *   - SERVICE is not restored automatically. That remains the judgement the
+ *     existing comment calls it: weeks may have passed, the customer may have
+ *     moved on, and silently re-charging someone's page back to Premium is not a
+ *     safe webhook action.
+ *   - COMMISSION is not restored automatically either, because a reversed share
+ *     may already have been settled in conversation with the rep, and paying it
+ *     twice is worse than paying it late.
+ *
+ * So the alert now carries the exact rows a human needs, instead of a sentence
+ * telling them to go and look.
+ */
+async function handleChargeDisputeClosed(dispute: any) {
+  const chargeId = stripeObjectId(dispute.charge)
+  if (!chargeId) return
+  const won = dispute.status === 'won'
+  const now = new Date().toISOString()
+
+  // Record the outcome whatever it was, so there is a trail that the dispute
+  // ended and how. Keyed by dispute id, which Stripe guarantees unique.
+  await adminDb
+    .collection('stripe_disputes')
+    .doc(String(dispute.id))
+    .set(
+      {
+        dispute_id: dispute.id,
+        charge_id: chargeId,
+        status: dispute.status || 'unknown',
+        reason: dispute.reason || null,
+        amount: Number(dispute.amount) || 0,
+        closed_at: now,
+      },
+      { merge: true }
+    )
+    .catch(() => {})
+
+  if (!won) {
+    // Lost or withdrawn: the write-off already applied when the dispute opened,
+    // so there is nothing to undo. Say so plainly rather than staying silent —
+    // "the dispute is over" is information the operator wants either way.
+    await reportFailure(
+      'stripe-webhook-dispute',
+      new Error(
+        `Chargeback ${dispute.status || 'closed'} (${dispute.reason || 'unknown reason'}). The downgrade and ` +
+          `write-off applied when it opened and remain correct; no action needed.`
+      ),
+      { dispute_id: dispute.id, charge_id: chargeId, amount: dispute.amount, status: dispute.status },
+      { skipHealth: true, alertKey: 'dispute-closed' }
+    ).catch(() => {})
+    return
+  }
+
+  // Won. Put the ledger back.
+  //
+  // Resolved through the charge's INVOICE, exactly as handleChargeRefunded does
+  // when it un-books the row. `payments` documents are KEYED by invoice id and
+  // carry no charge id at all (fields: stripe_invoice_id, stripe_customer_id,
+  // stripe_subscription_id, status, amount) — a `where('stripe_charge_id', ...)`
+  // query would have matched nothing on every dispute, forever, and reported a
+  // successful restore of zero rows.
+  const restored: string[] = []
+  try {
+    const charge = await stripe.charges.retrieve(chargeId)
+    const invoiceId = stripeObjectId((charge as any).invoice)
+    if (invoiceId) {
+      const ref = adminDb.collection('payments').doc(invoiceId)
+      const doc = await ref.get()
+      if (doc.exists && (doc.data() as any)?.status === 'refunded') {
+        await ref.set(
+          { status: 'paid', amount_refunded: 0, dispute_won_at: now, refunded_at: null, updated_at: now },
+          { merge: true }
+        )
+        restored.push(invoiceId)
+      }
+    }
+  } catch {
+    /* reported below — a failed restore must not swallow the alert */
+  }
+
+  await reportFailure(
+    'stripe-webhook-dispute',
+    new Error(
+      `Chargeback WON (${dispute.reason || 'unknown reason'}). The money is ours again. ` +
+        `Payments ledger restored: ${restored.length ? restored.join(', ') : 'no refunded row matched this charge — check it by hand'}. ` +
+        `NOT restored automatically, by design — do these in the admin: (1) the listing is on Basic with its ` +
+        `Sponsored slot cleared, (2) any ad campaign and its banner mirror are deactivated, (3) the rep's ` +
+        `commission is 'reversed' or carries a 'clawback_owed' debt. Restoring service re-charges a customer's ` +
+        `page weeks later and re-paying commission may double-pay a rep already settled with, so both want a human.`
+    ),
+    {
+      dispute_id: dispute.id,
+      charge_id: chargeId,
+      amount: dispute.amount,
+      payments_restored: restored,
+    },
+    { skipHealth: true, alertKey: 'dispute-won', escalate: true }
+  ).catch(() => {})
+}
+
 async function recordPayment(invoice: any) {
   const subscriptionId = stripeInvoiceSubscriptionId(invoice)
   const subscriptionDoc = subscriptionId
@@ -1634,6 +1754,13 @@ export async function POST(req: NextRequest) {
         break
       case 'charge.dispute.created':
         await handleChargeDisputeCreated(obj)
+        break
+      // Previously absent entirely, so a dispute's OUTCOME was never learned.
+      // 'closed' is the terminal event; 'updated' fires on evidence changes too
+      // and is handled by the same function, which no-ops unless the status is
+      // actually decided.
+      case 'charge.dispute.closed':
+        await handleChargeDisputeClosed(obj)
         break
       case 'invoice.payment_succeeded':
         await handleInvoicePaymentSucceeded(obj)
