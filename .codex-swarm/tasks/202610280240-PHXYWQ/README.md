@@ -9,7 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: Repair email aliases and paid intake recovery; verify ownership against owner_id and preserve customer entitlements." }
 doc_version: 2
-doc_updated_at: "2026-10-28T02:45:43+00:00"
+doc_updated_at: "2026-10-28T02:54:35+00:00"
 doc_updated_by: "agentctl"
 description: "Verify and repair published support addresses, paid directory ownership and intake recovery, and bounce feedback. No subagents; test locally before any deployment; no new spending authorized."
 ---
@@ -35,5 +35,5 @@ Revert task code commit before deployment. Remove only support and contact alias
 
 ## Notes
 
-Pending: CityBeat Resend account access and signing-secret configuration; verified Varsity owner registration/claim; end-to-end forwarding delivery; deployment authorization/cost cap and live checks. Full application readiness is not yet established.
+Resend account identified: elevatelepaso (confirmed browser). Webhook 5de26cdc-3552-455b-b0bf-7069e640fb73 enabled for email.bounced/email.complained. Signing secret configured without exposing it. Configuration-only same-image revision citybeat-web-00415-can promoted to 100 percent; prior revision citybeat-web-00413-xuv remains rollback. Signed synthetic events returned 200 and stored correct bounce/complaint suppressions; unsigned request 401. Reserved example.invalid test recipients only, no customer emails. Pending: real provider-delivered event observation; Varsity verified owner registration; forwarding end-to-end check; code recovery release still local at 57a27e3 and awaits build spending approval.
 
