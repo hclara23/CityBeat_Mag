@@ -31,16 +31,20 @@ export async function PATCH(request: NextRequest) {
   // godmode operator set "directory: 50%" that silently did nothing (the live
   // settings doc really contains that value). Rejecting is kinder than
   // ignoring — it tells the caller which knob actually works.
-  if ('service_payout_percent' in body || 'default_payout_percent' in body) {
+  // user_overrides joins them for exactly the same reason. It is read only by
+  // resolvePayoutPercent, whose only caller is payoutToUser — which payouts.ts
+  // documents as "DEPRECATED — DO NOT USE FOR COMMISSION… It has no callers."
+  // The live engine uses computeSplit + split_overrides. So a godmode operator
+  // could set a per-user commission percent, get a 200, watch it persist, and
+  // have it change nothing about what anyone is paid: precisely the silent
+  // no-op this adjacent guard was added to stop.
+  if ('service_payout_percent' in body || 'default_payout_percent' in body || 'user_overrides' in body) {
     return NextResponse.json(
-      { error: 'service_payout_percent/default_payout_percent are not read by the payout engine. Configure split_overrides (per-user percents) instead.' },
+      { error: 'service_payout_percent/default_payout_percent/user_overrides are not read by the payout engine. Configure split_overrides (per-user percents) instead.' },
       { status: 400 }
     )
   }
   const patch: any = {}
-  if (body.user_overrides && typeof body.user_overrides === 'object') {
-    patch.user_overrides = body.user_overrides
-  }
   // Per-individual commission split overrides — sanitized server-side (valid
   // UIDs, percents clamped 0–100). Full replace of the map.
   if ('split_overrides' in body) {

@@ -48,13 +48,33 @@ export default function FinanceDashboard() {
         <p className="text-xs font-black uppercase tracking-[0.28em] text-brand-magenta">Godmode</p>
         <h1 className="mt-2 font-display text-4xl font-black tracking-tight text-white">Finance & Analytics</h1>
 
+        {summary.truncated && (
+          <div className="mt-6 rounded-xl border border-brand-gold/40 bg-brand-gold/10 p-4 text-sm text-brand-gold">
+            <strong className="font-black uppercase tracking-wider">Partial totals.</strong> A ledger exceeded the
+            50,000-document scan cap, so every figure below is a floor, not a total. Narrow the window or raise the
+            cap before acting on these numbers.
+          </div>
+        )}
+
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
             { label: 'Gross billed', value: money(summary.total_gross) },
             { label: 'Discounts granted', value: money(summary.total_discounts) },
             { label: 'Net collected', value: money(summary.total_incoming) },
             { label: 'Paid out', value: money(summary.total_paid_out) },
-            { label: 'Platform net', value: money(summary.platform_net) },
+            // `platform_net` is incoming - paid_out, which excludes every `held`,
+            // `failed` and `skipped_no_connected_account` share. At 40-70% split
+            // rates that is most of recent revenue, and the API's own comment
+            // says ignoring it "overstated margin by up to 65% of recent sales".
+            // The corrected figure was sitting unused in the same payload.
+            { label: 'Platform net (before commission)', value: money(summary.platform_net) },
+            { label: 'Commission accrued, unpaid', value: money(summary.total_commission_owed) },
+            { label: 'Platform net after commission', value: money(summary.platform_net_after_owed) },
+            // A debt created by a refund AFTER payout appeared on no operator
+            // surface at all — only the rep's own earnings tile and one alert
+            // email. runPayoutCycle never nets a debt off, so collecting it is
+            // manual, and there was no number to work from.
+            { label: 'Owed back (clawback)', value: money(summary.commission_owed_back) },
             { label: 'Active subs', value: String(summary.active_subscriptions ?? 0) },
           ].map((card) => (
             <div key={card.label} className="rounded-xl border border-white/10 bg-white/5 p-5">

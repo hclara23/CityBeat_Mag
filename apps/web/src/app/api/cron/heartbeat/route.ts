@@ -80,8 +80,36 @@ export async function GET(request: NextRequest) {
     const verdict = revenue.complete
       ? evaluateRevenueHealth(revenue)
       : { status: 'quiet' as const, alert: false, reason: 'revenue scan incomplete — not judged' }
+    // Not judging is correct — partial numbers look exactly like a revenue stop.
+    // Staying SILENT about not judging was not. `quiet` never alerts, so the one
+    // detector for "money stopped" (which throws nothing, because nobody
+    // completing checkout means no code runs) could disarm itself permanently
+    // the moment a ledger outgrew the 50,000-document scan cap, and the only
+    // symptom would be scan_complete:false in a JSON body nobody reads.
+    //
+    // A query filter would be the better fix and is NOT available: payments
+    // stores created_at as an ISO STRING (measured: 5/5 stringValue) while
+    // transfers stores a Timestamp on some rows and omits it on others, so a
+    // `where('created_at','>=', <Date>)` would match zero rows and report a
+    // revenue stop on every single run — strictly worse than the cap. Fixing
+    // that typing is a data migration, not a line here.
+    const detectorDisarmed = !revenue.complete
 
     if (!dryRun) {
+      if (detectorDisarmed) {
+        await reportFailure(
+          'revenue:detector',
+          new Error(
+            'the revenue-stop detector could not complete its scan, so it is NOT watching. ' +
+              'Either a ledger has outgrown the 50,000-document scan cap or Firestore errored. ' +
+              'Until this clears, a revenue stop will not be noticed by anything.'
+          ),
+          { baseline_count: revenue.baselineCount, ms_since_last_paid: revenue.msSinceLastPaid },
+          // Its own key so it cannot crowd out the liveness alert below, and
+          // skipHealth because there is no cron source named for it.
+          { skipHealth: true, alertKey: 'revenue-detector' }
+        ).catch(() => {})
+      }
       if (liveness.stale.length) {
         await reportFailure(
           'cron:liveness',

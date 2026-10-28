@@ -26,5 +26,14 @@ INGEST_URL = "https://citybeatmag.co"
 # ]
 
 # Secrets are set via `wrangler secret put <NAME>` (never committed):
-#   INGEST_SECRET, RESEND_API_KEY, NEWS_API_KEY  (Stripe/DeepL secrets were
-#   removed 2026-08-28 — this worker no longer touches payments or translation)
+#   INGEST_SECRET, RESEND_API_KEY, NEWS_API_KEY, DEEPL_API_KEY
+#
+#   Stripe secrets were removed 2026-08-28; this worker no longer touches
+#   payments. DEEPL_API_KEY was NOT removed and must not be: src/index.ts routes
+#   POST /api/translate to src/handlers/translate.ts, and the web app's
+#   lib/translate.ts calls this worker as its PRIMARY translation path, falling
+#   back to Claude only when it is unreachable. Delete that secret and every
+#   listing, article and event quietly stops being DeepL-translated and starts
+#   billing Anthropic tokens instead, with nothing failing loudly enough to
+#   notice. An earlier revision of this comment said translation was gone, which
+#   is the one place an operator would read before pruning it.

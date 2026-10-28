@@ -11,6 +11,7 @@ import {
 import { notify, NOTIFY_WORKFLOWS } from '@/lib/notify'
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { reportFailure, reportSuccess } from '@/lib/alerts'
+import { parseAlertRecipients, DEFAULT_ALERT_EMAIL } from '@/lib/ops-health'
 import { sendEmail } from '@/lib/email'
 import {
   consumeReferralRewardForInvoice,
@@ -332,7 +333,13 @@ async function handleCheckoutCompleted(session: any) {
   // fulfillment.
   await notify({
     workflowId: NOTIFY_WORKFLOWS.newSale,
-    to: { subscriberId: 'operator', email: process.env.ALERT_EMAIL },
+    // Same fallback lib/alerts.ts uses. ALERT_EMAIL is not set on the live
+    // service, so this triggered the operator subscriber with email: undefined —
+    // and notify() swallows every error, so the "a payment arrived" notification
+    // failed silently and indistinguishably from no sales at all. Failure
+    // alerting was never affected; it already falls back. This is the success
+    // notification, which is the one nobody notices is missing.
+    to: { subscriberId: 'operator', email: parseAlertRecipients(process.env.ALERT_EMAIL, DEFAULT_ALERT_EMAIL)[0] },
     payload: {
       amount: ((session.amount_total || 0) / 100).toFixed(2),
       currency: (session.currency || 'usd').toUpperCase(),

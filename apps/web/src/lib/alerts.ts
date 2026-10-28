@@ -188,8 +188,22 @@ export async function reportCronAuthRejected(source: string, authorizationHeader
 
   return reportFailure(
     source,
+    // States what was OBSERVED, and lists the causes as possibilities rather
+    // than asserting one. The previous text declared "the Cloud Scheduler job
+    // and the Cloud Run service are out of sync" — i.e. every cron is 401ing and
+    // the whole automation engine has stopped — on the sole evidence of a bearer
+    // token it did not recognise. It fired once, on 2026-10-27T19:41:53, and the
+    // caller was a hand-run `curl .../api/cron/heartbeat?dryRun=1` while the real
+    // scheduler job had succeeded at 18:00 that evening. An alert that
+    // confidently misattributes is worse than a vague one: it sends the operator
+    // to fix a console that is not broken, and teaches them to discount the next
+    // one.
     new Error(
-      'scheduled call rejected: the caller presented a bearer token that does not match CRON_SECRET — the Cloud Scheduler job and the Cloud Run service are out of sync'
+      'a caller presented a bearer token that does not match CRON_SECRET and was rejected (HTTP 401). ' +
+        'Check this source’s own last recorded outcome before acting: if its scheduled runs are still ' +
+        'succeeding, this was something else calling the endpoint (a hand-run curl, a probe, an old script) ' +
+        'and nothing is wrong. If its scheduled runs are ALSO failing, CRON_SECRET has been rotated on one ' +
+        'side only and every cron is being rejected.'
     ),
     { reason: 'cron_auth_rejected' },
     { skipHealth: true, alertKey: 'cron-auth', escalate: true }
