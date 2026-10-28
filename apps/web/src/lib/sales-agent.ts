@@ -1,11 +1,10 @@
 import crypto from 'crypto'
 import { adminDb } from '@citybeat/lib/firebase/admin'
-import { FieldPath, FieldValue, Timestamp } from 'firebase-admin/firestore'
+import { FieldValue } from 'firebase-admin/firestore'
 import { sendEmail as sendEmailViaProvider } from './email'
 import { isSuppressed } from './suppression'
 import { reportFailure } from './alerts'
 import { traceClaude, traceClaudeFailure } from '@/lib/observability'
-import { getCronCursor, setCronCursor } from './cron-cursor'
 import { DIRECTORY_PLANS } from './pricing'
 import { fetchWithTimeout, FETCH_TIMEOUT_LLM } from './http'
 
@@ -36,14 +35,17 @@ type Listing = {
   description?: string
   description_es?: string
   hours?: Record<string, string>
+  website?: string
+  is_published?: boolean
+  merged_into?: unknown
+  publication_hold?: unknown
 }
 
-// Cursor helpers live in ./listing-cursor - the identical bug existed in
-// enrich-contacts, so the fix is shared rather than copied. Re-exported here
+// Cursor helpers live in ./listing-cursor. New-contact selection no longer pages
+// with them (see "Who gets contacted next" below) but they stay re-exported here
 // because sales-agent-cursor.test.ts imports them from this module.
-import { encodeListingCursor, decodeListingCursor } from './listing-cursor'
 import { unsubHeaders } from './unsub-headers'
-import { isChainLocatorUrl } from './enrich-contacts'
+import { isChainLocatorUrl, isOwnInbox } from './enrich-contacts'
 export { encodeListingCursor, decodeListingCursor, type ListingCursor } from './listing-cursor'
 
 function claimUrl(listingId: string, outreachId: string, locale = 'en') {
@@ -115,6 +117,136 @@ export function pickFirstTouchVariant(
     had_contact_details: hadContact,
   }
 }
+
+// ─── Who gets contacted next ────────────────────────────────────────────────
+//
+// WHY THIS IS NOT A PAGED SCAN ANY MORE. New contacts used to be found by paging
+// `unclaimed` listings in created_at order, 4 x limit (80) at a time, and
+// skipping the ones with no email. Only ~4% of listings have an email (1,109 of
+// 29,430 in October 2026), so a window of 80 held about three candidates — and
+// the cursor only ever moved forward, past every listing that was enriched
+// AFTER it went by. The scraper then appended ~17,000 email-less rows to the end
+// of the order. Result: the last first-touch went out on 2026-10-16, twelve days
+// of silence from a cron that reported "ok" every morning, while 839 enriched,
+// never-contacted listings sat behind the cursor.
+//
+// Selection is now a direct query for listings that HAVE an email (a single-field
+// index, ~1.1k reads), filtered and ordered in memory by planNewContacts().
+
+/**
+ * Categories contacted FIRST. A category earns a place here by matching a
+ * business that has actually paid (Auto Repair, Home Services — a roofer) or by
+ * being B2B with a clean inbox and the best click rate seen so far (October
+ * 2026, 361 first touches: Automation & Controls 17%, Industrial Supply 7%,
+ * Logistics & Freight 6%, every one of them 100% deliverable).
+ *
+ * This is a HYPOTHESIS built on small samples — 2 customers, 16-27 sends per B2B
+ * category. It sets the order, never excludes anyone, and `category_priority` is
+ * stamped on every outreach row so it can be re-measured and changed.
+ */
+const FIRST_CATEGORIES = new Set(['auto repair', 'home services', 'automation & controls', 'industrial supply', 'logistics & freight'])
+/** Contacted LAST: restaurants and cafes were 56% of all sends at a 4.5% click
+ *  rate (8 of 177), with 40-55% of the inboxes later found to belong to someone
+ *  else (an ordering platform, a web agency) rather than the owner. */
+const LAST_CATEGORIES = new Set(['restaurant', 'cafe'])
+
+export function outreachPriority(category?: string | null): 0 | 1 | 2 {
+  const c = String(category || '').trim().toLowerCase()
+  if (FIRST_CATEGORIES.has(c)) return 0
+  if (LAST_CATEGORIES.has(c)) return 2
+  return 1
+}
+
+/** Share of new first touches sent in Spanish unless a run forces a language.
+ *  El Paso is ~80% bilingual and every send so far was English, so this is a
+ *  50/50 test: the same hash-assigned split also makes the result readable. */
+export const DEFAULT_SPANISH_SHARE = 0.5
+
+/**
+ * Deterministic per-listing language for a first touch. Hashed with its own salt
+ * so it is independent of the subject-line arm (subjectVariant hashes the bare
+ * id): each subject arm receives both languages in the same proportion, which is
+ * what lets one be compared against the other.
+ */
+export function outreachLocale(listingId: string, spanishShare: number = DEFAULT_SPANISH_SHARE): 'en' | 'es' {
+  const share = Number.isFinite(spanishShare) ? Math.min(1, Math.max(0, spanishShare)) : 0
+  if (share <= 0) return 'en'
+  if (share >= 1) return 'es'
+  const u = crypto.createHash('sha1').update(`outreach-locale:${listingId}`).digest().readUInt32BE(0) / 0x1_0000_0000
+  return u < share ? 'es' : 'en'
+}
+
+const normEmail = (v: unknown) => String(v ?? '').trim().toLowerCase()
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+function websiteHost(website: unknown): string | undefined {
+  if (typeof website !== 'string' || !website.trim()) return undefined
+  try {
+    return new URL(/^https?:/i.test(website) ? website : `https://${website}`).hostname || undefined
+  } catch {
+    return undefined
+  }
+}
+
+export interface NewContactPlan {
+  /** Contactable listings, best-first. The caller applies the async suppression check. */
+  ordered: Listing[]
+  skipped: Record<
+    'not_unclaimed' | 'unpublished' | 'merged' | 'held' | 'invalid_email' | 'already_contacted' | 'duplicate_inbox' | 'chain_locator' | 'foreign_inbox',
+    number
+  >
+}
+
+/**
+ * Pure: who may receive a first touch, in the order they should. Everything that
+ * makes an email to this listing wrong is excluded here and COUNTED, so a short
+ * queue says why:
+ *   unpublished / merged / held   the pitch says "your business is listed in the
+ *                                 public CityBeat directory"; for a hidden or
+ *                                 folded-in sibling card that is false, and the
+ *                                 "view your listing" link would 404
+ *   already_contacted             this listing, or this INBOX via another listing
+ *                                 (a chain's branches share one address; 26 queued
+ *                                 inboxes had already been mailed that way)
+ *   duplicate_inbox               the same address on several queued listings:
+ *                                 the best-priority one wins, the rest wait
+ *   chain_locator / foreign_inbox head-office or web-agency addresses, never the
+ *                                 local owner (lib/enrich-contacts.ts)
+ */
+export function planNewContacts(
+  pool: Listing[],
+  contacted: { listingIds: ReadonlySet<string>; emails: ReadonlySet<string> }
+): NewContactPlan {
+  const skipped: NewContactPlan['skipped'] = {
+    not_unclaimed: 0, unpublished: 0, merged: 0, held: 0, invalid_email: 0,
+    already_contacted: 0, duplicate_inbox: 0, chain_locator: 0, foreign_inbox: 0,
+  }
+  const sorted = [...pool].sort(
+    (a, b) => outreachPriority(a.category) - outreachPriority(b.category) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+  )
+  const seenInboxes = new Set<string>()
+  const ordered: Listing[] = []
+  for (const l of sorted) {
+    const email = normEmail(l.email)
+    if (l.claim_status !== 'unclaimed') { skipped.not_unclaimed++; continue }
+    if (l.is_published !== true) { skipped.unpublished++; continue }
+    if (l.merged_into) { skipped.merged++; continue }
+    if (l.publication_hold) { skipped.held++; continue }
+    if (!EMAIL_SHAPE.test(email)) { skipped.invalid_email++; continue }
+    if (contacted.listingIds.has(l.id) || contacted.emails.has(email)) { skipped.already_contacted++; continue }
+    if (isChainLocatorUrl(l.website)) { skipped.chain_locator++; continue }
+    if (!isOwnInbox(email, websiteHost(l.website))) { skipped.foreign_inbox++; continue }
+    if (seenInboxes.has(email)) { skipped.duplicate_inbox++; continue }
+    seenInboxes.add(email)
+    ordered.push({ ...l, email })
+  }
+  return { ordered, skipped }
+}
+
+const NEW_CONTACT_FIELDS = [
+  'name', 'category', 'email', 'phone', 'address', 'description', 'description_es', 'hours', 'website',
+  'claim_status', 'is_published', 'merged_into', 'publication_hold',
+] as const
 
 const escHtml = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
@@ -577,10 +709,28 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
 
 // Run one outreach batch: new unclaimed businesses with an email, who have not
 // been contacted, plus due follow-ups. dryRun renders+logs without sending.
-export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean; locale?: 'en' | 'es' } = {}) {
+//
+// Language: `opts.locale` forces one language for every send in the run (an
+// operator override). Left unset, each NEW listing is assigned a language by
+// outreachLocale() at `spanishShare` and the choice is stored on its outreach row
+// (`locale`, `locale_source`); follow-ups then keep whatever that row says.
+export async function runSalesOutreach(
+  opts: { limit?: number; dryRun?: boolean; locale?: 'en' | 'es'; spanishShare?: number } = {}
+) {
   const limit = Math.max(1, Math.min(opts.limit ?? 25, 100))
-  const locale = opts.locale ?? 'en'
-  const results = { contacted: 0, followups: 0, skipped_no_email: 0, skipped_already: 0, sent: 0, dryRun: Boolean(opts.dryRun) }
+  const spanishShare = opts.spanishShare ?? DEFAULT_SPANISH_SHARE
+  const results: {
+    contacted: number
+    followups: number
+    skipped_no_email: number
+    skipped_already: number
+    sent: number
+    dryRun: boolean
+    queue_size?: number
+    spanish_share?: number
+    contacted_by_locale?: { en: number; es: number }
+    skipped_ineligible?: NewContactPlan['skipped']
+  } = { contacted: 0, followups: 0, skipped_no_email: 0, skipped_already: 0, sent: 0, dryRun: Boolean(opts.dryRun) }
 
   // 1) Due follow-ups first.
   // Bounded: sales_outreach grows by one doc per business ever contacted, so an
@@ -622,12 +772,16 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
     }
     if (await isSuppressed(o.email)) continue
     const listing: Listing = { id: o.listing_id, name: o.business_name, category: o.category, email: o.email }
-    const base = templatePitch(listing, step, locale)
-    const content = await enhanceWithClaude(listing, base, locale)
-    const html = renderHtml(listing, content, doc.id, locale)
+    // A follow-up continues in the language the first touch used. It used to take
+    // the RUN's language, which would have sent a Spanish first touch an English
+    // reminder the moment any run was not English-only.
+    const rowLocale: 'en' | 'es' = o.locale === 'es' ? 'es' : 'en'
+    const base = templatePitch(listing, step, rowLocale)
+    const content = await enhanceWithClaude(listing, base, rowLocale)
+    const html = renderHtml(listing, content, doc.id, rowLocale)
     let sent = false
     if (!opts.dryRun) {
-      const r = await sendEmail(o.email, content.subject, html)
+      const r = await sendEmail(o.email, content.subject, html, rowLocale)
       sent = r.sent
     }
     if (!opts.dryRun) {
@@ -648,74 +802,44 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
     if (sent) results.sent++
   }
 
-  // 2) New contacts: unclaimed listings with an email, not yet in sales_outreach.
-  // Ordered + cursored across INVOCATIONS (not just within one run) — an
-  // unordered, un-cursored query here used to reprocess the same lowest-doc-ID
-  // ~80 listings forever, permanently missing everything scraped in after the
-  // original backlog (new listings sort after old ones under any doc-ID-based
-  // default ordering). See cron-cursor.ts.
-  const cursorName = 'sales_agent_new_contacts'
-  const cursor = decodeListingCursor(await getCronCursor(cursorName))
-  const batchSize = limit * 4
-  const listings = adminDb.collection('directory_listings')
-  let listingsQuery: FirebaseFirestore.Query = listings
-    .where('claim_status', '==', 'unclaimed')
-    .orderBy('created_at', 'asc')
-    // Explicit __name__ tiebreak so the cursor can carry both halves of the sort
-    // key (see encodeListingCursor). Firestore already applies this ordering
-    // implicitly and the existing (claim_status, created_at) composite index
-    // serves it, so this adds no index requirement.
-    .orderBy(FieldPath.documentId(), 'asc')
-    .limit(batchSize)
-  if (cursor) {
-    const at =
-      cursor.kind === 'string' ? cursor.value : new Timestamp(cursor.seconds, cursor.nanoseconds)
-    listingsQuery = listingsQuery.startAfter(at, listings.doc(cursor.id))
-  }
-  const listingsSnap = await listingsQuery.get()
-  const lastDoc = listingsSnap.docs[listingsSnap.docs.length - 1]
-  const reachedEnd = listingsSnap.docs.length < batchSize
-  await setCronCursor(
-    cursorName,
-    reachedEnd || !lastDoc ? null : encodeListingCursor((lastDoc.data() as any)?.created_at, lastDoc.id)
-  )
+  // 2) New contacts — see "Who gets contacted next" above for why this is a
+  // direct query and not a paged scan. Reads: every listing that has an email
+  // (~1.1k) plus the outreach ledger (listing_id + email only), once per run.
+  const [emailSnap, outreachSnap] = await Promise.all([
+    adminDb.collection('directory_listings').where('email', '>', '').select(...NEW_CONTACT_FIELDS).get(),
+    adminDb.collection('sales_outreach').select('listing_id', 'email').get(),
+  ])
+  const pool = emailSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Listing[]
+  const plan = planNewContacts(pool, {
+    listingIds: new Set(outreachSnap.docs.map((d) => String(d.get('listing_id') || '')).filter(Boolean)),
+    emails: new Set(outreachSnap.docs.map((d) => normEmail(d.get('email'))).filter(Boolean)),
+  })
+  results.queue_size = plan.ordered.length
+  results.spanish_share = opts.locale ? (opts.locale === 'es' ? 1 : 0) : spanishShare
+  results.contacted_by_locale = { en: 0, es: 0 }
+  results.skipped_ineligible = plan.skipped
 
-  for (const lDoc of listingsSnap.docs) {
+  for (const l of plan.ordered) {
     if (results.contacted >= limit) break
-    const l = { id: lDoc.id, ...(lDoc.data() as any) } as Listing
-    if (!l.email) {
-      results.skipped_no_email++
-      continue
-    }
-    // A chain store whose "website" is head office's store locator: the email we
-    // hold is a corporate inbox, not the local owner (lib/enrich-contacts.ts).
-    if (isChainLocatorUrl((l as any).website)) {
-      results.skipped_no_email++
-      continue
-    }
-    if (await isSuppressed(l.email)) {
-      results.skipped_already++
-      continue
-    }
-    const already = await adminDb.collection('sales_outreach').where('listing_id', '==', l.id).limit(1).get()
-    if (!already.empty) {
+    if (await isSuppressed(l.email as string)) {
       results.skipped_already++
       continue
     }
     const ref = adminDb.collection('sales_outreach').doc()
+    const rowLocale = opts.locale ?? outreachLocale(l.id, spanishShare)
     // Downgrades to variant 0 when the mirror arms' data is missing, so the
     // recorded subject_variant always matches the copy that actually went out —
     // and records the intent + eligibility so the scoreboard can un-confound it.
     const assignment = pickFirstTouchVariant(l)
     const variant = assignment.variant
-    const base = templatePitch(l, 0, locale, variant)
+    const base = templatePitch(l, 0, rowLocale, variant)
     // Mirror arms (3-4) quote the listing's own data — never let Claude
     // paraphrase that away.
-    const content = variant >= 3 ? base : await enhanceWithClaude(l, base, locale)
-    const html = renderHtml(l, content, ref.id, locale)
+    const content = variant >= 3 ? base : await enhanceWithClaude(l, base, rowLocale)
+    const html = renderHtml(l, content, ref.id, rowLocale)
     let sent = false
     if (!opts.dryRun) {
-      const r = await sendEmail(l.email, content.subject, html)
+      const r = await sendEmail(l.email as string, content.subject, html, rowLocale)
       sent = r.sent
     }
     // A dry run must not create experiment rows: the already-contacted guard is
@@ -723,14 +847,17 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
     // being emailed for real while its arm assignment vanished from the analysis.
     if (opts.dryRun) {
       results.contacted++
+      results.contacted_by_locale[rowLocale]++
       continue
     }
     await ref.set({
       listing_id: l.id,
       business_name: l.name || null,
       category: l.category || null,
+      category_priority: outreachPriority(l.category),
       email: l.email,
-      locale,
+      locale: rowLocale,
+      locale_source: opts.locale ? 'forced' : 'ab',
       step: 0,
       subject_variant: variant,
       variant_intended: assignment.variant_intended,
@@ -744,6 +871,7 @@ export async function runSalesOutreach(opts: { limit?: number; dryRun?: boolean;
       last_sent_at: FieldValue.serverTimestamp(),
     })
     results.contacted++
+    results.contacted_by_locale[rowLocale]++
     if (sent) results.sent++
   }
 

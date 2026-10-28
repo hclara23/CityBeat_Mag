@@ -24,10 +24,20 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   try {
     const dryRun = searchParams.get('dryRun') === '1'
+    // Language. `?locale=en|es` forces one language for the whole run. Left off,
+    // each new listing is assigned one by hash (lib/sales-agent.ts outreachLocale)
+    // and `?spanish=0.5` is the Spanish share — `?spanish=0` is the switch back to
+    // English-only, `?spanish=1` all Spanish. Like `limit`, these live on the
+    // Cloud Scheduler job's own URI, so changing them needs no deploy. Every send
+    // used to be English because this defaulted to 'en' and the job never passed one.
+    const forced = searchParams.get('locale')
+    const spanishRaw = searchParams.get('spanish')
+    const spanishShare = spanishRaw === null || spanishRaw.trim() === '' ? undefined : Number(spanishRaw)
     const result = await runSalesOutreach({
       limit: Number(searchParams.get('limit')) || 25,
       dryRun,
-      locale: (searchParams.get('locale') as 'en' | 'es') || 'en',
+      locale: forced === 'en' || forced === 'es' ? forced : undefined,
+      spanishShare: spanishShare !== undefined && Number.isFinite(spanishShare) ? spanishShare : undefined,
     })
     // Mid-funnel recovery rides the same daily run: abandoned verifications and
     // claimed-but-basic owners each get one nudge, tracked in recovery_outreach.
