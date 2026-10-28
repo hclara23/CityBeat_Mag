@@ -296,7 +296,7 @@
       "name": "citybeat-scrapeflow",
       "schedule": "30 2 * * *",
       "timeZone": "America/Chihuahua",
-      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/scrapeflow?limit=3",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/scrapeflow?limit=8",
       "httpMethod": "GET",
       "requiresCronSecret": true,
       "attemptDeadline": "600s",

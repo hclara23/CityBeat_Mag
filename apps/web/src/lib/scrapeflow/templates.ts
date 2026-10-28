@@ -614,7 +614,7 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     key: 'comptroller-el-paso-new-permits',
     name: 'TX Comptroller — new sales-tax permits (El Paso County)',
     description:
-      'Texas Comptroller Active Sales Tax Permit Holders (data.texas.gov jrea-zgmq, licenseId PUBLIC_DOMAIN, refreshed daily): every business location holding an active Texas sales-tax permit in El Paso County — 21,219 of them, each with a street address and a 799xx ZIP. This workflow deliberately takes only the NEWEST permits each run (order by outlet_permit_issue_date DESC, 400 rows) rather than the whole file. Roughly 17-29 genuinely new El Paso permits appear per weekday, so 400 is wide headroom. The full 21,219 back-catalogue is NOT loaded here: the directory sink runs a sequential name-match query per candidate, and 21k of those cannot finish inside the route 300s budget — load the backlog deliberately from /admin/scrapeflow instead. NAICS 454110 and 454390 (home-based online and direct sellers, ~1,800 rows) and 611110 (public elementary and secondary schools, which hold sales-tax permits for fundraisers and are not directory businesses — 14 of a 400-row window) are excluded in the query because they are not storefronts. No phone or website in this dataset, so rows depend on citybeat-enrich-contacts. Publish was FALSE pending review; a 400-row batch was then reviewed through the real mapper and region filter on 2026-10-24 and the composition is genuine local inventory — 37 hobby/game shops, 18 mobile food services, 34 restaurants across four NAICS, 10 auto dealers, plus skin studios and a vineyard — so it is now TRUE. These rows arrive with NO phone or website and depend on citybeat-enrich-contacts before they are contactable.',
+      'Texas Comptroller Active Sales Tax Permit Holders (data.texas.gov jrea-zgmq, licenseId PUBLIC_DOMAIN): every business location holding an active Texas sales-tax permit in El Paso County — 19,286 after the NAICS exclusions below (re-measured 2026-10-28; this said 21,219). THE RELIABLE SOURCE: Socrata answers in under 3s from Cloud Run, where Overpass fails at the connection level. This workflow deliberately takes only the NEWEST permits each run (order by outlet_permit_issue_date DESC, 400 rows, NULL issue dates excluded) rather than the whole file. Measured volume is 323 new permits per 30 days and 1,005 per 90 — about 11 a day, not the 17-29 per weekday this once claimed — so a 400-row window spans roughly a month (2026-09-22 .. 2026-10-24 when checked) and is wide headroom against a 24h interval. The full 21,219 back-catalogue is NOT loaded here: the directory sink runs a sequential name-match query per candidate, and 21k of those cannot finish inside the route 300s budget — load the backlog deliberately from /admin/scrapeflow instead. NAICS 454110 and 454390 (home-based online and direct sellers, ~1,800 rows) and 611110 (public elementary and secondary schools, which hold sales-tax permits for fundraisers and are not directory businesses — 14 of a 400-row window) are excluded in the query because they are not storefronts. No phone or website in this dataset, so rows depend on citybeat-enrich-contacts. Publish was FALSE pending review; a 400-row batch was then reviewed through the real mapper and region filter on 2026-10-24 and the composition is genuine local inventory — 37 hobby/game shops, 18 mobile food services, 34 restaurants across four NAICS, 10 auto dealers, plus skin studios and a vineyard — so it is now TRUE. These rows arrive with NO phone or website and depend on citybeat-enrich-contacts before they are contactable.',
     enabled: true,
     interval_hours: 24,
     definition: {
@@ -628,7 +628,17 @@ export const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
               encodeURIComponent('outlet_permit_issue_date DESC') +
               '&$limit=400&$where=' +
               encodeURIComponent(
-                "outlet_county_code='071' AND outlet_naics_code NOT IN ('454110','454390','611110')"
+                // `outlet_permit_issue_date IS NOT NULL` is load-bearing, not
+                // defensive. SoQL sorts NULLs FIRST on a DESC order, and 19 El
+                // Paso rows have no issue date at all (verified against the live
+                // dataset 2026-10-28). So the "newest 400 permits" window was
+                // really 19 permanently-pinned 1961 records — SKY CHEFS #255,
+                // AMERICAN AIRLINES — plus the newest 381. They are inserted on
+                // the first run and skipped as existing on every run after, so
+                // they cost 4.75% of each night's window forever and the loss
+                // was invisible: the run still reports COMPLETED.
+                "outlet_county_code='071' AND outlet_permit_issue_date IS NOT NULL" +
+                  " AND outlet_naics_code NOT IN ('454110','454390','611110')"
               ),
             'Max items': '400',
           },
