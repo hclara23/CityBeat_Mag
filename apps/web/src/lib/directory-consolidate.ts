@@ -72,6 +72,13 @@ export async function consolidateListings(opts: ConsolidateOptions): Promise<Con
   for (const doc of snap.docs) {
     const data = { id: doc.id, ...(doc.data() as any) }
     if (data.merged_into) continue
+    // A listing under a publication hold is kept out of consolidation ENTIRELY,
+    // not merely left unpublished. Two reasons, both about privacy: as a
+    // canonical it would be re-published (this function writes
+    // `is_published: true` on every canonical unconditionally), and as a sibling
+    // its address would be copied into the canonical's public `locations[]` —
+    // putting a held individual's address on another business's page.
+    if (data.publication_hold) continue
     const key = normBrandName(data.name)
     if (!key || key.length < 3) continue
     if (wanted && !wanted.has(key)) continue

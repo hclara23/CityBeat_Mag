@@ -56,6 +56,11 @@ const val = (f: any, k: string): string | null => {
 /** null when safe to publish, otherwise why not. Order matters: merged_into first. */
 function blockedReason(f: any): string | null {
   if (val(f, 'merged_into')) return 'consolidation sibling (merged_into) — republishing restores a duplicate'
+  // A hold is a recorded decision not to show this listing (e.g. an FMCSA
+  // carrier filed under an individual's own name). It outranks every content
+  // check below: such a row has a phone and an address, so it would otherwise
+  // look like exactly the kind of listing this script exists to publish.
+  if (val(f, 'publication_hold')) return `publication hold (${val(f, 'publication_hold')})`
   if (f?.is_published?.booleanValue === true) return 'already published'
   const claim = val(f, 'claim_status')
   if (claim && claim !== 'unclaimed') return `claimed (${claim})`

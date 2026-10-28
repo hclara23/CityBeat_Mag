@@ -4,6 +4,7 @@ import { isGoogleMapsContent } from './scrapeflow/google-content'
 export type PublicationBlockReason =
   | 'already_published'
   | 'merged_duplicate'
+  | 'publication_hold'
   | 'restricted_provenance'
   | 'invalid_name'
   | 'invalid_category'
@@ -15,6 +16,8 @@ export type PublicationListing = {
   id: string
   is_published?: boolean
   merged_into?: string | null
+  /** A recorded decision NOT to show this listing publicly. See baseBlockReason. */
+  publication_hold?: string | null
   google_place_id?: string | null
   source_url?: string | null
   name?: string | null
@@ -47,6 +50,12 @@ function identityKeys(listing: PublicationListing) {
 function baseBlockReason(listing: PublicationListing): PublicationBlockReason | null {
   if (listing.is_published) return 'already_published'
   if (listing.merged_into) return 'merged_duplicate'
+  // A hold is a recorded decision that this listing is not to be shown, and no
+  // bulk job may override it. It exists because the first FMCSA unpublish
+  // (individuals filed under their own name) would have been undone by exactly
+  // this route: such a row has a name, a category and a phone, so it passes
+  // every check below and one click on "publish all" would have restored it.
+  if (listing.publication_hold) return 'publication_hold'
   if (isGoogleMapsContent(listing)) return 'restricted_provenance'
   if (norm(listing.name).length < 2) return 'invalid_name'
   if (!CATEGORIES.has(String(listing.category || ''))) return 'invalid_category'
@@ -67,6 +76,7 @@ export function auditDirectoryPublication(listings: PublicationListing[]) {
   const blocked: Record<PublicationBlockReason, number> = {
     already_published: 0,
     merged_duplicate: 0,
+    publication_hold: 0,
     restricted_provenance: 0,
     invalid_name: 0,
     invalid_category: 0,

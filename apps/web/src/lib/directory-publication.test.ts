@@ -19,6 +19,30 @@ test('merged siblings never become bulk-publication candidates', () => {
   assert.equal(result.blocked.merged_duplicate, 1)
 })
 
+test('a listing under a publication hold is never a bulk-publication candidate', () => {
+  // The FMCSA census includes sole proprietors filed under their own name. Those
+  // were unpublished on purpose, but such a row has a name, a category and a
+  // phone, so it satisfies every OTHER check and "publish all" would have
+  // restored it. The hold must win even when the row is otherwise complete.
+  const held = {
+    ...valid,
+    id: 'held',
+    phone: '9155550100',
+    publication_hold: 'fmcsa_individual',
+  }
+  const result = auditDirectoryPublication([held, { ...valid, id: 'ordinary', name: 'Mesa Air Pros' }])
+  assert.equal(result.blocked.publication_hold, 1)
+  assert.deepEqual(result.eligibleIds, ['ordinary'], 'only the row without a hold is eligible')
+})
+
+test('an empty or missing hold does not block', () => {
+  for (const publication_hold of [undefined, null, '']) {
+    const result = auditDirectoryPublication([{ ...valid, publication_hold }])
+    assert.equal(result.eligible, 1)
+    assert.equal(result.blocked.publication_hold, 0)
+  }
+})
+
 test('restricted Google-derived records are refused even when otherwise complete', () => {
   const result = auditDirectoryPublication([
     { ...valid, google_place_id: 'ChIJN1t_tDeuEmsRUsoyG83frY4' },
