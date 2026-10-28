@@ -179,8 +179,11 @@ async function main() {
   const registryOnly: Array<{ id: string; name: string }> = []
 
   for (const l of all) {
-    if (l.fields.is_published?.booleanValue !== true) { notPublic++; continue }
+    // Hold is checked BEFORE publication state. A held row is by definition
+    // unpublished, so testing publication first sent every held row into
+    // "not public" and made this report "0 already held" with 20 held.
     if (sv(l.fields, 'publication_hold')) { alreadyHeld++; continue }
+    if (l.fields.is_published?.booleanValue !== true) { notPublic++; continue }
     const src = byId.get(l.id)
     if (!src) { unmatched++; continue }
     const byOfficer = officerIsEntity(src.company_officer_1, src.legal_name)
