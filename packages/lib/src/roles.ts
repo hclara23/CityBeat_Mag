@@ -43,21 +43,43 @@ export function hasDeveloperAccess(profile: PlatformProfile | null | undefined) 
   return Boolean(profile?.is_developer || profile?.can_manage_platform || hasActiveRole(profile, ['developer']))
 }
 
+/**
+ * Full operator access: the customer lead inbox, paid-claim approval, the whole
+ * directory, events, traffic analytics, and granting roles to other accounts.
+ *
+ * 'editor' is deliberately NOT in this list any more, and `is_editor` no longer
+ * implies it. The two predicates used to be the same function, so the narrowest
+ * grant that lets somebody publish the newsroom queue also read every contact
+ * and quote request the public has ever submitted — names, emails, phone numbers
+ * — approved paid claims (activating a tier somebody was charged for), let them
+ * edit or publish any of 12,000 listings including rep-sold and paying ones, and
+ * let them grant 'editor' to a further account. There was no grant that meant
+ * only "can publish stories", which is the reason a second human could not be
+ * onboarded safely, and a privacy exposure the published policy does not
+ * contemplate.
+ *
+ * Nobody loses access to this change: the one production profile carrying
+ * is_editor also carries role 'admin' explicitly, and the owner's profile is
+ * developer with every role granted.
+ */
 export function hasAdminAccess(profile: PlatformProfile | null | undefined) {
-  return Boolean(
-    hasDeveloperAccess(profile) ||
-    profile?.is_editor ||
-    hasActiveRole(profile, ['admin', 'editor'])
-  )
+  return Boolean(hasDeveloperAccess(profile) || hasActiveRole(profile, ['admin']))
 }
 
+/**
+ * Editorial access: the newsroom review queue and article publishing. Implied by
+ * admin, so every existing operator keeps it, but grantable on its own.
+ */
 export function hasEditorAccess(profile: PlatformProfile | null | undefined) {
-  return hasAdminAccess(profile)
+  return Boolean(hasAdminAccess(profile) || profile?.is_editor || hasActiveRole(profile, ['editor']))
 }
 
 export function hasWriterAccess(profile: PlatformProfile | null | undefined) {
   return Boolean(
-    hasAdminAccess(profile) ||
+    // hasEditorAccess, not hasAdminAccess: an editor must still be able to use
+    // the creator tools that feed the queue they review. Admin implies editor,
+    // so this stays a superset for every existing operator.
+    hasEditorAccess(profile) ||
     profile?.is_writer ||
     hasActiveRole(profile, ['writer'])
   )
@@ -85,6 +107,10 @@ export function hasAdvertiserAccess(profile: PlatformProfile | null | undefined)
 export function getPrimaryPlatformRole(profile: PlatformProfile | null | undefined): PlatformRole | 'visitor' {
   if (hasDeveloperAccess(profile)) return 'developer'
   if (hasAdminAccess(profile)) return 'admin'
+  // Between admin and sales: an editor is now a real role rather than an alias
+  // for admin, and without this branch a bare editor resolved to 'writer' (via
+  // hasWriterAccess) or 'visitor', which is what the UI reads to label them.
+  if (hasEditorAccess(profile)) return 'editor'
   if (hasSalesAccess(profile)) return 'sales'
   if (hasWriterAccess(profile)) return 'writer'
   if (profile?.is_advertiser || hasActiveRole(profile, ['advertiser'])) return 'advertiser'
