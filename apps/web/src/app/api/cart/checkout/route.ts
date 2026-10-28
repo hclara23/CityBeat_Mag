@@ -126,7 +126,16 @@ export async function POST(req: NextRequest) {
     cart: 'true',
     cart_order_ids: JSON.stringify(orderIds),
     contact_email: contactEmail,
-    ...(user?.id ? { buyer_user_id: user.id } : {}),
+    // owner_id as well as buyer_user_id, because upsertSubscription reads
+    // `metadata.owner_id` first and only then falls back to a matching
+    // ad_purchases row. This metadata is copied onto the subscription itself
+    // (subscription_data below), so attribution no longer depends on the
+    // checkout.session.completed event landing before the subscription events —
+    // without it a cart subscription was attributed to nobody, /billing showed
+    // an empty page and the Stripe portal answered 404, while the terms above
+    // the Checkout button promised cancellation took "a couple of clicks, no
+    // email required".
+    ...(user?.id ? { buyer_user_id: user.id, owner_id: user.id } : {}),
   }
 
   const primaryId = orderIds[0]

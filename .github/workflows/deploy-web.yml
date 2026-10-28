@@ -99,6 +99,29 @@ jobs:
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v3
 
+      # Infrastructure drift, checked by the machine rather than by whoever
+      # remembers to type it. Both scripts are read-only and change nothing.
+      #
+      # CLAUDE.md treats these as the standing answer to "did infrastructure
+      # drift?", and neither ran anywhere: a console edit changing
+      # citybeat-social to */10 went unnoticed precisely because they could not
+      # be started. The credentials they need are already present here — this
+      # step runs right after the auth the deploy itself uses.
+      #
+      # continue-on-error on purpose. A live scheduler job whose last run failed,
+      # or an env var nobody has declared yet, is real information and must be
+      # visible — but it is not a reason to block a release that fixes something
+      # else. The step goes yellow and the log names what drifted.
+      - name: Check infrastructure drift (non-blocking)
+        continue-on-error: true
+        run: |
+          echo "::group::scheduler"
+          npm run scheduler:check || echo "::warning title=Scheduler drift::see the scheduler group above"
+          echo "::endgroup::"
+          echo "::group::env"
+          npm run env:check || echo "::warning title=Env drift::see the env group above"
+          echo "::endgroup::"
+
       # Deploy WITHOUT taking traffic. Every push used to go straight to 100% of
       # paying customers and only then get smoke-tested — so the first person to
       # meet a broken release was a customer, and a failed smoke test did nothing

@@ -82,6 +82,8 @@ export async function GET(request: NextRequest) {
     let claimsStarted = 0
     let claimsVerified = 0
     let newListings = 0
+    let storiesPublished = 0
+    let storiesTotal = 0
     let pendingApproval = 0
     let paying = 0
     let weekLeads = 0
@@ -143,6 +145,21 @@ export async function GET(request: NextRequest) {
         const x = d.data() as any
         if (inWindow(x.created_at)) claimsStarted++
         if (x.status === 'verified' && inWindow(x.updated_at)) claimsVerified++
+      }).catch(() => null),
+
+      // Content output, beside the inventory output that was already here.
+      // Nothing anywhere counted articles, so the newsroom could publish NOTHING
+      // for three consecutive days — which it has done more than once — while
+      // auto-articles stamped success on every run (it reports success even when
+      // dedupe, the locality filter and editorial rejection have eliminated every
+      // candidate) and this digest, the one report the operator reliably reads,
+      // described a normal week. Capacity is 8 briefs a day across 4 runs;
+      // observed output ranges from 0 to 11 with multi-day gaps.
+      scanCollection(adminDb.collection('articles'), (d) => {
+        const x = d.data() as any
+        if (x.status !== 'published') return
+        storiesTotal++
+        if (inWindow(x.published_at || x.created_at)) storiesPublished++
       }).catch(() => null),
 
       scanCollection(adminDb.collection('directory_listings'), (d) => {
@@ -262,6 +279,16 @@ export async function GET(request: NextRequest) {
     ${row('Recovery nudges sent', recoverySent, 'abandoned claims + basic upsells')}
     ${row('Claims started / verified', `${claimsStarted} / ${claimsVerified}`)}
     ${row('Claims awaiting your approval', pendingApproval, pendingApproval > 0 ? `review at ${APP_URL}/en/admin/claims` : '')}
+    ${row(
+      'Stories published',
+      storiesPublished,
+      // Say so plainly when the answer is none. A blank cell beside a zero reads
+      // as "nothing to report"; the whole SEO and traffic story of this site is
+      // four fresh briefs a day.
+      storiesPublished === 0
+        ? `NOTHING PUBLISHED THIS WEEK — ${storiesTotal} in the archive`
+        : `${storiesTotal} in the archive`
+    )}
     ${row('New businesses ingested', newListings)}
     ${row('Customer leads captured', weekLeads)}
     ${row('Newsletter subscribers (total)', totalSubs)}

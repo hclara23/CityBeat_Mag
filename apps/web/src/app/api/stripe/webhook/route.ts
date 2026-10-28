@@ -259,6 +259,22 @@ async function handleCartCheckoutCompleted(session: any, metadata: Record<string
           session_id: session.id,
           sales_order_id: String(oid),
           advertiser_email: cartAdvertiserEmail,
+          // The buyer's account id, when the basket was bought while signed in.
+          // Without it a cart subscription was attributed to nobody: /billing
+          // queries ad_purchases and subscriptions by advertiser_id == user.id
+          // and found nothing, and /api/customer-portal resolves the Stripe
+          // customer from the same field and answered 404 "No billing account
+          // found". Meanwhile the terms rendered directly above the Checkout
+          // button promise "Cancel any time from Billing in your dashboard — it
+          // takes a couple of clicks, no email required."
+          //
+          // Newsletter Sponsorship ($50/mo), Category Banner ($25/mo) and Social
+          // Promotion ($40/mo) are all cart-eligible RECURRING products, so the
+          // only way to stop one was to email — which is both the opposite of
+          // what the customer was told at the moment of payment and the exact
+          // shape a chargeback takes. buyer_user_id was already in the session
+          // metadata; this was a missing wire, not a design gap.
+          ...(metadata.buyer_user_id ? { advertiser_id: metadata.buyer_user_id } : {}),
           company_name: order.business_name || null,
           ad_type: order.intake_kind || order.product_id || 'advertisement',
           billing_cycle: order.billing_interval || null,
