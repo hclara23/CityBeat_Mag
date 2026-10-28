@@ -104,67 +104,64 @@ export function normalizeEmail(raw: string | null | undefined): string | null {
   return m ? m[0] : null
 }
 
-// EVERY alternative is anchored with a leading \b, and the short whole words
-// carry a trailing \b too.
+// THE PERMISSIVE MATCHING IS DELIBERATE. Do not add \b boundaries.
 //
-// WHY. These matched anywhere inside a word, so a business was categorised by
-// an accident of spelling. Found by auditing 565 FMCSA motor carriers against
-// this table, where it wanted to move 358 of them and the moves were nonsense:
-// "Martinez" and "Martal Logistics" became Arts & Culture on the "art" inside
-// "Mart"; "Dispatch Service" became Beauty on the "spa" inside "Dispatch";
-// "Diamond Bar D Livestock" became Bar; "Gun IT Hot Shot" became Web
-// Development. The same trap reaches every listing that flows through
-// mapCategory — i.e. the whole AI-extraction path — so "Avenue" matched venue
-// (Entertainment), "Taxi" matched tax (Financial), "Republic" matched pub
-// (Bar), "Restore" matched store and "Smalley" matched mall (Retail),
-// "Waterproofing" matched roof, "Burbank" matched bank, and "Agricultural"
-// matched cultur.
+// I added them on 2026-10-28 and reverted them the same day, because the
+// premise was wrong. The reasoning, so nobody repeats it:
 //
-// A LEADING \b is the right default because it costs nothing: the intentional
-// prefix matches still work — \bcultur still matches "cultural", \broof still
-// matches "Roofing", \brealt still matches "Realtors" — while mid-word
-// collisions stop. A TRAILING \b is added only where the token is a complete
-// short word that would otherwise swallow longer ones: art, spa, pub, mall,
-// tax, caf[eé] stays open so it still reaches "Cafeteria".
+// There is exactly ONE caller — toCandidate below — and it passes
+// `listing.category`, a CATEGORY LABEL, never a business name. I had audited
+// 565 FMCSA carriers by feeding this table their NAMES, watched it suggest
+// nonsense ("Martinez" -> Arts & Culture on the "art" inside "Mart",
+// "Dispatch" -> Beauty on the "spa"), and concluded the AI-extraction path was
+// silently mis-filing listings. It was not: nothing passes a name, so the
+// misfires I demonstrated cannot occur in production. The audit misused the
+// function and I generalised from the misuse.
 //
-// Two names in that audit stay ambiguous and are NOT regex-fixable: "Diamond
-// Bar D Livestock Transport" (a Texas ranch brand, and \bbar\b is already as
-// tight as it gets) and "Wind Dancer Express" ("Dancer" genuinely begins with
-// "dance"). Context, not a pattern, is what would separate those.
+// Then auditing all 29,430 live listings against the boundaried table found
+// zero victims of the supposed bug and 60 rows the boundaries would BREAK —
+// every one a compound where the mid-word match was correct: "Medspa",
+// "MedSpa at Southwest Plastic Surgery", "Eyelash Extensions",
+// "Dermaesthetics", eight "Seafood" restaurants, "MiSushi", "BuhosCantina",
+// "Gymnasium", "HVACGuys", "Taxrite", "TEXASBANK", "Artwork by Lisa Matta".
+// Category labels in this market are routinely compounds, so matching inside a
+// word is the feature, not the defect — `\bspa\b` misses Medspa, `\bart\b`
+// misses Artwork, `\bgym\b` misses Gymnasium, and a leading `\b` alone misses
+// Seafood and Sushi.
+//
+// If a caller is ever added that passes a NAME, the right fix is to give that
+// caller its own stricter matcher, not to tighten this one.
 const CATEGORY_KEYWORDS: Array<[RegExp, string]> = [
   // Industrial / trades verticals first — their names often also contain generic words.
-  [/\bautomation|\bcontrol ?systems?|\bsystems? integrat|\bintegrator|\bplc\b|\bscada|\binstrumentation|\brobotic|\bmechatronic|\bprocess control|\bmotion control/i, 'Automation & Controls'],
-  [/\bindustrial (supply|supplies|equipment|distribut|products|parts|tool)|\belectrical (supply|supplies|wholesale|distributor)|\bbearing|\bfastener|\bmro\b|\bhydraulic|\bpneumatic|\bwelding supply|\bsafety supply|\babrasive|\bconveyor|\bvalve|\bpump supply|\bmill supply|\bwire ?& ?cable|\bindustrial hardware/i, 'Industrial Supply'],
-  [/\belectric(al|ian)s?\b|\belectrical contract|\blighting contractor|\blow voltage|\bwiring\b|\bsolar (install|electric)|\bgenerator install/i, 'Electrical Contractors'],
+  [/automation|control ?systems?|systems? integrat|integrator|\bplc\b|scada|instrumentation|robotic|mechatronic|process control|motion control/i, 'Automation & Controls'],
+  [/industrial (supply|supplies|equipment|distribut|products|parts|tool)|electrical (supply|supplies|wholesale|distributor)|bearing|fastener|\bmro\b|hydraulic|pneumatic|welding supply|safety supply|abrasive|conveyor|valve|pump supply|mill supply|wire ?& ?cable|industrial hardware/i, 'Industrial Supply'],
+  [/electric(al|ian)s?\b|electrical contract|lighting contractor|low voltage|\bwiring\b|solar (install|electric)|generator install/i, 'Electrical Contractors'],
   // Narrow verticals that would otherwise fall into a broader bucket below (Entertainment,
   // Arts & Culture, Retail, Professional Services) — must be checked before those.
-  [/\bbanquet hall|\bquincea[ñn]era|\bwedding (venue|planner|coordinator)|\bevent (planner|venue|space|rental|production)|\bparty rental|\bphoto booth|\bdj service|\bbridal/i, 'Event Services'],
-  [/\bday ?care|\bchild ?care|\bpreschool|\bpre-?k\b|\bmontessori|\btutor|\bdriving school|\bmusic (school|lessons?)|\bdance (school|studio)|\blearning center|\btest prep|\bafter-?school program/i, 'Childcare & Education'],
-  [/\bcustoms broker|\bfreight forward|\b3pl\b|\bthird-party logistics|\bwarehousing|\btrucking company|\bfreight carrier|\bcargo|\bcross-?dock|\bimport.{0,3}export|\bmaquila/i, 'Logistics & Freight'],
-  [/\battorney|\blawyer|\blaw (firm|office)|\blegal/i, 'Attorneys'],
-  [/\breal ?estate|\brealt|\bbroker|\bproperty management|\bapartments?/i, 'Real Estate'],
-  [/\btitle|\bnotary|\bescrow/i, 'Title & Notary'],
-  [/\binsurance|\binsur/i, 'Insurance'],
-  [/\bbank|\bcredit union|\bfinanc|\baccount|\bcpa\b|\btax\b|\btaxes\b|\bbookkeep|\bmortgage|\blending|\binvest|\bwealth/i, 'Financial'],
-  [/\bmarketing|\badvertis|\bbranding|\bgraphic|\bdesign agency|\bpr firm|\bpublic relations|\bprinting|\bsigns?\b/i, 'Marketing'],
-  // A bare \bit\b matched the English word: "Gun IT Hot Shot", "Keep IT
-  // Pushing" and "Haul IT All" were all filed as Web Development. A real IT
-  // firm names what it does, so require the qualifier.
-  [/\bweb (design|dev)|\bsoftware|\binformation technology\b|\bit (services?|support|solutions?|consulting|company)\b|\btechnology|\bcomputer|\bhosting|\bdigital/i, 'Web Development'],
-  [/\brestaurant|\btaquer|\bgrill|\bsteakhouse|\bpizza|\bsushi|\bdiner|\bkitchen|\bbbq\b|\beatery|\bcantina|\bfood/i, 'Restaurant'],
-  [/\bcoffee|\bespresso/i, 'Coffee Shop'],
-  [/\bcaf[eé]|\bbakery|\bpanader|\bpastry|\bdessert|\bice cream|\bpaleter/i, 'Cafe'],
-  [/\bbar\b|\bpub\b|\bbrewery|\blounge|\bnightclub|\bcantina|\bwinery|\btavern/i, 'Bar'],
-  [/\bauto (sales|dealer)|\bdealership|\bcars?\b|\bmotors|\btrucks?\b/i, 'Auto Dealer'],
-  [/\bauto (repair|service|body)|\bmechanic|\btire|\bcollision|\btransmission|\boil change/i, 'Auto Repair'],
-  [/\bplumb|\belectric|\bhvac\b|\broof|\blandscap|\bcontractor|\bconstruction|\bremodel|\bcleaning|\bpest\b|\bpainting|\bhandyman|\bhome (service|improvement)|\bgarage door|\bsolar/i, 'Home Services'],
-  [/\bsalon|\bspa\b|\bbeauty|\bbarber|\bnails?\b|\bhair|\bmassage|\btattoo|\bcosmetic|\baesthetic|\blash/i, 'Beauty'],
-  [/\bclinic|\bdental|\bdentist|\bdoctor|\bphysician|\bmedical|\bhealth|\bpharmacy|\bhospital|\bchiropract|\btherapy|\bwellness|\boptometr|\bpediatric|\burgent care|\bhospice|\bhome care/i, 'Health'],
-  [/\bgym\b|\bfitness|\byoga\b|\bcrossfit|\bmartial arts|\bboxing|\bpilates|\bathletic/i, 'Fitness'],
-  [/\btheater|\btheatre|\bcinema|\bentertainment|\barcade|\bbowling|\bescape room|\bamusement|\bvenue|\bevent/i, 'Entertainment'],
-  [/\bmuseum|\bgallery|\bart\b|\barts\b|\bcultur|\bmusic|\bdance|\bstudio/i, 'Arts & Culture'],
-  [/\bshop|\bstore|\bboutique|\bretail|\bmarket|\bfurniture|\bjewel|\bcloth|\bapparel|\bgift|\bflorist|\bsupply|\bmall\b|\boutlet/i, 'Retail'],
-  [/\bconsult|\bstaffing|\brecruit|\bengineering|\barchitect|\bsecurity|\blogistics|\btransport|\bnonprofit|\bnon-profit|\bassociation|\bchamber|\bchurch|\bschool|\buniversity|\bcollege|\beducation|\btraining|\bgovernment|\bservices/i, 'Professional Services'],
+  [/banquet hall|quincea[ñn]era|wedding (venue|planner|coordinator)|event (planner|venue|space|rental|production)|party rental|photo booth|\bdj service|bridal/i, 'Event Services'],
+  [/day ?care|child ?care|preschool|pre-?k\b|montessori|\btutor|driving school|music (school|lessons?)|dance (school|studio)|learning center|test prep|after-?school program/i, 'Childcare & Education'],
+  [/customs broker|freight forward|\b3pl\b|third-party logistics|warehousing|trucking company|freight carrier|cargo|cross-?dock|import.{0,3}export|maquila/i, 'Logistics & Freight'],
+  [/attorney|lawyer|law (firm|office)|legal/i, 'Attorneys'],
+  [/real ?estate|realt|broker|property management|apartments?/i, 'Real Estate'],
+  [/title|notary|escrow/i, 'Title & Notary'],
+  [/insurance|insur/i, 'Insurance'],
+  [/bank|credit union|financ|account|cpa|tax|bookkeep|mortgage|lending|invest|wealth/i, 'Financial'],
+  [/marketing|advertis|branding|graphic|design agency|pr firm|public relations|printing|signs?\b/i, 'Marketing'],
+  [/web (design|dev)|software|\bit\b|technology|computer|hosting|digital/i, 'Web Development'],
+  [/restaurant|taquer|grill|steakhouse|pizza|sushi|diner|kitchen|bbq|eatery|cantina|food/i, 'Restaurant'],
+  [/coffee|espresso/i, 'Coffee Shop'],
+  [/caf[eé]|bakery|panader|pastry|dessert|ice cream|paleter/i, 'Cafe'],
+  [/\bbar\b|pub|brewery|lounge|nightclub|cantina|winery|tavern/i, 'Bar'],
+  [/auto (sales|dealer)|dealership|cars?\b|motors|trucks?\b/i, 'Auto Dealer'],
+  [/auto (repair|service|body)|mechanic|tire|collision|transmission|oil change/i, 'Auto Repair'],
+  [/plumb|electric|hvac|roof|landscap|contractor|construction|remodel|cleaning|pest|painting|handyman|home (service|improvement)|garage door|solar/i, 'Home Services'],
+  [/salon|spa|beauty|barber|nails?|hair|massage|tattoo|cosmetic|aesthetic|lash/i, 'Beauty'],
+  [/clinic|dental|dentist|doctor|physician|medical|health|pharmacy|hospital|chiropract|therapy|wellness|optometr|pediatric|urgent care|hospice|home care/i, 'Health'],
+  [/gym|fitness|yoga|crossfit|martial arts|boxing|pilates|athletic/i, 'Fitness'],
+  [/theater|theatre|cinema|entertainment|arcade|bowling|escape room|amusement|venue|event/i, 'Entertainment'],
+  [/museum|gallery|art|cultur|music|dance|studio/i, 'Arts & Culture'],
+  [/shop|store|boutique|retail|market|furniture|jewel|cloth|apparel|gift|florist|supply|mall|outlet/i, 'Retail'],
+  [/consult|staffing|recruit|engineering|architect|security|logistics|transport|nonprofit|non-profit|association|chamber|church|school|university|college|education|training|government|services/i, 'Professional Services'],
 ]
 
 export function mapCategory(raw: string | null | undefined, fallback: string): string {
