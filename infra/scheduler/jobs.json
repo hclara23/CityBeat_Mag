@@ -228,7 +228,7 @@
       "name": "citybeat-reconcile-orders",
       "schedule": "0 3 * * *",
       "timeZone": "America/Chihuahua",
-      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/reconcile-orders?hours=72",
+      "uri": "https://citybeat-web-aa3zf3nfza-uc.a.run.app/api/cron/reconcile-orders?hours=72&replay=1",
       "httpMethod": "GET",
       "requiresCronSecret": true,
       "attemptDeadline": "180s",
