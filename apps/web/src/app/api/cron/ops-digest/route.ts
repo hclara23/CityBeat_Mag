@@ -376,7 +376,8 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    await reportSuccess('cron:ops-digest')
+    // A preview is not a run: it emailed nobody, so it must not stamp liveness.
+    if (!dryRun) await reportSuccess('cron:ops-digest')
     return NextResponse.json({
       ok: true,
       dryRun,

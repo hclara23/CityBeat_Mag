@@ -22,6 +22,9 @@ export async function GET(request: NextRequest) {
     await reportCronAuthRejected('cron:sync-events', request.headers.get('authorization'))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  // `?dryRun=1` counts what would be purged and upserted and changes nothing: no
+  // deletes, no writes, no liveness stamp, no alert.
+  const dryRun = new URL(request.url).searchParams.get('dryRun') === '1'
   try {
     let purgedMock = 0
     let purgedPast = 0
@@ -30,7 +33,7 @@ export async function GET(request: NextRequest) {
     // 1) Self-heal: remove legacy mock events (fake ticket URLs, picsum images).
     const legacy = await adminDb.collection('events').where('source', '==', 'sync').get()
     for (const doc of legacy.docs) {
-      await doc.ref.delete()
+      if (!dryRun) await doc.ref.delete()
       purgedMock++
     }
 
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest) {
     for (const doc of stale.docs) {
       const d = (doc.data() as any).start_date
       if (typeof d === 'string' && d < yesterday) {
-        await doc.ref.delete()
+        if (!dryRun) await doc.ref.delete()
         purgedPast++
       }
     }
@@ -54,9 +57,10 @@ export async function GET(request: NextRequest) {
       // hours that this job has stopped running, while Cloud Scheduler is in fact
       // invoking it perfectly. Liveness is about whether it RAN — see
       // lib/cron-outcome.ts — and the purge above did real work on this path.
-      await reportSuccess('cron:sync-events')
+      if (!dryRun) await reportSuccess('cron:sync-events')
       return NextResponse.json({
         ok: true,
+        dryRun,
         skipped: 'no_ticketmaster_key',
         purged_mock: purgedMock,
         hint: 'Get a free key at developer.ticketmaster.com and set TICKETMASTER_API_KEY on the Cloud Run service.',
@@ -66,6 +70,10 @@ export async function GET(request: NextRequest) {
     const events = await fetchTicketmasterEvents()
     for (const event of events) {
       const { external_id, ...fields } = event
+      if (dryRun) {
+        upserted++
+        continue
+      }
       // merge:true preserves admin-set fields (e.g. `featured` on a paid event).
       await adminDb.collection('events').doc(`tm-${external_id}`).set(
         {
@@ -80,11 +88,12 @@ export async function GET(request: NextRequest) {
       upserted++
     }
 
-    await reportSuccess('cron:sync-events')
-    return NextResponse.json({ ok: true, upserted, purged_mock: purgedMock, purged_past: purgedPast })
+    // A preview is not a run: it changed nothing, so it must not stamp liveness.
+    if (!dryRun) await reportSuccess('cron:sync-events')
+    return NextResponse.json({ ok: true, dryRun, upserted, purged_mock: purgedMock, purged_past: purgedPast })
   } catch (error: any) {
     console.error('Cron sync-events error:', error)
-    await reportFailure('cron:sync-events', error)
+    if (!dryRun) await reportFailure('cron:sync-events', error)
     return NextResponse.json({ error: 'Event sync failed' }, { status: 500 })
   }
 }

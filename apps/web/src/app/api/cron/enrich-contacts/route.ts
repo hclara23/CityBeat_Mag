@@ -21,14 +21,17 @@ export async function GET(request: NextRequest) {
   // literal 25 was a timeout guard, and the wall-clock budget inside
   // runContactEnrichment is what guards the 300s route now.
   const limit = enrichLimit(searchParams.get('limit'))
+  const dryRun = searchParams.get('dryRun') === '1'
   // ?categories=Real Estate,Attorneys targets a specific vertical.
   const categories = (searchParams.get('categories') || '').split(',').map((c) => c.trim()).filter(Boolean)
   try {
-    const result = await runContactEnrichment({ limit, categories: categories.length ? categories : undefined })
-    await reportSuccess('cron:enrich-contacts')
+    const result = await runContactEnrichment({ limit, categories: categories.length ? categories : undefined, dryRun })
+    // A preview is not a run: stamping liveness here would tell the heartbeat
+    // the job ran when nothing was enriched.
+    if (!dryRun) await reportSuccess('cron:enrich-contacts')
     return NextResponse.json(result)
   } catch (error) {
-    await reportFailure('cron:enrich-contacts', error, { limit })
+    if (!dryRun) await reportFailure('cron:enrich-contacts', error, { limit })
     return NextResponse.json({ error: 'Enrichment failed' }, { status: 500 })
   }
 }

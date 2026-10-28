@@ -82,19 +82,19 @@ export async function GET(request: NextRequest) {
     await reportCronAuthRejected('cron:auto-articles', request.headers.get('authorization'))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const dryRun = new URL(request.url).searchParams.get('dryRun') === '1'
   if (!newsroomConfigured()) {
     // Stamp liveness first: the job RAN, it simply had nothing to do. Without
     // this the heartbeat pages "scheduled job(s) have stopped running" every six
     // hours, forever, about a job Cloud Scheduler is invoking perfectly — the
     // precise alert-fatigue failure the heartbeat exists to prevent.
     // lib/cron-outcome.ts states the rule: liveness is about whether it ran.
-    await reportSuccess('cron:auto-articles')
+    if (!dryRun) await reportSuccess('cron:auto-articles')
     return NextResponse.json({ ok: true, configured: false, skipped: 'no_anthropic_key' })
   }
 
   const { searchParams } = new URL(request.url)
   const limit = Math.min(Math.max(Number(searchParams.get('limit')) || 2, 1), 5)
-  const dryRun = searchParams.get('dryRun') === '1'
   const settings = await getPlatformSettings().catch(() => ({ newsroom_auto_publish: false } as any))
   const publish = searchParams.get('publish') === '1' || Boolean((settings as any).newsroom_auto_publish)
 
@@ -252,7 +252,9 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    await reportSuccess('cron:auto-articles')
+    // A preview is not a run: stamping liveness here would tell the heartbeat
+    // the job ran when nothing was written.
+    if (!dryRun) await reportSuccess('cron:auto-articles')
     return NextResponse.json({
       ok: true,
       configured: true,

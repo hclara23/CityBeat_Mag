@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    await reportFailure('cron:heartbeat', error)
+    if (!dryRun) await reportFailure('cron:heartbeat', error)
     return NextResponse.json({ error: 'Heartbeat failed' }, { status: 500 })
   }
 }

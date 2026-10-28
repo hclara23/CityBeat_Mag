@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
+  // `?dryRun=1` fetches and prepares candidates but inserts nothing, stamps no
+  // liveness and raises no alert, so a hand-run preview leaves no trace.
+  const dryRun = searchParams.get('dryRun') === '1'
   const limit = Math.max(1, Number(searchParams.get('limit') || process.env.DIRECTORY_INGEST_LIMIT || 500))
   const categories = (searchParams.get('categories') || DEFAULT_CATEGORIES.join(','))
     .split(',')
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
     // them — the unbudgeted version could not finish inside Cloud Run's 300s
     // request timeout and discarded everything it had fetched when it overran.
     const result = await runDirectoryIngest({
-      write: true,
+      write: !dryRun,
       limit,
       categories,
       // Repointable WITHOUT a deploy, because the failure mode is upstream and
@@ -73,9 +76,9 @@ export async function GET(request: NextRequest) {
     // Liveness is about whether the job RAN, which it did. Content problems are
     // alerted separately below, so a bad night cannot masquerade as a dead cron
     // and a dead cron cannot hide behind a bad night.
-    await reportSuccess('cron:directory-ingest')
+    if (!dryRun) await reportSuccess('cron:directory-ingest')
 
-    if (result.failed.length > 0) {
+    if (!dryRun && result.failed.length > 0) {
       await reportFailure(
         'cron:directory-ingest',
         new Error(
@@ -92,7 +95,7 @@ export async function GET(request: NextRequest) {
     // elements counts as `swept`, so no category failure fires, liveness is
     // stamped and the response is 200 OK. Without this the ingest could add
     // nothing forever behind a green cron.
-    if (sweptButFoundNothing(result)) {
+    if (!dryRun && sweptButFoundNothing(result)) {
       await reportFailure(
         'cron:directory-ingest',
         new Error(
@@ -108,6 +111,7 @@ export async function GET(request: NextRequest) {
 
     const body = {
       ok: result.swept.length > 0 && !sweptButFoundNothing(result),
+      dry_run: dryRun,
       requested: categories,
       swept: result.swept,
       skipped: result.skipped,
@@ -127,7 +131,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(body)
   } catch (error) {
-    await reportFailure('cron:directory-ingest', error, { categories, limit })
+    if (!dryRun) await reportFailure('cron:directory-ingest', error, { categories, limit })
     return NextResponse.json({ error: 'Ingest failed' }, { status: 500 })
   }
 }

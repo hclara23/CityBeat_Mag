@@ -125,7 +125,9 @@ export async function GET(request: NextRequest) {
   const deliverability = deliverabilityState()
   const budget = coldSendBudget(requestedLimit, deliverability)
   const limit = Math.max(1, budget.allowed)
-  if (budget.capped) {
+  // A preview must not page anyone: the cap is a fact about configuration, and
+  // it is still reported in full by the next real run.
+  if (budget.capped && !dryRun) {
     await reportFailure('cron:ghost-reports', new Error(budget.why), { requestedLimit }, { skipHealth: true }).catch(
       () => {}
     )
@@ -333,7 +335,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    await reportSuccess('cron:ghost-reports')
+    // A preview is not a run: stamping liveness here would tell the heartbeat
+    // the job ran when no report was sent.
+    if (!dryRun) await reportSuccess('cron:ghost-reports')
     return NextResponse.json({
       ok: true,
       dryRun,

@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
       .filter((l: any) => l.owner_id)
     if (listings.length === 0) {
       // A successful no-work run is still a live scheduler execution.
-      await reportSuccess('cron:owner-reports')
+      if (!dryRun) await reportSuccess('cron:owner-reports')
       return NextResponse.json({ ok: true, skipped: 'no_claimed_listings' })
     }
 
@@ -220,7 +220,10 @@ export async function GET(request: NextRequest) {
           ? `Tu reporte CityBeat: ${totalViews} vistas este mes`
           : `Your CityBeat report: ${totalViews} views this month`
       if (dryRun) {
-        sent++
+        // Same suppression rule as the real path, or the preview would count
+        // owners we are forbidden to contact as recipients.
+        if (await isSuppressed(email)) skippedSuppressed++
+        else sent++
         continue
       }
 
@@ -273,7 +276,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    await reportSuccess('cron:owner-reports')
+    // A preview is not a run: it emailed nobody, so it must not stamp liveness.
+    if (!dryRun) await reportSuccess('cron:owner-reports')
     return NextResponse.json({
       ok: true,
       dryRun,

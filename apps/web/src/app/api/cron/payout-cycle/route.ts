@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     if (!dryRun) await reportSuccess('cron:payout-cycle')
     return NextResponse.json({ dry_run: dryRun, ...result, statements })
   } catch (error) {
-    await reportFailure('cron:payout-cycle', error)
+    if (!dryRun) await reportFailure('cron:payout-cycle', error)
     return NextResponse.json({ error: 'Payout cycle run failed' }, { status: 500 })
   }
 }

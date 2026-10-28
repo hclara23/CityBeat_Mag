@@ -29,24 +29,27 @@ export async function GET(request: NextRequest) {
     await reportCronAuthRejected('cron:social', request.headers.get('authorization'))
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const { searchParams } = new URL(request.url)
+  // `?dryRun=1` reports what would be posted and posts nothing: no network call
+  // to Facebook/Threads, no image-queue drain, no dedupe row, no liveness stamp.
+  const dryRun = searchParams.get('dryRun') === '1'
   if (!socialConfigured()) {
     // Stamp liveness: the job ran, the credentials are simply absent. Pulling
     // FB_PAGE_ACCESS_TOKEN while a Facebook account issue is sorted out would
     // otherwise start paging about this job 36 hours later.
-    await reportSuccess('cron:social')
+    if (!dryRun) await reportSuccess('cron:social')
     return NextResponse.json({ ok: true, configured: false, skipped: 'no_social_credentials' })
   }
 
-  const { searchParams } = new URL(request.url)
   // Reuse the existing scheduler. Keep article/roundup posts daily.
   const local = slotParts(Date.now())
   if (searchParams.get('queue') === '1' && !(local.hour === 11 && local.minute < 10)) {
     try {
-      const queue = await drainImageQueue()
-      await reportSuccess('cron:social')
-      return NextResponse.json({ ok: true, queue })
+      const queue = dryRun ? { skipped: 'dry_run' } : await drainImageQueue()
+      if (!dryRun) await reportSuccess('cron:social')
+      return NextResponse.json({ ok: true, dryRun, queue })
     } catch (error) {
-      await reportFailure('cron:social', error)
+      if (!dryRun) await reportFailure('cron:social', error)
       return NextResponse.json({ error: 'Queue worker failed' }, { status: 500 })
     }
   }
@@ -62,12 +65,16 @@ export async function GET(request: NextRequest) {
     .slice(0, max)
 
   try {
-    await drainImageQueue()
+    if (!dryRun) await drainImageQueue()
     let posted = 0
     const results: any[] = []
     for (const a of recent) {
       const already = await adminDb.collection('social_posts').where('slug', '==', a.slug).limit(1).get()
       if (!already.empty) continue
+      if (dryRun) {
+        results.push({ slug: a.slug, would_post: true })
+        continue
+      }
       const r = await postArticleToSocial(a)
       const didPost = r.some((x) => x.status === 'posted')
       // Burn the story's dedupe slot ONLY when something actually posted —
@@ -102,7 +109,9 @@ export async function GET(request: NextRequest) {
       const seen = await adminDb.collection('social_posts').where('slug', '==', weekKey).limit(1).get()
       if (seen.empty || forceWeekend) {
         const { events, label } = await getThisWeekendEvents()
-        if (events.length > 0) {
+        if (events.length > 0 && dryRun) {
+          weekend = { would_post: true, events: events.length }
+        } else if (events.length > 0) {
           const r = await postThisWeekendToSocial(events as any, label)
           const didPost = r.some((x) => x.status === 'posted')
           // Only mark the week done once something actually posted — a bad token
@@ -119,10 +128,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    await reportSuccess('cron:social')
-    return NextResponse.json({ ok: true, configured: true, considered: recent.length, posted, weekend, results })
+    // A preview is not a run: it posted nothing, so it must not stamp liveness.
+    if (!dryRun) await reportSuccess('cron:social')
+    return NextResponse.json({ ok: true, dryRun, configured: true, considered: recent.length, posted, weekend, results })
   } catch (error) {
-    await reportFailure('cron:social', error)
+    if (!dryRun) await reportFailure('cron:social', error)
     return NextResponse.json({ error: 'Social run failed' }, { status: 500 })
   }
 }

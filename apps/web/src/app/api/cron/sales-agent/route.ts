@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runSalesOutreach, runRecoveryOutreach } from '@/lib/sales-agent'
+import { HALT_AFTER_CONSECUTIVE_FAILURES, runSalesOutreach, runRecoveryOutreach } from '@/lib/sales-agent'
 import { reportCronAuthRejected, reportFailure, reportSuccess } from '@/lib/alerts'
 
 export const dynamic = 'force-dynamic'
@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const { searchParams } = new URL(request.url)
+  const dryRun = searchParams.get('dryRun') === '1'
   try {
-    const dryRun = searchParams.get('dryRun') === '1'
     // Language. `?locale=en|es` forces one language for the whole run. Left off,
     // each new listing is assigned one by hash (lib/sales-agent.ts outreachLocale)
     // and `?spanish=0.5` is the Spanish share — `?spanish=0` is the switch back to
@@ -50,9 +50,20 @@ export async function GET(request: NextRequest) {
     // mean "the scheduled run completed". (payout-cycle and reconcile-payouts
     // already guard it the same way.)
     if (!dryRun) await reportSuccess('cron:sales-agent')
+    // The run stopped itself because sends kept failing. That is the provider or
+    // our key, not the queue, and nothing else says so: the job still "ran".
+    // skipHealth keeps the liveness stamp above meaning only "the job ran".
+    if (!dryRun && (result.halted || recovery.halted)) {
+      await reportFailure(
+        'cron:sales-agent',
+        new Error(`outreach stopped early after ${HALT_AFTER_CONSECUTIVE_FAILURES} consecutive send failures (${result.last_send_error || 'see recovery'})`),
+        { halted_new_contacts: Boolean(result.halted), halted_recovery: Boolean(recovery.halted) },
+        { skipHealth: true, alertKey: 'sales-agent-send-failures' }
+      ).catch(() => {})
+    }
     return NextResponse.json({ ...result, recovery })
   } catch (error) {
-    await reportFailure('cron:sales-agent', error)
+    if (!dryRun) await reportFailure('cron:sales-agent', error)
     return NextResponse.json({ error: 'Outreach run failed' }, { status: 500 })
   }
 }

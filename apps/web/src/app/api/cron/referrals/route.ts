@@ -31,12 +31,14 @@ export async function GET(request: NextRequest) {
   const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-08-16' })
   const { searchParams } = new URL(request.url)
   try {
+    const dryRun = searchParams.get('dryRun') === '1'
     const result = await runReferralQualification({
       stripe,
       limit: Number(searchParams.get('limit')) || 200,
-      dryRun: searchParams.get('dryRun') === '1',
+      dryRun,
     })
-    await reportSuccess('cron:referrals')
+    // A preview is not a run: see account-manager for why liveness is not stamped.
+    if (!dryRun) await reportSuccess('cron:referrals')
     return NextResponse.json(result)
   } catch (error) {
     await reportFailure('cron:referrals', error)

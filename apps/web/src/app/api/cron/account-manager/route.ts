@@ -23,11 +23,14 @@ export async function GET(request: NextRequest) {
   }
   const { searchParams } = new URL(request.url)
   try {
+    const dryRun = searchParams.get('dryRun') === '1'
     const result = await runAccountManager({
       limit: Number(searchParams.get('limit')) || 20,
-      dryRun: searchParams.get('dryRun') === '1',
+      dryRun,
     })
-    await reportSuccess('cron:account-manager')
+    // A preview is not a run: stamping liveness here would tell the heartbeat
+    // the job ran when nothing was generated or sent.
+    if (!dryRun) await reportSuccess('cron:account-manager')
     return NextResponse.json(result)
   } catch (error) {
     await reportFailure('cron:account-manager', error)

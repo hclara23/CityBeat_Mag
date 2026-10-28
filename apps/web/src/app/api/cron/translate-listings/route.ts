@@ -27,6 +27,10 @@ export async function GET(request: NextRequest) {
   }
   const { searchParams } = new URL(request.url)
   const limit = Math.min(Math.max(Number(searchParams.get('limit')) || 25, 1), 40)
+  // `?dryRun=1` counts what would be translated and changes nothing: no writes,
+  // no translation call (which spends DeepL quota or Anthropic tokens), no
+  // liveness stamp and no alert.
+  const dryRun = searchParams.get('dryRun') === '1'
   // `?articles=1`: backfill mode for ARTICLES whose Spanish is missing or was
   // stored as a copy of the English (the pre-fix silent fallback). Uses the
   // same translation pipeline; one-shot repair + safety net.
@@ -44,6 +48,10 @@ export async function GET(request: NextRequest) {
       const englishAsSpanish = Boolean(es.trim()) && en.trim() && es.trim() === en.trim()
       const titleCopied = a.title_es && a.title && String(a.title_es).trim() === String(a.title).trim()
       if (!missing && !englishAsSpanish && !titleCopied) continue
+      if (dryRun) {
+        fixed++
+        continue
+      }
       if (englishAsSpanish || titleCopied) {
         // Clear the copies so translateArticleToEs's keep-existing guard
         // doesn't treat English text as real Spanish.
@@ -52,7 +60,7 @@ export async function GET(request: NextRequest) {
       await translateArticleToEs(doc.ref, { title: a.title, excerpt: a.excerpt, content: a.content })
       fixed++
     }
-    return NextResponse.json({ mode: 'articles', scanned, repaired: fixed })
+    return NextResponse.json({ mode: 'articles', dryRun, scanned, repaired: fixed })
   }
 
   try {
@@ -68,8 +76,11 @@ export async function GET(request: NextRequest) {
 
     const batch = todo.slice(0, limit)
     if (batch.length === 0) {
-      await reportSuccess('cron:translate-listings')
-      return NextResponse.json({ ok: true, candidates: 0, translated: 0, remaining: 0 })
+      if (!dryRun) await reportSuccess('cron:translate-listings')
+      return NextResponse.json({ ok: true, dryRun, candidates: 0, translated: 0, remaining: 0 })
+    }
+    if (dryRun) {
+      return NextResponse.json({ ok: true, dryRun, candidates: todo.length, would_translate: batch.length, remaining: todo.length })
     }
 
     const translations = await translateTexts(batch.map((b) => b.description.slice(0, 4000)))
@@ -91,7 +102,7 @@ export async function GET(request: NextRequest) {
     await reportSuccess('cron:translate-listings')
     return NextResponse.json({ ok: true, candidates: todo.length, translated, remaining: Math.max(0, todo.length - translated) })
   } catch (error) {
-    await reportFailure('cron:translate-listings', error)
+    if (!dryRun) await reportFailure('cron:translate-listings', error)
     return NextResponse.json({ error: 'translate-listings failed' }, { status: 500 })
   }
 }

@@ -346,6 +346,13 @@ const deliverViaWebhook: ExecutorFn = async (env) => {
     env.log.error('Webhook target must be https')
     return false
   }
+  // A preview must not call out: the receiver cannot tell a dry run from a real
+  // delivery, so posting here would hand it data the run is promising not to send.
+  if (env.ctx.dryRun) {
+    env.log.info('Dry run: webhook not called')
+    env.setOutput('Status', 'dry-run')
+    return true
+  }
   try {
     const res = await fetch(target, {
       method: 'POST',

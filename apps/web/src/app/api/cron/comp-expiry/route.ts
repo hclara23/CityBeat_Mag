@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ ok: true, dryRun, active_grants: snap.size, expired, reminded, skipped })
   } catch (error: any) {
-    await reportFailure('cron:comp-expiry', error).catch(() => {})
+    if (!dryRun) await reportFailure('cron:comp-expiry', error).catch(() => {})
     return NextResponse.json(
       { error: 'Could not process comp grants', reason: String(error?.message || error).slice(0, 300) },
       { status: 500 }

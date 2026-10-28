@@ -118,6 +118,44 @@ export function pickFirstTouchVariant(
   }
 }
 
+// ─── Failed sends ───────────────────────────────────────────────────────────
+//
+// Every outreach ledger here (sales_outreach, recovery_outreach, upsell_outreach)
+// dedupes on the EXISTENCE of a row, whatever its status. A send that failed —
+// a provider outage, a rate limit, a missing API key — still wrote a
+// 'send_failed' row, so that business's only touch was cancelled for good by a
+// fault that had nothing to do with them. One bad morning could burn a day's
+// whole batch. A failed send is now retried on a later run, a bounded number of
+// times, and a run that sees the provider failing repeatedly stops instead of
+// working through the queue.
+
+/** Attempts a target gets before a failed send is treated as final. */
+export const MAX_SEND_ATTEMPTS = 3
+
+/** Consecutive failures in one run that mean "the provider is down", not "bad address". */
+export const HALT_AFTER_CONSECUTIVE_FAILURES = 3
+
+/**
+ * A rejection of the recipient itself (Resend 400/422: malformed or refused
+ * address). Retrying cannot change the answer, so it settles at once. Anything
+ * else — no provider key, 401/403, 429, 5xx, a network error — says nothing
+ * about the recipient and is worth another try.
+ */
+export function sendFailureIsFinal(error: unknown): boolean {
+  return /^resend_(400|422)$/.test(String(error || ''))
+}
+
+/** May a ledger row that failed to send be tried again on this run? */
+export function failedSendIsRetryable(
+  row: { status?: unknown; send_attempts?: unknown; send_error?: unknown } | null | undefined
+): boolean {
+  if (!row || row.status !== 'send_failed') return false
+  if (sendFailureIsFinal(row.send_error)) return false
+  // Rows written before attempts were counted made exactly one.
+  const attempts = Math.max(1, Number(row.send_attempts) || 1)
+  return attempts < MAX_SEND_ATTEMPTS
+}
+
 // ─── Who gets contacted next ────────────────────────────────────────────────
 //
 // WHY THIS IS NOT A PAGED SCAN ANY MORE. New contacts used to be found by paging
@@ -522,13 +560,17 @@ export async function runUpsellOutreach(opts: { limit?: number; dryRun?: boolean
     if (!email) { results.skipped_no_email++; continue }
     if (await isSuppressed(email)) { results.skipped_already++; continue }
     const already = await adminDb.collection('upsell_outreach').where('listing_id', '==', l.id).limit(1).get()
-    if (!already.empty) { results.skipped_already++; continue }
+    // A send that FAILED reached nobody, so it does not use up the one pitch.
+    const prior = already.empty ? null : already.docs[0]
+    if (prior && !failedSendIsRetryable(prior.data())) { results.skipped_already++; continue }
+    const priorAttempts = prior ? Math.max(1, Number(prior.get('send_attempts')) || 1) : 0
 
-    const ref = adminDb.collection('upsell_outreach').doc()
+    const ref = prior ? prior.ref : adminDb.collection('upsell_outreach').doc()
     const content = upsellPitch(l, locale)
     const html = renderUpsellHtml(l, content, ref.id, locale)
     let sent = false
-    if (!opts.dryRun) { const r = await sendEmail(email, content.subject, html); sent = r.sent }
+    let sendError: string | undefined
+    if (!opts.dryRun) { const r = await sendEmail(email, content.subject, html); sent = r.sent; sendError = r.error }
     // Same trap as recovery_outreach: the `already` check above keys on this
     // collection, so a 'dry_run' row would block that listing's real upsell for good.
     if (opts.dryRun) {
@@ -538,6 +580,8 @@ export async function runUpsellOutreach(opts: { limit?: number; dryRun?: boolean
     await ref.set({
       listing_id: l.id, business_name: l.name || null, email, locale,
       status: sent ? 'sent' : 'send_failed',
+      send_attempts: priorAttempts + 1,
+      ...(sent ? {} : { send_error: sendError || 'unknown' }),
       opens: 0, clicks: 0, created_at: FieldValue.serverTimestamp(), last_sent_at: FieldValue.serverTimestamp(),
     })
     results.contacted++
@@ -555,7 +599,7 @@ export async function runUpsellOutreach(opts: { limit?: number; dryRun?: boolean
 // One-and-done per target, tracked in `recovery_outreach`.
 export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boolean } = {}) {
   const limit = Math.max(1, Math.min(opts.limit ?? 20, 100))
-  const results = { incomplete_claims: 0, basic_upsells: 0, sent: 0, dryRun: Boolean(opts.dryRun) }
+  const results = { incomplete_claims: 0, basic_upsells: 0, sent: 0, halted: false, dryRun: Boolean(opts.dryRun) }
   const now = Date.now()
 
   const profileEmail = async (userId: string): Promise<{ email: string | null; locale: 'en' | 'es' }> => {
@@ -564,10 +608,26 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     return { email: p?.email || null, locale: p?.locale === 'es' ? 'es' : 'en' }
   }
 
+  // Attempts already made for a key whose row is a retryable failed send.
+  const priorAttempts = new Map<string, number>()
   const alreadySent = async (key: string) => {
     const doc = await adminDb.collection('recovery_outreach').doc(key).get().catch(() => null)
-    return Boolean(doc?.exists)
+    if (!doc?.exists) return false
+    const row = doc.data() as any
+    // A send that FAILED reached nobody; it does not use up the target's one nudge.
+    if (!failedSendIsRetryable(row)) return true
+    priorAttempts.set(key, Math.max(1, Number(row.send_attempts) || 1))
+    return false
   }
+
+  // See HALT_AFTER_CONSECUTIVE_FAILURES: the provider is down, so stop spending
+  // attempts on the queue. A dry run sends nothing and so never counts.
+  let consecutiveFailures = 0
+  const noteSend = (sent: boolean) => {
+    if (opts.dryRun) return
+    consecutiveFailures = sent ? 0 : consecutiveFailures + 1
+  }
+  const halted = () => consecutiveFailures >= HALT_AFTER_CONSECUTIVE_FAILURES
 
   // The recovery_outreach doc id is DETERMINISTIC ("upgrade:<listingId>", etc.)
   // and listing ids are public, so using it as the unsubscribe bearer let anyone
@@ -590,12 +650,18 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
   // cancelled the nudges it listed. Counters still advance, so the dry run reports
   // exactly what a real run would do; it just leaves no trace. (The first-touch
   // path made the same fix earlier: "a dry run must not create experiment rows".)
-  const record = async (key: string, fields: Record<string, unknown>) => {
+  const record = async (key: string, fields: Record<string, unknown>, sendError?: string) => {
     if (opts.dryRun) return
     await adminDb
       .collection('recovery_outreach')
       .doc(key)
-      .set({ ...fields, unsub_token: tokenFor(key), created_at: FieldValue.serverTimestamp() })
+      .set({
+        ...fields,
+        send_attempts: (priorAttempts.get(key) ?? 0) + 1,
+        ...(sendError ? { send_error: sendError } : {}),
+        unsub_token: tokenFor(key),
+        created_at: FieldValue.serverTimestamp(),
+      })
   }
 
   // Segment 1: abandoned verifications.
@@ -609,7 +675,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     .get()
     .catch(() => ({ docs: [] as any[] }))
   for (const doc of stalled.docs as any[]) {
-    if (results.incomplete_claims >= limit) break
+    if (results.incomplete_claims >= limit || halted()) break
     const c = doc.data()
     const ageMs = now - (c.created_at?.toDate ? c.created_at.toDate().getTime() : 0)
     if (ageMs < 2 * 86400000) continue
@@ -634,8 +700,14 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
   <p style="margin:24px 0"><a href="${url}" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Terminar mi reclamo' : 'Finish my claim'}</a></p>
   <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(tokenFor(key), 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false
-    if (!opts.dryRun) sent = (await sendEmail(email, subject, html)).sent
-    await record(key, { type: 'incomplete_claim', listing_id: c.listing_id, user_id: c.user_id, email, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })
+    let sendError: string | undefined
+    if (!opts.dryRun) {
+      const r = await sendEmail(email, subject, html)
+      sent = r.sent
+      sendError = r.error
+    }
+    await record(key, { type: 'incomplete_claim', listing_id: c.listing_id, user_id: c.user_id, email, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' }, sendError)
+    noteSend(sent)
     results.incomplete_claims++
     if (sent) results.sent++
   }
@@ -649,7 +721,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     .get()
     .catch(() => ({ docs: [] as any[] }))
   for (const doc of basics.docs as any[]) {
-    if (results.basic_upsells >= limit) break
+    if (results.basic_upsells >= limit || halted()) break
     const l = doc.data()
     if (!l.owner_id) continue
     const claimedMs = typeof l.claimed_at === 'string' ? Date.parse(l.claimed_at) || 0 : 0
@@ -671,8 +743,14 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
   <p style="margin:24px 0"><a href="${url}" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Mejorar mi ficha' : 'Upgrade my listing'}</a></p>
   <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(tokenFor(key), 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false
-    if (!opts.dryRun) sent = (await sendEmail(to, subject, html)).sent
-    await record(key, { type: 'basic_upsell', listing_id: doc.id, owner_id: l.owner_id, email: to, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })
+    let sendError: string | undefined
+    if (!opts.dryRun) {
+      const r = await sendEmail(to, subject, html)
+      sent = r.sent
+      sendError = r.error
+    }
+    await record(key, { type: 'basic_upsell', listing_id: doc.id, owner_id: l.owner_id, email: to, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' }, sendError)
+    noteSend(sent)
     results.basic_upsells++
     if (sent) results.sent++
   }
@@ -689,7 +767,7 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     .catch(() => ({ docs: [] as any[] }))
   let winbacks = 0
   for (const doc of churned.docs as any[]) {
-    if (winbacks >= limit) break
+    if (winbacks >= limit || halted()) break
     const s = doc.data()
     if (!s.winback_due_at || Date.parse(s.winback_due_at) > now) continue
     const key = `winback:${doc.id}`
@@ -713,12 +791,19 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
   <p style="margin:24px 0"><a href="${APP_URL}/${locale}/dashboard" style="background:#22d3ee;color:#000;font-weight:800;padding:12px 22px;border-radius:8px;text-decoration:none;text-transform:uppercase;letter-spacing:1px">${locale === 'es' ? 'Reactivar' : 'Reactivate'}</a></p>
   <p style="font-size:11px;color:#999">${ADDRESS} · <a href="${unsubUrl(tokenFor(key), 'r')}" style="color:#999">${locale === 'es' ? 'Cancelar' : 'Unsubscribe'}</a></p></div>`
     let sent = false
-    if (!opts.dryRun) sent = (await sendEmail(to, subject, html)).sent
-    await record(key, { type: 'winback', listing_id: lDoc.id, subscription_id: doc.id, email: to, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' })
+    let sendError: string | undefined
+    if (!opts.dryRun) {
+      const r = await sendEmail(to, subject, html)
+      sent = r.sent
+      sendError = r.error
+    }
+    await record(key, { type: 'winback', listing_id: lDoc.id, subscription_id: doc.id, email: to, status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed' }, sendError)
+    noteSend(sent)
     winbacks++
     if (sent) results.sent++
   }
 
+  results.halted = halted()
   return results
 }
 
@@ -745,6 +830,11 @@ export async function runSalesOutreach(
     spanish_share?: number
     contacted_by_locale?: { en: number; es: number }
     skipped_ineligible?: NewContactPlan['skipped']
+    /** New contacts that were a retry of an earlier failed send. */
+    retried?: number
+    /** Set when the run stopped early because the provider kept failing. */
+    halted?: string
+    last_send_error?: string
   } = { contacted: 0, followups: 0, skipped_no_email: 0, skipped_already: 0, sent: 0, dryRun: Boolean(opts.dryRun) }
 
   // 1) Due follow-ups first.
@@ -762,6 +852,10 @@ export async function runSalesOutreach(
   for (const doc of dueSnap.docs as any[]) {
     if (results.followups >= limit) break
     const o = doc.data()
+    // A reminder that has failed to send repeatedly is given up on, not retried
+    // every morning for ever: each attempt would spend one of today's follow-up
+    // slots and a model call on a mailbox that is not accepting mail.
+    if ((Number(o.followup_failures) || 0) >= MAX_SEND_ATTEMPTS) continue
     const step = (o.step ?? 0) + 1
     // Conversion is checked BEFORE the step guard: a doc that finished the drip
     // (step >= MAX_STEPS) used to be abandoned here, so claims landing after the
@@ -805,11 +899,17 @@ export async function runSalesOutreach(
       // denominator and removes it from this query's status filter forever.
       const deliveredAlready = ['sent', 'opened', 'clicked', 'converted'].includes(String(o.status))
       await doc.ref.set(
-        {
-          step,
-          ...(sent || deliveredAlready ? {} : { status: 'send_failed' }),
-          ...(sent ? { last_sent_at: FieldValue.serverTimestamp() } : { last_send_failed_at: FieldValue.serverTimestamp() }),
-        },
+        sent
+          ? { step, followup_failures: 0, last_sent_at: FieldValue.serverTimestamp() }
+          : {
+              // The step does NOT advance on a failure. It used to, so a reminder
+              // that failed to send was skipped for good and the NEXT one went out
+              // in its place. Failures are counted so a reminder that keeps failing
+              // is eventually given up on (see the check at the top of the loop).
+              followup_failures: FieldValue.increment(1),
+              last_send_failed_at: FieldValue.serverTimestamp(),
+              ...(deliveredAlready ? {} : { status: 'send_failed' }),
+            },
         { merge: true }
       )
     }
@@ -822,25 +922,44 @@ export async function runSalesOutreach(
   // (~1.1k) plus the outreach ledger (listing_id + email only), once per run.
   const [emailSnap, outreachSnap] = await Promise.all([
     adminDb.collection('directory_listings').where('email', '>', '').select(...NEW_CONTACT_FIELDS).get(),
-    adminDb.collection('sales_outreach').select('listing_id', 'email').get(),
+    adminDb.collection('sales_outreach').select('listing_id', 'email', 'status', 'send_attempts', 'send_error').get(),
   ])
   const pool = emailSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Listing[]
+  // A row whose send FAILED and may still be retried does not count as contacted:
+  // the business never received anything. It keeps its doc (and attempt count), so
+  // the retry overwrites the same row instead of leaving two.
+  const retryRows = new Map<string, { docId: string; attempts: number }>()
+  const settledRows = outreachSnap.docs.filter((d) => {
+    const attempts = Math.max(1, Number(d.get('send_attempts')) || 1)
+    const retryable = failedSendIsRetryable({
+      status: d.get('status'),
+      send_attempts: d.get('send_attempts'),
+      send_error: d.get('send_error'),
+    })
+    if (retryable) retryRows.set(String(d.get('listing_id') || ''), { docId: d.id, attempts })
+    return !retryable
+  })
   const plan = planNewContacts(pool, {
-    listingIds: new Set(outreachSnap.docs.map((d) => String(d.get('listing_id') || '')).filter(Boolean)),
-    emails: new Set(outreachSnap.docs.map((d) => normEmail(d.get('email'))).filter(Boolean)),
+    listingIds: new Set(settledRows.map((d) => String(d.get('listing_id') || '')).filter(Boolean)),
+    emails: new Set(settledRows.map((d) => normEmail(d.get('email'))).filter(Boolean)),
   })
   results.queue_size = plan.ordered.length
   results.spanish_share = opts.locale ? (opts.locale === 'es' ? 1 : 0) : spanishShare
   results.contacted_by_locale = { en: 0, es: 0 }
   results.skipped_ineligible = plan.skipped
+  results.retried = 0
 
+  let consecutiveFailures = 0
   for (const l of plan.ordered) {
     if (results.contacted >= limit) break
     if (await isSuppressed(l.email as string)) {
       results.skipped_already++
       continue
     }
-    const ref = adminDb.collection('sales_outreach').doc()
+    const retry = retryRows.get(l.id)
+    // doc(undefined) throws in the Admin SDK (it checks arguments.length), so the
+    // two cases are spelled out.
+    const ref = retry ? adminDb.collection('sales_outreach').doc(retry.docId) : adminDb.collection('sales_outreach').doc()
     const rowLocale = opts.locale ?? outreachLocale(l.id, spanishShare)
     // Downgrades to variant 0 when the mirror arms' data is missing, so the
     // recorded subject_variant always matches the copy that actually went out —
@@ -853,9 +972,11 @@ export async function runSalesOutreach(
     const content = variant >= 3 ? base : await enhanceWithClaude(l, base, rowLocale)
     const html = renderHtml(l, content, ref.id, rowLocale)
     let sent = false
+    let sendError: string | undefined
     if (!opts.dryRun) {
       const r = await sendEmail(l.email as string, content.subject, html, rowLocale)
       sent = r.sent
+      sendError = r.error
     }
     // A dry run must not create experiment rows: the already-contacted guard is
     // status-agnostic, so a 'dry_run' doc used to block that listing from ever
@@ -880,6 +1001,8 @@ export async function runSalesOutreach(
       had_description_es: assignment.had_description_es,
       had_contact_details: assignment.had_contact_details,
       status: sent ? 'sent' : 'send_failed',
+      send_attempts: (retry?.attempts ?? 0) + 1,
+      ...(sent ? {} : { send_error: sendError || 'unknown' }),
       opens: 0,
       clicks: 0,
       created_at: FieldValue.serverTimestamp(),
@@ -887,7 +1010,19 @@ export async function runSalesOutreach(
     })
     results.contacted++
     results.contacted_by_locale[rowLocale]++
-    if (sent) results.sent++
+    if (retry) results.retried++
+    if (sent) {
+      results.sent++
+      consecutiveFailures = 0
+    } else {
+      results.last_send_error = sendError || 'unknown'
+      // Three in a row is the provider (or our key), not three bad addresses.
+      // Stop rather than spend the rest of the queue's attempts on it.
+      if (++consecutiveFailures >= HALT_AFTER_CONSECUTIVE_FAILURES) {
+        results.halted = 'consecutive_send_failures'
+        break
+      }
+    }
   }
 
   return results

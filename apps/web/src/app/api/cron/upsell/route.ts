@@ -22,12 +22,14 @@ export async function GET(request: NextRequest) {
   }
   const { searchParams } = new URL(request.url)
   try {
+    const dryRun = searchParams.get('dryRun') === '1'
     const result = await runUpsellOutreach({
       limit: Number(searchParams.get('limit')) || 20,
-      dryRun: searchParams.get('dryRun') === '1',
+      dryRun,
       locale: (searchParams.get('locale') as 'en' | 'es') || 'en',
     })
-    await reportSuccess('cron:upsell')
+    // A preview is not a run: see account-manager for why liveness is not stamped.
+    if (!dryRun) await reportSuccess('cron:upsell')
     return NextResponse.json(result)
   } catch (error) {
     await reportFailure('cron:upsell', error)

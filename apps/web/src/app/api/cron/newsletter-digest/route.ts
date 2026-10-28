@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
     // hours, forever, about a job Cloud Scheduler is invoking perfectly — the
     // precise alert-fatigue failure the heartbeat exists to prevent.
     // lib/cron-outcome.ts states the rule: liveness is about whether it ran.
-    await reportSuccess('cron:newsletter-digest')
+    if (!dryRun) await reportSuccess('cron:newsletter-digest')
     return NextResponse.json({ ok: true, skipped: 'no_recent_stories' })
   }
 
@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
   ])
   if (suppressed === null) {
     // Fail closed: never blast marketing when the suppression list can't be read.
-    await reportFailure('cron:newsletter-digest', new Error('suppression list unavailable'))
+    if (!dryRun) await reportFailure('cron:newsletter-digest', new Error('suppression list unavailable'))
     return NextResponse.json({ ok: false, skipped: 'suppression_unavailable' })
   }
   const seen = new Set<string>()
@@ -206,7 +206,9 @@ export async function GET(request: NextRequest) {
   // signal meaningless in both directions. Its own alertKey for the same reason
   // reportCronAuthRejected has one — the 3-per-6h email bucket is per key, and a
   // slot collision must not crowd out a delivery-failure alert.
-  if (conflictIds.length > 0) {
+  // A preview reports the collision in its own response (`sponsor_conflicts`
+  // below) and must not email anyone.
+  if (conflictIds.length > 0 && !dryRun) {
     await reportFailure(
       'cron:newsletter-digest',
       new Error(
@@ -246,7 +248,7 @@ export async function GET(request: NextRequest) {
   try {
     journalSnaps = await adminDb.getAll(...journalRefs)
   } catch (error) {
-    await reportFailure('cron:newsletter-digest', error, { phase: 'journal_read', recipients: subs.length })
+    if (!dryRun) await reportFailure('cron:newsletter-digest', error, { phase: 'journal_read', recipients: subs.length })
     return NextResponse.json({ ok: false, skipped: 'journal_unavailable' })
   }
   const alreadySent = new Set<string>()
@@ -327,7 +329,8 @@ export async function GET(request: NextRequest) {
   // Don't declare recovery on a run whose delivery mostly failed, or one that
   // stopped because it could not journal (either reportFailure above would be
   // instantly contradicted).
-  if (!journalBroken && !(failed > 0 && failed >= sent)) await reportSuccess('cron:newsletter-digest')
+  // A preview is not a run: it sent nothing, so it must not stamp liveness.
+  if (!dryRun && !journalBroken && !(failed > 0 && failed >= sent)) await reportSuccess('cron:newsletter-digest')
   return NextResponse.json({
     ok: true,
     dryRun,

@@ -42,8 +42,8 @@ export async function GET(request: NextRequest) {
 
   const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' as any })
   const { searchParams } = new URL(request.url)
+  const dryRun = searchParams.get('dryRun') === '1'
   try {
-    const dryRun = searchParams.get('dryRun') === '1'
     const result = await reconcileFailedTransfers({
       stripe,
       limit: Number(searchParams.get('limit')) || 50,
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     if (!dryRun) await reportSuccess('cron:reconcile-payouts')
     return NextResponse.json({ reconciliation: result, payout_cycle: payoutCycle, statements })
   } catch (error) {
-    await reportFailure('cron:reconcile-payouts', error)
+    if (!dryRun) await reportFailure('cron:reconcile-payouts', error)
     return NextResponse.json({ error: 'Payout reconciliation run failed' }, { status: 500 })
   }
 }

@@ -217,8 +217,13 @@ export function canStartEnrichment(
 }
 
 export async function runContactEnrichment(
-  opts: { limit?: number; categories?: string[]; now?: () => number } = {}
+  opts: { limit?: number; categories?: string[]; now?: () => number; dryRun?: boolean } = {}
 ) {
+  // A preview still reads the sites, so `emails_found` and `updated` say what a
+  // real run would do, but it writes nothing: no email onto a listing, no
+  // `enrich_attempted_at` stamp (which would hide the row for 30 days) and no
+  // cursor advance (which would make the next real run skip what was previewed).
+  const dryRun = Boolean(opts.dryRun)
   const limit = enrichLimit(opts.limit)
   const now = opts.now ?? (() => Date.now())
   let budgetExhausted = false
@@ -311,7 +316,7 @@ export async function runContactEnrichment(
       break
     }
   }
-  await setCronCursor(cursorName, reachedEnd ? null : nextCursor)
+  if (!dryRun) await setCronCursor(cursorName, reachedEnd ? null : nextCursor)
 
   // Worked CONCURRENTLY, with a wall-clock budget.
   //
@@ -342,18 +347,19 @@ export async function runContactEnrichment(
       }
       const doc = candidates[cursorIndex++]
       if (!doc) return
-      await enrichOne(doc, stats)
+      await enrichOne(doc, stats, dryRun)
     }
   }
   await Promise.all(Array.from({ length: ENRICH_CONCURRENCY }, () => worker()))
 
-  return { ...stats, budget_exhausted: budgetExhausted, considered: candidates.length }
+  return { ...stats, budget_exhausted: budgetExhausted, considered: candidates.length, ...(dryRun ? { dry_run: true } : {}) }
 }
 
 /** One listing's enrichment, extracted so a pool of workers can share it. */
 async function enrichOne(
   doc: FirebaseFirestore.QueryDocumentSnapshot,
-  stats: { scanned: number; no_website: number; emails_found: number; updated: number }
+  stats: { scanned: number; no_website: number; emails_found: number; updated: number },
+  dryRun = false
 ): Promise<void> {
   {
     const l = doc.data() as any
@@ -384,6 +390,6 @@ async function enrichOne(
       updates.enriched_at = new Date().toISOString()
       stats.updated++
     }
-    await doc.ref.set(updates, { merge: true })
+    if (!dryRun) await doc.ref.set(updates, { merge: true })
   }
 }

@@ -188,6 +188,38 @@ look at who would be nudged permanently cancelled those nudges. It no longer
 writes anything (`sales-agent-dry-run.test.ts` runs dry then real on the same
 fake database and requires the real run to still send).
 
+> **Every cron honours `?dryRun=1`, and a preview changes nothing and says
+> nothing.** That means: no writes, no sends or posts, no webhook calls, no
+> persisted-cursor advance, no `reportFailure` alert, and **no `reportSuccess`**
+> — the liveness stamp means "the scheduler fired", and a hand-run preview that
+> stamped it hid a genuinely stopped job from the heartbeat for its whole budget.
+> Five jobs ignored the flag entirely and ran for real (`social` would have posted
+> to the Facebook Page, `sync-events` deleted event rows, `enrich-contacts` wrote
+> emails onto listings and moved its cursor, `translate-listings` spent
+> translations, `directory-ingest` inserted); nine more honoured it but still
+> stamped liveness; ScrapeFlow's `DELIVER_VIA_WEBHOOK` step POSTed during a
+> preview. `cron-dry-run.test.ts` reads every cron route and fails if one does not
+> read the flag or has a `reportSuccess` its own line does not guard (the few that
+> a preview provably cannot reach are listed there with the reason).
+> `cron-dry-run-behavior.test.ts` and `scrapeflow/webhook-dry-run.test.ts` run the
+> five formerly-live jobs and the webhook step dry then real. ScrapeFlow itself
+> still records a `scrapeflow_runs` row marked `dry_run` (that is how the preview
+> is read back) and seeds missing bundled templates.
+
+> **A failed send is not a sent pitch.** `sales_outreach`, `recovery_outreach` and
+> `upsell_outreach` all dedupe on a row's existence, whatever its status, so a
+> `send_failed` row used to cancel that business's one touch for good — one
+> provider outage or a missing `RESEND_API_KEY` could burn a whole day's batch,
+> unnoticed. A failed send is now retried in place (same row, `send_attempts`
+> counted) up to `MAX_SEND_ATTEMPTS` (3), except a refused address
+> (`resend_400`/`resend_422`, `sendFailureIsFinal`), which settles at once. A run
+> that sees `HALT_AFTER_CONSECUTIVE_FAILURES` (3) failures in a row stops rather
+> than spend the queue, reports `halted`, and raises the `sales-agent-send-failures`
+> alert (the liveness stamp still means only "the job ran"). A follow-up that fails
+> does NOT advance the drip step (it used to, so the reminder was skipped and the
+> next one sent in its place); after 3 failures it is given up on
+> (`followup_failures`). Tests: `sales-agent-failed-sends.test.ts`.
+
 To add a
 new cron: create the route with the `CRON_SECRET` check, then add a scheduler job,
 then add it to `infra/scheduler/jobs.json` (or run `scheduler:capture`).

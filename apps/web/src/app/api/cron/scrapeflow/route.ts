@@ -11,7 +11,11 @@ export const maxDuration = 300
 // Cloud Scheduler: `citybeat-scrapeflow` → GET /api/cron/scrapeflow?limit=3
 // Runs up to `limit` enabled ScrapeFlow workflows whose interval has elapsed
 // (oldest first) and inserts new El Paso-area businesses into the directory.
-// `?dryRun=1` executes everything but writes nothing.
+// `?dryRun=1` runs the workflows without inserting listings, advancing their
+// schedule, calling webhooks, stamping liveness or raising failure alerts. It does
+// still record a `scrapeflow_runs` row marked `dry_run` (that is how the preview
+// is read back) and seeds any missing bundled templates, which a real run would do
+// first anyway.
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
@@ -30,7 +34,7 @@ export async function GET(request: NextRequest) {
   if (searchParams.get('consolidate') === '1') {
     try {
       const result = await consolidateListings({ apply: !dryRun })
-      await reportSuccess('cron:scrapeflow')
+      if (!dryRun) await reportSuccess('cron:scrapeflow')
       return NextResponse.json({ ok: true, dryRun, consolidation: { ...result, plan: result.plan.slice(0, 100) } })
     } catch (error) {
       await reportFailure('cron:scrapeflow', error, { consolidate: true })
@@ -47,8 +51,8 @@ export async function GET(request: NextRequest) {
     // had just run look like a job that had stopped — the heartbeat paged
     // "scrapeflow scraper has stopped running, last ran 39h ago" two hours after
     // a normal run. See lib/cron-outcome.ts.
-    if (shouldStampLiveness(result.ran)) await reportSuccess('cron:scrapeflow')
-    if (failed.length) {
+    if (!dryRun && shouldStampLiveness(result.ran)) await reportSuccess('cron:scrapeflow')
+    if (failed.length && !dryRun) {
       await reportFailure(
         'cron:scrapeflow',
         new Error(`${failed.length} workflow run(s) failed`),
