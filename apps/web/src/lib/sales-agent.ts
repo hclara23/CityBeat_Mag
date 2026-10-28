@@ -529,9 +529,15 @@ export async function runUpsellOutreach(opts: { limit?: number; dryRun?: boolean
     const html = renderUpsellHtml(l, content, ref.id, locale)
     let sent = false
     if (!opts.dryRun) { const r = await sendEmail(email, content.subject, html); sent = r.sent }
+    // Same trap as recovery_outreach: the `already` check above keys on this
+    // collection, so a 'dry_run' row would block that listing's real upsell for good.
+    if (opts.dryRun) {
+      results.contacted++
+      continue
+    }
     await ref.set({
       listing_id: l.id, business_name: l.name || null, email, locale,
-      status: sent ? 'sent' : opts.dryRun ? 'dry_run' : 'send_failed',
+      status: sent ? 'sent' : 'send_failed',
       opens: 0, clicks: 0, created_at: FieldValue.serverTimestamp(), last_sent_at: FieldValue.serverTimestamp(),
     })
     results.contacted++
@@ -577,11 +583,20 @@ export async function runRecoveryOutreach(opts: { limit?: number; dryRun?: boole
     return t
   }
 
-  const record = (key: string, fields: Record<string, unknown>) =>
-    adminDb
+  // The ONE write in this function, and a dry run must not make it. The ledger is
+  // the dedupe: alreadySent(key) skips any target that has a row, whatever the
+  // row's status. A 'dry_run' row therefore kept that target out of every future
+  // real run, so a harmless-looking preview ("who would you nudge?") permanently
+  // cancelled the nudges it listed. Counters still advance, so the dry run reports
+  // exactly what a real run would do; it just leaves no trace. (The first-touch
+  // path made the same fix earlier: "a dry run must not create experiment rows".)
+  const record = async (key: string, fields: Record<string, unknown>) => {
+    if (opts.dryRun) return
+    await adminDb
       .collection('recovery_outreach')
       .doc(key)
       .set({ ...fields, unsub_token: tokenFor(key), created_at: FieldValue.serverTimestamp() })
+  }
 
   // Segment 1: abandoned verifications.
   // Bounded: this collection only grows. Oldest-first so nothing starves, and

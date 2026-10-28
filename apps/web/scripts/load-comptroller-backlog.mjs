@@ -229,7 +229,11 @@ async function main() {
     console.log(`  ${ran?.name} -> ${ran?.status}`)
     if (ran?.run_id) console.log('  summary:', await runSummary(ran.run_id))
     await upsertWorkflow(0, false)
-    console.log('\nworkflow disabled again. DRY RUN — nothing written. Re-run with --apply.')
+    // Not "nothing written": a ScrapeFlow dry run inserts no listings and does not
+    // advance the schedule, but it does record a scrapeflow_runs document and
+    // overwrite the workflow's last_run_id / last_run_status, so the admin "last
+    // run" shows the preview. No directory listing is created or changed.
+    console.log('\nworkflow disabled again. DRY RUN — no listings written (a preview run record was saved). Re-run with --apply.')
     return
   }
 

@@ -42,7 +42,14 @@ export async function GET(request: NextRequest) {
     // Mid-funnel recovery rides the same daily run: abandoned verifications and
     // claimed-but-basic owners each get one nudge, tracked in recovery_outreach.
     const recovery = await runRecoveryOutreach({ limit: 20, dryRun })
-    await reportSuccess('cron:sales-agent')
+    // A preview is not a run. Stamping liveness here made a hand-run ?dryRun=1
+    // look like the scheduler had fired: it hides a stopped job from the heartbeat
+    // for its whole budget, and flips a genuinely 'failing' source back to ok with
+    // an emailed "recovered" note although nothing was sent. This job reported
+    // "ok" every morning through twelve days of sending nothing; the stamp has to
+    // mean "the scheduled run completed". (payout-cycle and reconcile-payouts
+    // already guard it the same way.)
+    if (!dryRun) await reportSuccess('cron:sales-agent')
     return NextResponse.json({ ...result, recovery })
   } catch (error) {
     await reportFailure('cron:sales-agent', error)
