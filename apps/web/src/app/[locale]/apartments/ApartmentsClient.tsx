@@ -91,6 +91,7 @@ export default function ApartmentsClient({ locale }: { locale: ApartmentLocale }
               <p className="mt-4 border-t border-white/10 pt-4 text-sm text-white/65">{community.address}<br />El Paso, TX {community.zip}</p>
               <a href={`tel:+1${community.phone}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-brand-neon">{apartmentPhone(community.phone)}</a>
               <Link href={`/${locale}/apartments/${community.slug}`} className="mt-3 block rounded bg-brand-neon px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-black hover:bg-white">{es ? 'Ver detalles' : 'View details'} →</Link>
+              <Link href={`/${locale}/apartments/${community.slug}/claim`} className="mt-2 inline-flex min-h-11 items-center justify-center text-center text-sm font-bold text-brand-neon underline">{es ? 'Reclamar esta propiedad' : 'Claim this property'}</Link>
             </div>
           </article>)}
         </div>}
