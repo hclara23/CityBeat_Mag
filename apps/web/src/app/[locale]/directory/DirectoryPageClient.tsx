@@ -278,6 +278,7 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                       <span className="rounded-full border border-brand-neon/45 bg-brand-neon/10 px-4 py-2 text-brand-neon">El Paso</span>
                       <span className="rounded-full border border-white/20 px-4 py-2 text-white/75">Las Cruces</span>
                       <span className="rounded-full border border-white/20 px-4 py-2 text-white/75">Borderlands</span>
+                      <Link href={`/${locale}/apartments`} className="rounded-full border border-white/20 px-4 py-2 text-white/75 hover:border-brand-neon hover:text-brand-neon">{locale === 'es' ? 'Apartamentos' : 'Apartments'} →</Link>
                     </div>
                   </div>
                 </div>

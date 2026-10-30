@@ -11206,12 +11206,36 @@
       "doc_updated_by": "agentctl",
       "description": "Replace ResCore campaign content with CityBeat transactional messaging, add verifiable SMS consent disclosures, and validate registration. User approved Twilio 15 USD vetting and 10 USD monthly fees.",
       "doc": "## Summary\n\nPublished CityBeat SMS consent safeguards in commit 6a17a3a and submitted the rewritten Twilio campaign successfully. Carrier review remains pending.\n\n## Context\n\nCityBeat Magazine is operated by Elevate El Paso. The user authorized the 15 USD Twilio vetting fee, 10 USD monthly campaign fee, and up to 1 USD Google Cloud deployment usage.\n\n## Scope\n\nBilingual public claim instructions, unchecked consent checkbox, server consent gate and evidence, matching verification SMS, and bilingual SMS terms. Replaced ResCore campaign description, samples and consent flow with CityBeat content. Saved CityBeat opt-in, opt-out and help replies and enabled advanced opt-out.\n\n## Risks\n\nCampaign approval remains an external review decision. Twilio automated recheck retained an informational warning about verifying consent automatically; the public claim URL and full disclosures are live and included in the submission. No actual SMS was sent during verification.\n\n## Verify Steps\n\nLocal typecheck and 2 consent tests passed. GitHub deployment run 40766919603 passed, including tests, candidate smoke checks and production rollout. Cloud Build 7cae860a-837c-4204-9991-3bd867f8b3a4 succeeded in about 5 minutes. Verified public signed-out consent instructions at https://citybeatmag.co/en/directory/seed-elevate-el-paso/claim, live SMS terms, and signed-in unchecked checkbox with Request Verification Code disabled. Twilio displayed Thank you for your Campaign submission and confirmed registration completed successfully.\n\n## Rollback Plan\n\nRevert the scoped implementation commit and redeploy through the existing deployment workflow. Do not remove consent requirements while sending SMS. Revise campaign details only if review feedback requires it; do not resubmit or incur further fees without applicable approval.\n\n## Notes\n\nNumber +1 915 284 7374. Campaign CM6aab3943824c3adffe93b31c4f31116c. Messaging service MG255311bd6b7e33d8379635abc39e2d2c. Submitted October 28, 2026; awaiting review. Implementation pushed to origin main. Registration submission is complete, but SMS approval and delivery are not yet confirmed."
+    },
+    {
+      "id": "202610302249-M5S972",
+      "title": "Add bilingual apartments directory with RPM communities",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: build bilingual apartments directory and verified RPM catalog using existing CityBeat navigation and design tokens."
+        },
+        {
+          "author": "CODER",
+          "body": "start: add bilingual apartment directory and ten verified RPM community profiles | details: details: match directory finder and cards; add search and ZIP and property-type filters, leasing contacts, sources, SEO and navigation; pass typecheck and three regression tests"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-30T22:53:38+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved apartments section matching the business directory in English and Spanish, with all ten verified RPM Living El Paso communities, searchable cards and details, navigation and tests. Prepare release; additional paid deployment requires approval.",
+      "doc": "## Summary\n\nAdd an English and Spanish Apartments directory and ten source-verified RPM Living community profiles, matching the existing business directory finder, cards, navigation and design tokens.\n\n## Context\n\nThe user approved all ten El Paso properties from RPM Living's official community directory. Shared management does not establish shared ownership. TerraLane is correctly described as single-family rental homes rather than apartments.\n\n## Scope\n\nSource catalog in apps/web/src/lib/apartments.ts; bilingual index and detail routes under /[locale]/apartments; name/address/amenity search, ZIP and community-type filters, leasing phone/site/map links, management/source disclosures, metadata and structured data. Header, footer, business-directory cross-link and public sitemap include the section. Catalog records are bundled public editorial content and do not duplicate Firestore business records or manufacture owner claims. Existing contact page handles correction requests.\n\n## Risks\n\nPrices and availability are intentionally not represented because they change. Official source contact numbers can be tracking lines. The catalog requires future editorial updates when property management or contact details change. No copied photography or invented ratings are used. Publishing requires a separately authorized deployment budget; no production write or push is performed here.\n\n## Verify Steps\n\nPassed npm run type-check --workspace @citybeat/web. Passed node --import tsx --test apps/web/src/lib/apartments.test.ts (3 tests: complete unique bilingual catalog and valid contacts; accent-insensitive combined search and ZIP filtering; rental homes excluded from apartment-only filter). Passed git diff --check. Local preview running on port 3010 for parent browser review, including EN/ES indexes and property details.\n\n## Rollback Plan\n\nRevert the implementation commit and redeploy through the existing workflow with approved spending. No database migration or record deletion is required.\n\n## Notes\n\nPrimary management/contact source: https://rpmliving.com/find-a-community-post-search/, checked October 30, 2026. Individual official community websites substantiate concise amenities where verified. Desert Commons East uses only verified catalog details. Review and release remain with the parent orchestrator; task remains DOING."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "0d303a1a6000e08d87ae379fe777b3d595d84324f90ab5efcbbffcbebedc819c"
+    "checksum": "8e2341a521786b1bc6717eb308d2a0b03560be331fb885822d5961a3c7127322"
   }
 }

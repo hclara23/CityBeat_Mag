@@ -6,6 +6,7 @@ import { getUpcomingEvents } from '@/lib/events'
 import { unstable_cache } from 'next/cache'
 import { coverStory } from '@/lib/cover-story'
 import machelleStory from '@/lib/machelle-story.json'
+import { APARTMENT_COMMUNITIES, APARTMENT_VERIFIED } from '@/lib/apartments'
 
 // Called only by the runtime route; credential-free builds never scan Firestore.
 
@@ -52,11 +53,12 @@ export function lastModified(candidates: unknown[], now: Date = new Date()): Dat
 
 async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPaths = [
-    '', '/stories', '/directory', '/best', '/events', '/this-weekend', '/deals', '/jobs', '/ads', '/contribute', '/privacy', '/cookies', '/terms',
+    '', '/stories', '/directory', '/apartments', '/best', '/events', '/this-weekend', '/deals', '/jobs', '/ads', '/contribute', '/privacy', '/cookies', '/terms',
     '/leaderboard', '/guide', '/premium', coverStory.path, `/stories/${machelleStory.slug}`,
     '/topics/news', '/topics/business', '/topics/events', '/topics/culture',
   ]
   const urls: MetadataRoute.Sitemap = staticPaths.map((p) => entry(p))
+  APARTMENT_COMMUNITIES.forEach(community => urls.push(entry(`/apartments/${community.slug}`, lastModified([APARTMENT_VERIFIED]))))
 
   // Upcoming events (Event-structured detail pages).
   try {
@@ -115,7 +117,7 @@ async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   return urls
 }
 
-const cachedSitemap = unstable_cache(buildSitemap, ['public-sitemap-v4'], { revalidate: 3600 })
+const cachedSitemap = unstable_cache(buildSitemap, ['public-sitemap-v5'], { revalidate: 3600 })
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return cachedSitemap()
 }
