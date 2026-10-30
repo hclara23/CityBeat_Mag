@@ -1,18 +1,20 @@
 ---
 id: "202610302311-DF91CQ"
 title: "Enable bilingual apartment SMS property claims"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: ["202610302249-M5S972"]
 tags: []
+commit: { hash: "3375d81bedd4a6d0db82739cb51d4b90f3438298", message: "🚧 DF91CQ start: connect apartment SMS claims to trusted directory records and approved manager edits | details: localize verification texts; verify all ten properties in both languages with isolated UI and backend tests; prepare release pending deployment budget approval" }
 comments:
   - { author: "CODER", body: "Start: implement trusted apartment-to-directory linking and bilingual consent-based SMS claims with admin review and isolated full-flow tests." }
   - { author: "CODER", body: "start: add bilingual apartment claim screens with SMS consent and six-digit verification | details: preserve login return path and show review or approved outcomes; add claim links on all apartment cards and details" }
   - { author: "TESTER", body: "start: add isolated full apartment claim-flow tests | details: verify all ten properties in both languages through real resolver and SMS handlers; cover consent, trusted destinations, expiry, retries, provider failure, admin approval and safe public overlays" }
   - { author: "CODER", body: "start: connect apartment SMS claims to trusted directory records and approved manager edits | details: localize verification texts; verify all ten properties in both languages with isolated UI and backend tests; prepare release pending deployment budget approval" }
+  - { author: "CODER", body: "verified: deployed apartment text claims in release 41144060930 | details: all twenty bilingual claim pages and ten eligibility endpoints passed live checks; language switching and sign-in return paths verified; no live SMS sent" }
 doc_version: 2
-doc_updated_at: "2026-10-30T23:19:19+00:00"
+doc_updated_at: "2026-10-30T23:31:44+00:00"
 doc_updated_by: "agentctl"
 description: "Approved: connect ten apartment properties to authenticated directory SMS claims, translate texts and consent, preserve trusted numbers and admin review, test success and failure flow without paid sends or deployment."
 ---
@@ -22,7 +24,7 @@ Implement bilingual SMS claims for all ten apartment properties using the existi
 
 ## Context
 
-User approved implementation and full claim-flow testing. The earlier USD 1 approval covered the previous apartment release. No new deployment or paid SMS sends are authorized for this change yet.
+User approved bilingual apartment text claims and then explicitly approved up to USD 1 in Google Cloud deployment costs. Published the tested release using existing hosting on October 30, 2026; no live SMS messages were sent.
 
 ## Scope
 
@@ -30,7 +32,7 @@ Claim links and dedicated EN/ES screens; unchecked SMS consent and authenticated
 
 ## Risks
 
-Leasing tracking or landline numbers may not receive SMS; the UI offers staff review. Ambiguous existing directory identities are refused for review rather than overwritten. Local preview credentials cannot read Firestore (PERMISSION_DENIED), so production identity matching and carrier delivery remain release checks. No production writes, messages, deployment or new subscription occurred. Fake transactions in isolated tests do not emulate Firestore contention retries.
+Leasing tracking or landline numbers may not receive SMS; the UI offers staff review. Carrier delivery remains untested because no paid texts or recipient access were authorized. All ten live eligibility endpoints now return claimable with the expected phone endings. Isolated transaction tests do not emulate Firestore contention retries. Final billed deployment usage is not yet available.
 
 ## Verify Steps
 
@@ -44,5 +46,5 @@ Revert this task's commits and redeploy with approved spending. Preserve existin
 
 ## Notes
 
-Task 202610302311-DF91CQ remains DOING for release approval and production verification. UI commit 3b4d482f8fc0; test/harness commit 121c15e37489. Local-only browser harness command: node --import tsx scripts/preview-apartment-claims.ts (127.0.0.1:3012). Production release will use existing Cloud Run hosting with a requested spending cap of USD 1 and no new subscription. Actual carrier delivery requires a separate authorized test recipient and SMS budget if requested.
+Deployment 41144060930 succeeded for commit 3375d81bedd4a6d0db82739cb51d4b90f3438298, including candidate and production smoke checks. Cloud Build 88b26843-bf48-4545-8008-7e62954aa0f9 succeeded in about five minutes. Live checks passed all twenty EN/ES claim pages and ten claim-eligibility endpoints; unsigned start and verify requests returned 401 unauthorized. Live browser confirmed translated disclosures, correct ALZA phone ending, preserved property route on language switching, and locale-specific sign-in return paths. Screenshot apartment-claim-live.png in current conversation visualization folder. Local 34-test suite and isolated EN/ES full browser flow passed before release. No live SMS was sent and no property ownership was changed during validation. Public entry points: https://citybeatmag.co/en/apartments and https://citybeatmag.co/es/apartments. Task completed.
 
