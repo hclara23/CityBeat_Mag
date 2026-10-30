@@ -80,7 +80,7 @@ export default function ApartmentsClient({ locale }: { locale: ApartmentLocale }
         </div>
       </section>
       <section className="container-wide mt-8" aria-label={es ? 'Resultados de comunidades' : 'Community results'}>
-        <p role="status" className="mb-6 text-sm text-white/75">{communities.length} {es ? 'comunidades encontradas' : 'communities found'}</p>
+        <p role="status" className="mb-6 text-sm text-white/75">{communities.length} {es ? (communities.length === 1 ? 'comunidad encontrada' : 'comunidades encontradas') : (communities.length === 1 ? 'community found' : 'communities found')}</p>
         {communities.length === 0 ? <div className="citybeat-panel rounded-2xl p-10 text-center"><p>{es ? 'No se encontraron comunidades con estos filtros.' : 'No communities match these filters.'}</p><button onClick={reset} className="mt-4 min-h-11 rounded border border-brand-neon px-5 text-brand-neon">{es ? 'Quitar filtros' : 'Clear filters'}</button></div> : <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {communities.map(community => <article key={community.slug} className="group flex flex-col overflow-hidden rounded-2xl border border-white/15 bg-brand-ink/90 transition hover:border-brand-neon/60">
             <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-brand-charcoal p-6"><span className="text-xs font-bold uppercase tracking-wider text-brand-neon">{communityTypeLabel(community.type, locale)}</span><span className="text-sm text-white/60">{community.zip}</span></div>

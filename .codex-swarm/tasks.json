@@ -11223,6 +11223,10 @@
         {
           "author": "CODER",
           "body": "start: add bilingual apartment directory and ten verified RPM community profiles | details: details: match directory finder and cards; add search and ZIP and property-type filters, leasing contacts, sources, SEO and navigation; pass typecheck and three regression tests"
+        },
+        {
+          "author": "CODER",
+          "body": "start: correct singular apartment search counts in English and Spanish after browser review"
         }
       ],
       "doc_version": 2,
@@ -11236,6 +11240,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "8e2341a521786b1bc6717eb308d2a0b03560be331fb885822d5961a3c7127322"
+    "checksum": "8d9217784a07f7120412f7aa9c56b29379085737a6d0828028d263ed7d942057"
   }
 }
