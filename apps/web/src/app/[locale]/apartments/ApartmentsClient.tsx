@@ -73,7 +73,7 @@ export default function ApartmentsClient({ locale }: { locale: ApartmentLocale }
                   </label>
                 </div>
                 {(query || zip || type) && <button onClick={reset} className="mt-3 min-h-11 text-sm font-bold text-cyan-700 hover:text-cyan-900">{es ? 'Quitar filtros' : 'Clear filters'}</button>}
-                <p className="mt-6 text-sm leading-6 text-slate-600">{es ? 'Incluye las 10 comunidades de El Paso publicadas por RPM Living: nueve de apartamentos y una de casas de renta.' : 'Includes the 10 El Paso communities published by RPM Living: nine apartment communities and one rental-home community.'}</p>
+                <p className="mt-6 text-sm leading-6 text-slate-700">{es ? 'Incluye las 10 comunidades de El Paso publicadas por RPM Living: nueve de apartamentos y una de casas de renta.' : 'Includes the 10 El Paso communities published by RPM Living: nine apartment communities and one rental-home community.'}</p>
               </div>
             </div>
           </div>

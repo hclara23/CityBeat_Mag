@@ -10,6 +10,7 @@ comments:
   - { author: "CODER", body: "Start: build bilingual apartments directory and verified RPM catalog using existing CityBeat navigation and design tokens." }
   - { author: "CODER", body: "start: add bilingual apartment directory and ten verified RPM community profiles | details: details: match directory finder and cards; add search and ZIP and property-type filters, leasing contacts, sources, SEO and navigation; pass typecheck and three regression tests" }
   - { author: "CODER", body: "start: correct singular apartment search counts in English and Spanish after browser review" }
+  - { author: "CODER", body: "start: restore readable apartment finder footnote contrast on the light search panel" }
 doc_version: 2
 doc_updated_at: "2026-10-30T22:53:38+00:00"
 doc_updated_by: "agentctl"

@@ -11227,6 +11227,10 @@
         {
           "author": "CODER",
           "body": "start: correct singular apartment search counts in English and Spanish after browser review"
+        },
+        {
+          "author": "CODER",
+          "body": "start: restore readable apartment finder footnote contrast on the light search panel"
         }
       ],
       "doc_version": 2,
@@ -11240,6 +11244,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "8d9217784a07f7120412f7aa9c56b29379085737a6d0828028d263ed7d942057"
+    "checksum": "832583a040a868fb5852660648059467ff2134d7021124cb0b2d1ce9705cc71d"
   }
 }
