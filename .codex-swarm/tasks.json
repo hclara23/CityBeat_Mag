@@ -11250,12 +11250,46 @@
       "doc_updated_by": "agentctl",
       "description": "Approved apartments section matching the business directory in English and Spanish, with all ten verified RPM Living El Paso communities, searchable cards and details, navigation and tests. Prepare release; additional paid deployment requires approval.",
       "doc": "## Summary\n\nPublished the bilingual Apartments directory and ten RPM Living community profiles, matching the business directory finder, cards, navigation and design tokens.\n\n## Context\n\nThe user approved all ten El Paso properties from RPM Living's official directory and authorized up to USD 1 in Google Cloud deployment usage on October 30, 2026. Shared management does not establish shared ownership. TerraLane is correctly labeled as rental homes.\n\n## Scope\n\nBundled source catalog; English and Spanish index and detail routes; name/address/amenity search, ZIP and community-type filters; leasing phone, website and map links; management/source disclosures; metadata and structured data. Header, footer, directory cross-link and sitemap include the section. No database migration or duplicate Firestore records.\n\n## Risks\n\nPricing and availability are intentionally omitted because they change. The editorial catalog needs updates when management or contact details change. Official contact numbers may be tracking lines. No invented ratings or copied photography. One deployment used existing hosting; final billed usage is not yet available.\n\n## Verify Steps\n\nLocal typecheck, three catalog/filter regression tests, diff check and independent review passed. Local browser checks covered both languages, search, ZIP/type combinations, empty state/reset, language switching and mobile navigation without horizontal overflow.\n\nProduction deployment of 1ff6a5476e77ec026c099d384f786c504d75d357 succeeded in GitHub Actions run 41141318718, including typecheck, audit, tests, candidate smoke checks, traffic promotion and production smoke checks. Cloud Build b2b4313b-c62a-4012-b599-dbae24177bbf completed successfully.\n\nLive HTTP/HTML validation passed all 22 public pages: two indexes and twenty detail pages. Checked HTTP 200, all ten locale-specific index links, property headings, canonical URLs, translated leasing/management content and phone links. Live browser confirmed ALZA search returns one, ALZA detail navigation and Spanish switch preserve the property, ZIP 79935 returns two, rental homes returns TerraLane, and reset returns ten. Screenshot: apartments-live.png in the current conversation visualization folder.\n\n## Rollback Plan\n\nRevert implementation commits and redeploy using the existing workflow with approved spending, or restore the prior Cloud Run revision. No database rollback is necessary.\n\n## Notes\n\nPrimary source: https://rpmliving.com/find-a-community-post-search/, checked October 30, 2026. Individual community websites substantiate amenities where verified. Desert Commons East uses verified catalog details only. Public directories: https://citybeatmag.co/en/apartments and https://citybeatmag.co/es/apartments. Implementation commits: 6c02368, 5bbb6f0, 1ff6a54. Release and live verification complete."
+    },
+    {
+      "id": "202610302311-DF91CQ",
+      "title": "Enable bilingual apartment SMS property claims",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202610302249-M5S972"
+      ],
+      "tags": [],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: implement trusted apartment-to-directory linking and bilingual consent-based SMS claims with admin review and isolated full-flow tests."
+        },
+        {
+          "author": "CODER",
+          "body": "start: add bilingual apartment claim screens with SMS consent and six-digit verification | details: preserve login return path and show review or approved outcomes; add claim links on all apartment cards and details"
+        },
+        {
+          "author": "TESTER",
+          "body": "start: add isolated full apartment claim-flow tests | details: verify all ten properties in both languages through real resolver and SMS handlers; cover consent, trusted destinations, expiry, retries, provider failure, admin approval and safe public overlays"
+        },
+        {
+          "author": "CODER",
+          "body": "start: connect apartment SMS claims to trusted directory records and approved manager edits | details: localize verification texts; verify all ten properties in both languages with isolated UI and backend tests; prepare release pending deployment budget approval"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-30T23:19:19+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved: connect ten apartment properties to authenticated directory SMS claims, translate texts and consent, preserve trusted numbers and admin review, test success and failure flow without paid sends or deployment.",
+      "doc": "## Summary\n\nImplement bilingual SMS claims for all ten apartment properties using the existing directory ownership, review and manager dashboard flow.\n\n## Context\n\nUser approved implementation and full claim-flow testing. The earlier USD 1 approval covered the previous apartment release. No new deployment or paid SMS sends are authorized for this change yet.\n\n## Scope\n\nClaim links and dedicated EN/ES screens; unchecked SMS consent and authenticated requests; trusted apartment-to-directory mapping; existing rate limits, code expiry, attempts and transactional verification; bilingual SMS templates and stable localized errors. Approved directory edits are reflected in public apartment cards and details. A local-only preview harness exercises real UI and route code with in-memory persistence and simulated SMS.\n\n## Risks\n\nLeasing tracking or landline numbers may not receive SMS; the UI offers staff review. Ambiguous existing directory identities are refused for review rather than overwritten. Local preview credentials cannot read Firestore (PERMISSION_DENIED), so production identity matching and carrier delivery remain release checks. No production writes, messages, deployment or new subscription occurred. Fake transactions in isolated tests do not emulate Firestore contention retries.\n\n## Verify Steps\n\nPassed npm run type-check --workspace @citybeat/web. Passed 34 tests across apartment-claim-flow, apartments, claim-sms-consent and sms suites. Tests exercise all ten properties in both languages through actual apartment routes, resolver, existing directory start and verify handlers, and admin approval. Covered unauthorized requests, missing/stale consent, arbitrary destination substitution, failed SMS cleanup, wrong codes, five-attempt limit, expiry, replay, intervening owner, existing record reuse, identity conflicts, unpublished data and approved-only edits. Passed git diff --check.\n\nBrowser exercised actual claim client against isolated route harness: English consent disabled until checked, simulated code request, invalid-code feedback, valid code to pending review; Spanish consent, request and valid code to localized pending review. Local Next preview confirmed Spanish rendering and unavailable fallback with production DB credentials denied. No real messages were sent. Screenshot apartment-claim-test-es.png in current conversation visualization folder.\n\n## Rollback Plan\n\nRevert this task's commits and redeploy with approved spending. Preserve existing directory ownership records and apartment mappings for audit; do not delete manager claims or change billing as part of rollback.\n\n## Notes\n\nTask 202610302311-DF91CQ remains DOING for release approval and production verification. UI commit 3b4d482f8fc0; test/harness commit 121c15e37489. Local-only browser harness command: node --import tsx scripts/preview-apartment-claims.ts (127.0.0.1:3012). Production release will use existing Cloud Run hosting with a requested spending cap of USD 1 and no new subscription. Actual carrier delivery requires a separate authorized test recipient and SMS budget if requested."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "165b28ed88b70eccf2100a5ebfaac94a038df1fb7d41c75bdb07679882d4a676"
+    "checksum": "dfd226ff465b81f6d9431c68f62e8099c36f4a4487a5f860f98a6065077fa76c"
   }
 }

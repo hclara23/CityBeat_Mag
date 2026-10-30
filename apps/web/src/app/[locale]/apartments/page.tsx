@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import { localeAlternates, normLocale } from '@/lib/seo'
 import ApartmentsClient from './ApartmentsClient'
+import { publicApartments } from '@/lib/apartment-public'
+
+export const dynamic = 'force-dynamic'
 
 export function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   return params.then(({ locale }) => {
@@ -15,5 +18,5 @@ export function generateMetadata({ params }: { params: Promise<{ locale: string 
 
 export default async function ApartmentsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
-  return <ApartmentsClient locale={normLocale(locale)} />
+  return <ApartmentsClient locale={normLocale(locale)} catalog={await publicApartments()} />
 }

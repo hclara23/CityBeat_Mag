@@ -77,9 +77,9 @@ export function communityTypeLabel(type: CommunityType, locale: ApartmentLocale)
 
 const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim()
 
-export function searchApartments(query = '', zip = '', type = '') {
+export function searchApartments(query = '', zip = '', type = '', catalog: readonly ApartmentCommunity[] = APARTMENT_COMMUNITIES) {
   const words = normalize(query).split(/\s+/).filter(Boolean)
-  return APARTMENT_COMMUNITIES.filter(community => {
+  return catalog.filter(community => {
     if (zip && community.zip !== zip) return false
     if (type && community.type !== type) return false
     const text = normalize([community.name, community.address, community.zip, 'El Paso Texas TX', APARTMENT_MANAGER,

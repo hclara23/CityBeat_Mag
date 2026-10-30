@@ -10,6 +10,7 @@ import { reportFailure } from '@/lib/alerts'
 import { recordClaimEvent } from '@/lib/claim-funnel'
 import { acceptsClaimSmsConsent, CLAIM_SMS_CONSENT, CLAIM_SMS_CONSENT_VERSION } from '@/lib/claim-sms-consent'
 import { randomInt } from 'crypto'
+import { claimSmsMessage } from '@/lib/claim-sms-message'
 
 export const dynamic = 'force-dynamic'
 
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
     if (verification.notificationType === 'sms' && verification.recipient) {
       maskedRecipient = maskContact(verification.recipient, 'sms')
-      const smsBody = `CityBeat Magazine: Your requested business listing verification code is ${verificationCode}. It expires in 15 minutes. Do not share this code. Reply STOP to opt out, HELP for help. Msg & data rates may apply.`
+      const smsBody = claimSmsMessage(verificationCode, consentLocale)
       // Was console.log("[MOCK SMS]"), which told the caller a code had been
       // sent and sent nothing. Mirrors the email branch below: record the real
       // outcome, and fail loudly rather than claim a delivery that never

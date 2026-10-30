@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
-import { APARTMENT_COMMUNITIES, APARTMENT_MANAGER, APARTMENT_SOURCE, APARTMENT_VERIFIED, apartmentPhone, communityTypeLabel, searchApartments, type ApartmentLocale } from '@/lib/apartments'
+import { APARTMENT_COMMUNITIES, APARTMENT_MANAGER, APARTMENT_SOURCE, APARTMENT_VERIFIED, apartmentPhone, communityTypeLabel, searchApartments, type ApartmentLocale, type ApartmentCommunity } from '@/lib/apartments'
 
 const zipCodes = [...new Set(APARTMENT_COMMUNITIES.map(community => community.zip))].sort()
 
-export default function ApartmentsClient({ locale }: { locale: ApartmentLocale }) {
+export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITIES }: { locale: ApartmentLocale; catalog?: readonly ApartmentCommunity[] }) {
   const es = locale === 'es'
   const [query, setQuery] = useState('')
   const [zip, setZip] = useState('')
@@ -36,7 +36,7 @@ export default function ApartmentsClient({ locale }: { locale: ApartmentLocale }
     }
     window.history.replaceState(window.history.state, '', url)
   }, [query, zip, type, ready])
-  const communities = searchApartments(query, zip, type)
+  const communities = searchApartments(query, zip, type, catalog)
   const reset = () => { setQuery(''); setZip(''); setType('') }
   return <CityBeatShell locale={locale}>
     <div className="citybeat-app min-h-screen pb-24">

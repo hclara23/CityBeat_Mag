@@ -2,14 +2,17 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
-import { APARTMENT_COMMUNITIES, APARTMENT_MANAGER, APARTMENT_SOURCE, APARTMENT_VERIFIED, apartmentPhone, communityTypeLabel, getApartment } from '@/lib/apartments'
+import { APARTMENT_MANAGER, APARTMENT_SOURCE, APARTMENT_VERIFIED, apartmentPhone, communityTypeLabel } from '@/lib/apartments'
 import { localeAlternates, normLocale, SITE_URL } from '@/lib/seo'
+import { publicApartments } from '@/lib/apartment-public'
+
+export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ locale: string; slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, slug } = await params
-  const community = getApartment(slug)
+  const community = (await publicApartments()).find(property => property.slug === slug)
   if (!community) return {}
   return {
     title: `${community.name} · ${communityTypeLabel(community.type, normLocale(locale))} · El Paso · CityBeat`,
@@ -22,9 +25,10 @@ export default async function ApartmentPage({ params }: Props) {
   const { locale: requestedLocale, slug } = await params
   const locale = normLocale(requestedLocale)
   const es = locale === 'es'
-  const community = getApartment(slug)
+  const catalog = await publicApartments()
+  const community = catalog.find(property => property.slug === slug)
   if (!community) notFound()
-  const otherCommunities = APARTMENT_COMMUNITIES.filter(other => other.slug !== slug)
+  const otherCommunities = catalog.filter(other => other.slug !== slug)
   const jsonLd = {
     '@context': 'https://schema.org', '@type': community.type === 'apartments' ? 'ApartmentComplex' : 'Residence',
     name: community.name, description: community.summary[locale], telephone: `+1${community.phone}`,
