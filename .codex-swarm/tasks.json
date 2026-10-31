@@ -11428,12 +11428,32 @@
       "doc_updated_by": "agentctl",
       "description": "User explicitly approved up to USD 1 Google Cloud build/deployment usage to publish E9QP6H and verify both languages live. Use existing deployment pipeline and hosting. No outreach or live test charges authorized.",
       "doc": "## Summary\n\nPublish the tested property-management promotion and corporate portfolios using the existing Cloud Run pipeline.\n\n## Context\n\nThe user explicitly approved up to USD 1 in Google Cloud build/deployment usage for this release. Implementation is 4e7874d, closure aae6051; 123 targeted tests and an isolated production build passed.\n\n## Scope\n\nPush the committed release, monitor CI and the candidate deployment, verify production English/Spanish promotion and company pages, and check unauthenticated API boundaries without submitting real claims or payments.\n\n## Risks\n\nKeep build/deployment usage within USD 1. Do not initiate outreach, paid Stripe tests, SMS, new subscriptions, or ownership changes. Existing pipeline gates candidate traffic and rolls back failed live checks.\n\n## Verify Steps\n\nPASS: CI dependency installation, type check, zero production audit findings, full test suite, candidate smoke checks, promotion and live checks. PASS: production /api/health and /api/health/payments return 200. PASS: anonymous GET of /api/property-management/rpm-living, /api/property-management/register and /api/admin/property-management returns 401. PASS: browser verification of English and Spanish promotion plus all five company pages; each language shows RPM 10, M7 19, Integrity 59, Case 9, and Haggerty inventory awaiting confirmation. Both localized sign-in controls render after loading. Spanish mobile viewport390 has content width375, with no horizontal overflow. Live screenshots saved as property-promotion-live-en.png and property-promotion-live-es-mobile.png. Private editing and paid lifecycle scenarios passed in isolated tests; no live charge was placed.\n\n## Rollback Plan\n\nIf live smoke checks fail, restore the previous Cloud Run revision and inspect the failure before another build. Preserve existing customer data and billing state.\n\n## Notes\n\nPublished approved commit 07e9d67dcc35402834802da5e16a83b71f0eeef2. GitHub deployment run 41156379103 succeeded: https://github.com/hclara23/CityBeat_Mag/actions/runs/41156379103 . Cloud Build 28cc290b-b50c-46e7-9ef3-57b506b198d1 succeeded (2026-10-31T01:41:27Z to 01:48:44Z). Cloud Run citybeat-web-00459-cif serves 100 percent of traffic; prior working revision was citybeat-web-00457-qic. Initial run 41155040821 stopped at audit before any Google Cloud build. The user specifically approved publishing the dependency fix after automatic approval review blocked an earlier combined command. The successful retry retained the production audit and all CI tests. Only one Cloud Build ran for this release; actual billing is not finalized. No outreach, real payment test, SMS, or company ownership mutation was performed."
+    },
+    {
+      "id": "202610310408-N5MN6H",
+      "title": "Clarify management-company bulk property promotion",
+      "status": "DOING",
+      "priority": "med",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: clarify bilingual management-company bulk pricing and regular price comparison | details: replace general Founders promotion wording with multi-property enrollment offer"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-31T04:09:03+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Show regular 19.99 and promotional 9.99 prices and explain management-company multi-property eligibility in English and Spanish without a general Founders offer.",
+      "doc": "## Summary\n\nClarify the management-company multi-property offer in both languages.\n\n## Context\n\nThe user is narrowing the general Founders promotion and wants this offer explained as a bulk property-management discount.\n\n## Scope\n\nPromotion landing page metadata and price panel; every company portfolio header, including RPM and M7. Preserve existing subscription billing and active rate-lock terms.\n\n## Risks\n\nCopy-only change; no new billing thresholds or existing subscription changes. Publication requires separate deployment spending approval.\n\n## Verify Steps\n\nPassed npm run type-check --workspace @citybeat/web and git diff --check. Reviewed both localized prices and eligibility copy. No new tests needed for static text changes.\n\n## Rollback Plan\n\nRevert the two page changes through the standard deployment workflow.\n\n## Notes\n\nReady for publication. No network deployment, outreach, or charges performed."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "b8a3af7e7e65ef39908e52feaf768a0b703008ac55cf0491b747b233e40d70ce"
+    "checksum": "c98819f02421f87f8d7beab9bb32bcd9d5e23dfdd6043cc5f411a185fd10684a"
   }
 }

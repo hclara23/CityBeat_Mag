@@ -13,7 +13,7 @@ type Props = { params: Promise<{ locale: string }> }
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = normLocale((await params).locale)
   return { title: locale === 'es' ? 'Administradoras: una factura, todo su portafolio · CityBeat' : 'Property managers: one bill, your whole portfolio · CityBeat',
-    description: locale === 'es' ? 'Promoción para administradoras residenciales y comerciales. $9.99 USD por propiedad al mes mientras la suscripción permanezca activa.' : 'A portfolio promotion for residential and commercial property managers. $9.99 per property per month while your subscription stays active.',
+    description: locale === 'es' ? 'Oferta por volumen para administradoras residenciales y comerciales: inscriba varias propiedades por $9.99 USD cada una al mes, en lugar de $19.99. Tarifa fija mientras la suscripción siga activa.' : 'A bulk offer for residential and commercial management companies: enroll multiple properties for $9.99 each per month instead of $19.99. Rate locked while subscribed.',
     alternates: localeAlternates(locale, '/property-management') }
 }
 export default async function PropertyManagementPromotion({ params }: Props) {
@@ -33,10 +33,11 @@ export default async function PropertyManagementPromotion({ params }: Props) {
           <p className="mt-4 text-sm text-white/55">{es ? 'Solicitar la verificación es gratis. Pague cuando active su portafolio.' : 'Request verification for free. Pay when you activate your portfolio.'}</p>
         </div>
         <aside className="rounded-3xl border border-brand-neon/50 bg-brand-ink p-7 text-white shadow-xl sm:p-9">
-          <p className="text-xs font-black uppercase tracking-[.18em] text-white/70">{es ? 'Promoción para fundadores' : 'Portfolio founders offer'}</p>
-          <p className="mt-5 text-xl text-white/60"><s>$19.99</s> <span className="ml-2 rounded-full bg-brand-neon px-3 py-1 text-xs font-black text-black">{es ? 'AHORRE 50%' : 'SAVE 50%'}</span></p>
+          <p className="text-xs font-black uppercase tracking-[.18em] text-white/70">{es ? 'Promoción por volumen para administradoras' : 'Management-company multi-property offer'}</p>
+          <p className="mt-5 text-xl text-white/60">{es ? 'Precio regular' : 'Regular price'} <s>$19.99</s> <span className="ml-2 rounded-full bg-brand-neon px-3 py-1 text-xs font-black text-black">{es ? 'AHORRE 50%' : 'SAVE 50%'}</span></p>
           <p className="mt-2 text-7xl font-black tracking-tighter text-brand-neon">$9.99</p>
           <p className="mt-2 font-bold">{es ? 'USD / propiedad / mes' : 'USD / property / month'}</p>
+          <p className="mt-4 text-sm leading-6 text-white/80">{es ? 'Oferta especial para empresas administradoras que inscriben varias propiedades juntas: $9.99 por propiedad al mes, en lugar de la tarifa regular de $19.99. El descuento se ofrece por inscribir su portafolio en conjunto.' : 'A special offer for management companies enrolling multiple properties together: $9.99 per property per month instead of the regular $19.99. Your discount comes from enrolling your portfolio together.'}</p>
           <p className="mt-5 border-t border-white/20 pt-5 leading-6 text-white/70">{es ? 'Tarifa fija mientras mantenga activa su suscripción. Un cobro mensual automático con tarjeta para todo el portafolio inscrito.' : 'Your rate stays locked while your subscription remains active. One automatic monthly card payment for your enrolled portfolio.'}</p>
           <div className="mt-6 rounded-xl bg-white/5 p-4"><p className="text-xs font-bold uppercase text-white/60">{es ? 'Ejemplo: 10 propiedades' : 'Example: 10 properties'}</p><p className="mt-1 text-2xl font-black">$99.90 <span className="text-sm font-medium">{es ? 'USD / mes' : 'USD / month'}</span></p></div>
           <p className="mt-4 text-xs leading-5 text-white/60">{es ? 'Cada ficha inscrita cuenta como una propiedad. Los complejos se facturan por ficha, no por apartamento. Cancele desde Facturación.' : 'Each enrolled listing counts as one property. A complex is billed per listing, not per apartment. Cancel in Billing.'}</p>
