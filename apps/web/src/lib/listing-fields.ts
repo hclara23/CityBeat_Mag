@@ -29,6 +29,12 @@ export const PUBLIC_LISTING_STRIP_FIELDS = [
   // Private team membership — the Firebase UIDs of invited managers (the public
   // team surface uses the owner/staff-gated managers route).
   'manager_ids',
+  // Staff evidence and identity are private even after an imported draft is approved.
+  'verification_notes',
+  'verified_by',
+  'original_source_url',
+  'quality_review_reasons',
+  'publication_hold',
 ] as const
 
 // Mutating strip (the callers build a throwaway plain object first).

@@ -8,6 +8,7 @@ depends_on: ["202610310728-08DNQA"]
 tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "start: deploy the tested directory release with Docling excluded from source upload and container context, and a thirty-minute CI timeout under the approved one-time budget." }
+  - { author: "ORCHESTRATOR", body: "start: protect approved import review notes and reviewer identities from public serializers | details: cancel the first CI run before Cloud Build while completing the newly approved production improvements." }
 doc_version: 2
 doc_updated_at: "2026-10-31T07:54:57+00:00"
 doc_updated_by: "agentctl"

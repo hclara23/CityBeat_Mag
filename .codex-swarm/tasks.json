@@ -11603,6 +11603,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: deploy the tested directory release with Docling excluded from source upload and container context, and a thirty-minute CI timeout under the approved one-time budget."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: protect approved import review notes and reviewer identities from public serializers | details: cancel the first CI run before Cloud Build while completing the newly approved production improvements."
         }
       ],
       "doc_version": 2,
@@ -11616,6 +11620,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "0d0cf8cbf9d017378c564092c8ec83cf9c6ef408f3920d1dc9c66719551026ed"
+    "checksum": "d37860a6e75ad2f51df15272115b41bc5c276c6a57a74cb3943b1267ce9604f9"
   }
 }
