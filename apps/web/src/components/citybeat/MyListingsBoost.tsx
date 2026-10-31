@@ -5,6 +5,7 @@ import { DIRECTORY_PLANS, type PlanId } from '@/lib/pricing'
 import { useLocale } from '@/components/TranslationProvider'
 import { billingTerms } from '@/lib/billing-terms'
 import { DirectoryPlanComparison } from '@/components/citybeat/DirectoryPlanComparison'
+import type { ownerListingProgress } from '@/lib/owner-listing-progress'
 
 interface Listing {
   id: string
@@ -15,6 +16,8 @@ interface Listing {
   plan: string | null
   has_subscription?: boolean
   is_owner?: boolean
+  is_published?: boolean
+  progress?: ReturnType<typeof ownerListingProgress>
 }
 
 // Upgrade options offered in the dashboard — annual (best value) first.
@@ -41,10 +44,10 @@ export function MyListingsBoost() {
 
   useEffect(() => {
     fetch('/api/directory/mine')
-      .then((r) => (r.ok ? r.json() : { listings: [] }))
+      .then((r) => { if (!r.ok) throw new Error('load'); return r.json() })
       .then((d) => setListings(d.listings || []))
-      .catch(() => setListings([]))
-  }, [])
+      .catch(() => { setListings([]); setError(isEs ? 'No se pudieron cargar tus fichas. Recarga la página para intentar de nuevo.' : 'Your listings could not be loaded. Reload the page to try again.') })
+  }, [isEs])
 
   const boost = async (listing: Listing, plan: PlanId) => {
     setBusy(`${listing.id}:${plan}`)
@@ -86,8 +89,8 @@ export function MyListingsBoost() {
     }
   }
 
-  if (listings === null) return null
-  if (listings.length === 0) return null
+  if (listings === null) return <p role="status" className="mb-6 text-gray-600">{isEs ? 'Cargando tus fichas…' : 'Loading your listings…'}</p>
+  if (listings.length === 0) return <section className="mb-8 rounded-lg border border-gray-200 p-5"><h2 className="text-xl font-bold">{isEs ? 'Mis fichas' : 'My listings'}</h2><p className="mt-2 text-gray-600" role={error ? 'alert' : undefined}>{error || (isEs ? 'Busca tu negocio para reclamarlo gratis y administrarlo aquí.' : 'Find your business to claim it for free and manage it here.')}</p>{!error && <a className="mt-3 inline-flex min-h-11 items-center font-bold text-cyan-700 underline" href={`/${locale}/directory`}>{isEs ? 'Buscar mi negocio' : 'Find my business'}</a>}</section>
 
   return (
     <div className="mb-12">
@@ -97,7 +100,6 @@ export function MyListingsBoost() {
           ? 'Administra tu ficha y compara exactamente qué herramientas incluye tu plan actual. Los cambios se aplican al aprobarse.'
           : 'Manage your listing and compare exactly which tools your current plan includes. Changes take effect once approved.'}
       </p>
-      <DirectoryPlanComparison locale={locale} compact className="mb-6" />
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
       {notice && <p className="mb-4 text-sm text-emerald-600">{notice}</p>}
 
@@ -118,18 +120,27 @@ export function MyListingsBoost() {
                       : ''}
                   </p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isFeatured ? 'bg-brand-gold/15 text-brand-gold' : 'bg-white/10 text-white/70'}`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isFeatured ? 'bg-brand-gold/15 text-brand-gold' : 'bg-cyan-50 text-cyan-900'}`}>
                   {listing.tier.toUpperCase()}
                 </span>
               </div>
 
-              {/* Entry to the dedicated owner CMS (source of truth for listing management). */}
+              {listing.progress && <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
+                <p className="text-sm font-bold text-gray-900">{isEs ? 'Detalles de tu plan' : 'Your plan’s profile details'}: {listing.progress.completed}/{listing.progress.total}</p>
+                <progress aria-label={isEs ? 'Detalles completados' : 'Completed profile details'} value={listing.progress.completed} max={listing.progress.total} className="mt-2 h-2 w-full accent-cyan-600" />
+                {listing.progress.items.every(item => item.done) ? <p className="mt-2 text-sm text-gray-600">{isEs ? 'Todo listo. Mantén tu información actualizada.' : 'All set. Keep your information up to date.'}</p> : <ul className="mt-2 flex flex-wrap gap-x-4">{listing.progress.items.filter(item => !item.done).slice(0, 3).map(item => <li key={item.key}><a className="inline-flex min-h-11 items-center text-sm font-semibold text-cyan-700 underline" href={`/${locale}/dashboard/listings/${encodeURIComponent(listing.id)}#${item.section}`}>{isEs ? 'Completar' : 'Complete'}: {isEs ? item.label_es : item.label}</a></li>)}</ul>}
+              </div>}
+              <div className="mt-3 flex flex-wrap items-center gap-3">
               <a
-                href={`/${locale}/dashboard/listings/${listing.id}`}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
+                href={`/${locale}/dashboard/listings/${encodeURIComponent(listing.id)}#profile`}
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
               >
                 {isEs ? '✎ Administrar mi ficha' : '✎ Manage my listing'}
               </a>
+              {listing.is_published && <a href={`/${locale}/directory/${encodeURIComponent(listing.id)}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-cyan-700 underline">{isEs ? 'Ver ficha pública' : 'View public listing'}</a>}
+              <a href={`/${locale}/dashboard/listings/${encodeURIComponent(listing.id)}#analytics`} className="inline-flex min-h-11 items-center text-sm font-semibold text-cyan-700 underline">{isEs ? 'Ver rendimiento' : 'View performance'}</a>
+              </div>
+              {!listing.is_published && <p className="mt-2 text-sm text-gray-600">{isEs ? 'Esta ficha aún no es pública.' : 'This listing is not public yet.'}</p>}
 
               {listing.is_owner !== false && <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4">
                 {BOOST_PLANS.map((planId) => {
@@ -183,6 +194,7 @@ export function MyListingsBoost() {
           )
         })}
       </div>
+      <details className="mt-6 rounded-lg border border-gray-200 p-4"><summary className="min-h-11 cursor-pointer content-center font-bold">{isEs ? 'Comparar herramientas de los planes' : 'Compare plan tools'}</summary><DirectoryPlanComparison locale={locale} compact className="mt-4" /></details>
     </div>
   )
 }

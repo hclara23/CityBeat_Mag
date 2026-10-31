@@ -337,9 +337,17 @@ export default function DirectoryPageClient({ browseLinks }: { browseLinks?: Rea
                   </div>
 
                   {(searchQuery || location || selectedCategory !== 'All') && (
-                    <button type="button" onClick={clearFilters} className="mt-3 min-h-11 text-xs font-black uppercase tracking-wider text-cyan-700 hover:text-cyan-900">
-                      {locale === 'es' ? 'Limpiar búsqueda' : 'Clear search'}
-                    </button>
+                    <div className="mt-3 flex flex-wrap items-center gap-2" aria-label={locale === 'es' ? 'Filtros activos' : 'Active filters'}>
+                      {[
+                        { value: searchQuery, label: searchQuery, clear: () => setSearchQuery('') },
+                        { value: location, label: location, clear: () => setLocation('') },
+                        { value: selectedCategory !== 'All' ? selectedCategory : '', label: categoryLabel(selectedCategory, locale), clear: () => setSelectedCategory('All') },
+                      ].filter(item => item.value).map((item, index) => <button key={index} type="button" onClick={() => { item.clear(); setPage(0) }} aria-label={`${locale === 'es' ? 'Quitar filtro' : 'Remove filter'}: ${item.label}`} className="min-h-11 max-w-full rounded-full border border-cyan-700/30 bg-cyan-50 px-3 text-left text-sm text-cyan-900 break-words">{item.label} <span aria-hidden="true">×</span></button>)}
+                      <button type="button" onClick={clearFilters} className="min-h-11 px-2 text-sm font-bold text-cyan-700 underline hover:text-cyan-900">
+                        {locale === 'es' ? 'Quitar todos' : 'Clear all'}
+                      </button>
+                      <a href="#directory-results" className="min-h-11 content-center px-2 text-sm font-bold text-cyan-700 underline">{locale === 'es' ? 'Ver resultados' : 'View results'}</a>
+                    </div>
                   )}
                 </div>
               </div>

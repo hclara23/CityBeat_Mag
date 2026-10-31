@@ -153,6 +153,15 @@ const labelClass = 'block text-xs font-bold uppercase tracking-wider text-white/
 export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff, isOwner }: Props) {
   const isEs = locale === 'es'
   const [section, setSection] = useState<SectionKey>('overview')
+  useEffect(() => {
+    const readSection = () => {
+      const key = window.location.hash.slice(1)
+      if (SECTIONS.some(item => item.key === key)) setSection(key as SectionKey)
+    }
+    readSection()
+    window.addEventListener('hashchange', readSection)
+    return () => window.removeEventListener('hashchange', readSection)
+  }, [])
 
   // Editable state, seeded from the server-loaded listing.
   const [name, setName] = useState(listing.name)

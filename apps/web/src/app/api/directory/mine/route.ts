@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { getServerUser } from '@citybeat/lib/firebase/server'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { resolveEntitlements, resolveListingPatchAccess } from '@/lib/directory-entitlements'
+import { ownerListingProgress } from '@/lib/owner-listing-progress'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,6 +42,8 @@ export async function GET() {
           claim_status: x.claim_status || 'unclaimed',
           plan: x.plan || null,
           category: x.category || null,
+          is_published: x.is_published === true,
+          progress: ownerListingProgress(x, resolveEntitlements(x)),
           // Boolean only — the raw Stripe id stays server-side. The dashboard
           // uses this to route an upgrade through /api/directory/change-plan
           // (modify in place, prorated) instead of opening a second checkout.

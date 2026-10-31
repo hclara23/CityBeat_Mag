@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { localeAlternates } from '@/lib/seo'
 import { getNonEmptyCombos } from '@/lib/local-seo'
 import DirectoryPageClient from './DirectoryPageClient'
+import { categoryLabel } from '@/lib/categories'
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const params = await props.params;
@@ -69,23 +70,24 @@ async function BrowseByCategory({ locale }: { locale: string }) {
           ? 'Guías locales de los mejores negocios en El Paso, Las Cruces y la región fronteriza.'
           : 'Local guides to the best businesses across El Paso, Las Cruces, and the borderland.'}
       </p>
-      <div className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      <p className="mt-2 text-sm text-white/55">{isEs ? 'Elige una categoría para ver sus ciudades.' : 'Choose a category to see its cities.'}</p>
+      <div className="mt-6 grid items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from(groups.values()).map(({ cat, cities }) => (
-          <div key={cat.slug}>
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-brand-neon">{cat.plural}</h3>
-            <ul className="mt-2 space-y-1">
+          <details key={cat.slug} className="rounded-xl border border-white/15 bg-white/5 p-4">
+            <summary className="min-h-11 cursor-pointer content-center text-sm font-bold text-brand-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-neon">{isEs ? categoryLabel(cat.value, locale) : cat.plural} <span className="text-white/55">({cities.length})</span></summary>
+            <ul className="mt-2 space-y-1 border-t border-white/10 pt-2">
               {cities.map((city) => (
                 <li key={`${cat.slug}:${city.slug}`}>
                   <Link
                     href={`/${locale}/best/${cat.slug}/${city.slug}`}
-                    className="text-sm text-white/70 transition hover:text-brand-neon"
+                    className="inline-flex min-h-11 items-center text-sm text-white/70 transition hover:text-brand-neon"
                   >
-                    {isEs ? `Mejores ${cat.plural} en ${city.name}` : `Best ${cat.plural} in ${city.name}`}
+                    {isEs ? `${categoryLabel(cat.value, locale)} en ${city.name}` : `${cat.plural} in ${city.name}`}
                   </Link>
                 </li>
               ))}
             </ul>
-          </div>
+          </details>
         ))}
       </div>
     </section>

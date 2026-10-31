@@ -14,6 +14,7 @@ export type ProviderReport = {
   countries: MetricRow[]
   devices: MetricRow[]
   actions?: { calls: number; website_clicks: number; directions: number }
+  limited?: boolean
 }
 
 export function normalizeRange(value: string | null): RangeDays {

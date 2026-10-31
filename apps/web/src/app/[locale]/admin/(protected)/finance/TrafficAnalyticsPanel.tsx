@@ -1,27 +1,37 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PlatformGoogleBusinessConnection } from '@/components/citybeat/PlatformGoogleBusinessConnection'
+import { reportViewCount, selectTrafficReport, TRAFFIC_SOURCES, type TrafficSource } from '@/lib/traffic-report-view'
+import { useLocale } from '@/components/TranslationProvider'
 
 const providerLabel: Record<string, string> = { google: 'Google Analytics 4', cloudflare: 'Cloudflare Web Analytics', first_party: 'CityBeat first-party', google_business: 'Google Business Profile' }
 const fmt = (value: number) => new Intl.NumberFormat('en-US', { notation: value >= 10000 ? 'compact' : 'standard' }).format(value || 0)
 
 export function TrafficAnalyticsPanel() {
+  const locale = useLocale()
+  const isEs = locale === 'es'
+  const [source, setSource] = useState<TrafficSource | ''>('')
+  const request = useRef<AbortController | null>(null)
   const [days, setDays] = useState(30)
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const load = useCallback(async () => {
+    request.current?.abort()
+    const controller = new AbortController()
+    request.current = controller
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/traffic-analytics?days=${days}`, { cache: 'no-store' })
-      setData(res.ok ? await res.json() : null)
-    } catch { setData(null) }
-    finally { setLoading(false) }
+      const res = await fetch(`/api/admin/traffic-analytics?days=${days}`, { cache: 'no-store', signal: controller.signal })
+      const result = res.ok ? await res.json() : null
+      if (!controller.signal.aborted) setData(result)
+    } catch { if (!controller.signal.aborted) setData(null) }
+    finally { if (!controller.signal.aborted) setLoading(false) }
   }, [days])
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load(); return () => request.current?.abort() }, [load])
 
   const providers = data?.providers || {}
-  const primary = providers.google?.status === 'ok' ? providers.google : providers.first_party
+  const { source: selectedSource, report: primary } = selectTrafficReport(providers, source)
   const maxTrend = useMemo(() => Math.max(1, ...(primary?.trend || []).map((point: any) => point.views)), [primary])
 
   return (
@@ -33,7 +43,7 @@ export function TrafficAnalyticsPanel() {
           <p className="mt-1 max-w-2xl text-sm text-white/50">Google measures audience and acquisition. Cloudflare independently measures real browser page loads and performance. CityBeat remains available as a first-party fallback.</p>
         </div>
         <div className="flex rounded-lg border border-white/10 bg-black/20 p-1" aria-label="Analytics date range">
-          {[7, 30, 90].map((value) => <button key={value} onClick={() => setDays(value)} className={`rounded-md px-3 py-2 text-xs font-black ${days === value ? 'bg-brand-neon text-black' : 'text-white/55 hover:text-white'}`}>{value} days</button>)}
+          {[7, 30, 90].map((value) => <button key={value} aria-pressed={days === value} onClick={() => setDays(value)} className={`min-h-11 rounded-md px-3 py-2 text-xs font-black ${days === value ? 'bg-brand-neon text-black' : 'text-white/55 hover:text-white'}`}>{value} {isEs ? 'días' : 'days'}</button>)}
         </div>
       </div>
 
@@ -43,27 +53,36 @@ export function TrafficAnalyticsPanel() {
             {['google', 'cloudflare', 'first_party', 'google_business'].map((key) => <ProviderCard key={key} report={providers[key]} />)}
           </div>
           <PlatformGoogleBusinessConnection onChange={load} />
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <label htmlFor="traffic-chart-source" className="font-bold text-white">{isEs ? 'Fuente de las gráficas' : 'Chart source'}</label>
+            <select id="traffic-chart-source" value={selectedSource} onChange={e => setSource(e.target.value as TrafficSource)} className="min-h-11 max-w-full rounded-lg border border-white/25 bg-slate-950 px-3 text-white">
+              {TRAFFIC_SOURCES.map(key => <option key={key} value={key}>{providerLabel[key]}</option>)}
+            </select>
+          </div>
+          {!primary && <p role="status" className="mt-4 text-amber-200">{isEs ? 'Esta fuente no está disponible. Elige otra fuente; la falta de datos no significa cero tráfico.' : 'This source is unavailable. Choose another source; missing data does not mean zero traffic.'}</p>}
+          {primary?.limited && <p role="status" className="mt-4 text-amber-200">{isEs ? 'Datos parciales: se muestran los últimos 5,000 eventos. El total real puede ser mayor y las gráficas no cubren todo el período.' : 'Partial data: showing the latest 5,000 events. The actual total may be higher and the charts do not cover the full period.'}</p>}
+          {primary?.source === 'cloudflare' && <p className="mt-3 text-sm text-white/65">{isEs ? 'Mediciones del navegador de Cloudflare. No se muestran usuarios únicos ni sesiones; los datos comienzan al instalar el medidor.' : 'Cloudflare browser measurements. Unique users and sessions are not reported here; data begins when the beacon was installed.'}</p>}
 
           {providers.google_business?.status === 'ok' && <div className="mt-6 grid gap-4 sm:grid-cols-4"><Kpi label="Google Search + Maps impressions" value={fmt(providers.google_business.totals.views)} /><Kpi label="Call clicks from Google" value={fmt(providers.google_business.actions?.calls)} /><Kpi label="Website clicks from Google" value={fmt(providers.google_business.actions?.website_clicks)} /><Kpi label="Direction requests" value={fmt(providers.google_business.actions?.directions)} /></div>}
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <Kpi label="Page views" value={fmt(primary?.totals?.views)} />
-            <Kpi label="Active users" value={primary?.totals?.visitors ? fmt(primary.totals.visitors) : '—'} />
-            <Kpi label="Sessions" value={primary?.totals?.sessions ? fmt(primary.totals.sessions) : '—'} />
+            <Kpi label="Page views" value={primary ? reportViewCount(primary, locale) : '—'} />
+            <Kpi label="Active users" value={primary?.source === 'google' ? fmt(primary.totals.visitors) : '—'} />
+            <Kpi label="Sessions" value={primary?.source === 'google' ? fmt(primary.totals.sessions) : '—'} />
             <Kpi label="Engagement" value={primary?.totals?.engagement_rate !== undefined ? `${Math.round(primary.totals.engagement_rate * 100)}%` : '—'} />
-            <Kpi label="Avg. session" value={primary?.totals?.average_session_seconds ? `${Math.round(primary.totals.average_session_seconds)}s` : '—'} />
+            <Kpi label="Avg. session" value={primary?.totals?.average_session_seconds !== undefined ? `${Math.round(primary.totals.average_session_seconds)}s` : '—'} />
           </div>
 
           <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-6">
-            <div className="flex items-center justify-between"><h3 className="font-bold text-white">Daily page views</h3><span className="text-xs text-white/40">{providerLabel[primary?.source] || 'Unavailable'}</span></div>
-            {(primary?.trend || []).length ? <div className="mt-5 flex h-44 items-end gap-1 overflow-hidden" aria-label="Daily traffic chart">{primary.trend.map((point: any) => <div key={point.date} title={`${point.date}: ${fmt(point.views)} views`} className="min-w-[4px] flex-1 rounded-t bg-brand-neon/80 hover:bg-brand-neon" style={{ height: `${Math.max(3, point.views / maxTrend * 100)}%` }} />)}</div> : <p className="mt-4 text-sm text-white/40">No traffic has been reported for this range yet.</p>}
+            <div className="flex items-center justify-between"><h3 className="font-bold text-white">Daily page views</h3><span className="text-xs text-white/40">{providerLabel[selectedSource]}</span></div>
+            {primary?.trend.length ? <><div className="mt-5 flex h-44 items-end gap-1 overflow-hidden" aria-hidden="true">{primary.trend.map(point => <div key={point.date} title={`${point.date}: ${fmt(point.views)} views`} className="min-w-0 flex-1 rounded-t bg-brand-neon/80 hover:bg-brand-neon" style={{ height: `${Math.max(3, point.views / maxTrend * 100)}%` }} />)}</div><details className="mt-4"><summary className="min-h-11 cursor-pointer content-center text-brand-neon">{isEs ? 'Ver tabla de datos diarios' : 'View daily data table'}</summary><div className="max-h-64 overflow-auto"><table className="w-full text-left text-sm text-white/80"><thead><tr><th scope="col">{isEs ? 'Fecha' : 'Date'}</th><th scope="col">{isEs ? 'Vistas' : 'Views'}</th></tr></thead><tbody>{primary.trend.map(point => <tr key={point.date}><td className="py-2">{point.date}</td><td>{fmt(point.views)}</td></tr>)}</tbody></table></div></details></> : <p className="mt-4 text-sm text-white/60">{primary ? (isEs ? 'No hay datos para este período.' : 'No data reported for this range.') : (isEs ? 'Fuente no disponible.' : 'Source unavailable.')}</p>}
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
             <RankedList title="Top pages" rows={primary?.top_pages || []} />
-            <RankedList title="Acquisition channels" rows={providers.google?.channels || []} empty="Available after Google reporting access is connected." />
-            <RankedList title="Top countries" rows={(providers.google?.countries?.length ? providers.google.countries : providers.cloudflare?.countries) || []} />
-            <RankedList title="Devices" rows={providers.google?.devices || []} empty="Available after Google reporting access is connected." />
+            <RankedList title="Acquisition channels" rows={primary?.channels || []} empty="Not reported by this source for this range." />
+            <RankedList title="Top countries" rows={primary?.countries || []} />
+            <RankedList title="Devices" rows={primary?.devices || []} empty="Not reported by this source for this range." />
           </div>
           <p className="mt-4 text-xs text-white/35">Provider totals can differ because Google, Cloudflare, and CityBeat use different collection and filtering methods. Data generated {new Date(data.generated_at).toLocaleString()}.</p>
         </>

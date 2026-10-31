@@ -1,0 +1,44 @@
+---
+id: "202610310716-BECXY5"
+title: "Improve directory discovery and owner performance experience"
+status: "DOING"
+priority: "high"
+owner: "ORCHESTRATOR"
+depends_on: []
+tags: []
+comments:
+  - { author: "ORCHESTRATOR", body: "Start: implement approved directory navigation, source-specific analytics and owner listing actions using existing features and permissions. Local tests only; no deployment yet." }
+  - { author: "ORCHESTRATOR", body: "start: implement directory filters, owner listing actions and source-specific analytics with regression tests | details: retain pending isolated browser verification before release." }
+doc_version: 2
+doc_updated_at: "2026-10-31T07:26:05+00:00"
+doc_updated_by: "agentctl"
+description: "Approved: simplify category/city navigation and mobile filters; selectable GA4/Cloudflare reporting with data limitations; actionable listing completion and preview/performance controls; verify EN/ES customer journeys locally before any deployment. No subagents or new paid services."
+---
+## Summary
+
+Approved four-part usability improvement: directory filtering and compact browse guides; selectable reporting with limits; actionable owner listing management; local bilingual responsive journey verification.
+
+## Context
+
+Approved four-part improvement plan. User subsequently requested a read-only repository assessment and clarified the service area as El Paso, Horizon, Canutillo, Socorro, Clint, Sierra Blanca, Fabens, Anthony, Las Cruces, Santa Teresa, and Sunland Park. No subagents, installations, paid services, or deployment in this work.
+
+## Scope
+
+Reuse existing APIs and entitlements. Keep SEO links crawlable and payment/account protections intact. No subagents, new services, production data writes or deployment.
+
+## Risks
+
+Avoid misleading capped analytics, stale range responses, and suggesting locked fields to Basic owners. Verify hash links and keyboard/mobile interactions. Existing customer data must not be mutated during tests.
+
+## Verify Steps
+
+Run focused unit tests, complete regression suite, TypeScript and local production build. Exercise bilingual public directory and authenticated UI fixtures locally at mobile and desktop sizes; distinguish mocked tests from live customer flows.
+
+## Rollback Plan
+
+Revert this task commit before deploying. Current production remains unchanged until a separately approved deployment.
+
+## Notes
+
+Implementation checkpoint: compact category disclosure groups, removable search filters, listing progress/actions, owner editor section links, selectable analytics sources and capped-data labels. TypeScript passed and all 1,006 automated tests passed; production build completed. Hook dependency warning corrected afterward. Browser verification remains incomplete: local production preview requests a missing main-app.js while another Next development server uses this checkout. Do not deploy or mark DONE before an isolated local EN/ES mobile/desktop verification, final build, and review. User-directed repository assessment is read-only; no external projects installed.
+

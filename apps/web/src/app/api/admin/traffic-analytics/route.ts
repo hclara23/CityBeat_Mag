@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   const since = new Date(Date.now() - (days - 1) * 86400000).toISOString()
   const firstParty = emptyProvider('first_party', 'ok')
   try {
-    const snap = await adminDb.collection('analytics_events').where('ts', '>=', since).limit(5000).get()
+    const snap = await adminDb.collection('analytics_events').where('ts', '>=', since).orderBy('ts', 'desc').limit(5000).get()
     const paths = new Map<string, number>()
     const dates = new Map<string, number>()
     for (const doc of snap.docs) {
@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
     firstParty.totals.views = snap.size
     firstParty.trend = [...dates].sort().map(([date, views]) => ({ date, views, visitors: 0 }))
     firstParty.top_pages = [...paths].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([label, value]) => ({ label, value }))
-    if (snap.size === 5000) firstParty.message = 'First-party detail is capped at the latest 5,000 events for cost control.'
+    firstParty.limited = snap.size === 5000
+    if (firstParty.limited) firstParty.message = 'First-party detail is capped at the latest 5,000 events for cost control.'
   } catch {
     firstParty.status = 'unavailable'
     firstParty.message = 'First-party analytics are temporarily unavailable.'

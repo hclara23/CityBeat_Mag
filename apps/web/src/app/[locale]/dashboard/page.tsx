@@ -126,12 +126,12 @@ export default function DashboardPage() {
         </div>
 
         {error && <AuthError message={error} />}
+        <MyListingsBoost />
         <PremierPromotion locale={locale} />
 
         <ReferralProgramCard programs={referralPrograms} />
         <AIAssistantPanel />
         <LeadsPanel />
-        <MyListingsBoost />
         <FeaturedBadge />
         <MyDeals />
 
