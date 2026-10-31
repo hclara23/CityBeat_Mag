@@ -11460,7 +11460,7 @@
     {
       "id": "202610310537-XTTH56",
       "title": "Connect existing CityBeat GA4 and Business Profile reporting",
-      "status": "DOING",
+      "status": "BLOCKED",
       "priority": "high",
       "owner": "ORCHESTRATOR",
       "depends_on": [],
@@ -11469,18 +11469,23 @@
         {
           "author": "ORCHESTRATOR",
           "body": "Start: Approved existing-property link and Viewer access completed; implementing isolated platform performance reporting and local verification."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Blocked: Google accepted API allowlist application, case 5-6813000042325, with estimated 7-10 business day review. User confirmed profile verified 60+ days. Await Google approval before direct performance activation; GA4 reporting is already live."
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-31T05:37:10+00:00",
+      "doc_updated_at": "2026-10-31T05:43:44+00:00",
       "doc_updated_by": "agentctl",
-      "description": "Approved: link City Beat Magazine to existing property 542822471, grant runtime service account Viewer, correct and verify scoped dashboard GBP reporting. No new property, no subagents, no paid deployment authorized. Related tasks 202610162338-5Y02T0 and 202610162356-3PD2Z6."
+      "description": "Approved: link City Beat Magazine to existing property 542822471, grant runtime service account Viewer, correct and verify scoped dashboard GBP reporting. No new property, no subagents, no paid deployment authorized. Related tasks 202610162338-5Y02T0 and 202610162356-3PD2Z6.",
+      "doc": "## Summary\nConnect City Beat Magazine to the existing GA4 property and repair platform performance reporting without creating a property or using subagents.\n\n## Context\nUser approved the native GA4 link, Viewer grant, dashboard implementation, and free Google API setup/terms. No paid deployment is approved for this task. Related work: 202610162338-5Y02T0 and 202610162356-3PD2Z6.\n\n## Scope\nNative Google Business Profile link to GA4 property 542822471 (account 398927462), property Viewer for 854761587817-compute@developer.gserviceaccount.com, platform-only OAuth route and UI, nested performance parser, explicit error states and impressions labels. Advertiser connections remain separate.\n\n## Risks\nDirect Business Profile API quota is confirmed zero in Google Cloud. API allowlisting and OAuth configuration/authorization are still required before live performance can work. No credentials are stored in source. The broader business.manage scope is required by Google but the platform flow only reads profile data. New code is local and not deployed.\n\n## Verify Steps\nPassed npx tsc --noEmit, 9 targeted analytics tests, npm test (1000 total tests), npm run build --workspace @citybeat/web, and git diff --check. Local built server GET /api/admin/google-business and /api/admin/traffic-analytics each returns 401 without authentication. Production Finance seven-day GA4 report now shows 756 views, 261 active users, 286 sessions, 20% engagement and 51s average session. Google UI confirms LINK CREATED and runtime identity Viewer access.\n\n## Rollback Plan\nRevert the scoped implementation commit if necessary. Remove only the runtime service account Viewer grant or City Beat Magazine GA4 product link in Google Admin if requested. Disconnecting the platform connection deletes only platform_google_business_connections/citybeat and leaves advertiser connections and GA4 tracking intact.\n\n## Notes\nThree free APIs enabled in kerstenblueprint: businessprofileperformance.googleapis.com, mybusinessaccountmanagement.googleapis.com and mybusinessbusinessinformation.googleapis.com. Performance API requests/minute remains 0, so no live Business Profile performance claim is made. Native Google link and live GA4 repair are complete. No new property, spend, paid deployment, customer email or subagent use."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "8245acd8bc2e1e44098d390f04a3111ccaa40e59273465d193d0f2ce44675968"
+    "checksum": "3286484391eed7589d29348d13086a7f356dc3b9722c59dd62759a4452ae64e7"
   }
 }
