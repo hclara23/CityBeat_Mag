@@ -1,0 +1,2 @@
+# Local experiment only; not a web/worker runtime dependency.
+docling==2.145.0

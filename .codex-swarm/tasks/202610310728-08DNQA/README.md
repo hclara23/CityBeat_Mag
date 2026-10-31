@@ -9,6 +9,7 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: enforce reviewed eleven-city imports and run an isolated local Docling pilot without production writes or new recurring costs." }
   - { author: "ORCHESTRATOR", body: "start: enforce eleven-city import review, preserve source and verification evidence, protect paid owners and branches, and add tested offline Docling drafts with local emulator integration coverage." }
+  - { author: "ORCHESTRATOR", body: "start: save the isolated Docling pilot, exact-field English and Spanish conversion checks, local-only safeguards and reproducible operating instructions." }
 doc_version: 2
 doc_updated_at: "2026-10-31T07:46:08+00:00"
 doc_updated_by: "agentctl"
