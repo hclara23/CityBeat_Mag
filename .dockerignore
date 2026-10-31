@@ -17,3 +17,4 @@ build.log
 graphify-out
 .tmp
 **/.tmp
+scripts/docling-pilot

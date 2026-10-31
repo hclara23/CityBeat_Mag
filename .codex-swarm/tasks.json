@@ -11588,12 +11588,34 @@
       "doc_updated_by": "agentctl",
       "description": "Approved eleven-city boundary, conservative duplicate review, source and verification metadata, local Docling pilot producing review-only listing drafts. No new monthly costs, no subagents, no deployment until local checks complete.",
       "doc": "## Summary\n\nEnforce an eleven-city review boundary for OSM and ScrapeFlow imports, preserve provenance and owner data, and pilot offline Docling drafts.\n\n## Context\n\nUser approved local data-quality improvements and a Docling pilot constrained to eleven named cities, no recurring cost and no subagents. OSM previously guessed El Paso/TX and both import paths published automatically; ScrapeFlow accepted West Texas and Juarez and automatically consolidated branches.\n\n## Scope\n\nLocal code, tests and synthetic DOCX/HTML pilot only. Shared city policy, held imports, explicit staff approval with audit evidence, conservative duplicate handling. No subagents, production writes, network document conversion or new monthly services.\n\n## Risks\n\nPostal locality evidence is not a legal municipal boundary; staff approval remains mandatory. Existing live records are not rewritten. Race-safe create operations can reject a batch if another importer inserts the same source ID concurrently; rerun skips existing records. Docling pilot only covers labelled synthetic DOCX and HTML, not arbitrary brochures or OCR.\n\n## Verify Steps\n\nRun npm test, npx tsc --noEmit --incremental false -p apps/web/tsconfig.json, and an isolated production build with CITYBEAT_BUILD_DIR=.tmp/quality-next. Run .tmp/docling-pilot-venv/Scripts/python.exe -m unittest discover -s scripts/docling-pilot -v. Inspect generated synthetic drafts in .tmp/docling-pilot-results. No live ingestion or staff mutation calls.\n\n## Rollback Plan\n\nBefore any deployment, revert the task implementation commit through the normal workflow. No production data was modified by this task. If later deployed, roll back the application revision; retained hidden import holds must not be bulk-cleared. The Docling pilot is local and removable independently.\n\n## Notes\n\nLocal regression: 1,014 JS/TS tests passed (951 web, 53 shared-library, 10 scripts); four Python pilot tests passed with actual offline DOCX and HTML conversion, all seven fields matched in both samples. TypeScript and isolated production build passed. Real OSM and ScrapeFlow execution against a local Firestore emulator passed geographic rejection, held drafts, replay safety, paid-owner preservation and branch separation. EN/ES browser checks use synthetic emulator data. Initial non-emulator local preview failed Firestore permission checks; no production permissions were changed. Staff approval validation is covered by local unit tests, not a live authenticated staff mutation. No production writes or deployment."
+    },
+    {
+      "id": "202610310754-Y3EHBA",
+      "title": "Deploy verified hyperlocal directory improvements",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "202610310728-08DNQA"
+      ],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: deploy the tested directory release with Docling excluded from source upload and container context, and a thirty-minute CI timeout under the approved one-time budget."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-31T07:54:57+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Deploy the approved directory release within a one-time USD 1 cap, exclude the local Docling pilot, retain current monthly infrastructure, and verify candidate and live behavior. No subagents. Related implementation: 202610310728-08DNQA and 202610310716-BECXY5.",
+      "doc": "## Summary\n\nDeploy the approved directory improvements with candidate and live verification.\n\n## Context\n\nUser approved deployment up to USD 1 one-time, no new monthly costs, Docling local only and no subagents. Implementation commits 652df72, 926048b and b4cd3cf are locally tested.\n\n## Scope\n\nExisting Cloud Run service only. Exclude scripts/docling-pilot from build upload and Docker context. Bound CI to thirty minutes. Preserve service sizing, secrets, jobs and existing records.\n\n## Risks\n\nNo bulk data import or publication is run during verification. Current rollback revision: citybeat-web-00463-sup. A new build may fail before promotion; do not bypass test gates. Invoice totals lag; track build duration and published unit price rather than claiming a finalized bill.\n\n## Verify Steps\n\nValidate upload exclusions and workflow YAML; use the existing CI type, security and test gates; confirm candidate smoke tests and live traffic revision; verify EN/ES directory search, hidden-draft safeguards and authenticated staff/owner UI where available.\n\n## Rollback Plan\n\nReturn 100 percent traffic to citybeat-web-00463-sup if post-deployment checks fail. No schema migration or production data rewrite is part of this release.\n\n## Notes\n\nBudget: previous source build used the default machine and a 1800-second timeout. Published Cloud Build default e2-standard-2 rate is USD 0.006/minute, at most USD 0.18 for that build timeout before allowances. CI now has a 30-minute timeout. No paid service, scheduler or additional recurring capacity is created."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "4e246ff7ba27a3a0ec1ea0102b2902e47a6c4e9b02fc206e191af3573ddec4ed"
+    "checksum": "0d0cf8cbf9d017378c564092c8ec83cf9c6ef408f3920d1dc9c66719551026ed"
   }
 }
