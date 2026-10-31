@@ -5,6 +5,7 @@ import { checkRateLimit } from '@/lib/auth-security'
 import { promotionDraft,postizConfiguration,postizRequest,facebookChannels,facebookSchedule,PromotionError } from '@/lib/postiz-promotion'
 export const dynamic='force-dynamic'
 const drafts=()=>adminDb.collection('listing_promotion_drafts')
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 export async function GET(request:NextRequest) {
   const auth=await automationAdmin(request);if(auth.error)return auth.error
   try{
@@ -22,16 +23,20 @@ export async function POST(request:NextRequest) {
   if(!(await checkRateLimit(`promotion:${auth.user!.id}`,{max:20,windowMs:60*60*1000})).ok)return NextResponse.json({error:'Please wait before creating more promotions.'},{status:429})
   try{
     if(body.action==='save'){
-      if(!/^[0-9a-f-]{36}$/i.test(body.request_id || '') || !/^[A-Za-z0-9:_-]{1,120}$/.test(body.listing_id || ''))throw new PromotionError('Invalid draft request.')
+      if(!uuid.test(body.request_id || '') || !/^[A-Za-z0-9:_-]{1,120}$/.test(body.listing_id || ''))throw new PromotionError('Invalid draft request.')
       const listing=await adminDb.collection('directory_listings').doc(body.listing_id).get()
       if(!listing.exists)throw new PromotionError('Listing not found.',404)
       const draft=promotionDraft(body,listing.data()!)
       const ref=drafts().doc(body.request_id)
-      await adminDb.runTransaction(async tx=>{const existing=await tx.get(ref);if(!existing.exists)tx.create(ref,{...draft,status:'draft',created_by:auth.user!.id,created_at:new Date().toISOString()})})
+      await adminDb.runTransaction(async tx=>{
+        const existing=await tx.get(ref),data=existing.data()
+        if(data && (data.status!=='draft' || data.listing_id!==draft.listing_id || data.caption!==draft.caption))throw new PromotionError('This request already has a different or submitted draft. Refresh before continuing.',409)
+        if(!existing.exists)tx.create(ref,{...draft,status:'draft',created_by:auth.user!.id,created_at:new Date().toISOString()})
+      })
       return NextResponse.json({ok:true,id:ref.id,status:'draft'})
     }
     if(body.approved!==true)throw new PromotionError('Review and approve the exact caption and schedule first.')
-    if(!/^[0-9a-f-]{36}$/i.test(body.draft_id || ''))throw new PromotionError('Choose a saved draft.')
+    if(!uuid.test(body.draft_id || ''))throw new PromotionError('Choose a saved draft.')
     const config=postizConfiguration();if(!config)throw new PromotionError('Postiz is not connected. Your local draft is saved.',503)
     const channels=facebookChannels(await postizRequest(config,'/integrations'))
     if(!channels.some(c=>c.id===body.channel_id))throw new PromotionError('Choose an available connected Facebook page.')

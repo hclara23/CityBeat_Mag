@@ -11,6 +11,7 @@ export async function PATCH(request:NextRequest,props:{params:Promise<{id:string
   const profile=await getServerUserProfile(user.id)
   const denial=privilegedDenial(profile,hasAdminAccess(profile))
   if(denial) return NextResponse.json({error:denial.error},{status:denial.status})
+  if(request.headers.get('origin')!==new URL(process.env.NEXT_PUBLIC_APP_URL || request.url).origin) return NextResponse.json({error:'Invalid origin'},{status:403})
   const {id}=await props.params
   if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)) return NextResponse.json({error:'Invalid request ID'},{status:400})
   const input=await request.json().catch(()=>null)

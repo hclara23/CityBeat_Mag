@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { cloneElement, isValidElement, useId, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { SiteHeader } from '@/components/citybeat/SiteHeader'
 import { PrintRecognitionPanel } from '@/components/citybeat/PrintRecognition'
@@ -803,10 +803,13 @@ function ModulePanel({ title, isEs, children }: { title: string; isEs: boolean; 
 }
 
 function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+  const generatedId = useId()
+  const control = isValidElement<{id?:string}>(children) && typeof children.type === 'string' && ['input','select','textarea'].includes(children.type) ? children : null
+  const controlId = control?.props.id || generatedId
   return (
     <div className={className}>
-      <label className={labelClass}>{label}</label>
-      {children}
+      <label className={labelClass} htmlFor={control ? controlId : undefined}>{label}</label>
+      {control ? cloneElement(control,{id:controlId}) : children}
     </div>
   )
 }

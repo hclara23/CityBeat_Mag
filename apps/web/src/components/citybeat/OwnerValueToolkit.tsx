@@ -13,6 +13,7 @@ export function OwnerValueToolkit({ listingId, name, website, locale, canPixel }
   const [listingQr, setListingQr] = useState('')
   const [reviewQr, setReviewQr] = useState('')
   const [socialQr, setSocialQr] = useState('')
+  const [assetMessage, setAssetMessage] = useState('')
   const [pixel, setPixel] = useState<PixelConfig | null>(null)
   const [pixelDomain, setPixelDomain] = useState('')
   const [pixelMessage, setPixelMessage] = useState('')
@@ -43,6 +44,7 @@ export function OwnerValueToolkit({ listingId, name, website, locale, canPixel }
 
   const copy = (value: string) => navigator.clipboard?.writeText(value)
   const downloadSocialCard = async () => {
+    setAssetMessage('')
     const canvas = document.createElement('canvas')
     canvas.width = 1080
     canvas.height = 1080
@@ -63,7 +65,8 @@ export function OwnerValueToolkit({ listingId, name, website, locale, canPixel }
     ctx.fillText(isEs ? 'Escanea para ver horarios, ofertas y reseñas.' : 'Scan for hours, offers, and reviews.', 72, 320)
     const image = new Image()
     image.src = socialQr
-    await new Promise<void>((resolve) => { image.onload = () => resolve(); image.onerror = () => resolve() })
+    const loaded=await new Promise<boolean>((resolve) => { image.onload = () => resolve(true); image.onerror = () => resolve(false) })
+    if(!loaded){setAssetMessage(isEs?'No se pudo crear el gráfico. Inténtalo de nuevo.':'Could not create the graphic. Please try again.');return}
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(290, 390, 500, 500)
     ctx.drawImage(image, 320, 420, 440, 440)
@@ -122,7 +125,7 @@ export function OwnerValueToolkit({ listingId, name, website, locale, canPixel }
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {card.qr && <img src={card.qr} alt={card.title} className="mx-auto mt-4 h-44 w-44 rounded bg-white p-2" />}
             <div className="mt-4 flex justify-center gap-2 print:hidden">
-              <a href={card.qr} download={card.file} className="rounded-md bg-brand-neon px-3 py-2 text-[10px] font-black uppercase text-black">{isEs ? 'Descargar PNG' : 'Download PNG'}</a>
+              {card.qr ? <a href={card.qr} download={card.file} className="rounded-md bg-brand-neon px-3 py-2 text-[10px] font-black uppercase text-black">{isEs ? 'Descargar PNG' : 'Download PNG'}</a> : <span className="text-xs text-white/50">{isEs?'Preparando QR…':'Preparing QR…'}</span>}
               <button type="button" onClick={() => copy(card.url)} className="rounded-md border border-white/20 px-3 py-2 text-[10px] font-black uppercase text-white">{isEs ? 'Copiar enlace' : 'Copy link'}</button>
             </div>
           </article>
@@ -143,8 +146,9 @@ export function OwnerValueToolkit({ listingId, name, website, locale, canPixel }
         <div className="mt-3 flex flex-wrap gap-2 print:hidden">
           <button type="button" onClick={() => copy(embed)} className="rounded-md border border-brand-neon/40 px-3 py-2 text-xs font-black uppercase text-brand-neon">{isEs ? 'Copiar código' : 'Copy code'}</button>
           <button type="button" onClick={() => window.print()} className="rounded-md border border-white/20 px-3 py-2 text-xs font-black uppercase text-white">{isEs ? 'Imprimir kit' : 'Print toolkit'}</button>
-          <button type="button" onClick={() => void downloadSocialCard()} className="rounded-md bg-brand-neon px-3 py-2 text-xs font-black uppercase text-black">{isEs ? 'Descargar gráfico social' : 'Download social graphic'}</button>
+          <button type="button" disabled={!socialQr} onClick={() => void downloadSocialCard()} className="rounded-md bg-brand-neon px-3 py-2 text-xs font-black uppercase text-black disabled:opacity-40">{isEs ? 'Descargar gráfico social' : 'Download social graphic'}</button>
         </div>
+        {assetMessage&&<p role="alert" className="mt-2 text-sm text-red-300">{assetMessage}</p>}
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-black/25 p-6">

@@ -10,7 +10,7 @@ comments:
   - { author: "ORCHESTRATOR", body: "start: deploy the tested directory release with Docling excluded from source upload and container context, and a thirty-minute CI timeout under the approved one-time budget." }
   - { author: "ORCHESTRATOR", body: "start: protect approved import review notes and reviewer identities from public serializers | details: cancel the first CI run before Cloud Build while completing the newly approved production improvements." }
 doc_version: 2
-doc_updated_at: "2026-10-31T07:54:57+00:00"
+doc_updated_at: "2026-10-31T08:47:50+00:00"
 doc_updated_by: "agentctl"
 description: "Deploy the approved directory release within a one-time USD 1 cap, exclude the local Docling pilot, retain current monthly infrastructure, and verify candidate and live behavior. No subagents. Related implementation: 202610310728-08DNQA and 202610310716-BECXY5."
 ---
@@ -40,5 +40,5 @@ Return 100 percent traffic to citybeat-web-00463-sup if post-deployment checks f
 
 ## Notes
 
-Budget: previous source build used the default machine and a 1800-second timeout. Published Cloud Build default e2-standard-2 rate is USD 0.006/minute, at most USD 0.18 for that build timeout before allowances. CI now has a 30-minute timeout. No paid service, scheduler or additional recurring capacity is created.
+Combined release includes RH8JEB tools and local-quality improvements. Previous ac62a74 deploy run cancelled before cloud build; rollback remains citybeat-web-00463-sup. Final candidate gate now tests new anonymous mutation denials and locale/campaign-safe QR redirects. Local build, 1,037 tests, emulator imports and browser checks pass. Upload list excludes Docling/HyperFrames runtimes and rendered media. No paid service or recurring hosting added.
 

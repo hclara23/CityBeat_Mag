@@ -24,3 +24,10 @@ test('does not choose between different businesses or phone numbers',()=>{
   const result=extractWebsitePrefill(html,'https://example.com/')
   assert.equal(result.fields.name,undefined);assert.equal(result.fields.phone,undefined)
 })
+
+test('does not silently pick one branch when a brand has multiple locations',()=>{
+  const branches=['El Paso','Socorro'].map(city=>({'@type':'LocalBusiness',name:'Same Brand',address:{streetAddress:'123 Example St',addressLocality:city,addressRegion:'TX'}}))
+  const result=extractWebsitePrefill(`<script type="application/ld+json">${JSON.stringify(branches)}</script>`,'https://example.com/')
+  assert.equal(result.fields.address,undefined)
+  assert.ok(result.warnings.some(w=>w.includes('Multiple businesses')))
+})

@@ -32,7 +32,7 @@ export function extractWebsitePrefill(html: string, source: string) {
     if (value['@graph']) visit(value['@graph'],depth+1)
   }
   $('script[type="application/ld+json"]').slice(0,10).each((_i, element) => { try { visit(JSON.parse($(element).text())) } catch {} })
-  const unique = [...new Map(candidates.map(c => [String(c.name),c])).values()]
+  const unique = [...new Map(candidates.map(c => [JSON.stringify({name:c.name,address:c.address,telephone:c.telephone}),c])).values()]
   const business = unique.length === 1 ? unique[0] : {}
   const text = (value: unknown, max: number) => typeof value === 'string' ? load(`<div>${value}</div>`)('div').text().replace(/\s+/g,' ').trim().slice(0,max) : ''
   const fields: PrefillFields = { website: source }

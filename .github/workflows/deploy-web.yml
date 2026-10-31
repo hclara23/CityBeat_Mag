@@ -214,7 +214,7 @@ jobs:
           # /api/analytics/dashboard shipped with NO authentication of any kind and
           # served real traffic data plus a 5,000-document Firestore read to anyone.
           echo "-- authorization --"
-          for path in "/api/analytics/dashboard" "/api/admin/analytics-health" "/api/admin/traffic-analytics" "/api/admin/security/revoke" "/api/admin/finance" "/api/sales/me" "/api/admin/fulfillment" "/api/directory/smoke-test/pixel"; do
+          for path in "/api/analytics/dashboard" "/api/admin/analytics-health" "/api/admin/traffic-analytics" "/api/admin/security/revoke" "/api/admin/finance" "/api/sales/me" "/api/admin/fulfillment" "/api/directory/smoke-test/pixel" "/api/admin/leads" "/api/admin/promotions"; do
             code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL$path")
             echo "GET $path -> $code"
             case "$code" in
@@ -222,6 +222,22 @@ jobs:
               *) echo "  FAILED (expected 401/403, got $code)"; fail=1 ;;
             esac
           done
+
+          # New owner/support/social mutations must reject anonymous requests
+          # before reading a website, changing a customer record, or posting.
+          for path in "/api/directory/smoke-test/prefill" "/api/admin/leads" "/api/admin/promotions"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST "$URL$path" -H "Content-Type: application/json" -d '{}')
+            echo "POST $path (anonymous) -> $code"
+            [ "$code" = "401" ] || { echo "  FAILED (expected 401)"; fail=1; }
+          done
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X PATCH "$URL/api/admin/leads/smoke-test" -H "Content-Type: application/json" -d '{}')
+          echo "PATCH /api/admin/leads/smoke-test (anonymous) -> $code"
+          [ "$code" = "401" ] || { echo "  FAILED (expected 401)"; fail=1; }
+
+          # Do not follow this synthetic QR: verify attribution survives the
+          # redirect without recording a view or creating a customer campaign.
+          destination=$(curl -s -o /dev/null -w "%{redirect_url}" --max-time 30 "$URL/b/osm:node:123?utm_source=citybeat&utm_medium=qr&utm_campaign=reviews&lang=es")
+          [ "$destination" = "$URL/es/directory/osm%3Anode%3A123?utm_source=citybeat&utm_medium=qr&utm_campaign=reviews#reviews" ] || { echo "  FAILED (QR redirect lost locale or campaign)"; fail=1; }
 
           # Premium conversion-pixel loader must remain a public, cross-origin
           # JavaScript resource while rejecting malformed configuration.

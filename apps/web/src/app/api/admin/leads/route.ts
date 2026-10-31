@@ -65,6 +65,7 @@ export async function POST(request:NextRequest) {
   const profile=await getServerUserProfile(user.id)
   const denial=privilegedDenial(profile,hasAdminAccess(profile))
   if(denial) return NextResponse.json({error:denial.error},{status:denial.status})
+  if(request.headers.get('origin')!==new URL(process.env.NEXT_PUBLIC_APP_URL || request.url).origin) return NextResponse.json({error:'Invalid origin'},{status:403})
   const body=await request.json().catch(()=>null)
   const name=typeof body?.name==='string'?body.name.trim():''
   const contact=typeof body?.contact==='string'?body.contact.trim():''

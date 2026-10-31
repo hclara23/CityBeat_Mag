@@ -12,6 +12,7 @@ export const dynamic='force-dynamic'
 export async function POST(request: NextRequest, props: {params: Promise<{id:string}>}) {
   const user=await getServerUser()
   if(!user) return NextResponse.json({error:'Unauthorized'},{status:401})
+  if(request.headers.get('origin')!==new URL(process.env.NEXT_PUBLIC_APP_URL || request.url).origin) return NextResponse.json({error:'Invalid origin'},{status:403})
   const {id}=await props.params
   if(!/^[A-Za-z0-9:_-]{1,160}$/.test(id)) return NextResponse.json({error:'Invalid listing'},{status:400})
   const profile=await getServerUserProfile(user.id)

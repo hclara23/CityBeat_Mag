@@ -15,9 +15,9 @@ export async function fetchPrefillPage(input: string, redirects = 0, allowedHost
     const req = request(url, { headers: { Accept:'text/html,application/xhtml+xml', 'Accept-Encoding':'identity', 'User-Agent':'CityBeat-Owner-Prefill/1.0' },
       lookup: ((_host: string, options: any, callback: any) => options?.all ? callback(null,[{address:addresses[0],family:4}]) : callback(null,addresses[0],4)) as any,
     }, res => {
-      if ([301,302,303,307,308].includes(res.statusCode || 0)) { res.resume(); resolve({location:res.headers.location}); return }
+      if ([301,302,303,307,308].includes(res.statusCode || 0)) { res.destroy(); resolve({location:res.headers.location}); return }
       if (res.statusCode !== 200 || !/^(text\/html|application\/xhtml\+xml)/i.test(String(res.headers['content-type'])) ||
-          res.headers['content-encoding'] && res.headers['content-encoding'] !== 'identity') { res.resume(); reject(new Error('Website did not return a readable HTML page.')); return }
+          res.headers['content-encoding'] && res.headers['content-encoding'] !== 'identity' || Number(res.headers['content-length'] || 0)>1024*1024) { res.destroy(); reject(new Error('Website did not return a readable HTML page within the preview limit.')); return }
       let size=0; const chunks: Buffer[]=[]
       res.on('data', chunk => { size+=chunk.length; if(size>1024*1024) { req.destroy(new Error('Website page exceeds the 1 MiB preview limit.')); return } chunks.push(chunk) })
       res.on('error',reject)

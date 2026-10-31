@@ -15,6 +15,7 @@ export default function AdminLeads() {
   const locale = useLocale() as 'en' | 'es'
   const [ready, setReady] = useState(false)
   const [deals, setDeals] = useState<any[]>([])
+  const [error, setError] = useState('')
 
   useEffect(() => {
     getUser().then(({ user }) => {
@@ -23,18 +24,21 @@ export default function AdminLeads() {
         return router.push(withLocale(locale, '/'))
       }
       Promise.all([
-        fetch('/api/deals', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : { deals: [] })).catch(() => ({ deals: [] })),
+        fetch('/api/deals', { cache: 'no-store' }).then((r) => { if(!r.ok) throw new Error('Deals could not be loaded.'); return r.json() }),
       ]).then(([d]) => {
         setDeals(d?.deals || [])
         setReady(true)
-      })
-    })
+      }).catch((e)=>{setError(e.message);setReady(true)})
+    }).catch(()=>{setError('Could not verify your session. Reload to try again.');setReady(true)})
   }, [router, locale])
 
   const removeDeal = async (id: string) => {
     if (!confirm('Remove this deal?')) return
-    await fetch(`/api/deals?id=${id}`, { method: 'DELETE' }).catch(() => {})
-    setDeals((x) => x.filter((d) => d.id !== id))
+    try {
+      const response=await fetch(`/api/deals?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+      if(!response.ok) throw new Error('The deal could not be removed. It remains listed.')
+      setDeals((x) => x.filter((d) => d.id !== id));setError('')
+    } catch(e) {setError((e as Error).message)}
   }
 
   if (!ready) return null
@@ -44,6 +48,7 @@ export default function AdminLeads() {
       <section className="container-wide max-w-4xl py-14">
         <Link href={withLocale(locale, '/admin')} className="text-sm text-brand-neon hover:underline">← Back to Dashboard</Link>
         <h1 className="mt-3 font-display text-4xl font-black tracking-tight text-white">Leads & deals</h1>
+        {error&&<p role="alert" className="mt-4 rounded border border-red-400/30 p-3 text-red-200">{error} <button onClick={()=>window.location.reload()} className="underline">Reload</button></p>}
 
         {/* Warm leads — businesses that opened/clicked outreach emails. */}
         <div className="mt-8">
