@@ -1,0 +1,148 @@
+{
+  "checkedAt": "2026-10-31T00:17:09.867Z",
+  "results": [
+    {
+      "locale": "en",
+      "slug": "alza-dwellings",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "en",
+      "slug": "desert-commons-east",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "en",
+      "slug": "desert-commons-west",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "en",
+      "slug": "ridgemar",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "en",
+      "slug": "sun-hollow",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "en",
+      "slug": "lake-fairway",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "en",
+      "slug": "spring-park",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "en",
+      "slug": "independence-place-el-paso",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "en",
+      "slug": "the-legends-of-el-paso",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "en",
+      "slug": "terralane-at-campo-del-sol",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "es",
+      "slug": "alza-dwellings",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "es",
+      "slug": "desert-commons-east",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "es",
+      "slug": "desert-commons-west",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "es",
+      "slug": "ridgemar",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "es",
+      "slug": "sun-hollow",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "es",
+      "slug": "lake-fairway",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "es",
+      "slug": "spring-park",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "es",
+      "slug": "independence-place-el-paso",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "es",
+      "slug": "the-legends-of-el-paso",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    },
+    {
+      "locale": "es",
+      "slug": "terralane-at-campo-del-sol",
+      "detail": 200,
+      "claim": 200,
+      "prominentButton": true
+    }
+  ],
+  "eligibilityChecks": 10,
+  "unsignedRejections": 20,
+  "smsSent": 0
+}
