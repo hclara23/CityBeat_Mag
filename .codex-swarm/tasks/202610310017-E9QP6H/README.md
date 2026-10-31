@@ -1,14 +1,16 @@
 ---
 id: "202610310017-E9QP6H"
 title: "Build bilingual property management portfolio promotion and consolidated billing"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: ["202610310005-88YHV7"]
 tags: []
+commit: { hash: "4e7874dcacd7b895c815645a8716c385f83698d0", message: "✨ E9QP6H verified: Ship bilingual property promotion and corporate portfolios | details: Add the residential/commercial promotion funnel, company profiles, 97 sourced apartment locations, reviewed corporate claims and new-company applications. Support all eight rental types, paid publication, atomic bulk edits and one optional manager per listing. Consolidate recurring card billing at USD 9.99 per property while active, with explicit proration consent, restricted billing portal, idempotent checkout and refund/dispute/cancellation handling. Protect existing ownership and individual subscriptions. Validate 123 targeted tests, production build, type checking, focused lint and English/Spanish desktop/mobile flows with isolated payment/SMS fixtures. Confirm live Stripe event subscriptions read-only. Local implementation is complete; deployment, live charges and outreach are not included and require their respective authorization." }
 comments:
   - { author: "CODER", body: "Start: research verified company apartment portfolios and implement bilingual corporate claims, bulk edits, staff assignments and consolidated recurring billing" }
   - { author: "CODER", body: "Verified: 123 targeted tests, production build, final type checking, focused lint, browser flows and live Stripe webhook event configuration passed. Repository-wide task lint reports only pre-existing records with missing commit metadata or unmet dependencies; no reported error names this task. No unrelated task records were modified." }
+  - { author: "CODER", body: "verified: Ship bilingual property promotion and corporate portfolios | details: Add the residential/commercial promotion funnel, company profiles, 97 sourced apartment locations, reviewed corporate claims and new-company applications. Support all eight rental types, paid publication, atomic bulk edits and one optional manager per listing. Consolidate recurring card billing at USD 9.99 per property while active, with explicit proration consent, restricted billing portal, idempotent checkout and refund/dispute/cancellation handling. Protect existing ownership and individual subscriptions. Validate 123 targeted tests, production build, type checking, focused lint and English/Spanish desktop/mobile flows with isolated payment/SMS fixtures. Confirm live Stripe event subscriptions read-only. Local implementation is complete; deployment, live charges and outreach are not included and require their respective authorization." }
 doc_version: 2
 doc_updated_at: "2026-10-31T01:19:15+00:00"
 doc_updated_by: "agentctl"
