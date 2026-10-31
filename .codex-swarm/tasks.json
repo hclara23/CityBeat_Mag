@@ -11476,16 +11476,40 @@
         }
       ],
       "doc_version": 2,
-      "doc_updated_at": "2026-10-31T05:43:44+00:00",
+      "doc_updated_at": "2026-10-31T05:47:01+00:00",
       "doc_updated_by": "agentctl",
       "description": "Approved: link City Beat Magazine to existing property 542822471, grant runtime service account Viewer, correct and verify scoped dashboard GBP reporting. No new property, no subagents, no paid deployment authorized. Related tasks 202610162338-5Y02T0 and 202610162356-3PD2Z6.",
-      "doc": "## Summary\nConnect City Beat Magazine to the existing GA4 property and repair platform performance reporting without creating a property or using subagents.\n\n## Context\nUser approved the native GA4 link, Viewer grant, dashboard implementation, and free Google API setup/terms. No paid deployment is approved for this task. Related work: 202610162338-5Y02T0 and 202610162356-3PD2Z6.\n\n## Scope\nNative Google Business Profile link to GA4 property 542822471 (account 398927462), property Viewer for 854761587817-compute@developer.gserviceaccount.com, platform-only OAuth route and UI, nested performance parser, explicit error states and impressions labels. Advertiser connections remain separate.\n\n## Risks\nDirect Business Profile API quota is confirmed zero in Google Cloud. API allowlisting and OAuth configuration/authorization are still required before live performance can work. No credentials are stored in source. The broader business.manage scope is required by Google but the platform flow only reads profile data. New code is local and not deployed.\n\n## Verify Steps\nPassed npx tsc --noEmit, 9 targeted analytics tests, npm test (1000 total tests), npm run build --workspace @citybeat/web, and git diff --check. Local built server GET /api/admin/google-business and /api/admin/traffic-analytics each returns 401 without authentication. Production Finance seven-day GA4 report now shows 756 views, 261 active users, 286 sessions, 20% engagement and 51s average session. Google UI confirms LINK CREATED and runtime identity Viewer access.\n\n## Rollback Plan\nRevert the scoped implementation commit if necessary. Remove only the runtime service account Viewer grant or City Beat Magazine GA4 product link in Google Admin if requested. Disconnecting the platform connection deletes only platform_google_business_connections/citybeat and leaves advertiser connections and GA4 tracking intact.\n\n## Notes\nThree free APIs enabled in kerstenblueprint: businessprofileperformance.googleapis.com, mybusinessaccountmanagement.googleapis.com and mybusinessbusinessinformation.googleapis.com. Performance API requests/minute remains 0, so no live Business Profile performance claim is made. Native Google link and live GA4 repair are complete. No new property, spend, paid deployment, customer email or subagent use."
+      "doc": "## Summary\n\nConnect City Beat Magazine to the existing GA4 property and repair platform performance reporting without creating a property or using subagents.\n\n## Context\n\nUser approved the native GA4 link, Viewer grant, dashboard implementation, and free Google API setup/terms. No paid deployment is approved for this task. Related work: 202610162338-5Y02T0 and 202610162356-3PD2Z6.\n\n## Scope\n\nNative Google Business Profile link to GA4 property 542822471 (account 398927462), property Viewer for 854761587817-compute@developer.gserviceaccount.com, platform-only OAuth route and UI, nested performance parser, explicit error states and impressions labels. Advertiser connections remain separate.\n\n## Risks\n\nDirect Business Profile API quota is confirmed zero in Google Cloud. API allowlisting and OAuth configuration/authorization are still required before live performance can work. No credentials are stored in source. The broader business.manage scope is required by Google but the platform flow only reads profile data. New code is local and not deployed.\n\n## Verify Steps\n\nPassed npx tsc --noEmit, 9 targeted analytics tests, npm test (1000 total tests), npm run build --workspace @citybeat/web, and git diff --check. Local built server GET /api/admin/google-business and /api/admin/traffic-analytics each returns 401 without authentication. Production Finance seven-day GA4 report now shows 756 views, 261 active users, 286 sessions, 20% engagement and 51s average session. Google UI confirms LINK CREATED and runtime identity Viewer access.\n\n## Rollback Plan\n\nRevert the scoped implementation commit if necessary. Remove only the runtime service account Viewer grant or City Beat Magazine GA4 product link in Google Admin if requested. Disconnecting the platform connection deletes only platform_google_business_connections/citybeat and leaves advertiser connections and GA4 tracking intact.\n\n## Notes\n\nOn October 30, 2026 (America/Denver), owner confirmed City Beat Magazine has been verified for at least 60 days. Submitted the existing project 854761587817 for Business Profile API allowlisting under morningstarelp@gmail.com. Google confirmed case 5-6813000042325 and estimates 7-10 business days; do not submit duplicate requests. Three free APIs enabled. Direct performance remains blocked on Google approval and subsequent OAuth configuration/authorization and deployment. Native GA4 link and live GA4 reporting remain working. Implementation commit 4d2a6af; no new property, spend, paid deployment or subagents."
+    },
+    {
+      "id": "202610310550-5SJP88",
+      "title": "Activate Cloudflare dashboard reporting",
+      "status": "BLOCKED",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: user-approved Cloudflare Account Analytics Read token created and locally protected with Windows DPAPI. API validation blocked by automatic policy review."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "blocked: created approved Cloudflare read-only token and protected it with Windows DPAPI | details: recorded verified account and site configuration; automatic policy review blocked live API validation before runtime installation."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-31T05:53:19+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved free Cloudflare sign-in and Analytics Read setup for existing CityBeat account and site. Verify authenticated reporting, protect secrets, preserve Google integration. No subagents or paid deployment approved.",
+      "doc": "## Summary\n\nCreated the explicitly approved CityBeat dashboard analytics read account token in the existing Cloudflare account. Only Account Analytics Read; no expiry; no write permissions. Token encrypted locally with Windows DPAPI. Live API validation and runtime installation remain incomplete.\n\n## Context\n\nCityBeat beacon already collects traffic. Production has matching account and site IDs but an empty reporting token. User approved token creation and secure storage; no subagents. Automatic review rejected the PowerShell credential-to-GraphQL verification command with blocked by policy and no detailed reason.\n\n## Scope\n\nFree Cloudflare analytics setup and reporting verification. No paid deployment or recurring expense incurred. No Google configuration changes.\n\n## Risks\n\nDashboard remains unconnected until API validation and secure runtime installation. Token reads account analytics, with CityBeat site filtering enforced by application queries. Never print or commit the token.\n\n## Verify Steps\n\nConfirmed Cloudflare token creation success in browser. Converted temporary token file to Windows DPAPI and removed plaintext file. Reporting API verification was blocked before execution; no successful API or live dashboard result claimed.\n\n## Rollback Plan\n\nRevoke the named account token in Cloudflare if abandoning setup. Runtime configuration has not changed.\n\n## Notes\n\nResume by resolving the automatic review block, then test actual reporting queries for all dashboard ranges and install the credential securely. Establish any new cloud costs before incurring them. Google Business Profile API approval remains separate."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "3286484391eed7589d29348d13086a7f356dc3b9722c59dd62759a4452ae64e7"
+    "checksum": "6396f6d6bd66399732cf598d3471aebd8ac34d05fd71bb420a01b2c33c152186"
   }
 }
