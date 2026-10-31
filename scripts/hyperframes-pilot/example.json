@@ -1,0 +1,10 @@
+{
+  "name": "Example Auto Care",
+  "category": "Automotive services",
+  "city": "El Paso",
+  "services": ["Oil changes", "Brake service", "Diagnostics", "Maintenance"],
+  "phone": "(915) 555-0100",
+  "url": "https://citybeatmag.co/en/directory",
+  "format": "portrait",
+  "draft": true
+}

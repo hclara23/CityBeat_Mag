@@ -11,8 +11,9 @@ comments:
   - { author: "ORCHESTRATOR", body: "start: add reviewed website prefill with DNS-pinned fetching, bounded local business extraction, owner field selection and security tests" }
   - { author: "ORCHESTRATOR", body: "start: separate website and phone clicks from QR campaign visits, preserve short-link attribution and add reporting regression tests" }
   - { author: "ORCHESTRATOR", body: "start: add accountable support assignment, conflict-safe resolution and manual reply logging | details: document Chatwoot cost and integration boundaries" }
+  - { author: "ORCHESTRATOR", body: "start: add reviewed local promotion drafts and Postiz scheduling adapter with duplicate prevention | details: render and validate reusable local HyperFrames templates" }
 doc_version: 2
-doc_updated_at: "2026-10-31T08:03:30+00:00"
+doc_updated_at: "2026-10-31T08:25:05+00:00"
 doc_updated_by: "agentctl"
 description: "User approved plan and implementation of four remaining areas: local Docling/selective website extraction, truthful advertiser analytics including QR attribution, Chatwoot evaluation and accountable support workflow, Postiz scheduling integration and reusable HyperFrames template. Finish with full tests and a production release under the existing USD 1 one-time cap, no new monthly services and no subagents. Coordinate deployment task 202610310754-Y3EHBA."
 ---
@@ -42,5 +43,5 @@ Use the recorded previous Cloud Run revision. New optional integrations fail clo
 
 ## Notes
 
-Intake: added authenticated owner/staff website preview with three-per-hour limit, HTTPS-only DNS-pinned public IPv4 fetching, same-site bounded redirects, byte/time limits, local-address filtering and explicit field selection. No AI service or new recurring service. Four extraction/security tests and TypeScript pass. Read-only real Varsity website extraction produced website/name/description/address; nothing saved to production. Continue QR reporting, support, social and combined release.
+Intake commit 5ed4bd2: owner-reviewed public website prefill, real Varsity read-only extraction passed. Reporting commit 042a17d: separate website/phone clicks and three fixed QR campaigns, no extra daily-stat write. Support commit 2e1142c: assigned person, resolution notes, stale-edit conflict protection, internal audit and manual reply logging; Chatwoot evaluated but no paid host added. Social: local drafts plus guarded Postiz Facebook scheduling adapter; production has no Postiz configuration, so no real post sent. HyperFrames 0.8.223 rendered synthetic 12-second portrait and landscape videos locally; lint passed, frames inspected, QR decoded. Full JS/TS regression 1031 passed, TypeScript passed. Final local production build/browser review and combined deployment remain.
 

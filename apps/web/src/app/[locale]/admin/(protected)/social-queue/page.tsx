@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { nextSlot, QUEUE_TIMEZONE } from '@/lib/social-schedule'
+import { PromotionWorkbench } from '@/components/citybeat/PromotionWorkbench'
 
 type Item = { id: string; status: string; image_url: string; notes: string; article_url?: string; caption?: string; reason?: string; facebook_url?: string; created_at: number; scheduled_at?: number; original_name?: string }
 type State = { enabled: boolean; paused: boolean; reserved_cents: number; monthly_limit_cents: number; items: Item[] }
@@ -75,6 +76,7 @@ export default function SocialQueuePage() {
   for (let i = 0; i < 93; i++) { const t = nextSlot(Date.now(), {}, cursor); options.push(t); cursor = t + 1 }
   return <main className="container-wide py-12 text-white">
     <h1 className="font-display text-4xl font-black">Social image queue</h1>
+    <PromotionWorkbench />
     <p className="mt-3 text-white/70">Drop a week or month of graphics. The robot writes each caption, independently reviews it, then posts approved images to City BEAT Magazine on Facebook.</p>
     <div className="my-6 rounded-xl border border-brand-neon/40 bg-brand-neon/5 p-5">
       <h2 className="text-xl font-bold text-brand-neon">6 AM · Noon · 6 PM — daily</h2>
