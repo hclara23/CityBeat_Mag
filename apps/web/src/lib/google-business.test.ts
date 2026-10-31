@@ -12,6 +12,15 @@ test('GBP OAuth state is signed, scoped, and expires', () => {
   assert.throws(() => verifyGbpState(state, 1_000 + 10 * 60_000 + 1), /Expired OAuth state/)
 })
 
+test('platform reporting OAuth purpose cannot be changed to an advertiser connection', () => {
+  const signed = signGbpState({ listingId: 'citybeat', userId: 'admin-1', locale: 'en', purpose: 'platform_analytics' }, 1000)
+  assert.equal(verifyGbpState(signed, 2000).purpose, 'platform_analytics')
+  const [payload, signature] = signed.split('.')
+  const state = JSON.parse(Buffer.from(payload, 'base64url').toString())
+  delete state.purpose
+  assert.throws(() => verifyGbpState(`${Buffer.from(JSON.stringify(state)).toString('base64url')}.${signature}`, 2000))
+})
+
 test('GBP refresh tokens encrypt with authenticated encryption', () => {
   const encrypted = encryptGbpToken('refresh-token-value')
   assert.notEqual(encrypted, 'refresh-token-value')

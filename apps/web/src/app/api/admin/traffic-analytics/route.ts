@@ -4,7 +4,8 @@ import { getServerUser, getServerUserProfile } from '@citybeat/lib/firebase/serv
 import { hasAdminAccess } from '@citybeat/lib/roles'
 import { privilegedDenial } from '@/lib/privileged-access'
 import { emptyProvider, fetchCloudflareAnalytics, fetchGoogleAnalytics, normalizeRange } from '@/lib/traffic-analytics'
-import { GBP_CONNECTIONS, fetchGbpPerformance, refreshGoogleAccessToken } from '@/lib/google-business'
+import { GBP_PLATFORM_CONNECTIONS, GBP_PLATFORM_ID, fetchGbpPerformance, refreshGoogleAccessToken } from '@/lib/google-business'
+import { parseGbpPerformance } from '@/lib/google-business-report'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -39,36 +40,25 @@ export async function GET(request: NextRequest) {
     firstParty.message = 'First-party analytics are temporarily unavailable.'
   }
 
-  const business = emptyProvider('google_business', 'not_configured', 'Connect an authorized Google Business Profile to see Search and Maps actions.')
-  const [google, cloudflare, connectionSnap] = await Promise.all([fetchGoogleAnalytics(days), fetchCloudflareAnalytics(days), adminDb.collection(GBP_CONNECTIONS).where('status', '==', 'connected').limit(50).get().catch(() => null)])
-  if (connectionSnap?.docs.length) {
-    try {
-      const totals = { views: 0, calls: 0, website_clicks: 0, directions: 0 }
-      const daily = new Map<string, number>()
-      for (const doc of connectionSnap.docs) {
-        const connection = doc.data() as any
-        if (!connection.encrypted_refresh_token || !connection.selected_location) continue
-        const token = await refreshGoogleAccessToken(connection.encrypted_refresh_token)
-        const report = await fetchGbpPerformance(token, connection.selected_location, days)
-        for (const series of report.multiDailyMetricTimeSeries || []) {
-          const metric = String(series.dailyMetric || '')
-          for (const point of series.timeSeries?.datedValues || []) {
-            const value = Number(point.value || 0)
-            const date = point.date ? `${point.date.year}-${String(point.date.month).padStart(2, '0')}-${String(point.date.day).padStart(2, '0')}` : ''
-            if (metric.includes('IMPRESSIONS')) { totals.views += value; if (date) daily.set(date, (daily.get(date) || 0) + value) }
-            else if (metric === 'CALL_CLICKS') totals.calls += value
-            else if (metric === 'WEBSITE_CLICKS') totals.website_clicks += value
-            else if (metric === 'BUSINESS_DIRECTION_REQUESTS') totals.directions += value
-          }
-        }
+  let business = emptyProvider('google_business', 'not_configured', 'Connect CityBeat’s own Google Business Profile below for Search and Maps performance. The GA4 product link is managed separately in Google Analytics.')
+  const [google, cloudflare, connection] = await Promise.all([
+    fetchGoogleAnalytics(days), fetchCloudflareAnalytics(days),
+    adminDb.collection(GBP_PLATFORM_CONNECTIONS).doc(GBP_PLATFORM_ID).get().catch(() => null),
+  ])
+  if (!connection) {
+    business = emptyProvider('google_business', 'unavailable', 'The saved Google Business Profile connection could not be read.')
+  } else {
+    const saved = connection.data()
+    if (saved?.status === 'connected' && saved.encrypted_refresh_token && saved.selected_location) {
+      try {
+        const token = await refreshGoogleAccessToken(saved.encrypted_refresh_token)
+        business = parseGbpPerformance(await fetchGbpPerformance(token, saved.selected_location, days), saved.selected_title || 'CityBeat Business Profile')
+      } catch (error) {
+        console.error('GBP performance report failed:', error)
+        business = emptyProvider('google_business', 'unavailable', 'Google Business Profile reporting is unavailable. Check Performance API approval or reconnect the selected profile.')
       }
-      business.status = 'ok'; business.message = `${connectionSnap.docs.length} authorized profile${connectionSnap.docs.length === 1 ? '' : 's'}`
-      business.totals.views = totals.views
-      business.actions = { calls: totals.calls, website_clicks: totals.website_clicks, directions: totals.directions }
-      business.trend = [...daily].sort().map(([date, views]) => ({ date, views, visitors: 0 }))
-    } catch (error) {
-      console.error('GBP performance report failed:', error)
-      business.status = 'unavailable'; business.message = 'Google Business Profile reporting is temporarily unavailable or the connected profile lacks Performance API access.'
+    } else if (saved?.status === 'connected') {
+      business.message = 'Google is connected. Select City Beat Magazine below to enable its performance report.'
     }
   }
   return NextResponse.json({ range_days: days, generated_at: new Date().toISOString(), providers: { google, cloudflare, first_party: firstParty, google_business: business } })

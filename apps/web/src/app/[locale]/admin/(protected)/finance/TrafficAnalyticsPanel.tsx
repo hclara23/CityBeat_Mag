@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { PlatformGoogleBusinessConnection } from '@/components/citybeat/PlatformGoogleBusinessConnection'
 
 const providerLabel: Record<string, string> = { google: 'Google Analytics 4', cloudflare: 'Cloudflare Web Analytics', first_party: 'CityBeat first-party', google_business: 'Google Business Profile' }
 const fmt = (value: number) => new Intl.NumberFormat('en-US', { notation: value >= 10000 ? 'compact' : 'standard' }).format(value || 0)
@@ -11,9 +12,11 @@ export function TrafficAnalyticsPanel() {
   const [loading, setLoading] = useState(true)
   const load = useCallback(async () => {
     setLoading(true)
-    const res = await fetch(`/api/admin/traffic-analytics?days=${days}`, { cache: 'no-store' })
-    setData(res.ok ? await res.json() : null)
-    setLoading(false)
+    try {
+      const res = await fetch(`/api/admin/traffic-analytics?days=${days}`, { cache: 'no-store' })
+      setData(res.ok ? await res.json() : null)
+    } catch { setData(null) }
+    finally { setLoading(false) }
   }, [days])
   useEffect(() => { load() }, [load])
 
@@ -39,8 +42,9 @@ export function TrafficAnalyticsPanel() {
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {['google', 'cloudflare', 'first_party', 'google_business'].map((key) => <ProviderCard key={key} report={providers[key]} />)}
           </div>
+          <PlatformGoogleBusinessConnection onChange={load} />
 
-          {providers.google_business?.status === 'ok' && <div className="mt-6 grid gap-4 sm:grid-cols-4"><Kpi label="Google Search + Maps views" value={fmt(providers.google_business.totals.views)} /><Kpi label="Calls from Google" value={fmt(providers.google_business.actions?.calls)} /><Kpi label="Website clicks from Google" value={fmt(providers.google_business.actions?.website_clicks)} /><Kpi label="Direction requests" value={fmt(providers.google_business.actions?.directions)} /></div>}
+          {providers.google_business?.status === 'ok' && <div className="mt-6 grid gap-4 sm:grid-cols-4"><Kpi label="Google Search + Maps impressions" value={fmt(providers.google_business.totals.views)} /><Kpi label="Call clicks from Google" value={fmt(providers.google_business.actions?.calls)} /><Kpi label="Website clicks from Google" value={fmt(providers.google_business.actions?.website_clicks)} /><Kpi label="Direction requests" value={fmt(providers.google_business.actions?.directions)} /></div>}
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Kpi label="Page views" value={fmt(primary?.totals?.views)} />
@@ -70,7 +74,7 @@ export function TrafficAnalyticsPanel() {
 
 function ProviderCard({ report }: { report: any }) {
   const ok = report?.status === 'ok'
-  return <div className={`rounded-xl border p-5 ${ok ? 'border-emerald-400/20 bg-emerald-400/5' : 'border-amber-400/20 bg-amber-400/5'}`}><div className="flex items-center justify-between gap-2"><h3 className="font-bold text-white">{providerLabel[report?.source] || 'Provider'}</h3><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${ok ? 'bg-emerald-400/15 text-emerald-300' : 'bg-amber-400/15 text-amber-300'}`}>{ok ? 'Reporting' : report?.status === 'not_configured' ? 'Setup needed' : 'Unavailable'}</span></div><p className="mt-3 text-2xl font-black text-white">{ok ? fmt(report.totals.views) : '—'}</p><p className="text-xs text-white/40">page views · selected range</p>{report?.message && <p className="mt-3 text-xs leading-relaxed text-white/50">{report.message}</p>}</div>
+  return <div className={`rounded-xl border p-5 ${ok ? 'border-emerald-400/20 bg-emerald-400/5' : 'border-amber-400/20 bg-amber-400/5'}`}><div className="flex items-center justify-between gap-2"><h3 className="font-bold text-white">{providerLabel[report?.source] || 'Provider'}</h3><span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${ok ? 'bg-emerald-400/15 text-emerald-300' : 'bg-amber-400/15 text-amber-300'}`}>{ok ? 'Reporting' : report?.status === 'not_configured' ? 'Setup needed' : 'Unavailable'}</span></div><p className="mt-3 text-2xl font-black text-white">{ok ? fmt(report.totals.views) : '—'}</p><p className="text-xs text-white/40">{report?.source === 'google_business' ? 'Search + Maps impressions' : 'page views'} · selected range</p>{report?.message && <p className="mt-3 text-xs leading-relaxed text-white/50">{report.message}</p>}</div>
 }
 function Kpi({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/40">{label}</p><p className="mt-2 text-xl font-black text-white">{value}</p></div> }
 function RankedList({ title, rows, empty = 'No data yet.' }: { title: string; rows: any[]; empty?: string }) { const max = Math.max(1, ...rows.map((r) => r.value)); return <div className="rounded-xl border border-white/10 bg-white/5 p-6"><h3 className="font-bold text-white">{title}</h3><div className="mt-4 space-y-3">{rows.slice(0, 10).map((row) => <div key={row.label}><div className="flex justify-between gap-3 text-xs"><span className="truncate text-white/65">{row.label}</span><span className="font-bold text-white">{fmt(row.value)}</span></div><div className="mt-1 h-1.5 overflow-hidden rounded bg-white/5"><div className="h-full rounded bg-brand-magenta" style={{ width: `${row.value / max * 100}%` }} /></div></div>)}{!rows.length && <p className="text-sm text-white/40">{empty}</p>}</div></div> }

@@ -28,3 +28,11 @@ Sources checked October 8, 2026:
 - https://developers.google.com/my-business/content/notification-setup
 
 The connection remains unavailable until Google approves the Cloud project for Business Profile APIs and the four `GBP_*` runtime secrets are installed. Pub/Sub is intentionally not configured, so an agency's existing notification setup cannot be overwritten. Authorized owners can refresh locations, select the correct profile, preview current profile fields, and manually apply the reviewed snapshot to CityBeat. Every applied import records the prior CityBeat values in the audit log.
+
+### Platform analytics versus advertiser connections
+
+Finance uses `/api/admin/google-business` to connect and explicitly select CityBeat's own profile. This connection is stored separately at `platform_google_business_connections/citybeat`; it never aggregates advertiser records from `google_business_connections`. Both setup and the OAuth callback require an administrator role and enrolled two-factor authentication. The signed OAuth state distinguishes platform reporting from listing imports. Reconnecting clears the selected location so an operator must choose again; selection is verified against the profiles Google currently authorizes. The finance flow does not write public profile or directory fields.
+
+The native Google Analytics product link and this direct API connection are separate. On October 30, 2026, City Beat Magazine was linked to the existing GA4 property `542822471` (account `398927462`). The Cloud Run reporting identity `854761587817-compute@developer.gserviceaccount.com` was granted property-level Viewer access, and production GA4 reports returned real traffic. No new property was created. Direct Search/Maps reporting still requires Business Profile API approval, OAuth configuration, owner authorization, and deployment of the platform connection UI.
+
+Performance responses contain `multiDailyMetricTimeSeries[].dailyMetricTimeSeries[]`. The parser separates Search/Maps impressions from call clicks, website clicks, and direction requests, and rejects malformed responses instead of displaying invented zero success. Empty authorized periods may legitimately contain zero results.

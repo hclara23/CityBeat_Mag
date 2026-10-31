@@ -2,8 +2,10 @@ import crypto from 'node:crypto'
 
 export const GBP_SCOPE = 'https://www.googleapis.com/auth/business.manage'
 export const GBP_CONNECTIONS = 'google_business_connections'
+export const GBP_PLATFORM_CONNECTIONS = 'platform_google_business_connections'
+export const GBP_PLATFORM_ID = 'citybeat'
 
-export type GbpState = { listingId: string; userId: string; locale: 'en' | 'es'; nonce: string; exp: number }
+export type GbpState = { listingId: string; userId: string; locale: 'en' | 'es'; nonce: string; exp: number; purpose?: 'platform_analytics' }
 export type GbpLocation = {
   name: string
   title: string
