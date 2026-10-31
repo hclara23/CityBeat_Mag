@@ -1,12 +1,14 @@
 import { FieldValue, type Firestore } from 'firebase-admin/firestore'
 import { dayKey, statsDocId } from './listing-analytics'
 import { listingEventCounters, type ClientListingEvent } from './listing-tracking'
+import { qrCounter, type QrCampaign } from './listing-campaign'
 
-export async function recordListingAction(db: Pick<Firestore, 'collection'>, listingId: string, type: ClientListingEvent, now = new Date()) {
+export async function recordListingAction(db: Pick<Firestore, 'collection'>, listingId: string, type: ClientListingEvent, now = new Date(), campaign?: QrCampaign) {
   const day = dayKey(now)
   await db.collection('listing_stats').doc(statsDocId(listingId, day)).set({
     listing_id: listingId, day, updated_at: now.toISOString(),
     ...Object.fromEntries(listingEventCounters(type).map(key => [key, FieldValue.increment(1)])),
+    ...(type === 'view' && campaign ? { qr_visit: FieldValue.increment(1), [qrCounter(campaign)]: FieldValue.increment(1) } : {}),
   }, { merge: true })
 }
 

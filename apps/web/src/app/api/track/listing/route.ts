@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       const user = await getServerUser()
       return user ? { id: user.id, profile: await getServerUserProfile(user.id) } : null
     },
-    record: (listingId, type) => recordListingAction(adminDb, listingId, type),
+    record: (listingId, type, campaign) => recordListingAction(adminDb, listingId, type, new Date(), campaign),
     // Do not log visitor identity or payloads, and do not send email per click.
     failure: () => console.error('[listing-tracking] persistence_or_lookup_failed'),
   })

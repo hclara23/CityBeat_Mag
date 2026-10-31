@@ -44,7 +44,7 @@ function dependencies(store: ReturnType<typeof memoryStore>): TrackingDependenci
     allowed: async () => true,
     listing: async () => ({ owner_id: 'owner', manager_ids: ['manager'] }),
     visitor: async () => null,
-    record: (id, type) => recordListingAction(store.db, id, type, now),
+    record: (id, type, campaign) => recordListingAction(store.db, id, type, now, campaign),
     failure: () => {},
   }
 }
@@ -105,6 +105,19 @@ test('owner, manager and staff self-traffic is excluded without counting', async
     assert.equal(store.writes.length, 0)
     assert.equal(internalListingVisitor({ owner_id: 'owner', manager_ids: ['manager'] }, visitor.id, visitor.profile), true)
   }
+})
+
+test('QR visits increment the existing view record once; invalid campaigns and action spoofing are ignored', async () => {
+  const store=memoryStore()
+  await trackListingRequest({listingId:'ok',type:'view',qrCampaign:'social-card'},dependencies(store))
+  assert.equal(store.writes.length,1)
+  assert.deepEqual(store.writes[0].data.view,FieldValue.increment(1))
+  assert.deepEqual(store.writes[0].data.qr_visit,FieldValue.increment(1))
+  assert.deepEqual(store.writes[0].data.qr_social_card,FieldValue.increment(1))
+  await trackListingRequest({listingId:'ok',type:'click_phone',qrCampaign:'listing'},dependencies(store))
+  await trackListingRequest({listingId:'ok',type:'view',qrCampaign:'arbitrary'},dependencies(store))
+  assert.equal(store.writes[1].data.qr_visit,undefined)
+  assert.equal(store.writes[2].data.qr_visit,undefined)
 })
 
 test('failed writes are observable failures and are never retried', async () => {

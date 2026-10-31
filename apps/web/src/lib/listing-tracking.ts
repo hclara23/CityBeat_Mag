@@ -1,5 +1,6 @@
 import { hasEditorAccess, type PlatformProfile } from '@citybeat/lib/roles'
 import { isValidListingEventType, type ListingEventType } from './listing-analytics'
+import { validQrCampaign, type QrCampaign } from './listing-campaign'
 
 export type ClientListingEvent = Exclude<ListingEventType, 'lead'>
 export type TrackingListing = { owner_id?: unknown; manager_ids?: unknown }
@@ -29,7 +30,7 @@ export type TrackingDependencies = {
   allowed: (listingId: string) => Promise<boolean>
   listing: (listingId: string) => Promise<TrackingListing | null>
   visitor: () => Promise<{ id: string; profile?: PlatformProfile | null } | null>
-  record: (listingId: string, type: ClientListingEvent) => Promise<void>
+  record: (listingId: string, type: ClientListingEvent, qrCampaign?: QrCampaign) => Promise<void>
   failure: () => void
 }
 
@@ -50,7 +51,9 @@ export async function trackListingRequest(body: unknown, deps: TrackingDependenc
     if (internalListingVisitor(listing, visitor?.id, visitor?.profile)) {
       return { status: 200, body: { ok: true, excluded: true } }
     }
-    await deps.record(listingId, type)
+    const campaign = type === 'view' && validQrCampaign(input.qrCampaign) ? input.qrCampaign : undefined
+    if (campaign) await deps.record(listingId, type, campaign)
+    else await deps.record(listingId, type)
     return { status: 200, body: { ok: true, recorded: true } }
   } catch {
     deps.failure()

@@ -11633,6 +11633,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: add reviewed website prefill with DNS-pinned fetching, bounded local business extraction, owner field selection and security tests"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: separate website and phone clicks from QR campaign visits, preserve short-link attribution and add reporting regression tests"
         }
       ],
       "doc_version": 2,
@@ -11646,6 +11650,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "03d887b7b2603981b74bdf9540c3fe02579925b2e2bb167612f0ad14497dc58b"
+    "checksum": "8b09794a19c726fdfc9710dcbd4b10c90355e1b3064eb52a8c0f2952fa250716"
   }
 }

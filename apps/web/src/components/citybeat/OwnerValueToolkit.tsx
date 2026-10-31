@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import QRCode from 'qrcode'
 import { deterministicSocialCaptions } from '@/lib/premium-value'
+import { qrCampaignUrl } from '@/lib/listing-campaign'
 
 type PixelConfig = { enabled: boolean; domains: string[]; last_seen_at: string | null; last_event: string | null; snippet: string }
 
@@ -11,6 +12,7 @@ export function OwnerValueToolkit({ listingId, name, website, locale, canPixel }
   const [origin, setOrigin] = useState('https://citybeatmag.co')
   const [listingQr, setListingQr] = useState('')
   const [reviewQr, setReviewQr] = useState('')
+  const [socialQr, setSocialQr] = useState('')
   const [pixel, setPixel] = useState<PixelConfig | null>(null)
   const [pixelDomain, setPixelDomain] = useState('')
   const [pixelMessage, setPixelMessage] = useState('')
@@ -24,9 +26,10 @@ export function OwnerValueToolkit({ listingId, name, website, locale, canPixel }
     setOrigin(value)
   }, [])
   useEffect(() => {
-    QRCode.toDataURL(shortUrl, { width: 420, margin: 2, errorCorrectionLevel: 'M' }).then(setListingQr).catch(() => {})
-    QRCode.toDataURL(reviewUrl, { width: 420, margin: 2, errorCorrectionLevel: 'M' }).then(setReviewQr).catch(() => {})
-  }, [shortUrl, reviewUrl])
+    QRCode.toDataURL(qrCampaignUrl(shortUrl,'listing',locale), { width: 420, margin: 2, errorCorrectionLevel: 'M' }).then(setListingQr).catch(() => {})
+    QRCode.toDataURL(qrCampaignUrl(reviewUrl,'reviews',locale), { width: 420, margin: 2, errorCorrectionLevel: 'M' }).then(setReviewQr).catch(() => {})
+    QRCode.toDataURL(qrCampaignUrl(shortUrl,'social-card',locale), { width: 420, margin: 2, errorCorrectionLevel: 'M' }).then(setSocialQr).catch(() => {})
+  }, [shortUrl, reviewUrl,locale])
   useEffect(() => {
     if (!canPixel) return
     fetch(`/api/directory/${listingId}/pixel`)
@@ -44,7 +47,7 @@ export function OwnerValueToolkit({ listingId, name, website, locale, canPixel }
     canvas.width = 1080
     canvas.height = 1080
     const ctx = canvas.getContext('2d')
-    if (!ctx || !listingQr) return
+    if (!ctx || !socialQr) return
     ctx.fillStyle = '#080b0d'
     ctx.fillRect(0, 0, 1080, 1080)
     ctx.fillStyle = '#22d3ee'
@@ -59,7 +62,7 @@ export function OwnerValueToolkit({ listingId, name, website, locale, canPixel }
     ctx.font = '32px Arial'
     ctx.fillText(isEs ? 'Escanea para ver horarios, ofertas y reseñas.' : 'Scan for hours, offers, and reviews.', 72, 320)
     const image = new Image()
-    image.src = listingQr
+    image.src = socialQr
     await new Promise<void>((resolve) => { image.onload = () => resolve(); image.onerror = () => resolve() })
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(290, 390, 500, 500)

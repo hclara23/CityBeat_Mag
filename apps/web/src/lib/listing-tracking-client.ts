@@ -1,4 +1,5 @@
 import type { ClientListingEvent } from './listing-tracking'
+import { qrCampaignFromSearch } from './listing-campaign'
 
 // Deliberately no retry: navigation stays immediate and a network failure may
 // occur after the server has already incremented the counter.
@@ -12,7 +13,7 @@ export function sendListingAction(
   try {
     void transport('/api/track/listing', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ listingId, type }), keepalive: true,
+      body: JSON.stringify({ listingId, type, ...(type === 'view' && typeof window !== 'undefined' ? { qrCampaign: qrCampaignFromSearch(window.location.search) } : {}) }), keepalive: true,
     }).catch(() => {})
   } catch { /* tracking must never interrupt the link's default action */ }
 }

@@ -555,6 +555,10 @@ export function NotifyPrefsPanel({ isEs }: { isEs: boolean }) {
 // ── Listing analytics ────────────────────────────────────────────────────────
 
 type StatTotals = {
+  qr_visit?: number
+  qr_listing?: number
+  qr_reviews?: number
+  qr_social_card?: number
   click_phone: number
   view: number
   click_website: number
@@ -668,7 +672,13 @@ export function AnalyticsPanel({
         />
       </div>
 
-      <StatCard label={isEs ? 'Clics al teléfono (no llamadas completadas)' : 'Phone clicks (not completed calls)'} value={cur.click_phone || 0} isEs={isEs} />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label={isEs ? 'Clics al sitio web' : 'Website clicks'} value={cur.click_website || 0} isEs={isEs} />
+        <StatCard label={isEs ? 'Clics al teléfono (no llamadas completadas)' : 'Phone clicks (not completed calls)'} value={cur.click_phone || 0} isEs={isEs} />
+        <StatCard label={isEs ? 'Visitas con etiqueta QR' : 'QR-tagged visits'} value={cur.qr_visit || 0} isEs={isEs} />
+      </div>
+      <p className="text-xs text-white/55">{isEs ? 'Las visitas QR ya están incluidas en las vistas de la ficha. Se miden con los nuevos códigos descargados; no son escaneos únicos, llamadas completadas ni ventas. Los clics al sitio indican intención de visita, no una sesión confirmada.' : 'QR-tagged visits are included in listing views and start with newly downloaded codes. They are not unique scans, completed calls, or sales. Website clicks indicate a click toward your site, not a confirmed website session.'}</p>
+      {(cur.qr_visit || 0)>0 && <p className="text-xs text-white/65">{isEs?'Campañas QR':'QR campaigns'}: {isEs?'ficha':'listing'} {cur.qr_listing || 0} · {isEs?'reseñas':'reviews'} {cur.qr_reviews || 0} · {isEs?'tarjeta social':'social card'} {cur.qr_social_card || 0}</p>}
       {data.full && (
         <div className="grid gap-4 sm:grid-cols-2">
           <StatCard label={isEs ? 'Vistas del sitio (todas las fuentes, píxel)' : 'Website views (all sources, pixel)'} value={cur.external_site_view || 0} isEs={isEs} />

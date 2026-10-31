@@ -49,6 +49,10 @@ export type DailyStatRow = {
   lead?: number
   external_site_view?: number
   external_conversion?: number
+  qr_visit?: number
+  qr_listing?: number
+  qr_reviews?: number
+  qr_social_card?: number
 } & Partial<Record<ListingEventType, number>>
 
 export type StatTotals = {
@@ -71,6 +75,10 @@ export type StatTotals = {
   click_post_cta: number
   external_site_view: number
   external_conversion: number
+  qr_visit: number
+  qr_listing: number
+  qr_reviews: number
+  qr_social_card: number
 }
 
 const ZERO: StatTotals = {
@@ -79,6 +87,7 @@ const ZERO: StatTotals = {
   click_directions_google: 0, click_directions_apple: 0, click_directions_location: 0,
   click_action_booking: 0, click_action_order: 0, click_action_quote: 0, click_action_menu: 0, click_post_cta: 0,
   external_site_view: 0, external_conversion: 0,
+  qr_visit: 0, qr_listing: 0, qr_reviews: 0, qr_social_card: 0,
 }
 
 function addRow(acc: StatTotals, row: DailyStatRow): StatTotals {
@@ -102,6 +111,10 @@ function addRow(acc: StatTotals, row: DailyStatRow): StatTotals {
     click_post_cta: acc.click_post_cta + (Number(row.click_post_cta) || 0),
     external_site_view: acc.external_site_view + (Number(row.external_site_view) || 0),
     external_conversion: acc.external_conversion + (Number(row.external_conversion) || 0),
+    qr_visit: acc.qr_visit + (Number(row.qr_visit) || 0),
+    qr_listing: acc.qr_listing + (Number(row.qr_listing) || 0),
+    qr_reviews: acc.qr_reviews + (Number(row.qr_reviews) || 0),
+    qr_social_card: acc.qr_social_card + (Number(row.qr_social_card) || 0),
   }
 }
 
@@ -178,6 +191,7 @@ export function statsToCsv(rows: DailyStatRow[]): string {
     'facebook_clicks', 'instagram_clicks', 'twitter_clicks', 'google_direction_clicks',
     'apple_direction_clicks', 'location_direction_clicks', 'booking_clicks', 'order_clicks',
     'quote_clicks', 'menu_clicks', 'post_cta_clicks', 'external_site_views', 'external_conversions',
+    'qr_tagged_visits', 'qr_listing_visits', 'qr_review_visits', 'qr_social_card_visits',
   ]
   const lines = [header.join(',')]
   for (const row of [...rows].sort((a, b) => a.day.localeCompare(b.day))) {
@@ -203,6 +217,10 @@ export function statsToCsv(rows: DailyStatRow[]): string {
         csvCell(Number(row.click_post_cta) || 0),
         csvCell(Number(row.external_site_view) || 0),
         csvCell(Number(row.external_conversion) || 0),
+        csvCell(Number(row.qr_visit) || 0),
+        csvCell(Number(row.qr_listing) || 0),
+        csvCell(Number(row.qr_reviews) || 0),
+        csvCell(Number(row.qr_social_card) || 0),
       ].join(',')
     )
   }
