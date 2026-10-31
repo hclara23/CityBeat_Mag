@@ -11614,12 +11614,38 @@
       "doc_updated_by": "agentctl",
       "description": "Deploy the approved directory release within a one-time USD 1 cap, exclude the local Docling pilot, retain current monthly infrastructure, and verify candidate and live behavior. No subagents. Related implementation: 202610310728-08DNQA and 202610310716-BECXY5.",
       "doc": "## Summary\n\nDeploy the approved directory improvements with candidate and live verification.\n\n## Context\n\nUser approved deployment up to USD 1 one-time, no new monthly costs, Docling local only and no subagents. Implementation commits 652df72, 926048b and b4cd3cf are locally tested.\n\n## Scope\n\nExisting Cloud Run service only. Exclude scripts/docling-pilot from build upload and Docker context. Bound CI to thirty minutes. Preserve service sizing, secrets, jobs and existing records.\n\n## Risks\n\nNo bulk data import or publication is run during verification. Current rollback revision: citybeat-web-00463-sup. A new build may fail before promotion; do not bypass test gates. Invoice totals lag; track build duration and published unit price rather than claiming a finalized bill.\n\n## Verify Steps\n\nValidate upload exclusions and workflow YAML; use the existing CI type, security and test gates; confirm candidate smoke tests and live traffic revision; verify EN/ES directory search, hidden-draft safeguards and authenticated staff/owner UI where available.\n\n## Rollback Plan\n\nReturn 100 percent traffic to citybeat-web-00463-sup if post-deployment checks fail. No schema migration or production data rewrite is part of this release.\n\n## Notes\n\nBudget: previous source build used the default machine and a 1800-second timeout. Published Cloud Build default e2-standard-2 rate is USD 0.006/minute, at most USD 0.18 for that build timeout before allowances. CI now has a 30-minute timeout. No paid service, scheduler or additional recurring capacity is created."
+    },
+    {
+      "id": "202610310757-RH8JEB",
+      "title": "Complete advertiser intake reporting support and social promotion tools",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [
+        "202610310728-08DNQA"
+      ],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: implement the four approved production-value improvements sequentially with local validation, no subagents and no new recurring service."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: add reviewed website prefill with DNS-pinned fetching, bounded local business extraction, owner field selection and security tests"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-31T08:03:30+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "User approved plan and implementation of four remaining areas: local Docling/selective website extraction, truthful advertiser analytics including QR attribution, Chatwoot evaluation and accountable support workflow, Postiz scheduling integration and reusable HyperFrames template. Finish with full tests and a production release under the existing USD 1 one-time cap, no new monthly services and no subagents. Coordinate deployment task 202610310754-Y3EHBA.",
+      "doc": "## Summary\n\nComplete four approved advertiser-value areas and ship a tested production release.\n\n## Context\n\nUser authorized autonomous completion while away, including one further quality sweep. Existing USD 1 one-time deployment cap, no new monthly services, Docling local and no subagents remain binding.\n\n## Scope\n\nOwner-selected website extraction with review-only prefill; accurate listing/website/phone/QR reporting; evaluate Chatwoot and implement assigned/resolved customer follow-up in existing infrastructure; Postiz adapter/readiness and reusable locally rendered HyperFrames template. No customer campaign is sent as a test.\n\n## Risks\n\nExternal Postiz account/API and social channel credentials may not exist; do not fabricate a live integration or buy hosting. Chatwoot requires a persistent stack, so evaluate cost and use existing app capabilities where no-cost deployment is possible. Protect SSRF, private staff evidence, data access and paid entitlements.\n\n## Verify Steps\n\nUnit/security tests, full regression, TypeScript, isolated build, emulator integration, local desktop/mobile bilingual UI; candidate and live checks through deployment task 202610310754-Y3EHBA.\n\n## Rollback Plan\n\nUse the recorded previous Cloud Run revision. New optional integrations fail closed when unconfigured and add no scheduler. Existing customer billing and ownership stay unchanged.\n\n## Notes\n\nIntake: added authenticated owner/staff website preview with three-per-hour limit, HTTPS-only DNS-pinned public IPv4 fetching, same-site bounded redirects, byte/time limits, local-address filtering and explicit field selection. No AI service or new recurring service. Four extraction/security tests and TypeScript pass. Read-only real Varsity website extraction produced website/name/description/address; nothing saved to production. Continue QR reporting, support, social and combined release."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "d37860a6e75ad2f51df15272115b41bc5c276c6a57a74cb3943b1267ce9604f9"
+    "checksum": "03d887b7b2603981b74bdf9540c3fe02579925b2e2bb167612f0ad14497dc58b"
   }
 }

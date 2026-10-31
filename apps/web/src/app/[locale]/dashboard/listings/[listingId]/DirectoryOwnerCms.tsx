@@ -13,6 +13,7 @@ import {
 import { profileCompleteness, localSeoScore, type ListingScore } from '@/lib/listing-scores'
 import { LeadsPanel } from '@/components/citybeat/LeadsPanel'
 import { OwnerValueToolkit } from '@/components/citybeat/OwnerValueToolkit'
+import { WebsitePrefill } from '@/components/citybeat/WebsitePrefill'
 import { ListingTrustSignals } from '@/components/citybeat/ListingTrustSignals'
 import { GoogleBusinessConnection } from '@/components/citybeat/GoogleBusinessConnection'
 import {
@@ -451,6 +452,13 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
 
             {section === 'profile' && (
               <Panel title={isEs ? 'Perfil del negocio' : 'Business Profile'}>
+                <div className="mb-5"><WebsitePrefill listingId={listing.id} isEs={isEs} allowDescription={canPaid} current={{name,phone,address,description,website}} onApply={fields=>{
+                  if(fields.name!==undefined) setName(fields.name)
+                  if(fields.phone!==undefined) setPhone(fields.phone)
+                  if(fields.address!==undefined) setAddress(fields.address)
+                  if(fields.website!==undefined) setWebsite(fields.website)
+                  if(fields.description!==undefined && canPaid) setDescription(fields.description)
+                }} /></div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label={isEs ? 'Nombre del negocio' : 'Business name'} className="sm:col-span-2">
                     <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} />
