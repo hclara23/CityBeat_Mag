@@ -1,15 +1,17 @@
 ---
 id: "202610310728-08DNQA"
 title: "Enforce hyperlocal import quality and pilot local Docling drafts"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "b4cd3cfa8d530bd1e0e86352a03c296d9acab16a", message: "✨ 08DNQA start: save the isolated Docling pilot, exact-field English and Spanish conversion checks, local-only safeguards and reproducible operating instructions." }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: enforce reviewed eleven-city imports and run an isolated local Docling pilot without production writes or new recurring costs." }
   - { author: "ORCHESTRATOR", body: "start: enforce eleven-city import review, preserve source and verification evidence, protect paid owners and branches, and add tested offline Docling drafts with local emulator integration coverage." }
   - { author: "ORCHESTRATOR", body: "start: save the isolated Docling pilot, exact-field English and Spanish conversion checks, local-only safeguards and reproducible operating instructions." }
+  - { author: "ORCHESTRATOR", body: "verified: local eleven-city data-quality improvements and offline Docling pilot completed in 926048b and b4cd3cf | details: 1014 regression tests, four real-document pilot tests, isolated build, Firestore emulator import checks and EN/ES browser checks passed. No production writes, deployment, recurring service or subagents." }
 doc_version: 2
 doc_updated_at: "2026-10-31T07:46:08+00:00"
 doc_updated_by: "agentctl"
