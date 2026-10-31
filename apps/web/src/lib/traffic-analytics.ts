@@ -76,10 +76,11 @@ export async function fetchCloudflareAnalytics(days: RangeDays): Promise<Provide
   if (!token || !accountTag || !siteTag) return emptyProvider('cloudflare', 'not_configured', 'Cloudflare read-only reporting credentials are not configured.')
   const end = new Date()
   const start = new Date(end.getTime() - (days - 1) * 86400000)
+  start.setUTCHours(0, 0, 0, 0)
   const query = `query CityBeatRUM($accountTag: String!, $siteTag: String!, $start: DateTime!, $end: DateTime!) {
     viewer { accounts(filter: { accountTag: $accountTag }) {
       totals: rumPageloadEventsAdaptiveGroups(limit: 1, filter: { siteTag: $siteTag, datetime_geq: $start, datetime_leq: $end }) { count }
-      trend: rumPageloadEventsAdaptiveGroups(limit: 100, filter: { siteTag: $siteTag, datetime_geq: $start, datetime_leq: $end }, orderBy: [datetimeDay_ASC]) { count dimensions { datetimeDay } }
+      trend: rumPageloadEventsAdaptiveGroups(limit: 100, filter: { siteTag: $siteTag, datetime_geq: $start, datetime_leq: $end }, orderBy: [date_ASC]) { count dimensions { date } }
       pages: rumPageloadEventsAdaptiveGroups(limit: 10, filter: { siteTag: $siteTag, datetime_geq: $start, datetime_leq: $end }, orderBy: [count_DESC]) { count dimensions { requestPath } }
       countries: rumPageloadEventsAdaptiveGroups(limit: 8, filter: { siteTag: $siteTag, datetime_geq: $start, datetime_leq: $end }, orderBy: [count_DESC]) { count dimensions { countryName } }
     } }
@@ -98,7 +99,7 @@ export async function fetchCloudflareAnalytics(days: RangeDays): Promise<Provide
     return {
       source: 'cloudflare', status: 'ok',
       totals: { views: n(account?.totals?.[0]?.count), visitors: 0, sessions: 0 },
-      trend: (account?.trend || []).map((item: any) => ({ date: item.dimensions?.datetimeDay || '', views: n(item.count), visitors: 0 })),
+      trend: (account?.trend || []).map((item: any) => ({ date: item.dimensions?.date || '', views: n(item.count), visitors: 0 })),
       top_pages: map(account?.pages, 'requestPath'), countries: map(account?.countries, 'countryName'), channels: [], devices: [],
     }
   } catch (error: any) {
