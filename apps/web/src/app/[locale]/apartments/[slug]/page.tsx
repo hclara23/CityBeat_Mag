@@ -39,6 +39,10 @@ export default async function ApartmentPage({ params }: Props) {
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
     <div className="citybeat-app container-wide py-8 sm:py-12">
       <Link href={`/${locale}/apartments`} className="inline-flex min-h-11 items-center text-sm font-bold text-brand-neon">← {es ? 'Todos los apartamentos' : 'All apartments'}</Link>
+      <div className="mt-4 flex flex-col gap-3 rounded-xl border border-brand-neon/40 bg-brand-ink p-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-bold">{es ? '¿Administras esta propiedad? Reclama tu ficha gratis.' : 'Manage this property? Claim your listing for free.'}</p>
+        <Link href={`/${locale}/apartments/${community.slug}/claim`} className="flex min-h-12 shrink-0 items-center justify-center rounded-lg bg-brand-neon px-6 py-3 text-center font-black text-black hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-neon">{es ? 'Reclamar esta propiedad' : 'Claim this property'}</Link>
+      </div>
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.5fr_1fr]">
         <div>
           <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-brand-ink p-6 sm:p-10">

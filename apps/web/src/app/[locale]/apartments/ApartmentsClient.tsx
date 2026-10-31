@@ -87,11 +87,11 @@ export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITI
             <div className="flex flex-1 flex-col p-6">
               <h2 className="text-2xl font-extrabold leading-snug text-white"><Link href={`/${locale}/apartments/${community.slug}`} className="hover:text-brand-neon">{community.name}</Link></h2>
               <p className="mt-2 text-xs text-white/60">{es ? 'Administración' : 'Managed by'}: {APARTMENT_MANAGER}</p>
+              <Link href={`/${locale}/apartments/${community.slug}/claim`} className="mt-4 flex min-h-12 items-center justify-center rounded-lg bg-brand-neon px-4 py-3 text-center text-sm font-black text-black hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-neon">{es ? 'Reclamar esta propiedad' : 'Claim this property'}</Link>
               <p className="mt-4 flex-1 text-sm leading-6 text-white/70">{community.summary[locale]}</p>
               <p className="mt-4 border-t border-white/10 pt-4 text-sm text-white/65">{community.address}<br />El Paso, TX {community.zip}</p>
               <a href={`tel:+1${community.phone}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-brand-neon">{apartmentPhone(community.phone)}</a>
-              <Link href={`/${locale}/apartments/${community.slug}`} className="mt-3 block rounded bg-brand-neon px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-black hover:bg-white">{es ? 'Ver detalles' : 'View details'} →</Link>
-              <Link href={`/${locale}/apartments/${community.slug}/claim`} className="mt-2 inline-flex min-h-11 items-center justify-center text-center text-sm font-bold text-brand-neon underline">{es ? 'Reclamar esta propiedad' : 'Claim this property'}</Link>
+              <Link href={`/${locale}/apartments/${community.slug}`} className="mt-3 block rounded border border-white/30 px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white hover:border-brand-neon">{es ? 'Ver detalles' : 'View details'} →</Link>
             </div>
           </article>)}
         </div>}

@@ -11292,12 +11292,38 @@
       "doc_updated_by": "agentctl",
       "description": "Approved: connect ten apartment properties to authenticated directory SMS claims, translate texts and consent, preserve trusted numbers and admin review, test success and failure flow without paid sends or deployment.",
       "doc": "## Summary\n\nImplement bilingual SMS claims for all ten apartment properties using the existing directory ownership, review and manager dashboard flow.\n\n## Context\n\nUser approved bilingual apartment text claims and then explicitly approved up to USD 1 in Google Cloud deployment costs. Published the tested release using existing hosting on October 30, 2026; no live SMS messages were sent.\n\n## Scope\n\nClaim links and dedicated EN/ES screens; unchecked SMS consent and authenticated requests; trusted apartment-to-directory mapping; existing rate limits, code expiry, attempts and transactional verification; bilingual SMS templates and stable localized errors. Approved directory edits are reflected in public apartment cards and details. A local-only preview harness exercises real UI and route code with in-memory persistence and simulated SMS.\n\n## Risks\n\nLeasing tracking or landline numbers may not receive SMS; the UI offers staff review. Carrier delivery remains untested because no paid texts or recipient access were authorized. All ten live eligibility endpoints now return claimable with the expected phone endings. Isolated transaction tests do not emulate Firestore contention retries. Final billed deployment usage is not yet available.\n\n## Verify Steps\n\nPassed npm run type-check --workspace @citybeat/web. Passed 34 tests across apartment-claim-flow, apartments, claim-sms-consent and sms suites. Tests exercise all ten properties in both languages through actual apartment routes, resolver, existing directory start and verify handlers, and admin approval. Covered unauthorized requests, missing/stale consent, arbitrary destination substitution, failed SMS cleanup, wrong codes, five-attempt limit, expiry, replay, intervening owner, existing record reuse, identity conflicts, unpublished data and approved-only edits. Passed git diff --check.\n\nBrowser exercised actual claim client against isolated route harness: English consent disabled until checked, simulated code request, invalid-code feedback, valid code to pending review; Spanish consent, request and valid code to localized pending review. Local Next preview confirmed Spanish rendering and unavailable fallback with production DB credentials denied. No real messages were sent. Screenshot apartment-claim-test-es.png in current conversation visualization folder.\n\n## Rollback Plan\n\nRevert this task's commits and redeploy with approved spending. Preserve existing directory ownership records and apartment mappings for audit; do not delete manager claims or change billing as part of rollback.\n\n## Notes\n\nDeployment 41144060930 succeeded for commit 3375d81bedd4a6d0db82739cb51d4b90f3438298, including candidate and production smoke checks. Cloud Build 88b26843-bf48-4545-8008-7e62954aa0f9 succeeded in about five minutes. Live checks passed all twenty EN/ES claim pages and ten claim-eligibility endpoints; unsigned start and verify requests returned 401 unauthorized. Live browser confirmed translated disclosures, correct ALZA phone ending, preserved property route on language switching, and locale-specific sign-in return paths. Screenshot apartment-claim-live.png in current conversation visualization folder. Local 34-test suite and isolated EN/ES full browser flow passed before release. No live SMS was sent and no property ownership was changed during validation. Public entry points: https://citybeatmag.co/en/apartments and https://citybeatmag.co/es/apartments. Task completed."
+    },
+    {
+      "id": "202610302355-3CAK30",
+      "title": "Test live mock property SMS and emphasize claim actions",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202610302311-DF91CQ"
+      ],
+      "tags": [],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: emphasize bilingual claim buttons and run editor-authorized SMS test against isolated mock property; cap at two messages and USD 0.25."
+        },
+        {
+          "author": "CODER",
+          "body": "start: make bilingual apartment claim buttons prominent and add guarded editor SMS mock | details: verify English real delivery and claim review gating"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-31T00:03:08+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved isolated editor-phone mock claim test with at most two Twilio texts and USD 0.25 cap; make bilingual property claim actions prominent; never change real property ownership or contact numbers.",
+      "doc": "## Summary\n\nMake apartment claims obvious in English and Spanish and test real SMS delivery against an isolated editor mock property.\n\n## Scope\n\nMove all ten card claim actions above descriptive content and use filled brand buttons. Add a top-of-page manager claim banner. Extend the existing localhost test fixture with explicitly enabled real SMS, random codes, a two-attempt cap, fixed approved destination, and in-memory ownership only. Credentials are loaded from the user-provided document into process environment only, never saved in source.\n\n## Risks\n\nProduction has no Twilio sender environment variables configured. Real delivery in the local fixture does not establish production configuration. Carrier registration is VERIFIED and sender is in its messaging service. Campaign metadata still contains an old Parkland Pointe opt-in reply; this must be reviewed before public activation. Publishing or configuring paid cloud services needs separate approval under the current spending instructions. Do not restart the live test and reuse its two-message allowance.\n\n## Verify Steps\n\nType check and 14 real-handler claim tests passed, covering all ten properties in both languages and approval gating. Browser found ten prominent claim links per locale; Spanish mobile top banner opens its correct claim form. First English real SMS was delivered (SM2aa0c1420b88cd4713572d91fc14baf4), and the editor-supplied code produced Phone verified and pending review. No public property changed. A second Spanish text was requested in a fresh isolated fixture limited to one additional attempt; code entry is pending. The total allowance of two messages has now been consumed; do not send more. Credentials remained process-only. Production sender configuration and publication remain outstanding.\n\n## Rollback Plan\n\nRevert the two apartment presentation changes. Stop the localhost fixture to discard mock ownership and verification codes. No production property or ownership data has been changed. Current work is not deployed."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "f7db034264c2d5a0b5f3bcd7d6b8dd770a83a0570754a28b3d7d5fbdb0451a8a"
+    "checksum": "b7afe1f05dffb99c74e01161d92636c25fbb20527c6c34cf811c186f56b87da8"
   }
 }

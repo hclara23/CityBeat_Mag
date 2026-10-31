@@ -11,7 +11,10 @@ import { toE164 } from './sms'
 
 // Execute the production HTTP handlers, not a copy of their claim algorithm.
 // Only external boundaries are replaced; any unexpected dependency fails closed.
-export function harness() {
+export function harness(options: {
+  sendSms?: (to: string, body: string) => Promise<{ sent: boolean; error?: string }>
+  randomInt?: (min: number, max: number) => number
+} = {}) {
   const records = new Map<string, Record<string, any>>()
   let sequence = 0
   let user: { id: string } | null = { id: 'manager-a' }
@@ -70,10 +73,13 @@ export function harness() {
     '@/lib/sales-directory': salesDirectory,
     '@/lib/auth-security': { checkRateLimit: async () => ({ ok: rateAllowed }) },
     '@/lib/email': { sendEmail: async () => { throw new Error('SMS flow must not email') } },
-    '@/lib/sms': { toE164, sendSms: async (to: string, body: string) => { messages.push({ to, body }); return { sent, error: sent ? undefined : 'twilio_400_30034' } } },
+    '@/lib/sms': { toE164, sendSms: async (to: string, body: string) => {
+      if (options.sendSms) return options.sendSms(to, body)
+      messages.push({ to, body }); return { sent, error: sent ? undefined : 'twilio_400_30034' }
+    } },
     '@/lib/alerts': { reportFailure: async () => undefined },
     '@/lib/claim-funnel': { recordClaimEvent: async (event: Record<string, unknown>) => { events.push(event) } },
-    crypto: { randomInt: () => 654321 },
+    crypto: { randomInt: options.randomInt || (() => 654321) },
   }
   const root = fileURLToPath(new URL('../', import.meta.url))
   function load(path: string): any {
