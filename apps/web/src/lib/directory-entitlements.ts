@@ -104,6 +104,7 @@ const ENTITLEMENTS_BY_PLAN: Record<DirectoryPlanKey, DirectoryEntitlements> = {
 }
 
 export type ListingEntitlementInput = {
+  property_account_id?: string | null
   tier?: string | null
   plan?: string | null
   // Persisted by the Stripe webhook as `founding_member`; `founding` is accepted
@@ -157,7 +158,7 @@ export function resolveEntitlements(
   if (listing && !listing.stripe_subscription_id && compEnded(listing, now)) return BASIC
   const tier = normalizeListingTier(listing?.tier)
   if (tier === 'featured') return FEATURED
-  if (tier === 'premium') return PREMIUM
+  if (tier === 'premium') return listing?.property_account_id ? { ...PREMIUM, additionalManagers: 1 } : PREMIUM
   return BASIC
 }
 

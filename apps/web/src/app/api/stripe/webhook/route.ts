@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { bumpDirectoryIndexVersion } from '@/lib/directory-index-version'
+import { handlePropertyPortfolioEvent } from '@/lib/property-portfolio-billing'
 import Stripe from 'stripe'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { FieldValue } from 'firebase-admin/firestore'
@@ -1746,7 +1747,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const obj: any = event.data.object
-    switch (event.type) {
+    if (!(await handlePropertyPortfolioEvent(event, stripe, adminDb))) switch (event.type) {
       case 'checkout.session.completed':
         await handleCheckoutCompleted(obj)
         break

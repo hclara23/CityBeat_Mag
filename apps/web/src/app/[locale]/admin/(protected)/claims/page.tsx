@@ -162,6 +162,7 @@ export default function AdminClaimsDashboard() {
 
         <div className="mb-10">
           <h1 className="font-display text-4xl font-black tracking-tight uppercase">Claims Review Queue</h1>
+          <Link href={`/${locale}/admin/property-management`} className="mt-4 inline-flex min-h-11 items-center font-bold text-brand-neon">Corporate portfolios & rental property review →</Link>
           <p className="mt-1 text-white/50 text-sm">Verify business listings owner claims and activate premium tiers</p>
         </div>
 

@@ -55,6 +55,7 @@ async function existingDirectoryListing(input: {
   const listingDoc = await adminDb.collection('directory_listings').doc(input.listingId).get()
   if (!listingDoc.exists) throw Object.assign(new Error('Directory listing not found'), { status: 404 })
   const listing = listingDoc.data() as Record<string, unknown>
+  if (listing.property_account_id) throw Object.assign(new Error('This property is billed through its corporate portfolio.'), { status: 409, code: 'corporate_billing_required' })
   const existingOrders = await adminDb.collection('sales_orders').where('listing_id', '==', input.listingId).get()
   const replacement = input.replacementOrderId
     ? existingOrders.docs.find((document) => document.id === input.replacementOrderId)

@@ -6,7 +6,7 @@ import { approvedApartment } from './apartment-listing'
 import { resolveListingPatchAccess } from './directory-entitlements'
 import { harness } from './apartment-claim-test-harness'
 
-test('all ten apartment records complete the real text verification handlers in both languages', async () => {
+test('every researched apartment record completes the real text verification handlers in both languages', async () => {
   for (const property of APARTMENT_COMMUNITIES) for (const locale of ['en', 'es']) {
     const h = harness()
     const started = await h.apartmentStart({ locale, method: 'email', listingId: 'attacker-id', phone: '+19155550199', requestedContact: '+19155550199' }, property.slug)

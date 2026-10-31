@@ -1,5 +1,5 @@
 import type { Firestore } from 'firebase-admin/firestore'
-import { getApartment, type ApartmentCommunity } from './apartments'
+import { APARTMENT_COMMUNITIES, getApartment, type ApartmentCommunity } from './apartments'
 
 export class ApartmentLinkError extends Error {}
 const clean = (value: unknown) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -17,7 +17,7 @@ export function sameApartment(property: ApartmentCommunity, data: Record<string,
 
 export function apartmentSeed(property: ApartmentCommunity) {
   return {
-    name: property.name, address: property.address, city: 'El Paso', state: 'TX', zip: property.zip,
+    name: property.name, address: property.address, city: property.city || 'El Paso', state: property.state || 'TX', zip: property.zip,
     phone: `+1${property.phone}`, website: property.website, category: 'Real Estate',
     description: property.summary.en, description_es: property.summary.es,
     apartment_slug: property.slug, tier: 'basic', owner_id: null, claim_status: 'unclaimed',
@@ -48,8 +48,8 @@ export async function resolveApartmentListing(db: Firestore, slug: string, creat
     // Candidate searches are bounded. Any ambiguous identity requires staff review.
     const queries = [
       listings.where('name', '==', property.name).limit(20),
-      listings.where('website', 'in', [property.website, property.website.replace(/\/$/, ''), property.website.replace('www.', '')]).limit(20),
-      listings.where('phone', 'in', [property.phone, `+1${property.phone}`, `(${property.phone.slice(0,3)}) ${property.phone.slice(3,6)}-${property.phone.slice(6)}`]).limit(20),
+      ...(property.website !== property.source && APARTMENT_COMMUNITIES.filter(p => p.website === property.website).length === 1 ? [listings.where('website', 'in', [property.website, property.website.replace(/\/$/, ''), property.website.replace('www.', '')]).limit(20)] : []),
+      ...(APARTMENT_COMMUNITIES.filter(p => p.phone === property.phone).length === 1 ? [listings.where('phone', 'in', [property.phone, `+1${property.phone}`, `(${property.phone.slice(0,3)}) ${property.phone.slice(3,6)}-${property.phone.slice(6)}`]).limit(20)] : []),
     ]
     const snapshots = await Promise.all(queries.map(query => tx.get(query)))
     if (snapshots.some(s => s.size >= 20)) throw new ApartmentLinkError('Ambiguous listing')

@@ -1,14 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
-import { APARTMENT_COMMUNITIES, APARTMENT_MANAGER, APARTMENT_SOURCE, APARTMENT_VERIFIED, apartmentPhone, communityTypeLabel, searchApartments, type ApartmentLocale, type ApartmentCommunity } from '@/lib/apartments'
+import { APARTMENT_COMMUNITIES, PROPERTY_TYPES, apartmentCompany, APARTMENT_VERIFIED, apartmentPhone, communityTypeLabel, searchApartments, type ApartmentLocale, type ApartmentCommunity } from '@/lib/apartments'
 
-const zipCodes = [...new Set(APARTMENT_COMMUNITIES.map(community => community.zip))].sort()
+
 
 export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITIES }: { locale: ApartmentLocale; catalog?: readonly ApartmentCommunity[] }) {
   const es = locale === 'es'
+  const zipCodes = useMemo(() => [...new Set(catalog.map(community => community.zip))].sort(), [catalog])
   const [query, setQuery] = useState('')
   const [zip, setZip] = useState('')
   const [type, setType] = useState('')
@@ -20,13 +21,13 @@ export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITI
       const requestedZip = params.get('zip') || ''
       setZip(zipCodes.includes(requestedZip) ? requestedZip : '')
       const requestedType = params.get('type') || ''
-      setType(['apartments', 'rental-homes'].includes(requestedType) ? requestedType : '')
+      setType(Object.keys(PROPERTY_TYPES).includes(requestedType) ? requestedType : '')
       setReady(true)
     }
     readFilters()
     window.addEventListener('popstate', readFilters)
     return () => window.removeEventListener('popstate', readFilters)
-  }, [])
+  }, [zipCodes])
   useEffect(() => {
     if (!ready) return
     const url = new URL(window.location.href)
@@ -53,7 +54,7 @@ export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITI
                   <p className="mt-6 text-base leading-7 text-white/75">{es ? 'Explora comunidades, compara sus características y contacta directamente al equipo de arrendamiento.' : 'Explore communities, compare their features and connect directly with the leasing team.'}</p>
                   <div className="mt-8 flex flex-wrap gap-3 text-xs font-black uppercase tracking-wider">
                     <span className="rounded-full border border-brand-neon/45 bg-brand-neon/10 px-4 py-2 text-brand-neon">El Paso</span>
-                    <Link href={`/${locale}/directory`} className="rounded-full border border-white/25 px-4 py-2 hover:border-brand-neon hover:text-brand-neon">{es ? 'Directorio de negocios' : 'Business directory'} →</Link>
+                    <Link href={`/${locale}/property-management`} className="rounded-full bg-brand-neon px-4 py-2 text-black">{es ? 'Administradoras: $9.99 por propiedad' : 'Management companies: $9.99 per property'} →</Link><Link href={`/${locale}/directory`} className="rounded-full border border-white/25 px-4 py-2 hover:border-brand-neon hover:text-brand-neon">{es ? 'Directorio de negocios' : 'Business directory'} →</Link>
                   </div>
                 </div>
               </div>
@@ -69,11 +70,11 @@ export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITI
                     <select value={zip} onChange={e => setZip(e.target.value)} className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 text-base text-slate-950 focus:border-cyan-600 focus:ring-cyan-600"><option value="">{es ? 'Todas las zonas' : 'All areas'}</option>{zipCodes.map(value => <option key={value} value={value}>{value}</option>)}</select>
                   </label>
                   <label className="text-sm font-bold text-slate-800">{es ? 'Tipo de vivienda' : 'Community type'}
-                    <select value={type} onChange={e => setType(e.target.value)} className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 text-base text-slate-950 focus:border-cyan-600 focus:ring-cyan-600"><option value="">{es ? 'Todas las comunidades' : 'All communities'}</option><option value="apartments">{es ? 'Apartamentos' : 'Apartments'}</option><option value="rental-homes">{es ? 'Casas de renta' : 'Rental homes'}</option></select>
+                    <select value={type} onChange={e => setType(e.target.value)} className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 text-base text-slate-950 focus:border-cyan-600 focus:ring-cyan-600"><option value="">{es ? 'Todos los tipos' : 'All property types'}</option>{Object.entries(PROPERTY_TYPES).map(([key, label]) => <option key={key} value={key}>{label[locale]}</option>)}</select>
                   </label>
                 </div>
                 {(query || zip || type) && <button onClick={reset} className="mt-3 min-h-11 text-sm font-bold text-cyan-700 hover:text-cyan-900">{es ? 'Quitar filtros' : 'Clear filters'}</button>}
-                <p className="mt-6 text-sm leading-6 text-slate-700">{es ? 'Incluye las 10 comunidades de El Paso publicadas por RPM Living: nueve de apartamentos y una de casas de renta.' : 'Includes the 10 El Paso communities published by RPM Living: nine apartment communities and one rental-home community.'}</p>
+                <p className="mt-6 text-sm leading-6 text-slate-700">{es ? 'Comunidades publicadas por sus administradoras. Consulta la fuente en cada ficha.' : 'Communities published by their management companies. See the source on each listing.'}</p>
               </div>
             </div>
           </div>
@@ -86,10 +87,10 @@ export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITI
             <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-brand-charcoal p-6"><span className="text-xs font-bold uppercase tracking-wider text-brand-neon">{communityTypeLabel(community.type, locale)}</span><span className="text-sm text-white/60">{community.zip}</span></div>
             <div className="flex flex-1 flex-col p-6">
               <h2 className="text-2xl font-extrabold leading-snug text-white"><Link href={`/${locale}/apartments/${community.slug}`} className="hover:text-brand-neon">{community.name}</Link></h2>
-              <p className="mt-2 text-xs text-white/60">{es ? 'Administración' : 'Managed by'}: {APARTMENT_MANAGER}</p>
-              <Link href={`/${locale}/apartments/${community.slug}/claim`} className="mt-4 flex min-h-12 items-center justify-center rounded-lg bg-brand-neon px-4 py-3 text-center text-sm font-black text-black hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-neon">{es ? 'Reclamar esta propiedad' : 'Claim this property'}</Link>
+              <p className="mt-2 text-xs text-white/60">{es ? 'Administración' : 'Managed by'}: {apartmentCompany(community).name}</p>
+              <Link href={community.submitted ? `/${locale}/property-management/${apartmentCompany(community).id}#portfolio` : `/${locale}/apartments/${community.slug}/claim`} className="mt-4 flex min-h-12 items-center justify-center rounded-lg bg-brand-neon px-4 py-3 text-center text-sm font-black text-black hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-neon">{community.submitted ? (es ? 'Ver administradora' : 'View management company') : (es ? 'Reclamar esta propiedad' : 'Claim this property')}</Link>
               <p className="mt-4 flex-1 text-sm leading-6 text-white/70">{community.summary[locale]}</p>
-              <p className="mt-4 border-t border-white/10 pt-4 text-sm text-white/65">{community.address}<br />El Paso, TX {community.zip}</p>
+              <p className="mt-4 border-t border-white/10 pt-4 text-sm text-white/65">{community.address}<br />{community.city || 'El Paso'}, {community.state || 'TX'} {community.zip}</p>
               <a href={`tel:+1${community.phone}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-brand-neon">{apartmentPhone(community.phone)}</a>
               <Link href={`/${locale}/apartments/${community.slug}`} className="mt-3 block rounded border border-white/30 px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white hover:border-brand-neon">{es ? 'Ver detalles' : 'View details'} →</Link>
             </div>
@@ -97,7 +98,7 @@ export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITI
         </div>}
         <div className="mt-10 border-t border-white/10 pt-6 text-sm leading-6 text-white/60">
           <p>{es ? 'Administración compartida no implica el mismo propietario. CityBeat es un directorio independiente; confirma precios, disponibilidad y políticas con cada comunidad.' : 'Shared management does not imply common ownership. CityBeat is an independent directory; confirm pricing, availability and policies with each community.'}</p>
-          <p className="mt-2"><a href={APARTMENT_SOURCE} target="_blank" rel="noopener noreferrer" className="text-brand-neon underline">{es ? 'Fuente: directorio oficial de RPM Living' : 'Source: RPM Living official directory'}</a> · {es ? 'Datos revisados' : 'Records checked'}: {APARTMENT_VERIFIED}</p>
+          <p className="mt-2"><Link href={`/${locale}/property-management`} className="text-brand-neon underline">{es ? 'Ver empresas administradoras y promoción' : 'Browse management companies and promotion'}</Link> · {es ? 'Datos revisados' : 'Records checked'}: {APARTMENT_VERIFIED}</p>
         </div>
       </section>
     </div>

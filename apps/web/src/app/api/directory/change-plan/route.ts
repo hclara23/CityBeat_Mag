@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
     const doc = await adminDb.collection('directory_listings').doc(listingId).get()
     if (!doc.exists) return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
     const listing = { id: doc.id, ...(doc.data() as any) }
+    if (listing.property_account_id) return NextResponse.json({ error: 'Manage this property through the corporate portfolio billing account.', code: 'corporate_billing_required' }, { status: 409 })
 
     // Only the approved owner can change the plan they are paying for.
     if (listing.owner_id !== user.id) {

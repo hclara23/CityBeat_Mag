@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
     }
     const listing = { id: doc.id, ...(doc.data() as any) }
+    if (listing.property_account_id) return NextResponse.json({ error: 'Use the corporate property portfolio for billing and management.', code: 'corporate_billing_required' }, { status: 409 })
 
     const foundersFunnel = body.source === 'founders'
     if (foundersFunnel) {

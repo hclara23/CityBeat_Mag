@@ -70,6 +70,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No billing account found for customer portal' }, { status: 404 })
   }
 
+  // Corporate customers use a restricted portal: quantity changes must go
+  // through the reviewed portfolio and its explicit proration confirmation.
+  const portfolios = await adminDb.collection('property_accounts').where('owner_id', '==', user.id).get()
+  const corporate = portfolios.docs.find(doc => doc.data().stripe_customer_id === resolvedCustomerId)
+  if (corporate) return NextResponse.json({ error: 'Open Billing from your corporate property portfolio.', code: 'corporate_billing_required', portfolio: corporate.id }, { status: 409 })
+
   const response = await fetchWithTimeout('https://api.stripe.com/v1/billing_portal/sessions', {
     method: 'POST',
     headers: {

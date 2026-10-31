@@ -43,6 +43,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
 
   try {
     const existing = await ref.get()
+    if (existing.data()?.property_account_id) return NextResponse.json({ error: 'Review corporate properties through the property-management review queue.', code: 'corporate_review_required' }, { status: 409 })
     if (!existing.exists) return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
 
     const data = existing.data() as any

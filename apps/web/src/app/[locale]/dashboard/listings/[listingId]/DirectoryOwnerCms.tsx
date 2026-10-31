@@ -40,6 +40,7 @@ import {
 } from './CmsModules'
 
 type OwnerListing = {
+  property_account_id?: string
   print_recognition?: unknown
   id: string
   name: string
@@ -355,6 +356,7 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
     <div className="min-h-screen bg-brand-dark text-white">
       <SiteHeader />
       <main className="mx-auto max-w-6xl px-4 py-8">
+        {listing.property_account_id && <Link href={`/${locale}/property-management/${listing.property_account_id}#portfolio`} className="mb-5 inline-flex min-h-11 items-center font-bold text-brand-neon">← {isOwner ? (isEs ? 'Portafolio corporativo y facturación' : 'Corporate portfolio & billing') : (isEs ? 'Perfil de la administradora' : 'Management company profile')}</Link>}
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -709,10 +711,10 @@ export function DirectoryOwnerCms({ locale, listing, entitlements, plan, isStaff
                 </dl>
                 {plan !== 'featured' && (
                   <Link
-                    href={`/${locale}/directory/${listing.id}/claim`}
+                    href={listing.property_account_id ? `/${locale}/property-management/${listing.property_account_id}#portfolio` : `/${locale}/directory/${listing.id}/claim`}
                     className="mt-6 inline-flex rounded-md bg-brand-neon px-5 py-2.5 text-xs font-black uppercase tracking-wider text-black transition hover:bg-cyan-300"
                   >
-                    {isEs ? 'Mejorar mi plan' : 'Upgrade my plan'}
+                    {listing.property_account_id ? (isEs ? 'Administrado por la cuenta corporativa' : 'Managed by the corporate account') : (isEs ? 'Mejorar mi plan' : 'Upgrade my plan')}
                   </Link>
                 )}
                 <div className="mt-8 border-t border-white/10 pt-6">

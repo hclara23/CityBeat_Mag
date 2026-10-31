@@ -91,6 +91,7 @@ export function harness(options: {
       module: mod, exports: mod.exports, console, Date, URL,
       require: (id: string) => {
         if (id in overrides) return overrides[id]
+        if (id.startsWith('.') && id.endsWith('.json')) return JSON.parse(readFileSync(resolve(dirname(path), id), 'utf8'))
         // Pure local message/error copy may be added without mocking its behavior.
         if (id.startsWith('@/')) return load(resolve(root, id.slice(2)) + '.ts')
         if (id.startsWith('.')) return load(resolve(dirname(path), id) + '.ts')

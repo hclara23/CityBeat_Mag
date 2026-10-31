@@ -1,5 +1,8 @@
+import { M7_APARTMENTS } from './apartment-m7'
+import { RESEARCHED_APARTMENTS } from './apartment-researched'
+import { getPropertyCompany, type PropertyCompany } from './property-companies'
 export type ApartmentLocale = 'en' | 'es'
-export type CommunityType = 'apartments' | 'rental-homes'
+export type CommunityType = 'apartments' | 'rental-homes' | 'single-family' | 'duplex' | 'condo' | 'townhome' | 'commercial' | 'other-rental'
 export type ApartmentCommunity = {
   slug: string
   name: string
@@ -11,6 +14,12 @@ export type ApartmentCommunity = {
   summary: Record<ApartmentLocale, string>
   highlights: Record<ApartmentLocale, string[]>
   detailSource?: string
+  companyId?: string
+  source?: string
+  city?: string
+  state?: string
+  submitted?: boolean
+  companyDetails?: PropertyCompany
 }
 
 // Curated public directory records, not claimed businesses or paid endorsements.
@@ -18,6 +27,9 @@ export type ApartmentCommunity = {
 export const APARTMENT_SOURCE = 'https://rpmliving.com/find-a-community-post-search/'
 export const APARTMENT_VERIFIED = '2026-10-30'
 export const APARTMENT_MANAGER = 'RPM Living'
+export const apartmentCompanyId = (community: ApartmentCommunity) => community.companyId || 'rpm-living'
+export const apartmentCompany = (community: ApartmentCommunity) => getPropertyCompany(apartmentCompanyId(community)) || community.companyDetails!
+export const apartmentSource = (community: ApartmentCommunity) => community.source || APARTMENT_SOURCE
 export const APARTMENT_COMMUNITIES: readonly ApartmentCommunity[] = [
   {
     slug: 'alza-dwellings', name: 'ALZA Dwellings', address: '1831 Murchison Drive', zip: '79902', phone: '9152655427', website: 'https://www.alzadwellings.com/', type: 'apartments',
@@ -69,10 +81,23 @@ export const APARTMENT_COMMUNITIES: readonly ApartmentCommunity[] = [
     summary: { en: 'A single-family rental-home community offering three- and four-bedroom homes. Included alongside apartments as another local RPM Living community.', es: 'Una comunidad de casas unifamiliares de renta con tres y cuatro recámaras. Incluida junto a los apartamentos como otra comunidad local administrada por RPM Living.' },
     highlights: { en: ['3–4 bedrooms', 'Attached two-car garages', 'Pet friendly', 'Lazy river and splash pad'], es: ['3–4 recámaras', 'Cochera adjunta para dos autos', 'Admite mascotas', 'Río lento y zona de juegos acuáticos'] }, detailSource: 'https://www.tlcatcampodelsol.com/',
   },
+  ...M7_APARTMENTS,
+  ...RESEARCHED_APARTMENTS,
 ]
 
 export function communityTypeLabel(type: CommunityType, locale: ApartmentLocale) {
-  return type === 'rental-homes' ? (locale === 'es' ? 'Casas de renta' : 'Rental homes') : (locale === 'es' ? 'Apartamentos' : 'Apartments')
+  return PROPERTY_TYPES[type][locale]
+}
+
+export const PROPERTY_TYPES: Record<CommunityType, Record<ApartmentLocale, string>> = {
+  apartments: { en: 'Apartment complex', es: 'Complejo de apartamentos' },
+  'rental-homes': { en: 'Rental community', es: 'Comunidad de alquiler' },
+  'single-family': { en: 'Single-family home', es: 'Casa unifamiliar' },
+  duplex: { en: 'Duplex', es: 'Dúplex' },
+  condo: { en: 'Condo', es: 'Condominio' },
+  townhome: { en: 'Townhome', es: 'Casa adosada' },
+  commercial: { en: 'Commercial building', es: 'Edificio comercial' },
+  'other-rental': { en: 'Other rental property', es: 'Otra propiedad de alquiler' },
 }
 
 const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim()
@@ -82,7 +107,7 @@ export function searchApartments(query = '', zip = '', type = '', catalog: reado
   return catalog.filter(community => {
     if (zip && community.zip !== zip) return false
     if (type && community.type !== type) return false
-    const text = normalize([community.name, community.address, community.zip, 'El Paso Texas TX', APARTMENT_MANAGER,
+    const text = normalize([community.name, community.address, community.zip, community.city || 'El Paso', community.state || 'TX', apartmentCompany(community).name,
       community.summary.en, community.summary.es, ...community.highlights.en, ...community.highlights.es,
       communityTypeLabel(community.type, 'en'), communityTypeLabel(community.type, 'es')].join(' '))
     return words.every(word => text.includes(word))

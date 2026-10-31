@@ -39,6 +39,7 @@ function toOwnerListing(id: string, raw: any) {
   const plain = toPlain(raw)
   return {
     id,
+    property_account_id: typeof plain.property_account_id === 'string' ? plain.property_account_id : undefined,
     print_recognition: plain.print_recognition ?? [],
     name: plain.name ?? '',
     category: plain.category ?? '',

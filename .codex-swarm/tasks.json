@@ -11360,12 +11360,33 @@
       "doc_updated_by": "agentctl",
       "description": "Deploy tested bilingual apartment claim buttons and connect approved Twilio sender within USD 1 cloud deployment cap. Verify all ten properties in both languages without sending additional SMS.",
       "doc": "## Summary\n\nPublish the tested bilingual claim buttons and connect the verified CityBeat Twilio sender.\n\n## Scope\n\nConfigure the existing Cloud Run service using the user-supplied Twilio credentials without storing secrets in source or command output. Preserve existing environment and traffic until deployment checks pass. Deploy the committed claim buttons and verify all ten properties in English and Spanish. User approved USD 1 for Google Cloud deployment costs.\n\n## Risks\n\nThe two-message SMS allowance is consumed. Do not send additional texts. Keep scraped-number relay and operational SMS off. Existing campaign metadata includes legacy opt-in wording; inspect whether it is editable without new vetting fees before changing it. Runtime credentials use the existing restricted Cloud Run service configuration with no new secret-service subscription.\n\n## Verify Steps\n\nDeployment 41148371063 completed successfully at commit e49c3b36fe99. Cloud Build 51a52061-1d8c-43a1-924b-94b0f6c4f046 passed; candidate smoke tests and public live checks passed. Active revision citybeat-web-00457-qic serves 100 percent. Its three Twilio values match the supplied credentials; those credentials authenticate successfully and campaign remains VERIFIED. Relay and alert SMS remain disabled. verify-live.mjs passed 20 bilingual detail pages, 20 claim pages, ten eligibility APIs, and 20 unsigned POST rejections with zero messages sent. Browser confirms live Spanish top claim banner and English signed-in unchecked consent/disabled request. Prior two real texts and both code-verification flows passed in task 3CAK30. No new subscription or actual payment was created; actual cloud billing is not yet finalized.\n\n## Rollback Plan\n\nReturn traffic to citybeat-web-00454-vav if deployment health fails. Remove only newly added Twilio variables if activation must be rolled back. Preserve all other service configuration and public listing ownership."
+    },
+    {
+      "id": "202610310017-E9QP6H",
+      "title": "Build bilingual property management portfolio promotion and consolidated billing",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "CODER",
+      "depends_on": [
+        "202610310005-88YHV7"
+      ],
+      "tags": [],
+      "comments": [
+        {
+          "author": "CODER",
+          "body": "Start: research verified company apartment portfolios and implement bilingual corporate claims, bulk edits, staff assignments and consolidated recurring billing"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-31T00:17:58+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved company directory and verified apartment portfolios for RPM, M7/Monterrey, Haggerty/Century 21 and other discoverable El Paso firms. Corporate bulk claims reviewed by staff; optional individual listing managers; bulk editing; one recurring Stripe card subscription at USD 9.99 per property per month locked while active. Research management relationships and never infer total inventory from vacancies. Prepare and test locally; no additional deployment expense approved for this new feature."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "b72ac28e9ac48a18fa656c9c905f827974af398ebe86eedf56738747f211b68a"
+    "checksum": "6c5755e0becc2029a7544458c8ed9617442fa75df0731600a7669176d963777c"
   }
 }
