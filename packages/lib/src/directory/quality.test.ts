@@ -16,6 +16,14 @@ test('outside places, wrong states and substring matches cannot qualify', () => 
   assert.equal(assessLocality({ city: 'Socorro', state: 'NM' }).status, 'outside')
   assert.equal(assessLocality({ city: 'Las Cruces', state: 'TX' }).status, 'outside')
 })
+
+test('postal punctuation preserves explicit locality without relaxing city or state boundaries',()=>{
+  for(const address of ['220 Thunderbird Dr. Suite 19, El Paso, TX, 79912','123 Main St, El Paso, Texas, 79912-1234, USA','123 Main St, Las Cruces, NM,88001']) {
+    assert.equal(assessLocality({address}).status,'inside',address)
+  }
+  assert.equal(assessLocality({address:'123 Main St, Socorro, NM, 87801'}).status,'outside')
+  assert.equal(assessLocality({city:'El Paso',state:'TX',address:'123 Main St, Austin, TX, 78701'}).status,'review')
+})
 test('missing and conflicting evidence needs review; no defaults or verification claims', () => {
   assert.equal(assessLocality({ address: '123 Main St 79901' }).status, 'review')
   assert.equal(assessLocality({ city: 'El Paso', state: 'TX', address: '123 Main St, Austin, TX 78701' }).status, 'review')

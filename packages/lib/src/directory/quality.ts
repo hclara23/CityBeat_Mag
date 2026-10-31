@@ -18,7 +18,7 @@ const stateCode = (v: unknown) => ({ texas: 'TX', 'new mexico': 'NM' }[normalize
 // Never infer a city from a ZIP, telephone area code, business name or broad bbox.
 export function assessLocality(input: LocalityInput) {
   const address = input.address || ''
-  const parsed = address.match(/,\s*([^,]+),?\s+(TX|NM|Texas|New Mexico)\b(?:\s*\d{5}(?:-\d{4})?)?(?:\s*,?\s*(?:USA|US|United States))?\s*$/i)
+  const parsed = address.match(/,\s*([^,]+),?\s+(TX|NM|Texas|New Mexico)\b(?:\s*,?\s*\d{5}(?:-\d{4})?)?(?:\s*,?\s*(?:USA|US|United States))?\s*$/i)
   const city = String(input.city || parsed?.[1] || '').trim()
   const state = stateCode(input.state || parsed?.[2])
   const match = serviceArea.cities.find(c => c.aliases.includes(normalizedText(city)))

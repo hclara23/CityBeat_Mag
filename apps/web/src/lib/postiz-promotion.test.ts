@@ -8,6 +8,7 @@ test('promotion drafts contain only local published paid listings and a canonica
   assert.equal(result.url,'https://citybeatmag.co/en/directory/osm%3A123')
   for(const changed of [{tier:'basic'},{is_published:false},{publication_hold:'review'},{address:'123 Test St, Dallas, TX 75201'},{address:''}]) assert.throws(()=>promotionDraft({listing_id:'id'},{...listing,...changed}))
   assert.match(promotionDraft({listing_id:'id',locale:'es'},listing).caption,/Conoce/)
+  assert.equal(promotionDraft({listing_id:'id'},{...listing,address:'220 Thunderbird Dr. Suite 19, El Paso, TX, 79912'}).city,'El Paso')
 })
 test('missing configuration is honestly unconfigured and unsafe endpoint settings are rejected',()=>{
   assert.equal(postizConfiguration({}),null)
