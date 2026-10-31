@@ -9,6 +9,8 @@ tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "Start: implement the four approved production-value improvements sequentially with local validation, no subagents and no new recurring service." }
   - { author: "ORCHESTRATOR", body: "start: add reviewed website prefill with DNS-pinned fetching, bounded local business extraction, owner field selection and security tests" }
+  - { author: "ORCHESTRATOR", body: "start: separate website and phone clicks from QR campaign visits, preserve short-link attribution and add reporting regression tests" }
+  - { author: "ORCHESTRATOR", body: "start: add accountable support assignment, conflict-safe resolution and manual reply logging | details: document Chatwoot cost and integration boundaries" }
 doc_version: 2
 doc_updated_at: "2026-10-31T08:03:30+00:00"
 doc_updated_by: "agentctl"

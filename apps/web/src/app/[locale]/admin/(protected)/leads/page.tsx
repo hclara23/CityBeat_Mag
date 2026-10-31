@@ -8,12 +8,12 @@ import { withLocale } from '@/components/citybeat/content'
 import { useLocale } from '@/components/TranslationProvider'
 import { getUser } from '@citybeat/lib/firebase/auth-client'
 import { EngagementBoard } from '@/components/citybeat/EngagementBoard'
+import { SupportInbox } from '@/components/citybeat/SupportInbox'
 
 export default function AdminLeads() {
   const router = useRouter()
   const locale = useLocale() as 'en' | 'es'
   const [ready, setReady] = useState(false)
-  const [leads, setLeads] = useState<any[]>([])
   const [deals, setDeals] = useState<any[]>([])
 
   useEffect(() => {
@@ -23,10 +23,8 @@ export default function AdminLeads() {
         return router.push(withLocale(locale, '/'))
       }
       Promise.all([
-        fetch('/api/admin/leads', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : { leads: [] })).catch(() => ({ leads: [] })),
         fetch('/api/deals', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : { deals: [] })).catch(() => ({ deals: [] })),
-      ]).then(([l, d]) => {
-        setLeads(l?.leads || [])
+      ]).then(([d]) => {
         setDeals(d?.deals || [])
         setReady(true)
       })
@@ -52,30 +50,7 @@ export default function AdminLeads() {
           <EngagementBoard />
         </div>
 
-        {/* Captured leads */}
-        <h2 className="mt-10 mb-3 text-lg font-bold text-white">Quote requests <span className="text-white/40">({leads.length})</span></h2>
-        {leads.length === 0 ? (
-          <p className="rounded-xl border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/45">No leads captured yet.</p>
-        ) : (
-          <div className="grid gap-2">
-            {leads.map((l) => (
-              <div key={l.id} className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-bold text-white">{l.name} <span className="font-normal text-white/50">· {l.contact}</span></p>
-                  <span className="text-xs text-white/40">{l.created_at ? new Date(l.created_at).toLocaleString() : ''}</span>
-                </div>
-                {l.business_name && (
-                  <p className="text-xs text-brand-neon">
-                    {l.listing_id ? (
-                      <Link href={withLocale(locale, `/directory/${l.listing_id}`)} className="hover:underline">{l.business_name} →</Link>
-                    ) : l.business_name}
-                  </p>
-                )}
-                {l.message && <p className="mt-1 text-sm text-white/60">{l.message}</p>}
-              </div>
-            ))}
-          </div>
-        )}
+        <SupportInbox locale={locale} />
 
         {/* Deals moderation */}
         <h2 className="mt-12 mb-3 text-lg font-bold text-white">Active deals <span className="text-white/40">({deals.length})</span></h2>

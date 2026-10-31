@@ -11637,6 +11637,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: separate website and phone clicks from QR campaign visits, preserve short-link attribution and add reporting regression tests"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: add accountable support assignment, conflict-safe resolution and manual reply logging | details: document Chatwoot cost and integration boundaries"
         }
       ],
       "doc_version": 2,
@@ -11650,6 +11654,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "8b09794a19c726fdfc9710dcbd4b10c90355e1b3064eb52a8c0f2952fa250716"
+    "checksum": "8602e9be95eeca4923cc342b137c9eaefb2c52cac7f29bfa3a199b17b1500301"
   }
 }
