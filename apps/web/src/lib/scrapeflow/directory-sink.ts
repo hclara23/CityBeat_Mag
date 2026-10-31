@@ -9,11 +9,12 @@
 // produced are dropped here rather than stored, because the directory both caches
 // and resells them.
 
+import { assessLocality, importedReviewFields } from '@citybeat/lib/directory/quality'
 import { adminDb } from '@citybeat/lib/firebase/admin'
 import { bumpDirectoryIndexVersion } from '@/lib/directory-index-version'
 import type { ExtractedListing, RunSummary } from './types'
 import { isGoogleMapsContent } from './google-content'
-import { inRegion, looksLikeSameBusiness, toCandidate, type DirectoryCandidate } from './normalize'
+import { looksLikeSameBusiness, toCandidate, type DirectoryCandidate } from './normalize'
 
 export * from './normalize'
 
@@ -39,7 +40,7 @@ export async function deliverToDirectory(
   let googleRefused = 0
 
   for (const listing of listings) {
-    if (opts.regionFilter && !inRegion(listing)) {
+    if (assessLocality(listing).status === 'outside') {
       summary.skipped_invalid++
       continue
     }
@@ -108,11 +109,11 @@ export async function deliverToDirectory(
   let batch = adminDb.batch()
   let ops = 0
   for (const c of toInsert) {
-    batch.set(adminDb.collection('directory_listings').doc(c.google_place_id), {
+    batch.create(adminDb.collection('directory_listings').doc(c.google_place_id), {
       ...c,
       tier: 'basic',
       claim_status: 'unclaimed',
-      is_published: opts.publish,
+      ...importedReviewFields(c, now),
       rating: null,
       user_ratings_total: null,
       scrapeflow_workflow_id: opts.workflowId,
@@ -132,17 +133,6 @@ export async function deliverToDirectory(
   if (summary.inserted > 0) await bumpDirectoryIndexVersion('scrapeflow:insert')
   log('info', `Inserted ${summary.inserted} listings (${summary.skipped_existing} existed, ${summary.skipped_invalid} out of region/invalid).`)
 
-  if (opts.consolidate !== false && toInsert.length) {
-    // Same-brand rows (chains, multi-branch contractors/suppliers) → one card
-    // with locations[]; siblings unpublished with merged_into (reversible).
-    try {
-      const { consolidateListings } = await import('@/lib/directory-consolidate')
-      const merged = await consolidateListings({ apply: true, names: toInsert.map((c) => c.name), log: (m) => log('info', m) })
-      summary.consolidated_groups = merged.groups_merged
-      if (merged.groups_merged) log('info', `Consolidated ${merged.groups_merged} multi-location brand(s) (${merged.siblings_unpublished} duplicate cards folded in).`)
-    } catch (e: any) {
-      log('warn', `Consolidation skipped: ${e?.message || e}`)
-    }
-  }
+  // Imported drafts never consolidate or overwrite existing owner/paid records.
   return { ...summary, inserted_ids, sample: toInsert.slice(0, 25) }
 }

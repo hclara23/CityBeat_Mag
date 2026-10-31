@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Isolate local release checks from an already-running development server.
+  distDir: process.env.CITYBEAT_BUILD_DIR || '.next',
   output: 'standalone',
   reactStrictMode: true,
   // The Novu Inbox UI (@novu/react, wrapped by @novu/nextjs) is built on Solid.js;

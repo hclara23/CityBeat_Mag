@@ -11528,12 +11528,60 @@
       "doc_updated_by": "agentctl",
       "description": "Activate Cloudflare reporting using approved read-only token, verify every date range on production Finance dashboard. User approved up to USD 1 one-time deployment. No subagents or new recurring services.",
       "doc": "## Summary\n\nCompleted: Cloudflare read-only reporting is live on the Finance dashboard. Fixed date schema, stored token in encrypted GitHub deployment secret, and deployed tested commit d104242 to citybeat-web-00463-sup at 100 percent traffic.\n\n## Context\n\nCloudflare account and site IDs match the collecting CityBeat beacon. Live API rejected datetimeDay_ASC; introspection confirms date_ASC. Existing deployment workflow already injects the GitHub secret only into the server runtime. No new cloud secret resource or recurring charge added.\n\n## Scope\n\nQuery/schema fix, UTC date windows, regression tests, encrypted CI secret, approved deployment up to USD 1 one-time, authenticated live browser verification. No subagents and no new recurring service.\n\n## Risks\n\nCloudflare reports sampled estimates and only data since beacon installation. Thirty- and ninety-day totals currently match because collection began within the last month. Provider counts differ due to collection/filtering methods. Google Business Profile reporting remains blocked by external API approval and OAuth. Never log or commit credentials.\n\n## Verify Steps\n\nLocal 1001 tests, TypeScript and production build passed. GitHub run 41174837651 succeeded including CI tests, candidate smoke/auth/payment checks, promotion and live checks. Cloud Build e70c99d1-300e-4938-af65-1ce61df0510d succeeded in about 8m20s. Authenticated live dashboard verified 7 days: Cloudflare Reporting 5331 and GA4 756; 30/90 days: Cloudflare Reporting 14K and GA4 1476. Restored 30-day view. Screenshot .tmp/cloudflare-live-dashboard.png. Google Business Profile still awaits API approval/OAuth.\n\n## Rollback Plan\n\nKeep current production revision serving while candidate builds. Promote only after smoke tests; restore prior traffic revision if live checks fail. Revoke named Cloudflare token and remove deployment secret if abandoning integration.\n\n## Notes\n\nApproved deployment completed October 31, 2026 America/Denver. Live URL https://citybeatmag.co/en/admin/finance. Existing pipeline provides server-only credential injection. Default Cloud Build list-price compute estimate about USD 0.05 before free allowance; invoice not yet available. No new subscription or recurring infrastructure. Previous live revision citybeat-web-00461-bav preserved as rollback target."
+    },
+    {
+      "id": "202610310716-BECXY5",
+      "title": "Improve directory discovery and owner performance experience",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: implement approved directory navigation, source-specific analytics and owner listing actions using existing features and permissions. Local tests only; no deployment yet."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: implement directory filters, owner listing actions and source-specific analytics with regression tests | details: retain pending isolated browser verification before release."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-31T07:26:05+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved: simplify category/city navigation and mobile filters; selectable GA4/Cloudflare reporting with data limitations; actionable listing completion and preview/performance controls; verify EN/ES customer journeys locally before any deployment. No subagents or new paid services.",
+      "doc": "## Summary\n\nApproved four-part usability improvement: directory filtering and compact browse guides; selectable reporting with limits; actionable owner listing management; local bilingual responsive journey verification.\n\n## Context\n\nApproved four-part improvement plan. User subsequently requested a read-only repository assessment and clarified the service area as El Paso, Horizon, Canutillo, Socorro, Clint, Sierra Blanca, Fabens, Anthony, Las Cruces, Santa Teresa, and Sunland Park. No subagents, installations, paid services, or deployment in this work.\n\n## Scope\n\nReuse existing APIs and entitlements. Keep SEO links crawlable and payment/account protections intact. No subagents, new services, production data writes or deployment.\n\n## Risks\n\nAvoid misleading capped analytics, stale range responses, and suggesting locked fields to Basic owners. Verify hash links and keyboard/mobile interactions. Existing customer data must not be mutated during tests.\n\n## Verify Steps\n\nRun focused unit tests, complete regression suite, TypeScript and local production build. Exercise bilingual public directory and authenticated UI fixtures locally at mobile and desktop sizes; distinguish mocked tests from live customer flows.\n\n## Rollback Plan\n\nRevert this task commit before deploying. Current production remains unchanged until a separately approved deployment.\n\n## Notes\n\nImplementation checkpoint: compact category disclosure groups, removable search filters, listing progress/actions, owner editor section links, selectable analytics sources and capped-data labels. TypeScript passed and all 1,006 automated tests passed; production build completed. Hook dependency warning corrected afterward. Browser verification remains incomplete: local production preview requests a missing main-app.js while another Next development server uses this checkout. Do not deploy or mark DONE before an isolated local EN/ES mobile/desktop verification, final build, and review. User-directed repository assessment is read-only; no external projects installed."
+    },
+    {
+      "id": "202610310728-08DNQA",
+      "title": "Enforce hyperlocal import quality and pilot local Docling drafts",
+      "status": "DOING",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "Start: enforce reviewed eleven-city imports and run an isolated local Docling pilot without production writes or new recurring costs."
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: enforce eleven-city import review, preserve source and verification evidence, protect paid owners and branches, and add tested offline Docling drafts with local emulator integration coverage."
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-10-31T07:46:08+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved eleven-city boundary, conservative duplicate review, source and verification metadata, local Docling pilot producing review-only listing drafts. No new monthly costs, no subagents, no deployment until local checks complete.",
+      "doc": "## Summary\n\nEnforce an eleven-city review boundary for OSM and ScrapeFlow imports, preserve provenance and owner data, and pilot offline Docling drafts.\n\n## Context\n\nUser approved local data-quality improvements and a Docling pilot constrained to eleven named cities, no recurring cost and no subagents. OSM previously guessed El Paso/TX and both import paths published automatically; ScrapeFlow accepted West Texas and Juarez and automatically consolidated branches.\n\n## Scope\n\nLocal code, tests and synthetic DOCX/HTML pilot only. Shared city policy, held imports, explicit staff approval with audit evidence, conservative duplicate handling. No subagents, production writes, network document conversion or new monthly services.\n\n## Risks\n\nPostal locality evidence is not a legal municipal boundary; staff approval remains mandatory. Existing live records are not rewritten. Race-safe create operations can reject a batch if another importer inserts the same source ID concurrently; rerun skips existing records. Docling pilot only covers labelled synthetic DOCX and HTML, not arbitrary brochures or OCR.\n\n## Verify Steps\n\nRun npm test, npx tsc --noEmit --incremental false -p apps/web/tsconfig.json, and an isolated production build with CITYBEAT_BUILD_DIR=.tmp/quality-next. Run .tmp/docling-pilot-venv/Scripts/python.exe -m unittest discover -s scripts/docling-pilot -v. Inspect generated synthetic drafts in .tmp/docling-pilot-results. No live ingestion or staff mutation calls.\n\n## Rollback Plan\n\nBefore any deployment, revert the task implementation commit through the normal workflow. No production data was modified by this task. If later deployed, roll back the application revision; retained hidden import holds must not be bulk-cleared. The Docling pilot is local and removable independently.\n\n## Notes\n\nLocal regression: 1,014 JS/TS tests passed (951 web, 53 shared-library, 10 scripts); four Python pilot tests passed with actual offline DOCX and HTML conversion, all seven fields matched in both samples. TypeScript and isolated production build passed. Real OSM and ScrapeFlow execution against a local Firestore emulator passed geographic rejection, held drafts, replay safety, paid-owner preservation and branch separation. EN/ES browser checks use synthetic emulator data. Initial non-emulator local preview failed Firestore permission checks; no production permissions were changed. Staff approval validation is covered by local unit tests, not a live authenticated staff mutation. No production writes or deployment."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "0ad015243abbe95e590149d22e0283129ba622d23df745621e434893df8ec35b"
+    "checksum": "aab9095d65610d844c93f94ee5107b11edb868a45f31a2874a2c94da141cd5e0"
   }
 }

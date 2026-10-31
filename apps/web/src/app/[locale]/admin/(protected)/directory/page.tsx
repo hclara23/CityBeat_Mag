@@ -14,6 +14,15 @@ import { publicPrintRecognition, type PrintRecognition } from '@/lib/print-recog
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Listing {
+  publication_hold?: string | null
+  source_url?: string | null
+  source_observed_at?: string | null
+  last_verified_at?: string | null
+  quality_review_reasons?: string[]
+  approve_import_review?: boolean
+  duplicate_review_confirmed?: boolean
+  review_source_url?: string
+  review_notes?: string
   print_recognition?: PrintRecognition[]
   id: string
   name: string
@@ -114,6 +123,9 @@ function EditModal({
     twitter: listing.social_links?.twitter || '',
   })
   const [saving, setSaving] = useState(false)
+  const [reviewConfirmed, setReviewConfirmed] = useState(false)
+  const [reviewSource, setReviewSource] = useState(listing.source_url || '')
+  const [reviewNotes, setReviewNotes] = useState('')
   const [printRecognition, setPrintRecognition] = useState(() => publicPrintRecognition(listing.print_recognition))
   const [error, setError] = useState('')
 
@@ -122,6 +134,10 @@ function EditModal({
     setError('')
     try {
       await onSave(listing.id, {
+        ...(listing.publication_hold === 'import_quality_review' && reviewConfirmed ? {
+          approve_import_review: true, duplicate_review_confirmed: true,
+          review_source_url: reviewSource, review_notes: reviewNotes,
+        } : {}),
         print_recognition: printRecognition,
         name: form.name,
         category: form.category,
@@ -249,7 +265,22 @@ function EditModal({
           <PrintRecognitionEditor value={printRecognition} onChange={setPrintRecognition} />
 
           <div className="space-y-2 pt-2 border-t border-white/10">
-            {toggle('Published', 'Visible to the public in the directory', 'is_published')}
+            {listing.publication_hold === 'import_quality_review' && (
+              <fieldset className="rounded border border-brand-neon/30 p-4 space-y-3">
+                <legend className="text-sm font-bold">Imported listing review</legend>
+                <p className="text-xs text-white/60">This draft stays hidden until reviewed. Check the business location, current operation, contact details and possible duplicates. Use a complete address with city and state.</p>
+                <p className="text-xs">Source observed: {listing.source_observed_at || 'Unknown'} · Last verified: {listing.last_verified_at || 'Never'}</p>
+                <p className="text-xs text-white/60">{listing.quality_review_reasons?.join(' · ')}</p>
+                <label className="block text-xs">Evidence source URL
+                  <input type="url" value={reviewSource} onChange={e => setReviewSource(e.target.value)} className="block w-full mt-1 bg-black/30 border border-white/20 rounded p-2" />
+                </label>
+                <label className="block text-xs">Verification notes (20–2,000 characters)
+                  <textarea value={reviewNotes} maxLength={2000} onChange={e => setReviewNotes(e.target.value)} className="block w-full mt-1 bg-black/30 border border-white/20 rounded p-2" />
+                </label>
+                <label className="flex gap-2 text-xs"><input type="checkbox" checked={reviewConfirmed} onChange={e => setReviewConfirmed(e.target.checked)} />I checked the source, permitted city, current operation and duplicate listings. Approve this import when saved.</label>
+              </fieldset>
+            )}
+            {toggle('Published', 'Visible to the public in the directory; imported drafts require review first', 'is_published')}
             {toggle('Sponsored', 'Appears at the very top of search results with gold badge', 'is_sponsored')}
           </div>
         </div>

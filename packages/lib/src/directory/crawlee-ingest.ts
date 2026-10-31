@@ -1,4 +1,5 @@
 import { adminDb } from '../firebase/admin'
+import { assessLocality, importedReviewFields, normalizedAddress, normalizedText, hasStreetAddress } from './quality'
 import {
   INGEST_FETCH_BUDGET_MS,
   OVERPASS_ATTEMPT_MS,
@@ -46,6 +47,9 @@ export interface DirectoryCandidate {
   longitude: number | null
   description: string | null
   hours: Record<string, string>
+  city?: string | null
+  state?: string | null
+  source_url?: string
 }
 
 export interface DirectoryIngestOptions {
@@ -75,9 +79,9 @@ export interface DirectoryIngestResult {
 }
 
 const DEFAULT_OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
-// El Paso County + Doña Ana County (Las Cruces, Anthony, Sunland Park corridor).
+// Discovery envelope includes Sierra Blanca; the city allowlist gates every result.
 // Overpass bbox order: south,west,north,east.
-const EL_PASO_COUNTY_BBOX = '31.25,-107.05,32.45,-105.85'
+const EL_PASO_COUNTY_BBOX = '31.10,-107.05,32.45,-105.30'
 const CITYBEAT_USER_AGENT = 'CityBeatMagDirectoryIngest/1.0 (+https://citybeatmag.co)'
 
 export const CATEGORY_QUERIES = [
@@ -187,13 +191,13 @@ function formatAddress(tags: Record<string, string> | undefined): string | null 
   if (!tags) return null
 
   const street = [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ').trim()
-  const city = tags['addr:city'] || 'El Paso'
-  const state = tags['addr:state'] || 'TX'
+  const city = tags['addr:city']
+  const state = tags['addr:state']
   const postcode = tags['addr:postcode']
   const locality = [city, state, postcode].filter(Boolean).join(', ').replace(', TX,', ', TX')
 
   if (street) return [street, locality].filter(Boolean).join(', ')
-  return locality || 'El Paso, TX'
+  return locality || null
 }
 
 function normalizeWebsite(tags: Record<string, string> | undefined): string | null {
@@ -226,6 +230,9 @@ function normalizeCandidate(element: OverpassElement, fallbackCategory: string):
     longitude,
     description: tags.description || null,
     hours: tags.opening_hours ? { opening_hours: tags.opening_hours } : {},
+    city: tags['addr:city'] || null,
+    state: tags['addr:state'] || null,
+    source_url: `https://www.openstreetmap.org/${element.type}/${element.id}`,
   }
 }
 
@@ -235,10 +242,11 @@ function dedupeCandidates(candidates: DirectoryCandidate[], limit: number): Dire
   const deduped: DirectoryCandidate[] = []
 
   for (const candidate of candidates) {
-    const businessKey = `${candidate.name.toLowerCase()}|${(candidate.address || '').toLowerCase()}`
-    if (seenSourceIds.has(candidate.google_place_id) || seenBusinessKeys.has(businessKey)) continue
+    if (assessLocality(candidate).status === 'outside') continue
+    const businessKey = hasStreetAddress(candidate.address) ? `${normalizedText(candidate.name)}|${normalizedAddress(candidate.address)}` : ''
+    if (seenSourceIds.has(candidate.google_place_id) || (businessKey && seenBusinessKeys.has(businessKey))) continue
     seenSourceIds.add(candidate.google_place_id)
-    seenBusinessKeys.add(businessKey)
+    if (businessKey) seenBusinessKeys.add(businessKey)
     deduped.push(candidate)
     if (deduped.length >= limit) break
   }
@@ -279,15 +287,12 @@ async function writeCandidates(candidates: DirectoryCandidate[], _options: Direc
   for (const candidate of keyed) {
     const placeId = String((candidate as any).google_place_id)
     if (existing.has(placeId)) continue
-    batch.set(adminDb.collection('directory_listings').doc(placeId), {
+    batch.create(adminDb.collection('directory_listings').doc(placeId), {
       ...candidate,
       tier: 'basic',
       claim_status: 'unclaimed',
-      // Published on insert: OSM business listings are factual public data, and
-      // an invisible directory can't rank, generate leads, or be claimed. Admins
-      // can unpublish anything problematic from the Directory Manager; the
-      // consolidation script re-hides merged duplicates.
-      is_published: true,
+      // Source observation is not verification. All imports require review.
+      ...importedReviewFields(candidate, now),
       rating: null,
       user_ratings_total: null,
       created_at: now,
@@ -302,15 +307,12 @@ async function writeCandidates(candidates: DirectoryCandidate[], _options: Direc
   // already deduped in-batch, and normalizeCandidate always sets an OSM-derived
   // id in practice, so this path is rare.
   for (const candidate of unkeyed) {
-    batch.set(adminDb.collection('directory_listings').doc(), {
+    batch.create(adminDb.collection('directory_listings').doc(), {
       ...candidate,
       tier: 'basic',
       claim_status: 'unclaimed',
-      // Published on insert: OSM business listings are factual public data, and
-      // an invisible directory can't rank, generate leads, or be claimed. Admins
-      // can unpublish anything problematic from the Directory Manager; the
-      // consolidation script re-hides merged duplicates.
-      is_published: true,
+      // Source observation is not verification. All imports require review.
+      ...importedReviewFields(candidate, now),
       rating: null,
       user_ratings_total: null,
       created_at: now,

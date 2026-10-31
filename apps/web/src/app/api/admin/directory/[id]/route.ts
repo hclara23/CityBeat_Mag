@@ -6,6 +6,7 @@ import { hasAdminAccess } from '@citybeat/lib/roles'
 import { privilegedDenial } from '@/lib/privileged-access'
 import { parsePrintRecognition, type PrintRecognition } from '@/lib/print-recognition'
 import { notifyUser } from '@/lib/user-notifications'
+import { reviewImportEdit, ImportReviewError } from '@/lib/directory-import-review'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,10 +63,12 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     const owner = await adminDb.runTransaction(async tx => {
       const current = await tx.get(ref)
       if (!current.exists) throw new Error('Listing no longer exists')
+      Object.assign(updates, reviewImportEdit(current.data() || {}, updates, body, auth.user.id, updates.updated_at))
       tx.set(ref, updates, { merge: true })
       tx.set(audit, {
         actor_id: auth.user.id, listing_id: id, action: 'admin_listing_edit',
         fields: Object.keys(updates), created_at: updates.updated_at,
+        ...(body.approve_import_review === true ? { review_notes: updates.verification_notes, source_url: updates.source_url } : {}),
         ...(printRecognition ? { previous_print_recognition: current.data()?.print_recognition || [], print_recognition: printRecognition } : {}),
       })
       return { ...current.data(), ...updates }
@@ -83,7 +86,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       listing: { id: doc.id, ...doc.data(), created_at: toIso(doc.data()?.created_at), updated_at: toIso(doc.data()?.updated_at) },
     })
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'Internal Server Error' }, { status: 500 })
+    return NextResponse.json({ error: e.message || 'Internal Server Error' }, { status: e instanceof ImportReviewError ? 400 : 500 })
   }
 }
 

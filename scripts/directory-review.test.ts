@@ -18,6 +18,12 @@ test('preview rejects nonlocal and mailbox addresses, flags repeat candidates',(
   assert.equal(previewOutlets([{...outlet,outlet_address:'PO Box 99'}],[])[0].decision,'reject');
   assert.equal(previewOutlets([outlet,outlet],[])[1].decision,'duplicate_in_preview');
 });
+test('preview accepts other approved cities for review and never rescues rejected duplicates',()=>{
+  assert.equal(previewOutlets([{...outlet,outlet_city:'Las Cruces',outlet_state:'NM',outlet_zip_code:'88001'}],[])[0].decision,'review_new');
+  assert.equal(previewOutlets([{...outlet,outlet_city:'Sierra Blanca',outlet_zip_code:'79851'}],[])[0].decision,'review_new');
+  const outside={...outlet,outlet_city:'Odessa'};
+  assert.deepEqual(previewOutlets([outside,outside],[]).map(r=>r.decision),['reject','reject']);
+});
 test('provenance review never deletes or relabels sources and recognizes protected records',()=>{
   const result=provenanceReview([{id:'1',is_published:true,source_url:'https://www.google.com/maps/place/x',tier:'premium'},
     {id:'2',is_published:true,source_url:'https://google.com.example.org/'},{id:'3',is_published:false}]);

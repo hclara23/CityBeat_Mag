@@ -43,6 +43,11 @@
       "import": "./src/firebase/auth-client.ts",
       "types": "./src/firebase/auth-client.ts"
     },
+    "./directory/quality": {
+      "import": "./src/directory/quality.ts",
+      "require": "./src/directory/quality.ts",
+      "types": "./src/directory/quality.ts"
+    },
     "./directory/ingest": {
       "import": "./src/directory/crawlee-ingest.ts",
       "types": "./src/directory/crawlee-ingest.ts"

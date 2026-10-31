@@ -1,4 +1,5 @@
 import { DIRECTORY_CATEGORIES } from './categories'
+import { assessLocality } from '@citybeat/lib/directory/quality'
 import { isGoogleMapsContent } from './scrapeflow/google-content'
 
 export type PublicationBlockReason =
@@ -11,6 +12,7 @@ export type PublicationBlockReason =
   | 'no_contact_path'
   | 'closed_business'
   | 'duplicate_identity'
+  | 'locality_review'
 
 export type PublicationListing = {
   id: string
@@ -26,6 +28,8 @@ export type PublicationListing = {
   phone?: string | null
   website?: string | null
   business_status?: string | null
+  city?: string | null
+  state?: string | null
 }
 
 const CATEGORIES = new Set<string>(DIRECTORY_CATEGORIES)
@@ -61,6 +65,7 @@ function baseBlockReason(listing: PublicationListing): PublicationBlockReason | 
   if (!CATEGORIES.has(String(listing.category || ''))) return 'invalid_category'
   if (!norm(listing.address) && !norm(listing.phone) && !norm(listing.website)) return 'no_contact_path'
   if (/closed|inactive|revoked|expired/.test(norm(listing.business_status))) return 'closed_business'
+  if (assessLocality(listing).status !== 'inside') return 'locality_review'
   return null
 }
 
@@ -83,6 +88,7 @@ export function auditDirectoryPublication(listings: PublicationListing[]) {
     no_contact_path: 0,
     closed_business: 0,
     duplicate_identity: 0,
+    locality_review: 0,
   }
 
   for (const listing of listings) {

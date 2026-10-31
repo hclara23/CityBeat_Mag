@@ -1,6 +1,7 @@
 // Pure normalizers for the directory sink (no Firestore import → unit-testable).
 
 import { createHash } from 'node:crypto'
+import { assessLocality, normalizedAddress, hasStreetAddress } from '@citybeat/lib/directory/quality'
 import { DIRECTORY_CATEGORIES } from '@/lib/categories'
 import type { ExtractedListing } from './types'
 
@@ -18,52 +19,9 @@ export interface DirectoryCandidate {
   hours: Record<string, string>
   source: 'scrapeflow'
   source_url: string | null
+  city?: string | null
+  state?: string | null
 }
-
-const REGION_CITIES = [
-  'el paso',
-  'las cruces',
-  'socorro',
-  'horizon city',
-  'canutillo',
-  'anthony',
-  'sunland park',
-  'santa teresa',
-  'fabens',
-  'clint',
-  'san elizario',
-  'vinton',
-  'mesilla',
-  'chaparral',
-  'hatch',
-  'doña ana',
-  'dona ana',
-  'fort bliss',
-  'tornillo',
-  'westway',
-  'midland',
-  'odessa',
-  'andrews',
-  'big spring',
-  'pecos',
-  'fort stockton',
-  'alpine',
-  'marfa',
-  'presidio',
-  'van horn',
-  'monahans',
-  'kermit',
-  'crane',
-  'mccamey',
-  'rankin',
-  'ciudad juárez',
-  'ciudad juarez',
-  'cd. juárez',
-  'juárez',
-  'juarez',
-]
-// West Texas ZIPs are 795xx-799xx; southern New Mexico ZIPs are 880xx-883xx.
-const REGION_ZIP = /\b(79[5-9]\d{2}|88[0-3]\d{2})\b/
 
 export function normalizePhone(raw: string | null | undefined): string | null {
   if (!raw) return null
@@ -176,16 +134,7 @@ export function mapCategory(raw: string | null | undefined, fallback: string): s
 }
 
 export function inRegion(listing: Pick<ExtractedListing, 'address' | 'city' | 'state' | 'zip' | 'phone'>): boolean {
-  const haystack = [listing.address, listing.city, listing.state, listing.zip].filter(Boolean).join(' ').toLowerCase()
-  if (haystack) {
-    if (REGION_ZIP.test(haystack)) return true
-    if (REGION_CITIES.some((c) => haystack.includes(c))) return true
-    // An out-of-area address is disqualifying even if the phone is local.
-    if (/\b(tx|texas|nm|new mexico)\b/.test(haystack) && /\b\d{5}\b/.test(haystack)) return false
-  }
-  // Member directories often list phone-only entries; 915 = El Paso, 575 = southern NM.
-  const digits = (listing.phone || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '')
-  return digits.length === 10 && /^(915|575)/.test(digits)
+  return assessLocality(listing).status === 'inside'
 }
 
 /**
@@ -254,6 +203,8 @@ export function toCandidate(
     hours: {},
     source: 'scrapeflow',
     source_url: listing.source_url || opts.sourceUrl,
+    city: listing.city || null,
+    state: listing.state || null,
   }
 }
 
@@ -284,24 +235,12 @@ export function titleCaseName(raw: string): string {
     .join(' ')
 }
 
-function streetNumber(address: string | null | undefined): string | null {
-  const m = (address || '').match(/\b(\d{2,6})\b/)
-  return m ? m[1] : null
-}
-
-/** Does an existing listing with the same name already represent this business? */
+/** Only an exact normalized full address proves the same location.
+ * Shared switchboards, street numbers and missing evidence never merge branches. */
 export function looksLikeSameBusiness(
   candidate: Pick<DirectoryCandidate, 'address' | 'phone'>,
   existing: { address?: string | null; phone?: string | null }
 ): boolean {
-  const cp = (candidate.phone || '').replace(/\D/g, '')
-  const ep = (existing.phone || '').replace(/\D/g, '')
-  if (cp && ep && cp === ep) return true
-  const cn = streetNumber(candidate.address)
-  const en = streetNumber(existing.address)
-  if (cn && en) return cn === en
-  // Same name and neither side has a comparable address/phone: treat as the
-  // same business (conservative — avoids duplicate cards for one shop).
-  if (!cn && !en && (!cp || !ep)) return true
-  return false
+  const address = normalizedAddress(candidate.address)
+  return Boolean(hasStreetAddress(candidate.address) && address === normalizedAddress(existing.address))
 }

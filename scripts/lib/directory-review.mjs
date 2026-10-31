@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+const serviceArea = JSON.parse(readFileSync(new URL('../../packages/lib/src/directory/service-area.json', import.meta.url), 'utf8'));
 
 export const normalize = v => String(v || '').normalize('NFKD').replace(/[\u0300-\u036f\uE000-\uF8FF]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 export const addressKey = v => normalize(v).replace(/\b(street|avenue|road|drive|boulevard|suite|texas)\b/g, s => ({street:'st',avenue:'ave',road:'rd',drive:'dr',boulevard:'blvd',suite:'ste',texas:'tx'})[s]);
@@ -41,9 +43,9 @@ export function previewOutlets(outlets, existing) {
     const reasons = [];
     let decision = 'review_new';
     if(!name || !street) {decision='reject'; reasons.push('missing_name_or_street');}
-    if(normalize(city)!=='el paso' || state.toUpperCase()!=='TX' || !/^79[89]\d{2}$/.test(zip)) {decision='reject';reasons.push('outside_or_inconsistent_target_locality');}
+    if(!serviceArea.cities.some(c => c.aliases.includes(normalize(city)) && c.states.includes(state.toUpperCase()))) {decision='reject';reasons.push('outside_or_inconsistent_target_locality');}
     if(/\b(p\.?\s*o\.?\s*box|po box|pmb)\b/i.test(street)) {decision='reject';reasons.push('mailing_only_address');}
-    if(seen.has(key)) {decision='duplicate_in_preview';reasons.push('same_name_and_location_in_batch');}
+    if(decision!=='reject' && seen.has(key)) {decision='duplicate_in_preview';reasons.push('same_name_and_location_in_batch');}
     else if(decision!=='reject' && matches.length) {decision='match_existing';reasons.push('same_name_and_normalized_location');}
     else if(decision!=='reject' && possible.length) {decision='review_possible_match';reasons.push('shared_name_or_address_not_proof_of_duplicate');}
     seen.add(key);

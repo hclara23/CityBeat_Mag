@@ -1,0 +1,16 @@
+{
+  "version": "2026-10-31",
+  "cities": [
+    {"name":"El Paso","aliases":["el paso"],"states":["TX"]},
+    {"name":"Horizon","aliases":["horizon","horizon city"],"states":["TX"]},
+    {"name":"Canutillo","aliases":["canutillo"],"states":["TX"]},
+    {"name":"Socorro","aliases":["socorro"],"states":["TX"]},
+    {"name":"Clint","aliases":["clint"],"states":["TX"]},
+    {"name":"Sierra Blanca","aliases":["sierra blanca"],"states":["TX"]},
+    {"name":"Fabens","aliases":["fabens"],"states":["TX"]},
+    {"name":"Anthony","aliases":["anthony"],"states":["TX","NM"]},
+    {"name":"Las Cruces","aliases":["las cruces"],"states":["NM"]},
+    {"name":"Santa Teresa","aliases":["santa teresa"],"states":["NM"]},
+    {"name":"Sunland Park","aliases":["sunland park"],"states":["NM"]}
+  ]
+}

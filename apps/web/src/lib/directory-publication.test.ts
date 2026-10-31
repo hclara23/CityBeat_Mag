@@ -58,7 +58,7 @@ test('a complete open-data candidate is eligible', () => {
 
 test('thin, unknown-category and closed records are blocked', () => {
   const result = auditDirectoryPublication([
-    { ...valid, id: 'thin', address: null },
+    { ...valid, id: 'thin', address: null, city: 'El Paso', state: 'TX' },
     { ...valid, id: 'category', category: 'Mystery' },
     { ...valid, id: 'closed', business_status: 'Permanently closed' },
   ])
@@ -71,9 +71,18 @@ test('identity collisions with a published listing or earlier candidate are bloc
   const result = auditDirectoryPublication([
     { ...valid, id: 'live', is_published: true },
     { ...valid, id: 'same-as-live' },
-    { ...valid, id: 'fresh', name: 'Fresh HVAC', phone: '915-555-0101', address: null },
-    { ...valid, id: 'same-fresh', name: 'Fresh HVAC', phone: '(915) 555-0101', address: null },
+    { ...valid, id: 'fresh', name: 'Fresh HVAC', phone: '915-555-0101', address: null, city: 'El Paso', state: 'TX' },
+    { ...valid, id: 'same-fresh', name: 'Fresh HVAC', phone: '(915) 555-0101', address: null, city: 'El Paso', state: 'TX' },
   ])
   assert.deepEqual(result.eligibleIds, ['fresh'])
   assert.equal(result.blocked.duplicate_identity, 2)
+})
+test('bulk publication refuses missing city evidence and cities outside the approved region', () => {
+  const result = auditDirectoryPublication([
+    { ...valid, id: 'unknown', address: null, phone: '9155550100' },
+    { ...valid, id: 'outside', address: '123 Main St, Odessa, TX 79761' },
+    { ...valid, id: 'allowed', address: '123 Main St, Sierra Blanca, TX 79851' },
+  ])
+  assert.deepEqual(result.eligibleIds, ['allowed'])
+  assert.equal(result.blocked.locality_review, 2)
 })
