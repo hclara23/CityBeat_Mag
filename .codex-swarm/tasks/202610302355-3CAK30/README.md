@@ -1,16 +1,18 @@
 ---
 id: "202610302355-3CAK30"
 title: "Test live mock property SMS and emphasize claim actions"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "CODER"
 depends_on: ["202610302311-DF91CQ"]
 tags: []
+commit: { hash: "d6b721fe6b7ca5c9d51f87a52fc37c263e3e08ae", message: "✨ 3CAK30 start: make bilingual apartment claim buttons prominent and add guarded editor SMS mock | details: verify English real delivery and claim review gating" }
 comments:
   - { author: "CODER", body: "Start: emphasize bilingual claim buttons and run editor-authorized SMS test against isolated mock property; cap at two messages and USD 0.25." }
   - { author: "CODER", body: "start: make bilingual apartment claim buttons prominent and add guarded editor SMS mock | details: verify English real delivery and claim review gating" }
+  - { author: "CODER", body: "verified: bilingual prominent claim actions pass browser checks | details: two real editor texts delivered and both codes verified isolated claims pending staff review; production activation remains unpublished" }
 doc_version: 2
-doc_updated_at: "2026-10-31T00:03:08+00:00"
+doc_updated_at: "2026-10-31T00:04:47+00:00"
 doc_updated_by: "agentctl"
 description: "Approved isolated editor-phone mock claim test with at most two Twilio texts and USD 0.25 cap; make bilingual property claim actions prominent; never change real property ownership or contact numbers."
 ---
@@ -28,7 +30,7 @@ Production has no Twilio sender environment variables configured. Real delivery 
 
 ## Verify Steps
 
-Type check and 14 real-handler claim tests passed, covering all ten properties in both languages and approval gating. Browser found ten prominent claim links per locale; Spanish mobile top banner opens its correct claim form. First English real SMS was delivered (SM2aa0c1420b88cd4713572d91fc14baf4), and the editor-supplied code produced Phone verified and pending review. No public property changed. A second Spanish text was requested in a fresh isolated fixture limited to one additional attempt; code entry is pending. The total allowance of two messages has now been consumed; do not send more. Credentials remained process-only. Production sender configuration and publication remain outstanding.
+Type check and 14 real-handler claim tests passed, covering all ten properties in both languages and approval gating. Browser found ten prominent claim links per locale; Spanish mobile top banner opens its correct claim form. Two real two-segment SMS messages were delivered without provider errors: English SM2aa0c1420b88cd4713572d91fc14baf4 and Spanish SM1982378530061a3eccf63ae52b14f1d7. Editor supplied both received codes; each real production verification handler returned verified and pending review, confirmed in browser in its respective language. No public property changed. All two approved test messages have been used; no more sends are authorized. Provider price was not yet posted. Credentials stayed process-only. Existing automated tests confirm admin approval is required to unlock owner editing. Production sender configuration and publication are separate outstanding actions, not verified by this local test.
 
 ## Rollback Plan
 
