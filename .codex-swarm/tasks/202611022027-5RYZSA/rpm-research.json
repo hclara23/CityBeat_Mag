@@ -1,0 +1,556 @@
+{
+  "checkedAt": "2026-11-02",
+  "sources": [
+    "https://rpmliving.com/find-a-community-post-search/"
+  ],
+  "portfolioFinding": "Official RPM locator still lists these ten El Paso communities; no additional El Paso entries found. Address/phone in existing source catalog match RPM locator except website-level address variations recorded below.",
+  "limitations": [
+    "No demographic data is published by these property sites; Census area-level data must be researched separately.",
+    "All ten photo URLs were reached by following image links on official property webpages. Photos have not been visually inspected and reuse authorization was not established. Some official image alt text appears incorrect, so validate visual content before publication.",
+    "Ordinary direct HTML requests to the community domains returned403; research used publicly accessible search-tool page content. No bypass attempted."
+  ],
+  "properties": [
+    {
+      "slug": "alza-dwellings",
+      "summary": {
+        "en": "Studio, one- and two-bedroom apartments near Scenic Drive, with shared workspaces, elevators and a yoga studio.",
+        "es": "Estudios y apartamentos de una y dos recámaras cerca de Scenic Drive, con espacios de trabajo compartidos, elevadores y estudio de yoga."
+      },
+      "highlights": {
+        "en": [
+          "Pool and hot tub",
+          "Fitness center and yoga studio",
+          "Laundry center on each floor",
+          "Cats and dogs welcome; maximum two"
+        ],
+        "es": [
+          "Alberca y jacuzzi",
+          "Gimnasio y estudio de yoga",
+          "Lavandería en cada piso",
+          "Admite gatos y perros; máximo dos"
+        ]
+      },
+      "layouts": {
+        "en": "Studios–2 bedrooms; approximately 408–716 sq. ft.",
+        "es": "Estudios–2 recámaras; aproximadamente 408–716 pies cuadrados."
+      },
+      "neighborhood": {
+        "en": "Near UTEP, downtown and mountain trails, according to the community website.",
+        "es": "Cerca de UTEP, el centro y senderos de montaña, según el sitio de la comunidad."
+      },
+      "floorplansUrl": "https://www.alzadwellings.com/floorplans",
+      "galleryUrl": "https://www.alzadwellings.com/photogallery",
+      "photos": [
+        {
+          "url": "https://resource.rentcafe.com/image/upload/q_auto%2Cf_auto%2Cc_limit%2Cw_1200/s3/2/55533/living%20room%20-2.png",
+          "sourceUrl": "https://www.alzadwellings.com/photogallery",
+          "caption": {
+            "en": "Living room shown in the official photo gallery",
+            "es": "Sala mostrada en la galería oficial"
+          }
+        }
+      ],
+      "sources": [
+        "https://www.alzadwellings.com/",
+        "https://www.alzadwellings.com/amenities",
+        "https://www.alzadwellings.com/floorplans",
+        "https://www.alzadwellings.com/photogallery"
+      ],
+      "notes": [
+        "Photo reuse permission not verified; the URL is linked from the official community website.",
+        "Prices and availability change; link to the official floorplans instead of presenting a current rent quote.",
+        "Official property-site tracking numbers differ from the RPM directory; do not change claim phone without verifying.",
+        "Homepage fetch timed out, but amenities, floorplans and photo gallery were available. Header and footer publish different phone numbers."
+      ]
+    },
+    {
+      "slug": "desert-commons-east",
+      "summary": {
+        "en": "One-, two- and three-bedroom apartments on North Zaragoza with quartz countertops, stainless appliances and keyless entry. Select ground-floor homes offer private yards.",
+        "es": "Apartamentos de una, dos y tres recámaras en North Zaragoza con cubiertas de cuarzo, electrodomésticos de acero inoxidable y acceso sin llave. Algunas viviendas de planta baja ofrecen patios privados."
+      },
+      "highlights": {
+        "en": [
+          "Pool with cabanas",
+          "Fitness center",
+          "Golf simulator",
+          "Private garages and storage available",
+          "On-site dog park"
+        ],
+        "es": [
+          "Alberca con cabañas",
+          "Gimnasio",
+          "Simulador de golf",
+          "Cocheras y almacenamiento privados disponibles",
+          "Parque para perros"
+        ]
+      },
+      "layouts": {
+        "en": "1–3 bedrooms; approximately 584–1,378 sq. ft.",
+        "es": "1–3 recámaras; aproximadamente 584–1,378 pies cuadrados."
+      },
+      "neighborhood": {
+        "en": "North Zaragoza commercial corridor; the website identifies Salvador Rivas Jr. Park and Tierra Buena Dog Park nearby.",
+        "es": "Corredor comercial de North Zaragoza; el sitio identifica los parques Salvador Rivas Jr. y Tierra Buena en los alrededores."
+      },
+      "floorplansUrl": "https://www.desertcommonseast.com/floorplans",
+      "galleryUrl": "https://www.desertcommonseast.com/photogallery",
+      "photos": [
+        {
+          "url": "https://resource.rentcafe.com/image/upload/x_0%2Cy_0%2Cw_2048%2Ch_1365%2Cc_crop/q_auto%2Cf_auto%2Cc_lfill%2Cw_420%2Car_0.9545454545454553%2Cg_auto/s3/2/55533/8b5a0969.jpg",
+          "sourceUrl": "https://www.desertcommonseast.com/",
+          "caption": {
+            "en": "Pool shown on the official community website",
+            "es": "Alberca mostrada en el sitio oficial"
+          }
+        }
+      ],
+      "sources": [
+        "https://www.desertcommonseast.com/",
+        "https://www.desertcommonseast.com/amenities",
+        "https://www.desertcommonseast.com/floorplans",
+        "https://www.desertcommonseast.com/photogallery"
+      ],
+      "notes": [
+        "Photo reuse permission not verified; the URL is linked from the official community website.",
+        "Prices and availability change; link to the official floorplans instead of presenting a current rent quote.",
+        "Official property-site tracking numbers differ from the RPM directory; do not change claim phone without verifying."
+      ]
+    },
+    {
+      "slug": "desert-commons-west",
+      "summary": {
+        "en": "One-, two- and three-bedroom apartments on Isela Rubalcava Boulevard, with a fitness center, poolside cabana and dog park.",
+        "es": "Apartamentos de una, dos y tres recámaras en Isela Rubalcava Boulevard, con gimnasio, cabaña junto a la alberca y parque para perros."
+      },
+      "highlights": {
+        "en": [
+          "Pool and lounge area",
+          "Fitness center with free weights",
+          "Private garages and covered parking",
+          "Dog park"
+        ],
+        "es": [
+          "Alberca y área de descanso",
+          "Gimnasio con pesas",
+          "Cocheras privadas y estacionamiento cubierto",
+          "Parque para perros"
+        ]
+      },
+      "layouts": {
+        "en": "1–3 bedrooms; approximately 613–1,384 sq. ft.",
+        "es": "1–3 recámaras; aproximadamente 613–1,384 pies cuadrados."
+      },
+      "neighborhood": {
+        "en": "The community website highlights Westside Sports Complex and Franklin Mountains State Park.",
+        "es": "El sitio de la comunidad destaca Westside Sports Complex y Franklin Mountains State Park."
+      },
+      "floorplansUrl": "https://www.desertcommonswest.com/floorplans",
+      "galleryUrl": "https://www.desertcommonswest.com/photogallery",
+      "photos": [
+        {
+          "url": "https://resource.rentcafe.com/image/upload/x_0%2Cy_0%2Cw_2700%2Ch_1800%2Cc_crop/q_auto%2Cf_auto%2Cc_lfill%2Cw_420%2Car_0.9545454545454553%2Cg_auto/s3/2/55533/img_5664.jpg",
+          "sourceUrl": "https://www.desertcommonswest.com/",
+          "caption": {
+            "en": "Pool shown on the official community website",
+            "es": "Alberca mostrada en el sitio oficial"
+          }
+        }
+      ],
+      "sources": [
+        "https://www.desertcommonswest.com/",
+        "https://www.desertcommonswest.com/amenities",
+        "https://www.desertcommonswest.com/floorplans",
+        "https://www.desertcommonswest.com/photogallery"
+      ],
+      "notes": [
+        "Photo reuse permission not verified; the URL is linked from the official community website.",
+        "Prices and availability change; link to the official floorplans instead of presenting a current rent quote.",
+        "Official property-site tracking numbers differ from the RPM directory; do not change claim phone without verifying.",
+        "Official floorplans page displayed an implausible 108 USD total for A1 Poppy; do not import that price."
+      ]
+    },
+    {
+      "slug": "ridgemar",
+      "summary": {
+        "en": "One-, two- and three-bedroom apartments in East El Paso. The community offers a pool, clubhouse and three laundry facilities; some layouts include patios, balconies or fireplaces.",
+        "es": "Apartamentos de una, dos y tres recámaras en el este de El Paso. La comunidad ofrece alberca, casa club y tres lavanderías; algunas viviendas incluyen patio, balcón o chimenea."
+      },
+      "highlights": {
+        "en": [
+          "Pool and sundeck",
+          "Three laundry facilities",
+          "Clubhouse and business center",
+          "BBQ and picnic area",
+          "Washer/dryer connections in select 2–3-bedroom homes"
+        ],
+        "es": [
+          "Alberca y terraza",
+          "Tres lavanderías",
+          "Casa club y centro de negocios",
+          "Área de asadores y picnic",
+          "Conexiones para lavadora/secadora en algunas viviendas de 2–3 recámaras"
+        ]
+      },
+      "layouts": {
+        "en": "1–3 bedrooms; approximately 734–1,193 sq. ft.; a two-bedroom-plus-den layout is also listed.",
+        "es": "1–3 recámaras; aproximadamente 734–1,193 pies cuadrados; también se publica una opción de dos recámaras con estudio."
+      },
+      "neighborhood": {
+        "en": "Vista De Oro area, with access to I-10, shopping and dining described by the property.",
+        "es": "Zona Vista De Oro, con acceso a I-10, comercios y restaurantes descritos por la propiedad."
+      },
+      "floorplansUrl": "https://www.ridgemarapts.com/floorplans",
+      "galleryUrl": "https://www.ridgemarapts.com/photogallery",
+      "photos": [
+        {
+          "url": "https://resource.rentcafe.com/image/upload/x_0%2Cy_0%2Cw_2048%2Ch_1365%2Cc_crop/q_auto%2Cf_auto%2Cc_lfill%2Cw_420%2Car_1.05%2Cg_auto/s3/2/55533/ridgemar%20staged%20living.jpg",
+          "sourceUrl": "https://www.ridgemarapts.com/",
+          "caption": {
+            "en": "Staged living room shown on the official website",
+            "es": "Sala decorada mostrada en el sitio oficial"
+          }
+        }
+      ],
+      "sources": [
+        "https://www.ridgemarapts.com/",
+        "https://www.ridgemarapts.com/amenities",
+        "https://www.ridgemarapts.com/floorplans",
+        "https://www.ridgemarapts.com/photogallery"
+      ],
+      "notes": [
+        "Photo reuse permission not verified; the URL is linked from the official community website.",
+        "Prices and availability change; link to the official floorplans instead of presenting a current rent quote.",
+        "Official property-site tracking numbers differ from the RPM directory; do not change claim phone without verifying.",
+        "Washer/dryer connections are specifically limited to select two- and three-bedroom apartments."
+      ]
+    },
+    {
+      "slug": "sun-hollow",
+      "summary": {
+        "en": "One-, two- and three-bedroom apartments on Lee Trevino Drive with a pool, fitness center and playground. Select homes have fireplaces, vaulted ceilings or golf-course views.",
+        "es": "Apartamentos de una, dos y tres recámaras en Lee Trevino Drive con alberca, gimnasio y juegos infantiles. Algunas viviendas tienen chimenea, techos altos o vistas al campo de golf."
+      },
+      "highlights": {
+        "en": [
+          "Pool and fitness center",
+          "Playground",
+          "Two laundry centers",
+          "BBQ and picnic area",
+          "Spanish-speaking staff"
+        ],
+        "es": [
+          "Alberca y gimnasio",
+          "Juegos infantiles",
+          "Dos lavanderías",
+          "Área de asadores y picnic",
+          "Personal que habla español"
+        ]
+      },
+      "layouts": {
+        "en": "1–3 bedrooms; approximately 540–1,061 sq. ft.",
+        "es": "1–3 recámaras; aproximadamente 540–1,061 pies cuadrados."
+      },
+      "neighborhood": {
+        "en": "The community website identifies nearby I-10 and Cielo Vista Mall.",
+        "es": "El sitio de la comunidad identifica I-10 y Cielo Vista Mall en los alrededores."
+      },
+      "floorplansUrl": "https://www.sunhollowapts.com/floorplans",
+      "galleryUrl": "https://www.sunhollowapts.com/photogallery",
+      "photos": [
+        {
+          "url": "https://resource.rentcafe.com/image/upload/x_0%2Cy_0%2Cw_2048%2Ch_1365%2Cc_crop/q_auto%2Cf_auto%2Cc_lfill%2Cw_420%2Car_1.05%2Cg_auto/s3/2/55533/sun%20hollow%20staged%20living%20dining%20area.jpg",
+          "sourceUrl": "https://www.sunhollowapts.com/",
+          "caption": {
+            "en": "Staged living and dining area shown on the official website",
+            "es": "Sala y comedor decorados mostrados en el sitio oficial"
+          }
+        }
+      ],
+      "sources": [
+        "https://www.sunhollowapts.com/",
+        "https://www.sunhollowapts.com/amenities",
+        "https://www.sunhollowapts.com/floorplans",
+        "https://www.sunhollowapts.com/photogallery"
+      ],
+      "notes": [
+        "Photo reuse permission not verified; the URL is linked from the official community website.",
+        "Prices and availability change; link to the official floorplans instead of presenting a current rent quote.",
+        "Official property-site tracking numbers differ from the RPM directory; do not change claim phone without verifying."
+      ]
+    },
+    {
+      "slug": "lake-fairway",
+      "summary": {
+        "en": "Studio, one- and two-bedroom apartments on Lomaland Drive with two pools, three laundry facilities and picnic spaces. Select homes offer private balconies and golf-course views.",
+        "es": "Estudios y apartamentos de una y dos recámaras en Lomaland Drive con dos albercas, tres lavanderías y áreas de picnic. Algunas viviendas ofrecen balcón privado y vistas al campo de golf."
+      },
+      "highlights": {
+        "en": [
+          "Two pools",
+          "Three laundry facilities",
+          "Reserved parking",
+          "Business center",
+          "Cats and dogs welcome; maximum two"
+        ],
+        "es": [
+          "Dos albercas",
+          "Tres lavanderías",
+          "Estacionamiento reservado",
+          "Centro de negocios",
+          "Admite gatos y perros; máximo dos"
+        ]
+      },
+      "layouts": {
+        "en": "Studios–2 bedrooms; approximately 485–800 sq. ft.",
+        "es": "Estudios–2 recámaras; aproximadamente 485–800 pies cuadrados."
+      },
+      "neighborhood": {
+        "en": "The amenities page lists public transportation access and Vista Hills Country Club golf-course views in select homes.",
+        "es": "La página de amenidades menciona acceso al transporte público y vistas al campo de golf Vista Hills Country Club en algunas viviendas."
+      },
+      "floorplansUrl": "https://www.lakefairway.com/floorplans",
+      "galleryUrl": "https://www.lakefairway.com/photogallery",
+      "photos": [
+        {
+          "url": "https://resource.rentcafe.com/image/upload/x_0%2Cy_0%2Cw_1536%2Ch_1024%2Cc_crop/q_auto%2Cf_auto%2Cc_lfill%2Cw_420%2Car_1.05%2Cg_auto/s3/2/55533/pool%20new%203.png",
+          "sourceUrl": "https://www.lakefairway.com/",
+          "caption": {
+            "en": "Pool shown on the official community website",
+            "es": "Alberca mostrada en el sitio oficial"
+          }
+        }
+      ],
+      "sources": [
+        "https://www.lakefairway.com/",
+        "https://www.lakefairway.com/amenities",
+        "https://www.lakefairway.com/floorplans",
+        "https://www.lakefairway.com/photogallery"
+      ],
+      "notes": [
+        "Photo reuse permission not verified; the URL is linked from the official community website.",
+        "Prices and availability change; link to the official floorplans instead of presenting a current rent quote.",
+        "Official property-site tracking numbers differ from the RPM directory; do not change claim phone without verifying."
+      ]
+    },
+    {
+      "slug": "spring-park",
+      "summary": {
+        "en": "One-, two- and three-bedroom apartments in East El Paso with a pool, fitness center, basketball and volleyball courts. Select homes include washer/dryer connections and fireplaces.",
+        "es": "Apartamentos de una, dos y tres recámaras en el este de El Paso con alberca, gimnasio y canchas de básquetbol y voleibol. Algunas viviendas incluyen conexiones para lavadora/secadora y chimenea."
+      },
+      "highlights": {
+        "en": [
+          "Pool and fitness center",
+          "Basketball and volleyball courts",
+          "Laundry facility",
+          "Covered parking",
+          "Bilingual staff"
+        ],
+        "es": [
+          "Alberca y gimnasio",
+          "Canchas de básquetbol y voleibol",
+          "Lavandería",
+          "Estacionamiento cubierto",
+          "Personal bilingüe"
+        ]
+      },
+      "layouts": {
+        "en": "1–3 bedrooms; approximately 593–1,036 sq. ft.",
+        "es": "1–3 recámaras; aproximadamente 593–1,036 pies cuadrados."
+      },
+      "neighborhood": {
+        "en": "The community website identifies I-10, Cielo Vista Mall and Fort Bliss as nearby destinations.",
+        "es": "El sitio identifica I-10, Cielo Vista Mall y Fort Bliss como destinos cercanos."
+      },
+      "floorplansUrl": "https://www.springparkelpaso.com/floorplans",
+      "galleryUrl": "https://www.springparkelpaso.com/photogallery",
+      "photos": [
+        {
+          "url": "https://resource.rentcafe.com/image/upload/x_0%2Cy_0%2Cw_5472%2Ch_3648%2Cc_crop/q_auto%2Cf_auto%2Cc_lfill%2Cw_420%2Car_1.05%2Cg_auto/s3/2/55533/spring%20park%20living%20room.jpg",
+          "sourceUrl": "https://www.springparkelpaso.com/",
+          "caption": {
+            "en": "Living room shown on the official community website",
+            "es": "Sala mostrada en el sitio oficial"
+          }
+        }
+      ],
+      "sources": [
+        "https://www.springparkelpaso.com/",
+        "https://www.springparkelpaso.com/amenities",
+        "https://www.springparkelpaso.com/floorplans",
+        "https://www.springparkelpaso.com/photogallery"
+      ],
+      "notes": [
+        "Photo reuse permission not verified; the URL is linked from the official community website.",
+        "Prices and availability change; link to the official floorplans instead of presenting a current rent quote.",
+        "Official property-site tracking numbers differ from the RPM directory; do not change claim phone without verifying.",
+        "Property website address is 9535 Acer Avenue; RPM directory uses Acer Drive. Property homepage names both Cielo Vista and Stonehaven neighborhoods; avoid assigning one precise neighborhood label without independent confirmation.",
+        "Existing catalog dog-park highlight was not confirmed on current amenities page."
+      ]
+    },
+    {
+      "slug": "independence-place-el-paso",
+      "summary": {
+        "en": "One- through four-bedroom apartments on Alabama Street, with furnished options, full-size washers and dryers, a pool and fitness center.",
+        "es": "Apartamentos de una a cuatro recámaras en Alabama Street, con opciones amuebladas, lavadora y secadora de tamaño completo, alberca y gimnasio."
+      },
+      "highlights": {
+        "en": [
+          "Pool and hot tub",
+          "Fitness center",
+          "Half basketball court",
+          "Playground and BBQ area",
+          "Corporate and furnished options"
+        ],
+        "es": [
+          "Alberca y jacuzzi",
+          "Gimnasio",
+          "Media cancha de básquetbol",
+          "Juegos infantiles y asadores",
+          "Opciones corporativas y amuebladas"
+        ]
+      },
+      "layouts": {
+        "en": "1–4 bedrooms; approximately 631–1,425 sq. ft.",
+        "es": "1–4 recámaras; aproximadamente 631–1,425 pies cuadrados."
+      },
+      "neighborhood": {
+        "en": "The property describes its location at the base of the Franklin Mountains with access to downtown El Paso.",
+        "es": "La propiedad describe su ubicación al pie de las montañas Franklin, con acceso al centro de El Paso."
+      },
+      "floorplansUrl": "https://www.ipelpaso.com/floorplans",
+      "galleryUrl": "https://www.ipelpaso.com/photogallery",
+      "photos": [
+        {
+          "url": "https://resource.rentcafe.com/image/upload/q_auto%2Cf_auto%2Cc_fill%2Cw_576%2Car_1.975%2Cg_auto/s3/2/55533/screenshot%202024-03-12%20143900.png",
+          "sourceUrl": "https://www.ipelpaso.com/",
+          "caption": {
+            "en": "Community and pool shown on the official website",
+            "es": "Comunidad y alberca mostradas en el sitio oficial"
+          }
+        }
+      ],
+      "sources": [
+        "https://www.ipelpaso.com/",
+        "https://www.ipelpaso.com/amenities",
+        "https://www.ipelpaso.com/floorplans",
+        "https://www.ipelpaso.com/photogallery"
+      ],
+      "notes": [
+        "Photo reuse permission not verified; the URL is linked from the official community website.",
+        "Prices and availability change; link to the official floorplans instead of presenting a current rent quote.",
+        "Official property-site tracking numbers differ from the RPM directory; do not change claim phone without verifying.",
+        "Official floorplan list includes a 3-bedroom/4-bath layout as well as 4-bedroom/4-bath; preserve source distinctions."
+      ]
+    },
+    {
+      "slug": "the-legends-of-el-paso",
+      "summary": {
+        "en": "One- and two-bedroom apartments on Desert Pass with two dog parks, a pool, fitness center and business center. Homes include full-size washer/dryer connections.",
+        "es": "Apartamentos de una y dos recámaras en Desert Pass con dos parques para perros, alberca, gimnasio y centro de negocios. Las viviendas incluyen conexiones para lavadora y secadora de tamaño completo."
+      },
+      "highlights": {
+        "en": [
+          "Two dog parks",
+          "Pool",
+          "24-hour fitness center",
+          "Sand volleyball court",
+          "Business center and computer room"
+        ],
+        "es": [
+          "Dos parques para perros",
+          "Alberca",
+          "Gimnasio de 24 horas",
+          "Cancha de voleibol de arena",
+          "Centro de negocios y sala de computadoras"
+        ]
+      },
+      "layouts": {
+        "en": "1–2 bedrooms; approximately 671–1,249 sq. ft.",
+        "es": "1–2 recámaras; aproximadamente 671–1,249 pies cuadrados."
+      },
+      "neighborhood": {
+        "en": "Located on Desert Pass in ZIP code 79912; use the official location page for nearby destinations.",
+        "es": "Ubicada en Desert Pass, código postal 79912; consulte los destinos cercanos en la página oficial de ubicación."
+      },
+      "floorplansUrl": "https://www.livelegendsofelpaso.com/floorplans",
+      "galleryUrl": "https://www.livelegendsofelpaso.com/photogallery",
+      "photos": [
+        {
+          "url": "https://resource.rentcafe.com/image/upload/x_0%2Cy_0%2Cw_2048%2Ch_1365%2Cc_crop/q_auto%2Cf_auto%2Cc_fill%2Cw_576%2Car_1.975%2Cg_auto/s3/2/55533/pool%204%281%29.jpg",
+          "sourceUrl": "https://www.livelegendsofelpaso.com/",
+          "caption": {
+            "en": "Pool shown on the official community website",
+            "es": "Alberca mostrada en el sitio oficial"
+          }
+        }
+      ],
+      "sources": [
+        "https://www.livelegendsofelpaso.com/",
+        "https://www.livelegendsofelpaso.com/amenities",
+        "https://www.livelegendsofelpaso.com/floorplans",
+        "https://www.livelegendsofelpaso.com/photogallery"
+      ],
+      "notes": [
+        "Photo reuse permission not verified; the URL is linked from the official community website.",
+        "Prices and availability change; link to the official floorplans instead of presenting a current rent quote.",
+        "Official property-site tracking numbers differ from the RPM directory; do not change claim phone without verifying."
+      ]
+    },
+    {
+      "slug": "terralane-at-campo-del-sol",
+      "summary": {
+        "en": "Three- and four-bedroom rental homes with attached two-car garages, private patios and included washers and dryers. Community amenities include a water park, lazy river and playscape.",
+        "es": "Casas de renta de tres y cuatro recámaras con cochera adjunta para dos autos, patio privado y lavadora y secadora incluidas. La comunidad ofrece parque acuático, río lento y juegos infantiles."
+      },
+      "highlights": {
+        "en": [
+          "Attached two-car garages",
+          "Washer and dryer included",
+          "Private patios",
+          "Water park and lazy river",
+          "Community park and amenity center"
+        ],
+        "es": [
+          "Cocheras adjuntas para dos autos",
+          "Lavadora y secadora incluidas",
+          "Patios privados",
+          "Parque acuático y río lento",
+          "Parque y centro comunitario"
+        ]
+      },
+      "layouts": {
+        "en": "3–4 bedrooms; approximately 1,445–2,076 sq. ft.",
+        "es": "3–4 recámaras; aproximadamente 1,445–2,076 pies cuadrados."
+      },
+      "neighborhood": {
+        "en": "The website identifies Shearman Park, Franklin Mountains State Park and Painted Dunes Desert Golf Course nearby.",
+        "es": "El sitio identifica los parques Shearman y Franklin Mountains State Park, y el campo de golf Painted Dunes en los alrededores."
+      },
+      "floorplansUrl": "https://www.tlcatcampodelsol.com/floorplans",
+      "galleryUrl": "https://www.tlcatcampodelsol.com/photogallery",
+      "photos": [
+        {
+          "url": "https://resource.rentcafe.com/image/upload/q_auto%2Cf_auto%2Cc_limit%2Cw_1200/s3/2/55533/606a5305%20%2817%29.jpg",
+          "sourceUrl": "https://www.tlcatcampodelsol.com/photogallery",
+          "caption": {
+            "en": "Photo from the official community gallery",
+            "es": "Foto de la galería oficial de la comunidad"
+          }
+        }
+      ],
+      "sources": [
+        "https://www.tlcatcampodelsol.com/",
+        "https://www.tlcatcampodelsol.com/amenities",
+        "https://www.tlcatcampodelsol.com/floorplans",
+        "https://www.tlcatcampodelsol.com/photogallery"
+      ],
+      "notes": [
+        "Photo reuse permission not verified; the URL is linked from the official community website.",
+        "Prices and availability change; link to the official floorplans instead of presenting a current rent quote.",
+        "Official property-site tracking numbers differ from the RPM directory; do not change claim phone without verifying."
+      ]
+    }
+  ]
+}

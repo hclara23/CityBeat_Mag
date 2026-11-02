@@ -1,3 +1,5 @@
+import { ApartmentGallery } from '@/components/citybeat/ApartmentGallery'
+import { ApartmentAreaContext } from '@/components/citybeat/ApartmentAreaContext'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -29,6 +31,7 @@ export default async function ApartmentPage({ params }: Props) {
   const community = catalog.find(property => property.slug === slug)
   if (!community) notFound()
   const company = apartmentCompany(community)
+  const research = community.research
   const claimUrl = community.submitted ? `/${locale}/property-management/${company.id}#portfolio` : `/${locale}/apartments/${community.slug}/claim`
   const otherCommunities = catalog.filter(other => other.slug !== slug && apartmentCompanyId(other) === company.id)
   const jsonLd = {
@@ -53,11 +56,25 @@ export default async function ApartmentPage({ params }: Props) {
             <p className="mt-3 text-white/65">{community.address}, {community.city || 'El Paso'}, {community.state || 'TX'} {community.zip}</p>
             <p className="mt-6 text-base leading-7 text-white/80">{community.summary[locale]}</p>
           </div>
+          {research && <>
+            <ApartmentGallery photos={research.photos} locale={locale}/>
+            <section className="mt-8 rounded-2xl border border-white/15 bg-brand-ink p-6 sm:p-8">
+              <h2 className="text-xl font-bold">{es ? 'Viviendas y ubicación' : 'Homes and location'}</h2>
+              {research.layouts && <p className="mt-4 leading-7 text-white/80">{research.layouts[locale]}</p>}
+              {research.neighborhood && <p className="mt-3 leading-7 text-white/70">{research.neighborhood[locale]}</p>}
+              <div className="mt-5 flex flex-wrap gap-3">
+                {research.floorplansUrl && <a href={research.floorplansUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center rounded-lg border border-brand-neon px-5 py-3 font-bold text-brand-neon">{es ? 'Planos y disponibilidad' : 'Floor plans & availability'} ↗</a>}
+                {research.galleryUrl && <a href={research.galleryUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center rounded-lg border border-white/30 px-5 py-3 font-bold">{es ? 'Galería oficial completa' : 'Full official gallery'} ↗</a>}
+              </div>
+              <p className="mt-4 text-sm leading-6 text-white/60">{es ? 'Consulta precios, cargos, restricciones de mascotas y disponibilidad actual con la comunidad. Las imágenes del sitio oficial pueden mostrar viviendas modelo o características que varían según la unidad.' : 'Confirm current rents, fees, pet restrictions and availability with the community. Official-site photos may show model homes or features that vary by unit.'}</p>
+            </section>
+          </>}
           {community.highlights[locale].length > 0 && <section className="mt-8 rounded-2xl border border-white/15 bg-brand-ink/90 p-6 sm:p-8">
             <h2 className="text-xl font-bold">{es ? 'Características de la comunidad' : 'Community highlights'}</h2>
             <ul className="mt-5 grid gap-3 sm:grid-cols-2">{community.highlights[locale].map(highlight => <li key={highlight} className="rounded-lg border border-white/10 px-4 py-3 text-sm text-white/80">{highlight}</li>)}</ul>
             <p className="mt-5 text-sm leading-6 text-white/60">{es ? 'Las características pueden variar según la vivienda. Consulta los detalles y las políticas vigentes con el equipo de arrendamiento.' : 'Features may vary by home. Ask the leasing team about current details and policies.'}</p>
           </section>}
+          {research && <ApartmentAreaContext locale={locale}/>}
           <section className="mt-8 rounded-2xl border border-white/15 bg-brand-ink/90 p-6 sm:p-8">
             <h2 className="text-xl font-bold">{es ? 'Administración y fuentes' : 'Management and sources'}</h2>
             <p className="mt-4 text-white/80">{es ? 'Administrada por' : 'Managed by'} <Link href={`/${locale}/property-management/${company.id}`} className="font-bold text-brand-neon underline">{company.name}</Link>.</p>
@@ -65,15 +82,16 @@ export default async function ApartmentPage({ params }: Props) {
             <ul className="mt-4 space-y-3 text-sm text-brand-neon underline">
               {!community.submitted && <li><a href={apartmentSource(community)} target="_blank" rel="noopener noreferrer">{es ? 'Directorio de la administradora: dirección, teléfono y administración' : 'Management directory: address, phone and management'} ↗</a></li>}
               <li><a href={community.detailSource || community.website} target="_blank" rel="noopener noreferrer">{community.submitted ? (es ? 'Sitio de la propiedad o administradora' : 'Property or management website') : (es ? 'Sitio oficial de la comunidad' : 'Official community website')} ↗</a></li>
+              {research?.sources.filter(url => url !== community.website && url !== community.detailSource).map((url, index) => <li key={url}><a href={url} target="_blank" rel="noopener noreferrer">{es ? 'Fuente adicional' : 'Additional source'} {index + 1}: {new URL(url).pathname === '/' ? new URL(url).hostname : new URL(url).pathname} ↗</a></li>)}
             </ul>
-            {!community.submitted && <p className="mt-4 text-xs text-white/55">{es ? 'Datos revisados' : 'Records checked'}: {APARTMENT_VERIFIED}</p>}
+            {!community.submitted && <p className="mt-4 text-xs text-white/55">{es ? 'Datos revisados' : 'Records checked'}: {research?.checkedAt || APARTMENT_VERIFIED}</p>}
           </section>
         </div>
         <aside className="h-fit rounded-2xl border border-brand-neon/35 bg-brand-ink p-6 sm:p-8">
           <h2 className="text-2xl font-bold">{es ? 'Contacta a arrendamiento' : 'Contact leasing'}</h2>
           <p className="mt-3 text-sm leading-6 text-white/65">{es ? 'Consulta precios, disponibilidad, visitas y solicitudes directamente con la comunidad.' : 'Ask the community directly about prices, availability, tours and applications.'}</p>
           <a href={`tel:+1${community.phone}`} className="mt-6 block rounded-lg bg-brand-neon px-4 py-4 text-center font-bold text-black hover:bg-white">{es ? 'Llamar' : 'Call'} {apartmentPhone(community.phone)}</a>
-          <a href={community.website} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg border border-brand-neon px-4 py-4 text-center font-bold text-brand-neon hover:bg-brand-neon/10">{es ? 'Visitar sitio oficial' : 'Visit official website'} ↗</a>
+          <a href={community.website} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg border border-brand-neon px-4 py-4 text-center font-bold text-brand-neon hover:bg-brand-neon/10">{es ? 'Visitar sitio web' : 'Visit website'} ↗</a>
           <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${community.name}, ${community.address}, ${community.city || 'El Paso'}, ${community.state || 'TX'} ${community.zip}`)}`} target="_blank" rel="noopener noreferrer" className="mt-3 block rounded-lg border border-white/20 px-4 py-4 text-center font-bold hover:border-brand-neon">{es ? 'Ver ubicación' : 'View location'} ↗</a>
           <div className="mt-8 border-t border-white/10 pt-6"><h3 className="font-bold">{es ? '¿Administras esta comunidad?' : 'Manage this community?'}</h3><p className="mt-2 text-sm leading-6 text-white/65">{community.submitted ? (es ? 'Contacte al responsable corporativo para solicitar acceso a esta ficha.' : 'Contact the corporate overseer to request access to this listing.') : (es ? 'Reclama esta ficha gratis verificando el teléfono registrado. Nuestro equipo revisará tu autorización para administrarla.' : 'Claim this listing for free by verifying the recorded phone. Our team will review your authorization to manage it.')}</p><Link href={claimUrl} className="mt-3 block rounded-lg border border-brand-neon px-4 py-3 text-center font-bold text-brand-neon hover:bg-brand-neon/10">{community.submitted ? (es ? 'Portafolio de la administradora' : 'Management portfolio') : (es ? 'Reclamar esta propiedad' : 'Claim this property')}</Link><Link href={`/${locale}/contact`} className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-brand-neon underline">{es ? 'Solicitar revisión o corrección' : 'Request a review or correction'}</Link></div>
         </aside>

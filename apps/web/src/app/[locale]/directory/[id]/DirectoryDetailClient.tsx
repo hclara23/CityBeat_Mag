@@ -19,7 +19,7 @@ import {
 import type { ActionLinks, ListingPost, ListingServiceItem, SpecialHour } from '@/lib/listing-content'
 import { PrintBadges, PrintRecognitionPanel } from '@/components/citybeat/PrintRecognition'
 import { hasEditorAccess } from '@citybeat/lib/roles'
-import { attributedListingUrl, listingPhoneHref } from '@/lib/listing-outbound'
+import { attributedListingUrl, listingPhoneHref, listingWebsiteHref } from '@/lib/listing-outbound'
 import type { ListingEventType } from '@/lib/listing-analytics'
 import { ListingTrustSignals } from '@/components/citybeat/ListingTrustSignals'
 import { trackAnalyticsEvent } from '@/components/Analytics'
@@ -97,6 +97,7 @@ const translations = {
     phone: 'Phone',
     callNow: 'Call Now',
     website: 'Website',
+    visitWebsite: 'Visit website',
     address: 'Address',
     locationsTitle: 'Locations',
     locationsCount: 'locations',
@@ -148,6 +149,7 @@ const translations = {
     phone: 'Teléfono',
     callNow: 'Llamar ahora',
     website: 'Sitio Web',
+    visitWebsite: 'Visitar sitio web',
     address: 'Dirección',
     locationsTitle: 'Ubicaciones',
     locationsCount: 'ubicaciones',
@@ -805,6 +807,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(listing.name + ' ' + (listing.address || ''))}`
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(listing.name + ' ' + (listing.address || ''))}`
   const callHref = listingPhoneHref(listing.phone)
+  const websiteHref = listingWebsiteHref(listing.website)
 
   const communityContent = (<>
                 {/* Reviews Section */}
@@ -1656,15 +1659,16 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                     </div>
                   )}
 
-                  {listing.website && (
+                  {websiteHref && (
                     <div>
                       <p className="text-[10px] uppercase font-bold text-brand-neon">{t.website}</p>
                       {/* Premium/Featured view: do-follow backlink (no nofollow) —
                           the paid SEO perk. Basic/unclaimed listings get nofollow+ugc
                           in the free view (line ~1365). */}
-                      <a href={attributedListingUrl(listing.website, id, 'website')} target="_blank" rel="noopener" onClick={() => track('click_website')} className="text-sm mt-1 text-brand-neon hover:underline truncate block">
-                        {listing.website.replace(/^https?:\/\/(www\.)?/, '')}
+                      <a href={attributedListingUrl(websiteHref, id, 'website')} target="_blank" rel="noopener" onClick={() => track('click_website')} className="mt-2 inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-neon px-5 py-3 text-sm font-black text-black hover:bg-white">
+                        {t.visitWebsite} ↗
                       </a>
+                      <p className="mt-2 break-all text-xs text-white/60">{websiteHref.replace(/^https?:\/\/(www\.)?/, '')}</p>
                     </div>
                   )}
 
@@ -1772,7 +1776,7 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                         <a href={callHref || undefined} aria-disabled={!callHref} onClick={() => { if (callHref) track('click_phone') }} className="text-white/80 hover:text-brand-neon mt-1 text-sm block">{listing.phone}</a>
                       </div>
                     )}
-                    {listing.website && (
+                    {websiteHref && (
                       <div className="sm:col-span-2">
                         <h4 className="text-[10px] font-black uppercase tracking-wider text-brand-neon">{t.website}</h4>
                         {/* Basic/unclaimed listing: the outbound link is nofollow+ugc.
@@ -1780,9 +1784,10 @@ export default function ListingDetailPage({ initialListing = null }: { initialLi
                             it's emitted without nofollow only in the Premium/Featured
                             view above (line ~1282). This also stops CityBeat from
                             vouching for thousands of auto-scraped, unverified sites. */}
-                        <a href={attributedListingUrl(listing.website, id, 'website')} target="_blank" rel="noopener nofollow ugc" onClick={() => track('click_website')} className="text-brand-neon hover:underline mt-1 text-sm block truncate">
-                          {listing.website.replace(/^https?:\/\/(www\.)?/, '')}
+                        <a href={attributedListingUrl(websiteHref, id, 'website')} target="_blank" rel="noopener nofollow ugc" onClick={() => track('click_website')} className="mt-2 inline-flex min-h-12 items-center justify-center rounded-lg bg-brand-neon px-5 py-3 text-sm font-black text-black hover:bg-white">
+                          {t.visitWebsite} ↗
                         </a>
+                        <p className="mt-2 break-all text-xs text-white/60">{websiteHref.replace(/^https?:\/\/(www\.)?/, '')}</p>
                       </div>
                     )}
                   </div>

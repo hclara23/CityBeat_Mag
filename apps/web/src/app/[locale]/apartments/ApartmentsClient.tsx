@@ -1,5 +1,7 @@
 'use client'
 
+import { ApartmentThumbnail } from '@/components/citybeat/ApartmentGallery'
+
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { CityBeatShell } from '@/components/citybeat/CityBeatShell'
@@ -84,6 +86,7 @@ export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITI
         <p role="status" className="mb-6 text-sm text-white/75">{communities.length} {es ? (communities.length === 1 ? 'comunidad encontrada' : 'comunidades encontradas') : (communities.length === 1 ? 'community found' : 'communities found')}</p>
         {communities.length === 0 ? <div className="citybeat-panel rounded-2xl p-10 text-center"><p>{es ? 'No se encontraron comunidades con estos filtros.' : 'No communities match these filters.'}</p><button onClick={reset} className="mt-4 min-h-11 rounded border border-brand-neon px-5 text-brand-neon">{es ? 'Quitar filtros' : 'Clear filters'}</button></div> : <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {communities.map(community => <article key={community.slug} className="group flex flex-col overflow-hidden rounded-2xl border border-white/15 bg-brand-ink/90 transition hover:border-brand-neon/60">
+            <ApartmentThumbnail photo={community.research?.photos[0]} locale={locale}/>
             <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-brand-charcoal p-6"><span className="text-xs font-bold uppercase tracking-wider text-brand-neon">{communityTypeLabel(community.type, locale)}</span><span className="text-sm text-white/60">{community.zip}</span></div>
             <div className="flex flex-1 flex-col p-6">
               <h2 className="text-2xl font-extrabold leading-snug text-white"><Link href={`/${locale}/apartments/${community.slug}`} className="hover:text-brand-neon">{community.name}</Link></h2>
@@ -92,6 +95,7 @@ export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITI
               <p className="mt-4 flex-1 text-sm leading-6 text-white/70">{community.summary[locale]}</p>
               <p className="mt-4 border-t border-white/10 pt-4 text-sm text-white/65">{community.address}<br />{community.city || 'El Paso'}, {community.state || 'TX'} {community.zip}</p>
               <a href={`tel:+1${community.phone}`} className="mt-2 inline-flex min-h-11 items-center text-sm font-bold text-brand-neon">{apartmentPhone(community.phone)}</a>
+              <a href={community.website} target="_blank" rel="noopener noreferrer" className="mt-3 flex min-h-12 items-center justify-center rounded-lg border border-brand-neon px-4 py-3 text-sm font-bold text-brand-neon">{es ? 'Visitar sitio web' : 'Visit website'} ↗</a>
               <Link href={`/${locale}/apartments/${community.slug}`} className="mt-3 block rounded border border-white/30 px-4 py-3 text-center text-xs font-black uppercase tracking-wider text-white hover:border-brand-neon">{es ? 'Ver detalles' : 'View details'} →</Link>
             </div>
           </article>)}
