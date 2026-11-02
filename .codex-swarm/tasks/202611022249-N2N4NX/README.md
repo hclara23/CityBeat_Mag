@@ -1,16 +1,18 @@
 ---
 id: "202611022249-N2N4NX"
 title: "Research and enrich Haggerty rental communities"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "9fe252676849967bcf262aaf298cfdeea06b9c01", message: "✨ N2N4NX start: add three source-backed Haggerty apartment-building listings with nine photos, bilingual unit-specific details and website links | details: retain review-gated claims and shared corporate profile. Prevent El Paso County context on New Mexico listings and verify six localized pages, two portfolio pages and distinct shared-contact claims. Publication awaits deployment-cost approval." }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: research verified three apartment-building candidates from Haggerty official vacancy feeds; prepare address-based bilingual entries with explicit unit-specific provenance and no claims of complete portfolio coverage." }
   - { author: "ORCHESTRATOR", body: "start: add three source-backed Haggerty apartment-building listings with nine photos, bilingual unit-specific details and website links | details: retain review-gated claims and shared corporate profile. Prevent El Paso County context on New Mexico listings and verify six localized pages, two portfolio pages and distinct shared-contact claims. Publication awaits deployment-cost approval." }
+  - { author: "ORCHESTRATOR", body: "verified: published three Haggerty rental-building listings with nine photos and bilingual details | details: all six live listing pages, both portfolio pages, photo rendering and health checks passed." }
 doc_version: 2
-doc_updated_at: "2026-11-02T22:56:23+00:00"
+doc_updated_at: "2026-11-02T23:09:33+00:00"
 doc_updated_by: "agentctl"
 description: "Verify Haggerty Company and Century21 Haggerty apartment-community portfolios, add only source-confirmed community listings with bilingual details, official photo provenance and website/claim links, and document incomplete inventory."
 ---
@@ -40,5 +42,9 @@ Revert this implementation before publishing. If deployed, restore the previous 
 
 ## Notes
 
-Research provenance and exclusions are in haggerty-research.json; input builder retains observed photo IDs. Lawson listing contact9159955616; Espina andPayne shared published leasing contact9157573445. Phone verification does not itself grant editing authority; admin review remains required. Official LasCruces office is5755237551 but listing phone is retained. Preview screenshot:haggerty-es-preview.png. Publication requires fresh approval for up to USD1 GoogleCloud build/deployment, no subscription.
+User approved up to USD1 Google Cloud deployment costs for this publication; one release completed with no new subscription. Research provenance and exclusions are in haggerty-research.json. Three currently supported apartment-building locations do not establish the complete portfolio. Lawson contact9159955616; Espina and Payne shared published leasing contact9157573445. Phone verification alone does not grant editing authority; admin review remains required. Espina photos depict a similar unit. Existing combined Haggerty profile and Century21 alias retained; no legal entity relationship asserted. No production records, real texts, claims or cards were mutated by verification.
+
+## Changes Summary
+
+Published commit 9fe2526 through successful GitHub run 41541559552. Cloud Build 42fcf218-e409-497f-9981-34861f1d8b1d succeeded from 2026-11-02T23:00:05Z to 23:07:54Z; Cloud Run citybeat-web-00473-dur serves 100 percent traffic. All six live bilingual detail pages and both company portfolios passed content, website, claim-link, photo-reference and county-context checks. Browser confirmed three Spanish Espina photos loaded, correct external destination and no El Paso County data. Proof: haggerty-es-live.png. Health and payments health returned 200. One build under the approved USD1 cap; actual billing not finalized. No live texts, claims, outreach or payment charges.
 

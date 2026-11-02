@@ -1,0 +1,14 @@
+[
+  {
+    "company": "haggerty-company",
+    "locale": "en",
+    "count": 3,
+    "ok": true
+  },
+  {
+    "company": "haggerty-company",
+    "locale": "es",
+    "count": 3,
+    "ok": true
+  }
+]
