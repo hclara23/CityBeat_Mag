@@ -1,0 +1,692 @@
+[
+  {
+    "slug": "arcadia-at-montecillo",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "arcadia-at-montecillo",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "1400-kansas-townhomes",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "1400-kansas-townhomes",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "arterra-at-alto-rey",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "arterra-at-alto-rey",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "ashton-parke",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "ashton-parke",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "bella-estancias",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "bella-estancias",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "castilleja-apartments",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "castilleja-apartments",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "celina-plaza",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "celina-plaza",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "colores-del-sol",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "colores-del-sol",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "copper-commons",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "copper-commons",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "coronado-villas",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "coronado-villas",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "desert-tree",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "desert-tree",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "dos-santos",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "dos-santos",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "e11even-at-montecillo",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "e11even-at-montecillo",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "ept-tre",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "ept-tre",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "estancias-valencia",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "estancias-valencia",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "foxglove",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "foxglove",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "high-vista",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "high-vista",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "la-cima",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "la-cima",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "la-estancia",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "la-estancia",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "la-hacienda-at-villa-victoria",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "la-hacienda-at-villa-victoria",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "la-mirada",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "la-mirada",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "la-plaza",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "la-plaza",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "lakeside",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "lakeside",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "las-gardenias",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "las-gardenias",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "las-villas-at-villa-victoria",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "las-villas-at-villa-victoria",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "milagro-apartments",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "milagro-apartments",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "padres-village",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "padres-village",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "pine-valley",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "pine-valley",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "pine-village",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "pine-village",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "san-marcos",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "san-marcos",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "san-marin",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "san-marin",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "san-mateo",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "san-mateo",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "san-joaquin-at-montecillo",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "san-joaquin-at-montecillo",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "san-miguel",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "san-miguel",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "san-montego",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "san-montego",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "san-pedro",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "san-pedro",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "sand-pebble",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "sand-pebble",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "santa-cruz",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "santa-cruz",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "santa-fe-place",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "santa-fe-place",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "santi-dwellings",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "santi-dwellings",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "solaire-at-montecillo",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "solaire-at-montecillo",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "sedona-peak",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "sedona-peak",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "southview",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "southview",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "summerstone",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "summerstone",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "sunset-at-sandstone-ranch",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "sunset-at-sandstone-ranch",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "the-501",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "the-501",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "the-citadel",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "the-citadel",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "the-hills-at-north-mesa",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "the-hills-at-north-mesa",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "the-masters-community",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "the-masters-community",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "the-olivia-at-montecillo-apartments",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "the-olivia-at-montecillo-apartments",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "the-onix",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "the-onix",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "the-quest-at-edgemere",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "the-quest-at-edgemere",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "the-reserve-at-sandstone-ranch",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "the-reserve-at-sandstone-ranch",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "the-venue-at-montecillo",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "the-venue-at-montecillo",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "the-view-at-montecillo",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "the-view-at-montecillo",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "trevino-place",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "trevino-place",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "valley-place",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "valley-place",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "valley-ridge",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "valley-ridge",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "villas-del-valle",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "villas-del-valle",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "vista-village",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "vista-village",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "phoenix-apts",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "phoenix-apts",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "double-tree-apts",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "double-tree-apts",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "patriot-apts",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "patriot-apts",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "mountain-village-apts",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "mountain-village-apts",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "high-ridge-apts",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "high-ridge-apts",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "shadow-ridge-apts",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "shadow-ridge-apts",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "chimneys-apts",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "chimneys-apts",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "acacia-park-apts",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "acacia-park-apts",
+    "locale": "es",
+    "ok": true
+  },
+  {
+    "slug": "the-crest",
+    "locale": "en",
+    "ok": true
+  },
+  {
+    "slug": "the-crest",
+    "locale": "es",
+    "ok": true
+  }
+]

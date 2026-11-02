@@ -1,16 +1,18 @@
 ---
 id: "202611022140-XF927E"
 title: "Enrich Integrity and Case apartment portfolios"
-status: "DOING"
+status: "DONE"
 priority: "high"
 owner: "ORCHESTRATOR"
 depends_on: []
 tags: []
+commit: { hash: "b2b641a85d90fd7393136126fc9ba02d80f6ca64", message: "✨ XF927E start: Enrich 69 Integrity and Case listings with bilingual details, 147 sourced photos, verified website destinations and address-confirmation notes | details: add Foxglove and preserve claim identities. Validate 138 localized detail pages, four corporate portfolios and 38 claim/content/billing tests. Publication pending deployment-cost approval." }
 comments:
   - { author: "ORCHESTRATOR", body: "Start: Enriched 69 local Integrity and Case entries; completing preview verification and preparing publication approval." }
   - { author: "ORCHESTRATOR", body: "start: Enrich 69 Integrity and Case listings with bilingual details, 147 sourced photos, verified website destinations and address-confirmation notes | details: add Foxglove and preserve claim identities. Validate 138 localized detail pages, four corporate portfolios and 38 claim/content/billing tests. Publication pending deployment-cost approval." }
+  - { author: "ORCHESTRATOR", body: "verified: published 69 Integrity and Case listings with 147 sourced photos and bilingual details | details: all 138 live detail pages, four company portfolios and production health checks passed." }
 doc_version: 2
-doc_updated_at: "2026-11-02T21:59:49+00:00"
+doc_updated_at: "2026-11-02T22:17:01+00:00"
 doc_updated_by: "agentctl"
 description: "Verify local portfolios and enrich every Integrity and Case apartment entry with source-backed bilingual details, official photos and website links while preserving claim identities and manager edits."
 ---
@@ -40,9 +42,9 @@ Revert the task implementation before publishing, or restore the preceding produ
 
 ## Notes
 
-EPT TRE remains distinct and has no assigned photos because its management-directory link identifies Santi at another address. Villa Victoria photos explicitly identify their shared official website. E11even address and Kansas ZIP conflicts are shown in bilingual verification notes. External photos retain source attribution and can become unavailable; the existing gallery handles failures. No image license is asserted. Summerstone lacks an exposed floorplan link; The 501 lacks a separate gallery link. Prior production revision: citybeat-web-00469-fir. Publication awaits new approval for up to USD1 in Google Cloud deployment usage.
+Published approved commit b2b641a through successful GitHub run41534134963: https://github.com/hclara23/CityBeat_Mag/actions/runs/41534134963 . Cloud Build0b6427e4-d599-46c7-bc2b-e3c734b3c31d succeeded from2026-11-02T22:07:35Z to22:14:33Z. Cloud Run citybeat-web-00471-lur serves100percent traffic. User approved up to USD1; one build ran, actual billing not finalized. EPT TRE remains without photos due to unresolved Santi identity/address mapping; Villa Victoria uses labeled shared-site imagery. E11even address and Kansas ZIP conflicts remain visible in bilingual notes. Summerstone lacks a floorplan link; The501 lacks a separate gallery link. No live claims, texts, outreach or card charges.
 
 ## Changes Summary
 
-Prepared 69 enriched local listings: Integrity 60 and Case 9, including Foxglove. Added 147 verified photos, 66 floorplan links and 66 gallery links. All 138 localized detail previews passed; all four company portfolio previews returned their expected 60/9 listing counts. A transient Next development module error cleared on rerun; both Case language routes then passed. Saved English Case and Spanish Integrity screenshots; mobile Spanish claim button is 48px tall without overflow. Preview processes stopped and generated configuration restored. Implementation ready for publication approval; no deployment performed.
+Published 69 enriched local listings: Integrity60 and Case9, including Foxglove;147official-site photos across68entries,66floorplan links and66gallery links. All138localized detail pages passed both preview and public-site checks. All4company portfolio pages passed expected60/9counts in both languages. Browser confirmed live English Case and Spanish Integrity photos and website/claim controls. Saved case-enriched-live.png and integrity-enriched-es-live.png. Production health and payment health returned200. CI audit, full tests, candidate checks and live checks succeeded. Existing claim identities and manager edits preserved.
 
