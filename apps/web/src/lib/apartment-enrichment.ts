@@ -8,6 +8,7 @@ export type ApartmentResearch = {
   highlights: Record<'en' | 'es', string[]>
   layouts?: Localized
   neighborhood?: Localized
+  verificationNote?: Localized
   floorplansUrl?: string
   galleryUrl?: string
   photos: ApartmentPhoto[]

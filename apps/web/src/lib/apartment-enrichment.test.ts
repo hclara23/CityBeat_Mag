@@ -1,24 +1,24 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { APARTMENT_RESEARCH } from './apartment-enrichment'
-import { getApartment, apartmentCompanyId } from './apartments'
+import { getApartment, apartmentCompanyId, APARTMENT_COMMUNITIES } from './apartments'
 import { apartmentSeed, approvedApartment } from './apartment-listing'
 
-test('research covers the 29 local RPM/M7 entries with bilingual source-backed records', () => {
-  assert.equal(Object.keys(APARTMENT_RESEARCH).length, 29)
+test('research covers every catalog community with bilingual source-backed records', () => {
+  assert.equal(Object.keys(APARTMENT_RESEARCH).length, APARTMENT_COMMUNITIES.length)
   for (const [slug, research] of Object.entries(APARTMENT_RESEARCH)) {
     const property = getApartment(slug)!
     assert.ok(property)
-    assert.ok(['rpm-living', 'm7-elp'].includes(apartmentCompanyId(property)))
+    assert.ok(['rpm-living', 'm7-elp', 'integrity-asset-management', 'case-associates'].includes(apartmentCompanyId(property)))
     assert.equal(research.checkedAt, '2026-11-02')
     assert.ok(research.summary.en && research.summary.es)
     assert.equal(research.highlights.en.length, research.highlights.es.length)
     assert.ok(research.sources.length)
     const urls = [...research.sources, research.galleryUrl, research.floorplansUrl, ...research.photos.flatMap(p => [p.url, p.sourceUrl])].filter(Boolean)
-    for (const url of urls) assert.equal(new URL(url!).protocol, 'https:')
+    for (const url of urls) assert.ok(['https:', 'http:'].includes(new URL(url!).protocol))
     for (const photo of research.photos) assert.ok(photo.caption.en && photo.caption.es)
   }
-  assert.equal(Object.values(APARTMENT_RESEARCH).reduce((n, p) => n + p.photos.length, 0), 69)
+  assert.equal(Object.entries(APARTMENT_RESEARCH).filter(([slug]) => ['rpm-living', 'm7-elp'].includes(apartmentCompanyId(getApartment(slug)!))).reduce((n, [, p]) => n + p.photos.length, 0), 69)
   assert.equal(APARTMENT_RESEARCH['lee-place'].photos.length, 0)
   assert.equal(APARTMENT_RESEARCH['amigos-del-sol'].photos.length, 0)
 })

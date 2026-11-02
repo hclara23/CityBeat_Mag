@@ -63,7 +63,7 @@ test('one ownership conflict rejects the entire corporate grant', async () => {
 test('shared company websites and leasing numbers do not collapse distinct Integrity properties', async () => {
   const h = await approved('integrity-asset-management')
   const ids = h.records.get('property_accounts/integrity-asset-management').listing_ids
-  assert.equal(ids.length, 59); assert.equal(new Set(ids).size, 59)
+  assert.equal(ids.length, 60); assert.equal(new Set(ids).size, 60)
   assert.equal(h.records.get('directory_listings/apartment-la-hacienda-at-villa-victoria').city, 'San Elizario')
 })
 test('concurrent checkout retries create one session with server-derived quantity and fixed monthly price', async () => {

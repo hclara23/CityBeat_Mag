@@ -1,0 +1,26 @@
+[
+  {
+    "company": "integrity-asset-management",
+    "locale": "en",
+    "count": 60,
+    "ok": true
+  },
+  {
+    "company": "integrity-asset-management",
+    "locale": "es",
+    "count": 60,
+    "ok": true
+  },
+  {
+    "company": "case-associates",
+    "locale": "en",
+    "count": 9,
+    "ok": true
+  },
+  {
+    "company": "case-associates",
+    "locale": "es",
+    "count": 9,
+    "ok": true
+  }
+]

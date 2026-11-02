@@ -62,6 +62,7 @@ export default async function ApartmentPage({ params }: Props) {
               <h2 className="text-xl font-bold">{es ? 'Viviendas y ubicación' : 'Homes and location'}</h2>
               {research.layouts && <p className="mt-4 leading-7 text-white/80">{research.layouts[locale]}</p>}
               {research.neighborhood && <p className="mt-3 leading-7 text-white/70">{research.neighborhood[locale]}</p>}
+              {research.verificationNote && <p className="mt-4 rounded-lg border border-white/25 p-4 text-sm leading-6 text-white/75"><strong>{es ? 'Por confirmar con la administración: ' : 'Confirm with management: '}</strong>{research.verificationNote[locale]}</p>}
               <div className="mt-5 flex flex-wrap gap-3">
                 {research.floorplansUrl && <a href={research.floorplansUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center rounded-lg border border-brand-neon px-5 py-3 font-bold text-brand-neon">{es ? 'Planos y disponibilidad' : 'Floor plans & availability'} ↗</a>}
                 {research.galleryUrl && <a href={research.galleryUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center rounded-lg border border-white/30 px-5 py-3 font-bold">{es ? 'Galería oficial completa' : 'Full official gallery'} ↗</a>}
