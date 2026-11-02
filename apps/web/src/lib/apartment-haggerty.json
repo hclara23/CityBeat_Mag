@@ -1,0 +1,41 @@
+[
+  {
+    "slug": "8636-lawson-apartments",
+    "name": "8636 Lawson Apartments",
+    "address": "8636 Lawson St",
+    "city": "El Paso",
+    "state": "TX",
+    "zip": "79904",
+    "phone": "9159955616",
+    "website": "https://century21haggerty.appfolio.com/listings/detail/22361c30-1593-43e8-88c2-17ee5cbbe7f4",
+    "source": "https://century21haggerty.appfolio.com/listings/detail/22361c30-1593-43e8-88c2-17ee5cbbe7f4",
+    "companyId": "haggerty-company",
+    "type": "apartments"
+  },
+  {
+    "slug": "1402-s-espina-apartments",
+    "name": "1402 S. Espina Apartments",
+    "address": "1402 S Espina St",
+    "city": "Las Cruces",
+    "state": "NM",
+    "zip": "88001",
+    "phone": "9157573445",
+    "website": "https://century21haggerty.appfolio.com/listings/detail/7c6f6dcd-92c1-4bba-9152-7ee85adb2a65",
+    "source": "https://century21haggerty.appfolio.com/listings/detail/7c6f6dcd-92c1-4bba-9152-7ee85adb2a65",
+    "companyId": "haggerty-company",
+    "type": "apartments"
+  },
+  {
+    "slug": "1705-payne-street-triplex",
+    "name": "1705 Payne Street Triplex",
+    "address": "1705 Payne St",
+    "city": "Las Cruces",
+    "state": "NM",
+    "zip": "88001",
+    "phone": "9157573445",
+    "website": "https://century21haggerty.appfolio.com/listings/detail/3ada769e-0ced-4239-bf38-51aa9000c7ca",
+    "source": "https://century21haggerty.appfolio.com/listings/detail/3ada769e-0ced-4239-bf38-51aa9000c7ca",
+    "companyId": "haggerty-company",
+    "type": "apartments"
+  }
+]

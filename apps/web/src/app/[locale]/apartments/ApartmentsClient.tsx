@@ -52,10 +52,10 @@ export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITI
                 <div className="absolute -right-16 -top-20 h-72 w-72 rounded-full bg-brand-neon/20 blur-3xl" />
                 <div className="relative z-10">
                   <p className="text-xs font-black uppercase tracking-[0.24em] text-brand-neon">{es ? 'Tu próxima dirección' : 'Your next address'}</p>
-                  <h1 className="mt-3 font-display text-3xl font-black uppercase leading-tight tracking-[-.03em] sm:text-5xl lg:text-6xl">{es ? 'Apartamentos en El Paso' : 'El Paso apartments'}</h1>
+                  <h1 className="mt-3 font-display text-3xl font-black uppercase leading-tight tracking-[-.03em] sm:text-5xl lg:text-6xl">{es ? 'Apartamentos en El Paso y Las Cruces' : 'El Paso & Las Cruces apartments'}</h1>
                   <p className="mt-6 text-base leading-7 text-white/75">{es ? 'Explora comunidades, compara sus características y contacta directamente al equipo de arrendamiento.' : 'Explore communities, compare their features and connect directly with the leasing team.'}</p>
                   <div className="mt-8 flex flex-wrap gap-3 text-xs font-black uppercase tracking-wider">
-                    <span className="rounded-full border border-brand-neon/45 bg-brand-neon/10 px-4 py-2 text-brand-neon">El Paso</span>
+                    <span className="rounded-full border border-brand-neon/45 bg-brand-neon/10 px-4 py-2 text-brand-neon">El Paso · Las Cruces</span>
                     <Link href={`/${locale}/property-management`} className="rounded-full bg-brand-neon px-4 py-2 text-black">{es ? 'Administradoras: $9.99 por propiedad' : 'Management companies: $9.99 per property'} →</Link><Link href={`/${locale}/directory`} className="rounded-full border border-white/25 px-4 py-2 hover:border-brand-neon hover:text-brand-neon">{es ? 'Directorio de negocios' : 'Business directory'} →</Link>
                   </div>
                 </div>
@@ -90,7 +90,7 @@ export default function ApartmentsClient({ locale, catalog = APARTMENT_COMMUNITI
             <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-brand-charcoal p-6"><span className="text-xs font-bold uppercase tracking-wider text-brand-neon">{communityTypeLabel(community.type, locale)}</span><span className="text-sm text-white/60">{community.zip}</span></div>
             <div className="flex flex-1 flex-col p-6">
               <h2 className="text-2xl font-extrabold leading-snug text-white"><Link href={`/${locale}/apartments/${community.slug}`} className="hover:text-brand-neon">{community.name}</Link></h2>
-              <p className="mt-2 text-xs text-white/60">{es ? 'Administración' : 'Managed by'}: {apartmentCompany(community).name}</p>
+              <p className="mt-2 text-xs text-white/60">{community.sourceKind === 'rental-listing' ? (es ? 'Anunciada por' : 'Listed by') : (es ? 'Administración' : 'Managed by')}: {apartmentCompany(community).name}</p>
               <Link href={community.submitted ? `/${locale}/property-management/${apartmentCompany(community).id}#portfolio` : `/${locale}/apartments/${community.slug}/claim`} className="mt-4 flex min-h-12 items-center justify-center rounded-lg bg-brand-neon px-4 py-3 text-center text-sm font-black text-black hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-neon">{community.submitted ? (es ? 'Ver administradora' : 'View management company') : (es ? 'Reclamar esta propiedad' : 'Claim this property')}</Link>
               <p className="mt-4 flex-1 text-sm leading-6 text-white/70">{community.summary[locale]}</p>
               <p className="mt-4 border-t border-white/10 pt-4 text-sm text-white/65">{community.address}<br />{community.city || 'El Paso'}, {community.state || 'TX'} {community.zip}</p>

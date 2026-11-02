@@ -66,6 +66,16 @@ test('shared company websites and leasing numbers do not collapse distinct Integ
   assert.equal(ids.length, 60); assert.equal(new Set(ids).size, 60)
   assert.equal(h.records.get('directory_listings/apartment-la-hacienda-at-villa-victoria').city, 'San Elizario')
 })
+test('Haggerty shared leasing contacts retain three distinct listings and New Mexico addresses', async () => {
+  const h = await approved('haggerty-company')
+  const ids = h.records.get('property_accounts/haggerty-company').listing_ids
+  assert.equal(ids.length, 3); assert.equal(new Set(ids).size, 3)
+  const espina = h.records.get('directory_listings/apartment-1402-s-espina-apartments')
+  const payne = h.records.get('directory_listings/apartment-1705-payne-street-triplex')
+  assert.equal(espina.city, 'Las Cruces'); assert.equal(espina.state, 'NM')
+  assert.equal(espina.phone, payne.phone)
+  assert.notEqual(espina.address, payne.address)
+})
 test('concurrent checkout retries create one session with server-derived quantity and fixed monthly price', async () => {
   const h = await approved()
   assert.equal((await h.post({ action: 'checkout', recurring_consent: false, monthly_cents: 9990 })).status, 400)

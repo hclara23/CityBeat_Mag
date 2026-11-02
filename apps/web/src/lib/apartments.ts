@@ -17,6 +17,7 @@ export type ApartmentCommunity = {
   detailSource?: string
   companyId?: string
   source?: string
+  sourceKind?: 'rental-listing'
   city?: string
   state?: string
   research?: ApartmentResearch

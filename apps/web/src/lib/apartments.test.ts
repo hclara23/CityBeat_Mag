@@ -3,12 +3,12 @@ import test from 'node:test'
 import { APARTMENT_COMMUNITIES, getApartment, searchApartments, apartmentCompanyId, apartmentCompany, PROPERTY_TYPES } from './apartments'
 
 test('all researched communities have unique detail routes and valid leasing contacts', () => {
-  assert.equal(APARTMENT_COMMUNITIES.length, 98)
-  assert.equal(new Set(APARTMENT_COMMUNITIES.map(community => community.slug)).size, 98)
+  assert.equal(APARTMENT_COMMUNITIES.length, 101)
+  assert.equal(new Set(APARTMENT_COMMUNITIES.map(community => community.slug)).size, 101)
   for (const community of APARTMENT_COMMUNITIES) {
     assert.equal(getApartment(community.slug), community)
     assert.match(community.phone, /^[2-9]\d{2}[2-9]\d{6}$/)
-    assert.match(community.zip, /^79[89]\d{2}$/)
+    assert.match(community.zip, community.state === 'NM' ? /^880\d{2}$/ : /^79[89]\d{2}$/)
     assert.ok(['https:', 'http:'].includes(new URL(community.website).protocol))
     assert.ok(apartmentCompany(community))
     assert.ok(community.summary.en && community.summary.es)
@@ -28,14 +28,14 @@ test('search supports Spanish accents, address fragments and combined ZIP filter
 })
 
 test('apartment filtering does not misclassify the single-family rental community', () => {
-  assert.equal(searchApartments('', '', 'apartments').length, 97)
+  assert.equal(searchApartments('', '', 'apartments').length, 100)
   assert.deepEqual(searchApartments('', '', 'rental-homes').map(c => c.slug), ['terralane-at-campo-del-sol'])
   assert.equal(searchApartments('TerraLane', '', 'apartments').length, 0)
 })
 
 test('published company rosters remain separate and all rental categories have bilingual labels', () => {
   const counts = Object.fromEntries(['rpm-living','m7-elp','integrity-asset-management','case-associates','haggerty-company'].map(id => [id, APARTMENT_COMMUNITIES.filter(p => apartmentCompanyId(p) === id).length]))
-  assert.deepEqual(counts, {'rpm-living':10,'m7-elp':19,'integrity-asset-management':60,'case-associates':9,'haggerty-company':0})
+  assert.deepEqual(counts, {'rpm-living':10,'m7-elp':19,'integrity-asset-management':60,'case-associates':9,'haggerty-company':3})
   assert.equal(Object.keys(PROPERTY_TYPES).length, 8)
   for (const label of Object.values(PROPERTY_TYPES)) assert.ok(label.en && label.es)
   assert.equal(getApartment('ashton-parke')?.address, '5815 Timberwolf Dr')

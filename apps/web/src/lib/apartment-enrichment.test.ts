@@ -9,7 +9,7 @@ test('research covers every catalog community with bilingual source-backed recor
   for (const [slug, research] of Object.entries(APARTMENT_RESEARCH)) {
     const property = getApartment(slug)!
     assert.ok(property)
-    assert.ok(['rpm-living', 'm7-elp', 'integrity-asset-management', 'case-associates'].includes(apartmentCompanyId(property)))
+    assert.ok(['rpm-living', 'm7-elp', 'integrity-asset-management', 'case-associates', 'haggerty-company'].includes(apartmentCompanyId(property)))
     assert.equal(research.checkedAt, '2026-11-02')
     assert.ok(research.summary.en && research.summary.es)
     assert.equal(research.highlights.en.length, research.highlights.es.length)

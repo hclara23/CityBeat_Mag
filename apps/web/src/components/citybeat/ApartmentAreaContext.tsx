@@ -1,4 +1,5 @@
-export function ApartmentAreaContext({ locale }: { locale: 'en' | 'es' }) {
+export function ApartmentAreaContext({ locale, city = 'El Paso', state = 'TX' }: { locale: 'en' | 'es'; city?: string; state?: string }) {
+  if (state !== 'TX' || !['El Paso', 'San Elizario'].includes(city)) return null
   const es = locale === 'es'
   const rows = es ? [
     ['Población estimada · julio de 2025', '877,858'],
