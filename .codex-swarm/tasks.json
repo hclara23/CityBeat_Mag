@@ -11693,6 +11693,10 @@
         {
           "author": "ORCHESTRATOR",
           "body": "start: enrich29local RPM and M7 entries with bilingual sourced content and69photo references | details: add website buttons and safe destinations across listing tiers; preserve manager edits and claim contacts; verify58localized pages and mocked claim flows"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: include researched apartment data, gallery and Census components | details: add safe website URL normalization and manager-override regression tests"
         }
       ],
       "doc_version": 2,
@@ -11706,6 +11710,6 @@
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "9de815c2ebb2ab763d799a66644aa4160649b9d17ad4b54d7d60080abdb89bc6"
+    "checksum": "98c2ad218b78ab600c65dc66a322dbb1887d5a92cc7cc55c8fe09f683df50033"
   }
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { attributedListingUrl, listingPhoneHref } from './listing-outbound'
+import { attributedListingUrl, listingPhoneHref, listingWebsiteHref } from './listing-outbound'
 
 test('adds CityBeat attribution while preserving destination query and hash', () => {
   const result = new URL(attributedListingUrl('https://shop.example/book?service=oil#times', 'listing-1', 'action_booking'))
@@ -24,4 +24,11 @@ test('builds safe telephone links and rejects values without digits', () => {
   assert.equal(listingPhoneHref('+1 915 336 7080'), 'tel:+19153367080')
   assert.equal(listingPhoneHref('not listed'), null)
   assert.equal(listingPhoneHref(null), null)
+})
+
+
+test('website buttons normalize domains and reject non-web destinations', () => {
+  assert.equal(listingWebsiteHref('www.example.com/contact'), 'https://www.example.com/contact')
+  assert.equal(listingWebsiteHref('https://example.com/?a=1#map'), 'https://example.com/?a=1#map')
+  for (const value of ['', null, 'javascript:alert(1)', 'mailto:a@example.com', 'https://user:password@example.com', 'not a website']) assert.equal(listingWebsiteHref(value), null)
 })

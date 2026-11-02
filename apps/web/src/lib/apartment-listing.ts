@@ -1,3 +1,4 @@
+import { listingWebsiteHref } from './listing-outbound'
 import type { Firestore } from 'firebase-admin/firestore'
 import { APARTMENT_COMMUNITIES, getApartment, type ApartmentCommunity } from './apartments'
 
@@ -20,6 +21,7 @@ export function apartmentSeed(property: ApartmentCommunity) {
     name: property.name, address: property.address, city: property.city || 'El Paso', state: property.state || 'TX', zip: property.zip,
     phone: `+1${property.phone}`, website: property.website, category: 'Real Estate',
     description: property.summary.en, description_es: property.summary.es,
+    ...(property.research ? { gallery_urls: property.research.photos.map(photo => photo.url) } : {}),
     apartment_slug: property.slug, tier: 'basic', owner_id: null, claim_status: 'unclaimed',
     ownership_verified: false, is_published: true, is_sponsored: false, rating: null,
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
@@ -79,7 +81,11 @@ export function approvedApartment(property: ApartmentCommunity, data?: Record<st
   // Apartment cards format US leasing lines. Never turn a non-US/invalid update
   // into a different destination by blindly adding +1.
   const updatedPhone = String(data.phone || '').replace(/\D/g, '').match(/^(?:1)?([2-9]\d{2}[2-9]\d{6})$/)?.[1]
-  return { ...property, name: text('name', property.name), address: text('address', property.address),
+  const research = property.research && Array.isArray(data.gallery_urls) ? { ...property.research,
+    photos: data.gallery_urls.filter((url): url is string => typeof url === 'string' && /^https?:\/\//.test(url) && !!listingWebsiteHref(url)).slice(0, 30).map(url =>
+      property.research!.photos.find(photo => photo.url === url) || { url, sourceUrl: listingWebsiteHref(String(data.website)) || property.website,
+        caption: { en: 'Photo supplied by the listing manager', es: 'Foto proporcionada por la administración' } }) } : property.research
+  return { ...property, research, name: text('name', property.name), address: text('address', property.address),
     phone: updatedPhone || property.phone,
     website: /^https?:\/\//.test(String(data.website)) ? String(data.website) : property.website,
     summary: { en: text('description', property.summary.en), es: text('description_es', property.summary.es) } }

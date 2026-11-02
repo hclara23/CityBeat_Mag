@@ -1,3 +1,4 @@
+import { APARTMENT_RESEARCH, type ApartmentResearch } from './apartment-enrichment'
 import { M7_APARTMENTS } from './apartment-m7'
 import { RESEARCHED_APARTMENTS } from './apartment-researched'
 import { getPropertyCompany, type PropertyCompany } from './property-companies'
@@ -18,6 +19,7 @@ export type ApartmentCommunity = {
   source?: string
   city?: string
   state?: string
+  research?: ApartmentResearch
   submitted?: boolean
   companyDetails?: PropertyCompany
 }
@@ -30,7 +32,7 @@ export const APARTMENT_MANAGER = 'RPM Living'
 export const apartmentCompanyId = (community: ApartmentCommunity) => community.companyId || 'rpm-living'
 export const apartmentCompany = (community: ApartmentCommunity) => getPropertyCompany(apartmentCompanyId(community)) || community.companyDetails!
 export const apartmentSource = (community: ApartmentCommunity) => community.source || APARTMENT_SOURCE
-export const APARTMENT_COMMUNITIES: readonly ApartmentCommunity[] = [
+const BASE_APARTMENT_COMMUNITIES: readonly ApartmentCommunity[] = [
   {
     slug: 'alza-dwellings', name: 'ALZA Dwellings', address: '1831 Murchison Drive', zip: '79902', phone: '9152655427', website: 'https://www.alzadwellings.com/', type: 'apartments',
     summary: { en: 'Studio, one- and two-bedroom apartments on Murchison Drive near Scenic Drive.', es: 'Estudios y apartamentos de una y dos recámaras en Murchison Drive, cerca de Scenic Drive.' },
@@ -84,6 +86,11 @@ export const APARTMENT_COMMUNITIES: readonly ApartmentCommunity[] = [
   ...M7_APARTMENTS,
   ...RESEARCHED_APARTMENTS,
 ]
+
+export const APARTMENT_COMMUNITIES: readonly ApartmentCommunity[] = BASE_APARTMENT_COMMUNITIES.map(property => {
+  const research = APARTMENT_RESEARCH[property.slug]
+  return research ? { ...property, summary: research.summary, highlights: research.highlights, research } : property
+})
 
 export function communityTypeLabel(type: CommunityType, locale: ApartmentLocale) {
   return PROPERTY_TYPES[type][locale]

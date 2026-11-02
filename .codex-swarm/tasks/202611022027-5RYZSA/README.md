@@ -8,6 +8,7 @@ depends_on: []
 tags: []
 comments:
   - { author: "ORCHESTRATOR", body: "start: enrich29local RPM and M7 entries with bilingual sourced content and69photo references | details: add website buttons and safe destinations across listing tiers; preserve manager edits and claim contacts; verify58localized pages and mocked claim flows" }
+  - { author: "ORCHESTRATOR", body: "start: include researched apartment data, gallery and Census components | details: add safe website URL normalization and manager-override regression tests" }
 doc_version: 2
 doc_updated_at: "2026-11-02T20:38:55+00:00"
 doc_updated_by: "agentctl"

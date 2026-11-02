@@ -9,6 +9,16 @@ export type ListingOutboundChannel =
   | 'action_menu'
   | 'post_cta'
 
+export function listingWebsiteHref(value: string | null | undefined): string | null {
+  const text = String(value || '').trim()
+  if (!text || /\s/.test(text)) return null
+  try {
+    const url = new URL(/^[a-z][a-z\d+.-]*:/i.test(text) ? text : `https://${text}`)
+    if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password || !url.hostname.includes('.')) return null
+    return url.toString()
+  } catch { return null }
+}
+
 // Directory phone values come from owners and public-source imports, so keep
 // only dialable characters and suppress links that contain no digits.
 export function listingPhoneHref(value: string | null | undefined): string | null {
