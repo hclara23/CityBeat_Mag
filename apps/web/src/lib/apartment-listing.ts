@@ -1,6 +1,7 @@
 import { listingWebsiteHref } from './listing-outbound'
 import type { Firestore } from 'firebase-admin/firestore'
 import { APARTMENT_COMMUNITIES, getApartment, type ApartmentCommunity } from './apartments'
+import { managedPropertyResearch } from './property-gallery'
 
 export class ApartmentLinkError extends Error {}
 const clean = (value: unknown) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -81,10 +82,7 @@ export function approvedApartment(property: ApartmentCommunity, data?: Record<st
   // Apartment cards format US leasing lines. Never turn a non-US/invalid update
   // into a different destination by blindly adding +1.
   const updatedPhone = String(data.phone || '').replace(/\D/g, '').match(/^(?:1)?([2-9]\d{2}[2-9]\d{6})$/)?.[1]
-  const research = property.research && Array.isArray(data.gallery_urls) ? { ...property.research,
-    photos: data.gallery_urls.filter((url): url is string => typeof url === 'string' && /^https?:\/\//.test(url) && !!listingWebsiteHref(url)).slice(0, 30).map(url =>
-      property.research!.photos.find(photo => photo.url === url) || { url, sourceUrl: listingWebsiteHref(String(data.website)) || property.website,
-        caption: { en: 'Photo supplied by the listing manager', es: 'Foto proporcionada por la administración' } }) } : property.research
+  const research = managedPropertyResearch(data, listingWebsiteHref(String(data.website)) || property.website, property.research)
   return { ...property, research, name: text('name', property.name), address: text('address', property.address),
     phone: updatedPhone || property.phone,
     website: /^https?:\/\//.test(String(data.website)) ? String(data.website) : property.website,
