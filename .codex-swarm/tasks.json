@@ -11776,12 +11776,44 @@
       "doc_updated_by": "agentctl",
       "description": "Verify Haggerty Company and Century21 Haggerty apartment-community portfolios, add only source-confirmed community listings with bilingual details, official photo provenance and website/claim links, and document incomplete inventory.",
       "doc": "## Summary\n\nVerify both Haggerty rental operations and prepare source-backed bilingual apartment-community entries without implying a complete managed portfolio.\n\n## Context\n\nContinuation of the existing approved directory enrichment workflow. User requested Haggerty Company and Century21 Haggerty apartment complexes and rental communities, excluding individual homes and duplexes. Official regional sites share an AppFolio feed; the existing combined Haggerty company ID and alias are preserved, without asserting a legal entity merger.\n\n## Scope\n\nAdd three address-based apartment-building entries:8636Lawson in ElPaso,1402S Espina and1705Payne triplex in LasCruces. Nine official photos, bilingual summaries/layouts/unit-specific amenities, website links and review-gated claims. Update company inventory note and directory geography. Label vacancy-derived records as listed by, not confirmed whole-building management. Suppress ElPasoCounty statistics outside supported Texas cities.\n\n## Risks\n\nPublic vacancies do not establish a complete portfolio or management of all building units. Espina photos explicitly depict a similar unit. Availability and terms change; no advertised rent or promotion copied. No branded community names invented. External photos can become unavailable and no reuse license is asserted. Excluded condos, duplexes and stale syndicated leads. No production mutations, texts, charges or outreach.\n\n## Verify Steps\n\nPassed type-check and diff-check. Passed38targeted tests plus rerun18corporate tests including a new shared-contact/NM-address regression (39distinct tests). Real text-claim handlers tested with mocked providers across101catalog records in both languages. All9photo URLs fetched/decoded and visually inspected. Six localized HTTP previews passed summaries, photos, website and claim links, unit-scope notes and correct county context. Both Haggerty portfolio previews show3entries. Browser confirmed Spanish photos loaded, official website destination, no ElPasoCounty context on NM page, and mobile390px has no horizontal overflow with48px claim button. Read-only reviewer finding about two management labels resolved.\n\n## Rollback Plan\n\nRevert this implementation before publishing. If deployed, restore the previous production revision citybeat-web-00471-lur through the standard release workflow. No live records were mutated.\n\n## Notes\n\nUser approved up to USD1 Google Cloud deployment costs for this publication; one release completed with no new subscription. Research provenance and exclusions are in haggerty-research.json. Three currently supported apartment-building locations do not establish the complete portfolio. Lawson contact9159955616; Espina and Payne shared published leasing contact9157573445. Phone verification alone does not grant editing authority; admin review remains required. Espina photos depict a similar unit. Existing combined Haggerty profile and Century21 alias retained; no legal entity relationship asserted. No production records, real texts, claims or cards were mutated by verification.\n\n## Changes Summary\n\nPublished commit 9fe2526 through successful GitHub run 41541559552. Cloud Build 42fcf218-e409-497f-9981-34861f1d8b1d succeeded from 2026-11-02T23:00:05Z to 23:07:54Z; Cloud Run citybeat-web-00473-dur serves 100 percent traffic. All six live bilingual detail pages and both company portfolios passed content, website, claim-link, photo-reference and county-context checks. Browser confirmed three Spanish Espina photos loaded, correct external destination and no El Paso County data. Proof: haggerty-es-live.png. Health and payments health returned 200. One build under the approved USD1 cap; actual billing not finalized. No live texts, claims, outreach or payment charges."
+    },
+    {
+      "id": "202611030038-HX9WKK",
+      "title": "Build reviewed bilingual property website and brochure importer",
+      "status": "DONE",
+      "priority": "high",
+      "owner": "ORCHESTRATOR",
+      "depends_on": [],
+      "tags": [],
+      "commit": {
+        "hash": "dd8f5498a7802412476b609f42e12b9c2a3fc323",
+        "message": "✨ HX9WKK start: implement reviewed bilingual property imports | details: add disabled-by-default bounded Firecrawl and offline Docling adapters plus optional gated bilingual AI drafting; add source and duplicate review with per-field compare-and-set and photo-rights confirmation; preserve corporate permissions billing gates and pending publication; verify 35 isolated tests real offline PDF conversion bilingual browser flow and production build"
+      },
+      "comments": [
+        {
+          "author": "ORCHESTRATOR",
+          "body": "start: implement approved local bilingual property importer | details: providers remain disabled and no deployment or spending authorized"
+        },
+        {
+          "author": "CODER",
+          "body": "start: implement reviewed bilingual property imports | details: add disabled-by-default bounded Firecrawl and offline Docling adapters plus optional gated bilingual AI drafting; add source and duplicate review with per-field compare-and-set and photo-rights confirmation; preserve corporate permissions billing gates and pending publication; verify 35 isolated tests real offline PDF conversion bilingual browser flow and production build"
+        },
+        {
+          "author": "ORCHESTRATOR",
+          "body": "verified: complete local property import implementation with 35 passing tests, real offline PDF adapter and bilingual functional browser checks | details: TypeScript and isolated production build pass; no paid activation or deployment; operating cost assumptions and limitations documented"
+        }
+      ],
+      "doc_version": 2,
+      "doc_updated_at": "2026-11-03T00:50:17+00:00",
+      "doc_updated_by": "agentctl",
+      "description": "Approved local-only Firecrawl and Docling integration: portfolio import UI, bounded source extraction, English and Spanish editable drafts, provenance and duplicate review, permissions and preservation of existing edits. No paid usage or deployment. CODER implementation then TESTER and REVIEWER validation then INTEGRATOR closure.",
+      "doc": "## Summary\n\nBuild locally tested property website and brochure imports into reviewed English and Spanish drafts. User approved implementation, with no spending or deployment.\n\n## Scope\n\nCODER implements Firecrawl adapter, Docling brochure integration and portfolio draft review; TESTER checks import and authorization behavior; REVIEWER audits protections; INTEGRATOR records local results and operating cost assumptions. No production mutations or paid calls.\n\n## Risks\n\nUntrusted websites and documents, conflicting or incomplete property facts, duplicate records, inaccurate translation, unintended provider spending. Providers disabled by default and drafts require human review.\n\n## Verify Steps\n\nPassed 35 importer and portfolio tests; TypeScript check; isolated Next production build (15 static pages, existing ApartmentGallery img warnings only); EN and ES functional Chrome prepare-review-submit flows with synthetic backend. Real offline Docling PDF conversion passed18.251s cold and actual Node adapter6.837s warmed cache with bilingual facts. Existing four Docling pilot tests also passed. Firecrawl and optional AI use mocks only; no paid calls or live database writes.\n\n## Rollback Plan\n\nKeep provider activation disabled and revert task implementation commit if local verification fails. No deployed resources or production data require rollback.\n\n## Notes\n\nLocal-only feature: providers off and allowances zero. Approved corporate owners can import one page or text PDF/DOCX at a time. Unknown details need review; fact templates are not full source translation; optional AI remains disabled. Scanned PDFs, brochure image extraction, staff imports into unclaimed firms and hosted worker packaging are outside this local implementation. Costs and measured limits are in docs/property-import-costs.md. REVIEWER found no blocking issues after gallery and PDF parsing fixes."
     }
   ],
   "meta": {
     "schema_version": 1,
     "managed_by": "agentctl",
     "checksum_algo": "sha256",
-    "checksum": "ab1028340cd6b8b716e779537a47322bfbce6b7816b0e783133780070567a329"
+    "checksum": "b21e0eb5e49d71832e9298957997815c4d293eeaa55f3da3fdfd9c53690b2ab1"
   }
 }
